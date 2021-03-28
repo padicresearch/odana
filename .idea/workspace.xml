@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="BuildServerSettings">
+    <treeState key="project">
+      <selectedPath>
+        <pathElement>
+          <option name="myNodeId" value="helperText" />
+          <option name="myNodeType" value="jetbrains.buildServer.tree.descriptors.LinkedTextDescriptor" />
+        </pathElement>
+      </selectedPath>
+    </treeState>
+  </component>
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
+    <generated />
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" ENABLED="true" />
+    </configurations>
+  </component>
+  <component name="CargoProjects">
+    <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
+    <cargoProject FILE="$PROJECT_DIR$/merkle/Cargo.toml" />
+    <cargoProject FILE="$PROJECT_DIR$/eddsa/Cargo.toml" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="checkpoint">
+      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/lib.rs" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Rust File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MacroExpansionManager">
+    <option name="directoryName" value="qgmqrl00" />
+  </component>
+  <component name="ProjectId" id="1lJ1WhFiO9Q9HPjVl0HKgbOyuh4" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="ASKED_SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="cf.first.check.clang-format" value="false" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
+    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
+  </component>
+  <component name="RunManager" selected="Cargo.Test lib::tests">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test lib::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package merkle --lib tests" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
+      <option name="channel" value="DEFAULT" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::it_works" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package merkle --lib tests::it_works -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
+      <option name="channel" value="DEFAULT" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::test_h" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package merkle --lib tests::test_h -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
+      <option name="channel" value="DEFAULT" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::test_proof" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package merkle --lib tests::test_proof -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
+      <option name="channel" value="DEFAULT" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="test --package tuchain --lib tests" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Cargo.Test lib::tests" />
+        <item itemvalue="Cargo.Test tests::test_proof" />
+        <item itemvalue="Cargo.Test tests::test_h" />
+        <item itemvalue="Cargo.Test tests::it_works" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="RustProjectSettings">
+    <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
+    <option name="version" value="2" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="" />
+      <created>1607300413189</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1607300413189</updated>
+      <workItem from="1607300414474" duration="34587000" />
+      <workItem from="1607738239932" duration="448000" />
+      <workItem from="1607740585881" duration="9071000" />
+      <workItem from="1616938998852" duration="800000" />
+    </task>
+    <task id="LOCAL-00001" summary="merkle tree">
+      <created>1607372272366</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1607372272366</updated>
+    </task>
+    <task id="LOCAL-00002" summary="merkle tree">
+      <created>1607372296246</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1607372296246</updated>
+    </task>
+    <task id="LOCAL-00003" summary="checkpoint">
+      <created>1607377273657</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1607377273658</updated>
+    </task>
+    <task id="LOCAL-00004" summary="checkpoint">
+      <created>1607441282525</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1607441282525</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="merkle tree" />
+    <MESSAGE value="checkpoint" />
+    <option name="LAST_COMMIT_MESSAGE" value="checkpoint" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="100" y="100" width="1480" height="850" key="#com.intellij.execution.junit2.states.ComparisonFailureState$DiffDialog" timestamp="1607381840533">
+      <screen x="0" y="23" width="1680" height="971" />
+    </state>
+    <state x="100" y="100" width="1480" height="850" key="#com.intellij.execution.junit2.states.ComparisonFailureState$DiffDialog/0.23.1680.971@0.23.1680.971" timestamp="1607381840533" />
+    <state x="653" y="248" key="#com.intellij.ide.util.MemberChooser" timestamp="1607816256157">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state x="653" y="248" key="#com.intellij.ide.util.MemberChooser/0.0.1680.1050@0.0.1680.1050" timestamp="1607816256157" />
+    <state width="1636" height="394" key="GridCell.Tab.0.bottom" timestamp="1607848179951">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state width="1636" height="394" key="GridCell.Tab.0.bottom/0.0.1680.1050@0.0.1680.1050" timestamp="1607848179951" />
+    <state width="1636" height="394" key="GridCell.Tab.0.bottom/0.23.1680.971@0.23.1680.971" timestamp="1607740554281" />
+    <state width="1636" height="394" key="GridCell.Tab.0.center" timestamp="1607848179950">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state width="1636" height="394" key="GridCell.Tab.0.center/0.0.1680.1050@0.0.1680.1050" timestamp="1607848179950" />
+    <state width="1636" height="394" key="GridCell.Tab.0.center/0.23.1680.971@0.23.1680.971" timestamp="1607740554277" />
+    <state width="1636" height="394" key="GridCell.Tab.0.left" timestamp="1607848179950">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state width="1636" height="394" key="GridCell.Tab.0.left/0.0.1680.1050@0.0.1680.1050" timestamp="1607848179950" />
+    <state width="1636" height="394" key="GridCell.Tab.0.left/0.23.1680.971@0.23.1680.971" timestamp="1607740554273" />
+    <state width="1636" height="394" key="GridCell.Tab.0.right" timestamp="1607848179951">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state width="1636" height="394" key="GridCell.Tab.0.right/0.0.1680.1050@0.0.1680.1050" timestamp="1607848179951" />
+    <state width="1636" height="394" key="GridCell.Tab.0.right/0.23.1680.971@0.23.1680.971" timestamp="1607740554279" />
+    <state width="1636" height="394" key="GridCell.Tab.1.bottom" timestamp="1607848179954">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state width="1636" height="394" key="GridCell.Tab.1.bottom/0.0.1680.1050@0.0.1680.1050" timestamp="1607848179954" />
+    <state width="1636" height="394" key="GridCell.Tab.1.center" timestamp="1607848179953">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state width="1636" height="394" key="GridCell.Tab.1.center/0.0.1680.1050@0.0.1680.1050" timestamp="1607848179953" />
+    <state width="1636" height="394" key="GridCell.Tab.1.left" timestamp="1607848179951">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state width="1636" height="394" key="GridCell.Tab.1.left/0.0.1680.1050@0.0.1680.1050" timestamp="1607848179951" />
+    <state width="1636" height="394" key="GridCell.Tab.1.right" timestamp="1607848179954">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state width="1636" height="394" key="GridCell.Tab.1.right/0.0.1680.1050@0.0.1680.1050" timestamp="1607848179954" />
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2" timestamp="1607372274310">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2/0.0.1680.1050@0.0.1680.1050" timestamp="1607372274310" />
+    <state x="505" y="233" width="670" height="676" key="search.everywhere.popup" timestamp="1607367505669">
+      <screen x="0" y="0" width="1680" height="1050" />
+    </state>
+    <state x="505" y="233" width="670" height="676" key="search.everywhere.popup/0.0.1680.1050@0.0.1680.1050" timestamp="1607367505669" />
+  </component>
+</project>
