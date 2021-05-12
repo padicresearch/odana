@@ -33,7 +33,10 @@
     <cargoProject FILE="$PROJECT_DIR$/eddsa/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="Refactor merkle tree">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo clippy">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/src/errors.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/errors.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/merkle/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -53,6 +56,14 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="qgmqrl00" />
@@ -83,7 +94,7 @@
     <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
     <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
-  <component name="RunManager" selected="Cargo.Clippy">
+  <component name="RunManager" selected="Cargo.Test">
     <configuration name="Clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clippy" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -230,7 +241,7 @@
       <workItem from="1607740585881" duration="9071000" />
       <workItem from="1616938998852" duration="800000" />
       <workItem from="1620768182434" duration="1346000" />
-      <workItem from="1620843631274" duration="9767000" />
+      <workItem from="1620843631274" duration="12234000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -267,7 +278,14 @@
       <option name="project" value="LOCAL" />
       <updated>1620856719678</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="cargo clippy">
+      <created>1620858599630</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1620858599630</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -290,6 +308,7 @@
     <MESSAGE value="merkle tree" />
     <MESSAGE value="checkpoint" />
     <MESSAGE value="Refactor merkle tree" />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor merkle tree" />
+    <MESSAGE value="cargo clippy" />
+    <option name="LAST_COMMIT_MESSAGE" value="cargo clippy" />
   </component>
 </project>

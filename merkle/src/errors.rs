@@ -1,25 +1,12 @@
-use std::error::Error;
-use std::fmt::{Display, Formatter};
+use thiserror::Error;
 
-#[derive(Debug)]
-pub struct HashFunctionError;
 
-impl Error for HashFunctionError {}
-
-impl Display for HashFunctionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
-    }
+#[derive(Error, Debug)]
+pub enum MerkleError {
+    #[error("hash of item already exist")]
+    MerkleTreeUpdateError,
+    #[error("hash function error")]
+    HashFunctionError,
+    #[error("unknown merkle error")]
+    Unknown,
 }
-
-#[derive(Debug)]
-pub struct MerkleTreeUpdateError;
-
-impl Error for MerkleTreeUpdateError {}
-
-impl Display for MerkleTreeUpdateError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "hash of item already exist")
-    }
-}
-

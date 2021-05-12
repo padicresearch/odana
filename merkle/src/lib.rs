@@ -2,7 +2,6 @@ mod errors;
 
 use sha2::{Sha256, Digest};
 use crate::errors::*;
-use serde::{Serialize, Deserialize};
 use bloomfilter::Bloom;
 use std::hash::{Hash, Hasher};
 
@@ -13,7 +12,7 @@ pub trait HashFunction {
     fn digest(&self, input: &[u8]) -> [u8; HASH_LEN];
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Leave([u8; HASH_LEN]);
 
 impl AsRef<[u8; HASH_LEN]> for Leave {
@@ -55,7 +54,7 @@ pub struct Merkle<H> where H: HashFunction {
     hasher: H,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct SHA256Hasher {}
 
 impl HashFunction for SHA256Hasher {
@@ -92,7 +91,7 @@ impl<H: HashFunction> Merkle<H> {
 }
 
 impl<H: HashFunction> Merkle<H> {
-    pub fn update(&mut self, item: &[u8]) -> Result<[u8; HASH_LEN], MerkleTreeUpdateError> {
+    pub fn update(&mut self, item: &[u8]) -> Result<[u8; HASH_LEN], MerkleError> {
         if !self.bloom_filter.check(item) {
             let hash = self.hasher.digest(item);
             let leave = Leave(hash);
@@ -103,7 +102,7 @@ impl<H: HashFunction> Merkle<H> {
 
 
 
-        Err(MerkleTreeUpdateError)
+        Err(MerkleError::MerkleTreeUpdateError)
     }
 
     pub fn finalize(&mut self) -> Option<&[u8;HASH_LEN]> {
@@ -148,9 +147,15 @@ impl<H: HashFunction> Merkle<H> {
         self._calculate_root(&next)
     }
 
-    pub fn proof(&self, item: [u8;HASH_LEN], out: &mut Vec<(usize, (Leave, Leave))>) {
-        let item = Leave(item);
-        self._proof(item, &self.leaves, out);
+    pub fn proof(&self, item: &[u8]) ->  Vec<(usize, (Leave, Leave))> {
+        if !self.bloom_filter.check(item) {
+            return vec![]
+        }
+        let hash = self.hasher.digest(item);
+        let mut proofs = Vec::new();
+        let valid_leave = Leave(hash);
+        self._proof(valid_leave, &self.leaves, &mut proofs);
+        proofs
     }
 
     fn _proof(&self, item: Leave, leaves: &[Leave], proof: &mut Vec<(usize, (Leave, Leave))>) {
@@ -180,8 +185,15 @@ impl<H: HashFunction> Merkle<H> {
         self._proof(item, &next, proof)
     }
 
-    pub fn validate_proof(&self, item: [u8;HASH_LEN], proof: &[(usize, (Leave, Leave))]) -> [u8;HASH_LEN] {
-        let root = proof.iter().fold(item, |root, (idx, pair)| {
+    pub fn validate_proof(&self, item: &[u8], proof: &[(usize, (Leave, Leave))]) -> Option<[u8;HASH_LEN]> {
+
+        if !self.bloom_filter.check(item) {
+            return None
+        }
+
+        let valid_leaf = self.hasher.digest(item);
+
+        let root = proof.iter().fold(valid_leaf, |root, (idx, pair)| {
             if *idx == 1 {
                 hash_pair(&self.hasher, (&pair.0.as_ref(), &root))
             } else {
@@ -189,7 +201,7 @@ impl<H: HashFunction> Merkle<H> {
             }
         });
 
-        root
+        Some(root)
     }
 }
 
@@ -245,12 +257,9 @@ mod tests {
         let merkle_root = root.unwrap().clone();
 
 
-        let hasher = SHA256Hasher {};
-        let item = hasher.digest("baby".as_bytes());
-        let mut proof = Vec::new();
-        merkle.proof(item.clone(), &mut proof);
+        let proof = merkle.proof("baby".as_bytes());
         println!("Merkel Root: {:?}", merkle_root);
-        assert_eq!(merkle_root, merkle.validate_proof(item, &proof))
+        assert_eq!(merkle_root, merkle.validate_proof("baby".as_bytes(), &proof).unwrap())
     }
 
     #[test]
