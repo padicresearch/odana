@@ -33,9 +33,7 @@
     <cargoProject FILE="$PROJECT_DIR$/eddsa/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="checkpoint">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/merkle/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/Cargo.toml" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="Refactor merkle tree">
       <change beforePath="$PROJECT_DIR$/merkle/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -85,7 +83,22 @@
     <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
     <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
-  <component name="RunManager" selected="Cargo.Test lib::tests">
+  <component name="RunManager" selected="Cargo.Clippy">
+    <configuration name="Clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="clippy" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test lib::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package merkle --lib tests" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
@@ -103,6 +116,21 @@
     </configuration>
     <configuration name="Test tests::it_works" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package merkle --lib tests::it_works -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::test_error_for_already_inserted_item" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package merkle --lib tests::test_error_for_already_inserted_item -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -166,8 +194,18 @@
         <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <list>
+      <item itemvalue="Cargo.Test" />
+      <item itemvalue="Cargo.Clippy" />
+      <item itemvalue="Cargo.Test lib::tests" />
+      <item itemvalue="Cargo.Test tests::it_works" />
+      <item itemvalue="Cargo.Test tests::test_error_for_already_inserted_item" />
+      <item itemvalue="Cargo.Test tests::test_h" />
+      <item itemvalue="Cargo.Test tests::test_proof" />
+    </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::test_error_for_already_inserted_item" />
         <item itemvalue="Cargo.Test lib::tests" />
         <item itemvalue="Cargo.Test tests::test_proof" />
         <item itemvalue="Cargo.Test tests::test_h" />
@@ -192,7 +230,7 @@
       <workItem from="1607740585881" duration="9071000" />
       <workItem from="1616938998852" duration="800000" />
       <workItem from="1620768182434" duration="1346000" />
-      <workItem from="1620843631274" duration="8014000" />
+      <workItem from="1620843631274" duration="9767000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -222,7 +260,14 @@
       <option name="project" value="LOCAL" />
       <updated>1607441282525</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Refactor merkle tree">
+      <created>1620856719677</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1620856719678</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -244,6 +289,7 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="merkle tree" />
     <MESSAGE value="checkpoint" />
-    <option name="LAST_COMMIT_MESSAGE" value="checkpoint" />
+    <MESSAGE value="Refactor merkle tree" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor merkle tree" />
   </component>
 </project>

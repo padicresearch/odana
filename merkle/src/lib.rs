@@ -1,11 +1,8 @@
 mod errors;
 
 use sha2::{Sha256, Digest};
-use std::collections::HashSet;
 use crate::errors::*;
-use std::ops::Index;
 use serde::{Serialize, Deserialize};
-use hex;
 use bloomfilter::Bloom;
 use std::hash::{Hash, Hasher};
 
@@ -49,12 +46,12 @@ impl Eq for Leave {}
 ///
 /// # Merkle Tree
 ///
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Merkle<H> where H: HashFunction {
     root: Option<[u8; HASH_LEN]>,
     pre_leaves_len: usize,
     leaves: Vec<Leave>,
-    bloom_filter: Bloom<Leave>,
+    bloom_filter: Bloom<[u8]>,
     hasher: H,
 }
 
@@ -63,7 +60,7 @@ pub struct SHA256Hasher {}
 
 impl HashFunction for SHA256Hasher {
     fn digest(&self, input: &[u8]) -> [u8; HASH_LEN] {
-        let out = Sha256::digest(input.as_ref());
+        let out = Sha256::digest(input);
         out.into()
     }
 }
@@ -96,13 +93,16 @@ impl<H: HashFunction> Merkle<H> {
 
 impl<H: HashFunction> Merkle<H> {
     pub fn update(&mut self, item: &[u8]) -> Result<[u8; HASH_LEN], MerkleTreeUpdateError> {
-        let hash = self.hasher.digest(item);
-        let leave = Leave(hash.clone());
-        if !self.bloom_filter.check(&leave) {
-            self.bloom_filter.set(&leave);
+        if !self.bloom_filter.check(item) {
+            let hash = self.hasher.digest(item);
+            let leave = Leave(hash);
             self.leaves.push(leave);
+            self.bloom_filter.set(item);
             return Ok(hash)
         }
+
+
+
         Err(MerkleTreeUpdateError)
     }
 
@@ -126,13 +126,12 @@ impl<H: HashFunction> Merkle<H> {
         self.root = self._calculate_root(&self.leaves)
     }
 
-    fn _calculate_root(&self, leaves : &Vec<Leave>) -> Option<[u8;HASH_LEN]> {
+    fn _calculate_root(&self, leaves :  &[Leave]) -> Option<[u8;HASH_LEN]> {
 
         if leaves.is_empty() {
             return None;
         }
         let chucks = leaves.chunks(2);
-        //let d = chucks.nth(0);
         if chucks.len() == 1 {
             let c = chucks.into_iter().next().unwrap();
             let p = hash_pair(&self.hasher, (c[0].as_ref(), c[1].as_ref()));
@@ -150,11 +149,11 @@ impl<H: HashFunction> Merkle<H> {
     }
 
     pub fn proof(&self, item: [u8;HASH_LEN], out: &mut Vec<(usize, (Leave, Leave))>) {
-        let mut item = Leave(item);
+        let item = Leave(item);
         self._proof(item, &self.leaves, out);
     }
 
-    fn _proof(&self, item: Leave, leaves: &Vec<Leave>, proof: &mut Vec<(usize, (Leave, Leave))>) {
+    fn _proof(&self, item: Leave, leaves: &[Leave], proof: &mut Vec<(usize, (Leave, Leave))>) {
         if leaves.is_empty() {
             return;
         }
@@ -181,7 +180,7 @@ impl<H: HashFunction> Merkle<H> {
         self._proof(item, &next, proof)
     }
 
-    pub fn validate_proof(&self, item: [u8;HASH_LEN], proof: &Vec<(usize, (Leave, Leave))>) -> [u8;HASH_LEN] {
+    pub fn validate_proof(&self, item: [u8;HASH_LEN], proof: &[(usize, (Leave, Leave))]) -> [u8;HASH_LEN] {
         let root = proof.iter().fold(item, |root, (idx, pair)| {
             if *idx == 1 {
                 hash_pair(&self.hasher, (&pair.0.as_ref(), &root))
@@ -252,6 +251,13 @@ mod tests {
         merkle.proof(item.clone(), &mut proof);
         println!("Merkel Root: {:?}", merkle_root);
         assert_eq!(merkle_root, merkle.validate_proof(item, &proof))
+    }
+
+    #[test]
+    fn test_error_for_already_inserted_item() {
+        let mut merkle = Merkle::default();
+        merkle.update("hello".as_bytes());
+        assert!(merkle.update("hello".as_bytes()).is_err());
     }
 
     #[test]
