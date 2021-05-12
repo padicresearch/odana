@@ -1,25 +1,60 @@
 mod errors;
 
-use linked_hash_set::LinkedHashSet;
 use sha2::{Sha256, Digest};
 use std::collections::HashSet;
 use crate::errors::*;
 use std::ops::Index;
 use serde::{Serialize, Deserialize};
 use hex;
+use bloomfilter::Bloom;
+use std::hash::{Hash, Hasher};
+
+const HASH_LEN: usize = 32;
+const BITMAP_SIZE: usize = 32 * 1024 * 1024;
 
 pub trait HashFunction {
-    fn digest(&self, input: &[u8]) -> String;
+    fn digest(&self, input: &[u8]) -> [u8; HASH_LEN];
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Leave([u8; HASH_LEN]);
+
+impl AsRef<[u8; HASH_LEN]> for Leave {
+    fn as_ref(&self) -> &[u8; HASH_LEN] {
+        &self.0
+    }
+}
+
+impl From<[u8; HASH_LEN]> for Leave {
+    fn from(hash: [u8; 32]) -> Self {
+        Leave(hash)
+    }
+}
+
+impl Hash for Leave {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write(&self.0)
+    }
+}
+
+impl PartialEq for Leave {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(other.as_ref())
+    }
+}
+
+impl Eq for Leave {}
+
 
 ///
 /// # Merkle Tree
 ///
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Merkle<H> where H: HashFunction {
-    root: Option<String>,
+    root: Option<[u8; HASH_LEN]>,
     pre_leaves_len: usize,
-    leaves: LinkedHashSet<String>,
+    leaves: Vec<Leave>,
+    bloom_filter: Bloom<Leave>,
     hasher: H,
 }
 
@@ -27,9 +62,9 @@ pub struct Merkle<H> where H: HashFunction {
 pub struct SHA256Hasher {}
 
 impl HashFunction for SHA256Hasher {
-    fn digest(&self, input: &[u8]) -> String {
+    fn digest(&self, input: &[u8]) -> [u8; HASH_LEN] {
         let out = Sha256::digest(input.as_ref());
-        hex::encode(out)
+        out.into()
     }
 }
 
@@ -40,37 +75,38 @@ impl Default for Merkle<SHA256Hasher> {
         Merkle {
             pre_leaves_len: 0,
             root: None,
-            leaves: LinkedHashSet::new(),
+            leaves: Vec::new(),
+            bloom_filter: Bloom::new(BITMAP_SIZE, 1000),
             hasher,
         }
     }
 }
 
 impl<H: HashFunction> Merkle<H> {
-    pub fn new(hasher: H) -> Self {
+    pub fn new(hasher: H, capacity: usize) -> Self {
         Merkle {
             pre_leaves_len: 0,
             root: None,
-            leaves: LinkedHashSet::new(),
+            leaves: Vec::with_capacity(capacity),
+            bloom_filter: Bloom::new(BITMAP_SIZE, capacity),
             hasher,
         }
     }
 }
 
 impl<H: HashFunction> Merkle<H> {
-    pub fn update(&mut self, item: &[u8]) -> Result<String, MerkleTreeUpdateError> {
+    pub fn update(&mut self, item: &[u8]) -> Result<[u8; HASH_LEN], MerkleTreeUpdateError> {
         let hash = self.hasher.digest(item);
-        match self.leaves.insert_if_absent(hash.clone()) {
-            true => {
-                Ok(hash)
-            }
-            false => {
-                Err(MerkleTreeUpdateError)
-            }
+        let leave = Leave(hash.clone());
+        if !self.bloom_filter.check(&leave) {
+            self.bloom_filter.set(&leave);
+            self.leaves.push(leave);
+            return Ok(hash)
         }
+        Err(MerkleTreeUpdateError)
     }
 
-    pub fn finalize(&mut self) -> Option<String> {
+    pub fn finalize(&mut self) -> Option<&[u8;HASH_LEN]> {
         if self.pre_leaves_len < self.leaves.len() {
             self.calculate_root();
             self.pre_leaves_len = self.leaves.len();
@@ -81,89 +117,89 @@ impl<H: HashFunction> Merkle<H> {
                 None
             }
             Some(root) => {
-                Some(root.clone())
+                Some(root)
             }
         }
     }
 
     fn calculate_root(&mut self) {
-        let mut items = vec![];
-        items.extend(self.leaves.iter().map(|s| s.to_owned()));
-        self.root = self._calculate_root(items)
+        self.root = self._calculate_root(&self.leaves)
     }
 
-    fn _calculate_root(&self, items: Vec<String>) -> Option<String> {
-        if items.is_empty() {
+    fn _calculate_root(&self, leaves : &Vec<Leave>) -> Option<[u8;HASH_LEN]> {
+
+        if leaves.is_empty() {
             return None;
         }
-        let mut leaves = items;
-        if leaves.len() % 2 != 0 {
-            leaves.push(leaves.last().unwrap().to_owned())
-        }
-        let chucks = leaves.chunks_exact(2);
+        let chucks = leaves.chunks(2);
         //let d = chucks.nth(0);
         if chucks.len() == 1 {
             let c = chucks.into_iter().next().unwrap();
-            let p = hash_pair(&self.hasher, (&c[0], &c[1]));
+            let p = hash_pair(&self.hasher, (c[0].as_ref(), c[1].as_ref()));
             return Some(p);
         }
-        let mut leaves = Vec::new();
+        let mut next = Vec::with_capacity(leaves.len() / 2 );
         for c in chucks {
-            let hash = hash_pair(&self.hasher, (&c[0], &c[1]));
-            leaves.push(hash)
+            let left = &c[0];
+            let right = c.get(1).unwrap_or(&left);
+            let hash = hash_pair(&self.hasher, (left.as_ref(), right.as_ref()));
+            next.push(Leave(hash))
         }
 
-        self._calculate_root(leaves)
+        self._calculate_root(&next)
     }
 
-    pub fn proof(&self, item: String, out: &mut Vec<(usize, (String, String))>) {
-        let mut items = vec![];
-        items.extend(self.leaves.iter().map(|s| s.to_owned()));
-        self._proof(item, items, out);
+    pub fn proof(&self, item: [u8;HASH_LEN], out: &mut Vec<(usize, (Leave, Leave))>) {
+        let mut item = Leave(item);
+        self._proof(item, &self.leaves, out);
     }
 
-    fn _proof(&self, item: String, items: Vec<String>, proof: &mut Vec<(usize, (String, String))>) {
-        if items.is_empty() {
+    fn _proof(&self, item: Leave, leaves: &Vec<Leave>, proof: &mut Vec<(usize, (Leave, Leave))>) {
+        if leaves.is_empty() {
             return;
         }
-        if items.len() == 1 {
+        if leaves.len() == 1 {
             return;
         }
+
+        let chucks = leaves.chunks(2);
+        let mut next = Vec::new();
         let mut item = item;
-        let mut leaves = items;
-        if leaves.len() % 2 != 0 {
-            leaves.push(leaves.last().unwrap().to_owned())
-        }
-        let chucks = leaves.chunks_exact(2);
-        let mut leaves = Vec::new();
         for c in chucks {
-            let hash = hash_pair(&self.hasher, (&c[0], &c[1]));
-            if c.contains(&item) {
-                let idx = c.iter().position(|i| item.eq(i)).unwrap();
-                proof.push((idx, (c[0].to_owned(), c[1].to_owned())));
-                item = hash.clone();
+            let left = &c[0];
+            let right = c.get(1).unwrap_or(&left);
+            let hash = hash_pair(&self.hasher, (left.as_ref(), right.as_ref()));
+            if &item == left {
+                proof.push((0, (left.clone(), right.clone())));
+                item = Leave(hash);
+            }else if &item == right {
+                proof.push((1, (left.clone(), right.clone())));
+                item = Leave(hash);
             }
-            leaves.push(hash)
+            next.push(Leave(hash))
         }
-        self._proof(item, leaves, proof)
+        self._proof(item, &next, proof)
     }
 
-    pub fn validate_proof(&self, item: String, proof: &Vec<(usize, (String, String))>) -> String {
+    pub fn validate_proof(&self, item: [u8;HASH_LEN], proof: &Vec<(usize, (Leave, Leave))>) -> [u8;HASH_LEN] {
         let root = proof.iter().fold(item, |root, (idx, pair)| {
             if *idx == 1 {
-                hash_pair(&self.hasher, (&pair.0, &root))
+                hash_pair(&self.hasher, (&pair.0.as_ref(), &root))
             } else {
-                hash_pair(&self.hasher, (&root, &pair.1))
+                hash_pair(&self.hasher, (&root, &pair.1.as_ref()))
             }
         });
 
-        root.to_owned()
+        root
     }
 }
 
-pub fn hash_pair(h: &dyn HashFunction, pair: (&str, &str)) -> String {
-    let p: String = format!("{}{}", pair.0, pair.1);
-    h.digest(p.as_bytes())
+pub fn hash_pair(h: &dyn HashFunction, pair: (&[u8; HASH_LEN], &[u8; HASH_LEN])) -> [u8;HASH_LEN] {
+    let union_capacity = pair.0.len() + pair.1.len();
+    let mut union = Vec::with_capacity(union_capacity);
+    union.extend_from_slice(pair.0);
+    union.extend_from_slice(pair.1);
+    h.digest(union.as_slice())
 }
 
 
@@ -186,20 +222,14 @@ mod tests {
         let h_c = hasher.digest("job".as_bytes());
         let h_d = hasher.digest("market".as_bytes());
 
-        let c_a_b = format!("{}{}", h_a, h_b);
-        let h_a_b = hasher.digest(c_a_b.as_bytes());
-
-        let c_c_d = format!("{}{}", h_c, h_d);
-        let h_c_d = hasher.digest(c_c_d.as_bytes());
-
-        let c_a_b_c_d = format!("{}{}", h_a_b, h_c_d);
-        let h_a_b_c_d = hasher.digest(c_a_b_c_d.as_bytes());
-
+        let h_a_b = hash_pair(&hasher, (&h_a,&h_b));
+        let h_c_d = hash_pair(&hasher, (&h_c,&h_d));
+        let h_a_b_c_d = hash_pair(&hasher, (&h_a_b,&h_c_d));
         let merkle_root = root.unwrap();
 
-        assert_eq!(merkle_root, h_a_b_c_d);
-        println!("{:#?}", merkle_root);
-        println!("{:#?}", h_a_b_c_d);
+        assert_eq!(*merkle_root, h_a_b_c_d);
+        println!("{:?}", merkle_root);
+        println!("{:?}", h_a_b_c_d);
     }
 
     #[test]
@@ -213,14 +243,14 @@ mod tests {
         merkle.update("queen".as_bytes());
         merkle.update("baby".as_bytes());
         let root = merkle.finalize();
-        let merkle_root = root.unwrap();
+        let merkle_root = root.unwrap().clone();
 
 
         let hasher = SHA256Hasher {};
         let item = hasher.digest("baby".as_bytes());
         let mut proof = Vec::new();
         merkle.proof(item.clone(), &mut proof);
-        println!("Merkel Root: {:#?}", merkle_root);
+        println!("Merkel Root: {:?}", merkle_root);
         assert_eq!(merkle_root, merkle.validate_proof(item, &proof))
     }
 
@@ -242,31 +272,23 @@ mod tests {
         let h_e = hasher.digest("great".as_bytes());
         let h_f = hasher.digest("great".as_bytes());
 
-        let c_a_b = format!("{}{}", h_a, h_b);
-        let h_a_b = hasher.digest(c_a_b.as_bytes());
+        let h_a_b = hash_pair(&hasher, (&h_a,&h_b));
 
-        let c_c_d = format!("{}{}", h_c, h_d);
-        let h_c_d = hasher.digest(c_c_d.as_bytes());
+        let h_c_d =  hash_pair(&hasher, (&h_c,&h_d));
 
-        let c_e_f = format!("{}{}", h_e, h_f);
-        let h_e_f = hasher.digest(c_e_f.as_bytes());
+        let h_e_f =  hash_pair(&hasher, (&h_e,&h_f));
 
-        let c_g_h = format!("{}{}", h_e, h_f);
-        let h_g_h = hasher.digest(c_g_h.as_bytes());
+        let h_g_h =  hash_pair(&hasher, (&h_e,&h_f));
 
+        let h_a_b_c_d =  hash_pair(&hasher, (&h_a_b,&h_c_d));
 
-        let c_a_b_c_d = format!("{}{}", h_a_b, h_c_d);
-        let h_a_b_c_d = hasher.digest(c_a_b_c_d.as_bytes());
+        let h_e_f_g_h =  hash_pair(&hasher, (&h_e_f,&h_g_h));
 
-        let c_e_f_g_h = format!("{}{}", h_e_f, h_g_h);
-        let h_e_f_g_h = hasher.digest(c_e_f_g_h.as_bytes());
-
-        let c_a_b_c_d_e_f_g_h = format!("{}{}", h_a_b_c_d, h_e_f_g_h);
-        let c_a_b_c_d_e_f_g_h = hasher.digest(c_a_b_c_d_e_f_g_h.as_bytes());
+        let c_a_b_c_d_e_f_g_h =  hash_pair(&hasher, (&h_a_b_c_d,&h_e_f_g_h));
 
         let merkle_root = root.unwrap();
-        assert_eq!(merkle_root, c_a_b_c_d_e_f_g_h);
-        println!("{:#?}", merkle_root);
-        println!("{:#?}", c_a_b_c_d_e_f_g_h);
+        assert_eq!(merkle_root, &c_a_b_c_d_e_f_g_h);
+        println!("{:?}", merkle_root);
+        println!("{:?}", c_a_b_c_d_e_f_g_h);
     }
 }
