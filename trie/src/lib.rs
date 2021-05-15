@@ -28,21 +28,21 @@ impl<C, K, V> Trie<C, K, V> where V: Sized + Clone, K : Word<C>,  C : Character{
 
 
     pub fn insert(&mut self, key: K, value: V){
-        let mut root = self;
+        let mut current_tree = self;
         for (index, char) in key.chars().iter().enumerate() {
             if index == key.len() - 1 {
-                let mut item = root.children.entry(char.clone()).or_insert(Trie {
+                let mut tree = current_tree.children.entry(char.clone()).or_insert(Trie {
                     key: None,
                     value: None,
                     root: false,
                     is_word: true,
                     children: Default::default(),
                 });
-                item.is_word = true;
-                item.key = Some(key.clone());
-                item.value = Some(value.clone());
+                tree.is_word = true;
+                tree.key = Some(key.clone());
+                tree.value = Some(value.clone());
             } else {
-                root = root.children.entry(char.clone()).or_insert(Trie {
+                current_tree = current_tree.children.entry(char.clone()).or_insert(Trie {
                     key: None,
                     value: None,
                     root: false,
@@ -54,9 +54,9 @@ impl<C, K, V> Trie<C, K, V> where V: Sized + Clone, K : Word<C>,  C : Character{
     }
 
     pub fn get(&mut self, key: K) -> Option<V>{
-        let mut root = self;
+        let mut current_tree = self;
         for (index,char) in key.chars().iter().enumerate(){
-            root = match root.children.get_mut(char) {
+            current_tree = match current_tree.children.get_mut(char) {
                 None => {
                     return None;
                 }
@@ -65,9 +65,9 @@ impl<C, K, V> Trie<C, K, V> where V: Sized + Clone, K : Word<C>,  C : Character{
                     item
                 }
             };
-            if index == key.len() - 1 && root.is_word {
-               return root.value.clone()
-            }else if index == key.len() - 1 && !root.is_word {
+            if index == key.len() - 1 && current_tree.is_word {
+               return current_tree.value.clone()
+            }else if index == key.len() - 1 && !current_tree.is_word {
                 return None
             }
         };
@@ -76,22 +76,22 @@ impl<C, K, V> Trie<C, K, V> where V: Sized + Clone, K : Word<C>,  C : Character{
 
     pub fn remove(&mut self, key: K){
         let mut tries = vec![];
-        let mut root = self;
-        tries.push(root as *mut Trie<C,K,V>);
+        let mut current_tree = self;
+        tries.push(current_tree as *mut Trie<C,K,V>);
         for char in key.chars(){
-            root = match root.children.get_mut(char) {
+            current_tree = match current_tree.children.get_mut(char) {
                 None => {
                     return;
                 }
-                Some(item) => {
-                    item
+                Some(child_tree) => {
+                    child_tree
                 }
             };
-            tries.push(root as *mut Trie<C,K,V>)
+            tries.push(current_tree as *mut Trie<C,K,V>)
         }
         for (i,c) in key.chars().iter().rev().enumerate(){
             let index = (key.len() - 1) - i;
-            let mut parent = match tries.get(index) {
+            let mut parent_tree = match tries.get(index) {
                 None => {
                     return;
                 }
@@ -105,16 +105,16 @@ impl<C, K, V> Trie<C, K, V> where V: Sized + Clone, K : Word<C>,  C : Character{
                     }
                 }
             };
-            let current = parent.children.get_mut(c).unwrap();
-            if current.is_word && i == 0 && current.children.is_empty(){
-                parent.children.remove(c);
+            let child_tree = parent_tree.children.get_mut(c).unwrap();
+            if child_tree.is_word && i == 0 && child_tree.children.is_empty(){
+                parent_tree.children.remove(c);
 
-            }else if current.is_word && i == 0 && !current.children.is_empty() {
-                current.is_word = false;
-                current.key = None;
-                current.value = None
-            }else if current.is_word && i > 0 && current.children.is_empty() {
-                parent.children.remove(c);
+            }else if child_tree.is_word && i == 0 && !child_tree.children.is_empty() {
+                child_tree.is_word = false;
+                child_tree.key = None;
+                child_tree.value = None
+            }else if child_tree.is_word && i > 0 && child_tree.children.is_empty() {
+                parent_tree.children.remove(c);
             }
         }
     }
@@ -122,14 +122,4 @@ impl<C, K, V> Trie<C, K, V> where V: Sized + Clone, K : Word<C>,  C : Character{
 
 
 #[cfg(test)]
-mod tests {
-    use crate::Trie;
-    use crate::word::Alphabet;
-
-    #[test]
-    fn it_works() {
-        let mut trees = Trie::new();
-        trees.insert(Alphabet::from("hello".to_string()), "Hello".to_string());
-        println!("get {:#?}", trees);
-    }
-}
+mod tests;
