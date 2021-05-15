@@ -5,6 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/merkle/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/eddsa/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/trie/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
