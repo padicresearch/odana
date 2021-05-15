@@ -1,21 +1,21 @@
-#![feature(associated_type_defaults)]
 mod word;
 
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::borrow::BorrowMut;
 use bloomfilter::Bloom;
+use crate::word::{Word, Character};
 
 #[derive(Debug, Clone)]
-pub struct Trie<V> where V: Sized + Clone {
-    key: Option<String>,
+pub struct Trie<C, K, V> where V: Sized + Clone, K : Word<C>, C : Character {
+    key: Option<K>,
     value: Option<V>,
     root : bool,
     is_word: bool,
-    children: HashMap<char, Trie<V>>,
+    children: HashMap<C, Trie<C,K,V>>,
 }
 
-impl<V> Trie<V> where V: Sized + Clone {
+impl<C, K, V> Trie<C, K, V> where V: Sized + Clone, K : Word<C>,  C : Character{
     pub fn new() -> Self {
         Self {
             key: None,
@@ -27,11 +27,11 @@ impl<V> Trie<V> where V: Sized + Clone {
     }
 
 
-    pub fn insert<K>(&mut self, key: K, value: V) where K: AsRef<str> {
+    pub fn insert(&mut self, key: K, value: V){
         let mut root = self;
-        for (index, char) in key.as_ref().chars().enumerate() {
-            if index == key.as_ref().len() - 1 {
-                let mut item = root.children.entry(char).or_insert(Trie {
+        for (index, char) in key.chars().iter().enumerate() {
+            if index == key.len() - 1 {
+                let mut item = root.children.entry(char.clone()).or_insert(Trie {
                     key: None,
                     value: None,
                     root: false,
@@ -39,10 +39,10 @@ impl<V> Trie<V> where V: Sized + Clone {
                     children: Default::default(),
                 });
                 item.is_word = true;
-                item.key = Some(key.as_ref().into());
+                item.key = Some(key.clone());
                 item.value = Some(value.clone());
             } else {
-                root = root.children.entry(char).or_insert(Trie {
+                root = root.children.entry(char.clone()).or_insert(Trie {
                     key: None,
                     value: None,
                     root: false,
@@ -53,10 +53,10 @@ impl<V> Trie<V> where V: Sized + Clone {
         }
     }
 
-    pub fn get<K>(&mut self, key: K) -> Option<V> where K: AsRef<str> {
+    pub fn get(&mut self, key: K) -> Option<V>{
         let mut root = self;
-        for (index,char) in key.as_ref().chars().enumerate(){
-            root = match root.children.get_mut(&char) {
+        for (index,char) in key.chars().iter().enumerate(){
+            root = match root.children.get_mut(char) {
                 None => {
                     return None;
                 }
@@ -65,21 +65,21 @@ impl<V> Trie<V> where V: Sized + Clone {
                     item
                 }
             };
-            if index == key.as_ref().len() - 1 && root.is_word {
+            if index == key.len() - 1 && root.is_word {
                return root.value.clone()
-            }else if index == key.as_ref().len() - 1 && !root.is_word {
+            }else if index == key.len() - 1 && !root.is_word {
                 return None
             }
         };
         None
     }
 
-    pub fn remove<K>(&mut self, key: K) where K: AsRef<str> {
+    pub fn remove(&mut self, key: K){
         let mut tries = vec![];
         let mut root = self;
-        tries.push(root as *mut Trie<V>);
-        for char in key.as_ref().chars(){
-            root = match root.children.get_mut(&char) {
+        tries.push(root as *mut Trie<C,K,V>);
+        for char in key.chars(){
+            root = match root.children.get_mut(char) {
                 None => {
                     return;
                 }
@@ -87,10 +87,10 @@ impl<V> Trie<V> where V: Sized + Clone {
                     item
                 }
             };
-            tries.push(root as *mut Trie<V>)
+            tries.push(root as *mut Trie<C,K,V>)
         }
-        for (i,c) in key.as_ref().chars().rev().enumerate(){
-            let index = (key.as_ref().len() - 1) - i;
+        for (i,c) in key.chars().iter().rev().enumerate(){
+            let index = (key.len() - 1) - i;
             let mut parent = match tries.get(index) {
                 None => {
                     return;
@@ -105,16 +105,16 @@ impl<V> Trie<V> where V: Sized + Clone {
                     }
                 }
             };
-            let current = parent.children.get_mut(&c).unwrap();
+            let current = parent.children.get_mut(c).unwrap();
             if current.is_word && i == 0 && current.children.is_empty(){
-                parent.children.remove(&c);
+                parent.children.remove(c);
 
             }else if current.is_word && i == 0 && !current.children.is_empty() {
                 current.is_word = false;
                 current.key = None;
                 current.value = None
             }else if current.is_word && i > 0 && current.children.is_empty() {
-                parent.children.remove(&c);
+                parent.children.remove(c);
             }
         }
     }
@@ -124,15 +124,12 @@ impl<V> Trie<V> where V: Sized + Clone {
 #[cfg(test)]
 mod tests {
     use crate::Trie;
+    use crate::word::Alphabet;
 
     #[test]
     fn it_works() {
         let mut trees = Trie::new();
-        trees.insert("Bob", "Hello".to_string());
-        trees.insert("Boi", "World".to_string());
-        trees.insert("Bo", "Rush".to_string());
-        trees.insert("Bolla", "Kunta".to_string());
-        trees.remove("Bo");
-        println!("get {:?}", trees.get("Bo"));
+        trees.insert(Alphabet::from("hello".to_string()), "Hello".to_string());
+        println!("get {:#?}", trees);
     }
 }
