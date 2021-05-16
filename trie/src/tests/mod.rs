@@ -26,6 +26,7 @@ fn it_works() {
     simple.insert(StringWord::from("have"), "home".to_string());
     println!("Simple Prefix {:#?}", simple.prefix("h".into()));
     println!("Compact Prefix {:#?}", compact.prefix("h".into()));
+    println!("Get {:#?}", simple.get("have".into()));
     assert_eq!(simple.prefix("h".into()),compact.prefix("h".into()))
 
 }

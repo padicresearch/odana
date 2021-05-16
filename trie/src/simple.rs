@@ -42,33 +42,23 @@ impl<C, K, V> SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Charact
 impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character {
     fn insert(&mut self, key: K, value: V) {
         let mut current_tree = self;
-        for (index, char) in key.chars().iter().enumerate() {
-            if index == key.len() - 1 {
-                let mut tree = current_tree.children.entry(char.clone()).or_insert(SimpleTrie {
-                    key: None,
-                    value: None,
-                    root: false,
-                    is_word: true,
-                    children: Default::default(),
-                });
-                tree.is_word = true;
-                tree.key = Some(key.clone());
-                tree.value = Some(value.clone());
-            } else {
-                current_tree = current_tree.children.entry(char.clone()).or_insert(SimpleTrie {
-                    key: None,
-                    value: None,
-                    root: false,
-                    is_word: false,
-                    children: Default::default(),
-                });
-            }
+        for char in key.chars().iter(){
+            current_tree = current_tree.children.entry(char.clone()).or_insert(SimpleTrie {
+                key: None,
+                value: None,
+                root: false,
+                is_word: false,
+                children: Default::default(),
+            });
         }
+        current_tree.is_word = true;
+        current_tree.key = Some(key.clone());
+        current_tree.value = Some(value.clone());
     }
 
     fn get(&self, key: K) -> Option<V> {
         let mut current_tree = self;
-        for (index, char) in key.chars().iter().enumerate() {
+        for char in key.chars().iter(){
             current_tree = match current_tree.children.get(char) {
                 None => {
                     return None;
@@ -77,13 +67,12 @@ impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V> where V: Sized + Clone, K: W
                     item
                 }
             };
-            if index == key.len() - 1 && current_tree.is_word {
-                return current_tree.value.clone();
-            } else if index == key.len() - 1 && !current_tree.is_word {
-                return None;
-            }
         };
-        None
+        if current_tree.is_word {
+            current_tree.value.clone()
+        } else {
+            None
+        }
     }
 
     fn prefix(&self, key: K) -> Option<Vec<(K, V)>> {

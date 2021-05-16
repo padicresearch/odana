@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 
 pub trait Index {
     fn index(&self) -> usize;
+    fn max_index() -> usize;
 }
 
 pub trait Character: PartialOrd + Ord + Index + Sized + Hash + Clone {}
@@ -40,6 +41,10 @@ impl Index for Char {
     fn index(&self) -> usize {
         self.c as usize
     }
+
+    fn max_index() -> usize {
+        u8::MAX as usize
+    }
 }
 
 impl Hash for Char {
@@ -68,7 +73,7 @@ pub struct StringWord {
 
 impl From<String> for StringWord {
     fn from(word: String) -> Self {
-        let mut chars = vec![];
+        let mut chars = Vec::with_capacity(word.len());
         for c in word.chars() {
             chars.push(Char::new(c))
         }
@@ -80,7 +85,7 @@ impl From<String> for StringWord {
 
 impl From<&str> for StringWord {
     fn from(word: &str) -> Self {
-        let mut chars = vec![];
+        let mut chars = Vec::with_capacity(word.len());
         for c in word.chars() {
             chars.push(Char::new(c))
         }
