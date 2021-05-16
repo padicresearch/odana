@@ -1,84 +1,31 @@
-use crate::Trie;
-use crate::word::{ Word, Index, Character};
-use std::hash::{Hash, Hasher};
-
-#[derive(Clone, Debug)]
-pub struct Char {
-    c: char
-}
-
-impl Char {
-    pub fn new(c : char) -> Self {
-        Char {
-            c
-        }
-    }
-}
-
-impl Character for Char {}
-
-impl PartialEq for Char {
-    fn eq(&self, other: &Self) -> bool {
-        self.c.eq_ignore_ascii_case(&other.c)
-    }
-}
-
-impl Eq for Char {}
-
-impl Index for Char {
-    fn index(&self) -> usize {
-        self.c.to_digit(10).unwrap() as usize
-    }
-}
-
-impl Hash for Char {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write_u8(self.c as u8)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Alphabet {
-    chars: Vec<Char>
-}
-
-impl From<String> for Alphabet {
-    fn from(word: String) -> Self {
-        let mut chars = vec![];
-        for c in word.chars() {
-            chars.push(Char::new(c))
-        }
-        Alphabet {
-            chars
-        }
-    }
-}
-
-impl From<&str> for Alphabet {
-    fn from(word: &str) -> Self {
-        let mut chars = vec![];
-        for c in word.chars() {
-            chars.push(Char::new(c))
-        }
-        Alphabet {
-            chars
-        }
-    }
-}
-
-impl Word<Char> for Alphabet {
-    fn chars(&self) -> &Vec<Char> {
-        &self.chars
-    }
-
-    fn len(&self) -> usize {
-        self.chars.len()
-    }
-}
+use crate::compact::CompactTrie;
+use crate::{Trie, SimpleTrie};
+use crate::word::StringWord;
 
 #[test]
 fn it_works() {
-    let mut trees = Trie::new();
-    trees.insert(Alphabet::from("hello"), "Hello".to_string());
-    println!("get {:#?}", trees.get("hello".into()));
+    let mut compact = CompactTrie::new(300);
+    compact.insert(StringWord::from("hello"), "Hello".to_string());
+    compact.insert(StringWord::from("helius"), "helius".to_string());
+    compact.insert(StringWord::from("heell"), "heell".to_string());
+    compact.insert(StringWord::from("home"), "home".to_string());
+    compact.insert(StringWord::from("mello"), "mello".to_string());
+    compact.insert(StringWord::from("maze"), "maze".to_string());
+    compact.insert(StringWord::from("home"), "home".to_string());
+    compact.insert(StringWord::from("have"), "home".to_string());
+
+
+    let mut simple = SimpleTrie::new();
+    simple.insert(StringWord::from("hello"), "Hello".to_string());
+    simple.insert(StringWord::from("helius"), "helius".to_string());
+    simple.insert(StringWord::from("heell"), "heell".to_string());
+    simple.insert(StringWord::from("home"), "home".to_string());
+    simple.insert(StringWord::from("mello"), "mello".to_string());
+    simple.insert(StringWord::from("maze"), "maze".to_string());
+    simple.insert(StringWord::from("home"), "home".to_string());
+    simple.insert(StringWord::from("have"), "home".to_string());
+    println!("Simple Prefix {:#?}", simple.prefix("h".into()));
+    println!("Compact Prefix {:#?}", compact.prefix("h".into()));
+    assert_eq!(simple.prefix("h".into()),compact.prefix("h".into()))
+
 }
