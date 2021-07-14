@@ -1,16 +1,14 @@
 mod errors;
 
-use sha2::{Sha256, Digest};
 use crate::errors::*;
 use bloomfilter::Bloom;
 use std::hash::{Hash, Hasher};
+use crypto::{HashFunction, HASH_LEN, SHA256};
 
-const HASH_LEN: usize = 32;
+
 const BITMAP_SIZE: usize = 32 * 1024 * 1024;
 
-pub trait HashFunction {
-    fn digest(&self, input: &[u8]) -> [u8; HASH_LEN];
-}
+pub type MerkleRoot = [u8; HASH_LEN];
 
 #[derive(Debug, Clone)]
 pub struct Leave([u8; HASH_LEN]);
@@ -47,33 +45,22 @@ impl Eq for Leave {}
 ///
 #[derive(Debug)]
 pub struct Merkle<H> where H: HashFunction {
-    root: Option<[u8; HASH_LEN]>,
+    root: Option<MerkleRoot>,
     pre_leaves_len: usize,
     leaves: Vec<Leave>,
     bloom_filter: Bloom<[u8]>,
     hasher: H,
 }
 
-#[derive(Debug, Clone)]
-pub struct SHA256Hasher {}
 
-impl HashFunction for SHA256Hasher {
-    fn digest(&self, input: &[u8]) -> [u8; HASH_LEN] {
-        let out = Sha256::digest(input);
-        out.into()
-    }
-}
-
-
-impl Default for Merkle<SHA256Hasher> {
+impl Default for Merkle<SHA256> {
     fn default() -> Self {
-        let hasher = SHA256Hasher {};
         Merkle {
             pre_leaves_len: 0,
             root: None,
             leaves: Vec::new(),
             bloom_filter: Bloom::new(BITMAP_SIZE, 1000),
-            hasher,
+            hasher : SHA256,
         }
     }
 }
@@ -216,7 +203,8 @@ pub fn hash_pair(h: &dyn HashFunction, pair: (&[u8; HASH_LEN], &[u8; HASH_LEN]))
 
 #[cfg(test)]
 mod tests {
-    use crate::{Merkle, HashFunction, hash_pair, SHA256Hasher};
+    use crate::{Merkle, HashFunction, hash_pair};
+    use crypto::SHA256;
 
     #[test]
     fn test_with_even_inputs() {
@@ -227,7 +215,7 @@ mod tests {
         merkle.update("market".as_bytes());
         let root = merkle.finalize();
 
-        let hasher = SHA256Hasher {};
+        let hasher = SHA256;
         let h_a = hasher.digest("hello".as_bytes());
         let h_b = hasher.digest("world".as_bytes());
         let h_c = hasher.digest("job".as_bytes());
@@ -279,7 +267,7 @@ mod tests {
         merkle.update("great".as_bytes());
         let root = merkle.finalize();
 
-        let hasher = SHA256Hasher {};
+        let hasher = SHA256;
         let h_a = hasher.digest("hello".as_bytes());
         let h_b = hasher.digest("world".as_bytes());
         let h_c = hasher.digest("job".as_bytes());

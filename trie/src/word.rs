@@ -6,9 +6,9 @@ pub trait Index {
     fn max_index() -> usize;
 }
 
-pub trait Character: PartialOrd + Ord + Index + Sized + Hash + Clone {}
+pub trait Symbol: PartialOrd + Ord + Index + Sized + Hash + Clone {}
 
-pub trait Word<T>: Sized + Clone where T: Character {
+pub trait Word<T>: Sized + Clone where T: Symbol {
     fn chars(&self) -> &Vec<T>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
@@ -27,7 +27,7 @@ impl Char {
     }
 }
 
-impl Character for Char {}
+impl Symbol for Char {}
 
 impl PartialEq for Char {
     fn eq(&self, other: &Self) -> bool {
@@ -67,35 +67,35 @@ impl Ord for Char {
 
 
 #[derive(Clone, Debug)]
-pub struct StringWord {
+pub struct TString {
     chars: Vec<Char>
 }
 
-impl From<String> for StringWord {
+impl From<String> for TString {
     fn from(word: String) -> Self {
         let mut chars = Vec::with_capacity(word.len());
         for c in word.chars() {
             chars.push(Char::new(c))
         }
-        StringWord {
+        TString {
             chars
         }
     }
 }
 
-impl From<&str> for StringWord {
+impl From<&str> for TString {
     fn from(word: &str) -> Self {
         let mut chars = Vec::with_capacity(word.len());
         for c in word.chars() {
             chars.push(Char::new(c))
         }
-        StringWord {
+        TString {
             chars
         }
     }
 }
 
-impl Word<Char> for StringWord {
+impl Word<Char> for TString {
     fn chars(&self) -> &Vec<Char> {
         &self.chars
     }
@@ -109,10 +109,10 @@ impl Word<Char> for StringWord {
     }
 }
 
-impl PartialEq for StringWord {
+impl PartialEq for TString {
     fn eq(&self, other: &Self) -> bool {
         self.chars.eq(other.chars())
     }
 }
 
-impl Eq for StringWord {}
+impl Eq for TString {}

@@ -1,8 +1,8 @@
-use crate::{Word, Character, Trie};
+use crate::{Word, Symbol, Trie};
 use std::collections::{BTreeMap};
 
 #[derive(Debug, Clone)]
-pub struct SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character {
+pub struct SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
     key: Option<K>,
     value: Option<V>,
     root: bool,
@@ -10,7 +10,7 @@ pub struct SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character 
     children: BTreeMap<C, SimpleTrie<C, K, V>>,
 }
 
-impl<C, K, V> Default for SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character {
+impl<C, K, V> Default for SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
     fn default() -> Self {
         Self {
             key: None,
@@ -22,7 +22,7 @@ impl<C, K, V> Default for SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>
     }
 }
 
-impl<C, K, V> SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character {
+impl<C, K, V> SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
     pub fn new() -> Self {
        Self::default()
     }
@@ -39,7 +39,7 @@ impl<C, K, V> SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Charact
 }
 
 
-impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character {
+impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
     fn insert(&mut self, key: K, value: V) {
         let mut current_tree = self;
         for char in key.chars().iter(){

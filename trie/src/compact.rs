@@ -1,8 +1,8 @@
-use crate::{Word, Character, Trie};
+use crate::{Word, Symbol, Trie};
 use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
-pub struct CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character {
+pub struct CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
     key: Option<K>,
     value: Option<V>,
     root: bool,
@@ -11,8 +11,8 @@ pub struct CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character
     data: PhantomData<C>,
 }
 
-impl<C, K, V> CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character {
-    pub fn new(m: usize) -> Self {
+impl<C, K, V> CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
+    pub fn new() -> Self {
         Self {
             key: None,
             value: None,
@@ -39,7 +39,7 @@ impl<C, K, V> CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Charac
 }
 
 
-impl<C, K, V> Trie<C, K, V> for CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Character {
+impl<C, K, V> Trie<C, K, V> for CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
     fn insert(&mut self, key: K, value: V) {
         let mut current_tree = self;
 

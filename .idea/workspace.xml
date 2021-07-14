@@ -29,14 +29,22 @@
   </component>
   <component name="CargoProjects">
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
-    <cargoProject FILE="$PROJECT_DIR$/merkle/Cargo.toml" />
     <cargoProject FILE="$PROJECT_DIR$/eddsa/Cargo.toml" />
-    <cargoProject FILE="$PROJECT_DIR$/trie/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implemented fixed word length trie tree">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="code improvement">
+      <change afterPath="$PROJECT_DIR$/crypto/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/node/src/blockchain.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/trie/src/compact.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/compact.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trie/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/trie/src/simple.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/simple.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/trie/src/tests/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/tests/mod.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/trie/src/word.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/word.rs" afterDir="false" />
@@ -102,7 +110,12 @@
       <recent name="$PROJECT_DIR$/trie/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::it_works (1)">
+  <component name="RunManager" selected="Cargo.Test tests::test_root_odd_inputs">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clippy" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -110,6 +123,7 @@
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -125,6 +139,7 @@
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -140,6 +155,7 @@
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -155,21 +171,7 @@
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test tests::test_h" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package merkle --lib tests::test_h -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -185,6 +187,23 @@
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::test_root_odd_inputs" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package merkle --lib tests::test_root_odd_inputs -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/crypto" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -200,6 +219,7 @@
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -208,27 +228,22 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <list>
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Test lib::tests" />
       <item itemvalue="Cargo.Test tests::test_error_for_already_inserted_item" />
-      <item itemvalue="Cargo.Test tests::test_h" />
       <item itemvalue="Cargo.Test tests::test_proof" />
       <item itemvalue="Cargo.Test tests::it_works (1)" />
+      <item itemvalue="Cargo.Test tests::test_root_odd_inputs" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::test_root_odd_inputs" />
         <item itemvalue="Cargo.Test tests::it_works (1)" />
         <item itemvalue="Cargo.Test tests::test_error_for_already_inserted_item" />
         <item itemvalue="Cargo.Test lib::tests" />
         <item itemvalue="Cargo.Test tests::test_proof" />
-        <item itemvalue="Cargo.Test tests::test_h" />
       </list>
     </recent_temporary>
   </component>
@@ -251,7 +266,14 @@
       <workItem from="1620768182434" duration="1346000" />
       <workItem from="1620843631274" duration="15141000" />
       <workItem from="1621023831596" duration="146000" />
-      <workItem from="1621023993921" duration="62567000" />
+      <workItem from="1621023993921" duration="65544000" />
+      <workItem from="1621184759529" duration="1000" />
+      <workItem from="1621670713868" duration="105000" />
+      <workItem from="1621755016796" duration="658000" />
+      <workItem from="1621756044523" duration="410000" />
+      <workItem from="1621756467493" duration="636000" />
+      <workItem from="1621780780788" duration="2084000" />
+      <workItem from="1626287010055" duration="902000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -337,7 +359,14 @@
       <option name="project" value="LOCAL" />
       <updated>1621159564672</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="code improvement">
+      <created>1621170318559</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1621170318559</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -366,6 +395,7 @@
     <MESSAGE value="implemented generic trie" />
     <MESSAGE value="format" />
     <MESSAGE value="implemented fixed word length trie tree" />
-    <option name="LAST_COMMIT_MESSAGE" value="implemented fixed word length trie tree" />
+    <MESSAGE value="code improvement" />
+    <option name="LAST_COMMIT_MESSAGE" value="code improvement" />
   </component>
 </project>

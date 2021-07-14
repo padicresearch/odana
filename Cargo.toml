@@ -1,5 +1,7 @@
 [workspace]
 members = [
     "merkle",
-    "trie"
+    "trie",
+    "node",
+    "crypto"
 ]
