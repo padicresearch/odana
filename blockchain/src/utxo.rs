@@ -5,6 +5,7 @@ use crate::transaction::{Tx, TxOut};
 use std::sync::Arc;
 use anyhow::Result;
 use crate::errors::BlockChainError;
+use serde::{Serialize, Deserialize};
 
 pub type UTXOStorageKV = dyn Storage<UTXO> + Send + Sync;
 
@@ -39,7 +40,7 @@ impl UTXOStore for UTXO {
                 return Err(BlockChainError::UTXOError(ERROR_MSG_KEY_EXISTS).into())
             }
 
-            self.kv.put(key, CoinOut)
+            self.kv.put(key, CoinOut::new(tx_out.clone()));
         }
         Ok(())
     }
@@ -99,7 +100,7 @@ impl CoinOut {
 }
 
 impl Encoder for CoinKey {
-    fn encode(&self) -> anyhow::Result<Vec<u8>> {
+    fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::with_capacity(34);
         buf.extend_from_slice(&self.tx_hash);
         buf.extend_from_slice(&self.index.to_be_bytes());
@@ -109,13 +110,16 @@ impl Encoder for CoinKey {
 
 
 impl Decoder for CoinKey {
-    fn decode(buf: &[u8]) -> anyhow::Result<Self> {
+    fn decode(buf: &[u8]) -> Result<Self> {
 
         let mut cursor = Cursor::new(buf);
         let mut tx_hash = [0_u8; 32];
+        let mut raw_index = [0_u8; 2];
 
         cursor.read_exact(&mut tx_hash);
-        let index = cursor.read_u16()?;
+        cursor.read_exact(&mut raw_index);
+
+        let index = u16::from_be_bytes(raw_index);
 
         Ok(CoinKey {
             tx_hash,
@@ -126,15 +130,15 @@ impl Decoder for CoinKey {
 }
 
 impl Encoder for CoinOut {
-    fn encode(&self) -> anyhow::Result<Vec<u8>> {
-        bincode::serialize(&self).into()
+    fn encode(&self) ->Result<Vec<u8>> {
+        bincode::serialize(&self).map_err(|e|BlockChainError::DeserializationError(e).into())
     }
 }
 
 
 impl Decoder for CoinOut {
-    fn decode(buf: &[u8]) -> anyhow::Result<Self> {
-        bincode::deserialize(buf).into()
+    fn decode(buf: &[u8]) -> Result<Self> {
+        bincode::deserialize(buf).map_err(|e|BlockChainError::DeserializationError(e).into())
     }
 }
 

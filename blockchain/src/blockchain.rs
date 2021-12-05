@@ -186,7 +186,7 @@ mod test {
     #[test]
     fn mine_genesis() {
         let mut miner = Miner::new();
-        miner.mine()
+        //miner.mine()
     }
 
     /*#[test]

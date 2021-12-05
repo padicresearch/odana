@@ -2,8 +2,9 @@ use crate::utxo::{UTXO, UTXOStore};
 use crate::transaction::Tx;
 use ed25519_dalek::{PublicKey, Verifier, Signature};
 use crate::errors::BlockChainError;
+use anyhow::Result;
 
-pub fn validate_transaction(tx : &Tx, utxo: &UTXO) -> Result<bool, BlockChainError> {
+pub fn validate_transaction(tx : &Tx, utxo: &UTXO) -> Result<bool> {
     let sighash = tx.sighash();
     let mut input_amount: u128 = 0;
     let sig = Signature::new(tx.sig);

@@ -6,7 +6,6 @@ use rand_core::OsRng;
 use std::hash::{Hash};
 use serde::{Serializer, Deserialize};
 use anyhow::Result;
-use crate::codec::Encode;
 use crate::errors::BlockChainError;
 
 #[derive(Debug, Copy, Clone)]

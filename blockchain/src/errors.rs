@@ -9,10 +9,14 @@ pub enum BlockChainError {
     TxInputOrOutputEmpty,
     #[error("MerkleError")]
     MerkleError,
+    #[error("RWPoison")]
+    RWPoison,
     #[error("`{0}`")]
     Ed25519Error(#[from] ed25519_dalek::ed25519::Error),
     #[error("`{0}`")]
     SerializationError(bincode::Error),
+    #[error("`{0}`")]
+    DeserializationError(bincode::Error),
     #[error("UTXOError `{0}`")]
     UTXOError(&'static str),
 }

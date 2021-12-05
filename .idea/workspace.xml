@@ -35,26 +35,16 @@
     <cargoProject FILE="$PROJECT_DIR$/eddsa/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="Blockchain">
-      <change afterPath="$PROJECT_DIR$/blockchain/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/account.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/consensus.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/errors.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/miner.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/transaction.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/utxo.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/storage/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/storage/src/codec.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implementing utxo">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crypto/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/merkle/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/blockchain.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/account.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/consensus.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/consensus.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/errors.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/errors.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/transaction.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/transaction.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/utxo.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/utxo.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -102,7 +92,6 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="RunOnceActivity.cidr.known.project.marker" value="true" />
-    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="cf.first.check.clang-format" value="false" />
     <property name="cidr.known.project.marker" value="true" />
@@ -120,7 +109,7 @@
       <recent name="$PROJECT_DIR$/trie/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test blockchain::test::test_miner">
+  <component name="RunManager" selected="Cargo.Test transaction::tests::test_valid_tx">
     <configuration name="Clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clippy" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -244,9 +233,9 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test transaction::tests::test_valid_tx" />
         <item itemvalue="Cargo.Test blockchain::test::test_miner" />
         <item itemvalue="Cargo.Test tests::test_root_odd_inputs" />
-        <item itemvalue="Cargo.Test transaction::tests::test_valid_tx" />
         <item itemvalue="Cargo.Test tests::test_valid_tx" />
         <item itemvalue="Cargo.Test tests::it_works" />
       </list>
@@ -284,7 +273,7 @@
       <workItem from="1637169388323" duration="52219000" />
       <workItem from="1637599584117" duration="7143000" />
       <workItem from="1638280156637" duration="948000" />
-      <workItem from="1638660952563" duration="24603000" />
+      <workItem from="1638660952563" duration="31241000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -391,7 +380,14 @@
       <option name="project" value="LOCAL" />
       <updated>1628408317167</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="implementing utxo">
+      <created>1638734880883</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1638734880883</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -421,6 +417,7 @@
     <MESSAGE value="implemented fixed word length trie tree" />
     <MESSAGE value="code improvement" />
     <MESSAGE value="Blockchain" />
-    <option name="LAST_COMMIT_MESSAGE" value="Blockchain" />
+    <MESSAGE value="implementing utxo" />
+    <option name="LAST_COMMIT_MESSAGE" value="implementing utxo" />
   </component>
 </project>

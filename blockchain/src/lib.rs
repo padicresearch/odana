@@ -1,5 +1,4 @@
 mod account;
-mod codec;
 mod errors;
 mod transaction;
 mod miner;

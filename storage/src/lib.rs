@@ -14,7 +14,10 @@ pub trait Storage<Entry> where Entry : KVEntry{
     fn put(&self, key : Entry::Key, value : Entry::Value) -> Result<()>;
     fn delete(&self, key : &Entry::Key) -> Result<()>;
     fn contains(&self, key : &Entry::Key) -> Result<bool>;
+    fn iter<'a>(&'a self) -> Result<Box< dyn 'a + Send + Iterator<Item = (Result<Entry::Key>, Result<Entry::Value>)>>>;
     //fn prefix<'a>(&self, key : &Entry::Key) -> StorageIterator<'a, Entry>;
 }
 
-//pub type StorageIterator<'a, Entry> = &'a dyn Iterator<Item = Result<Entry>>;
+//pub type StorageIterator<'a, S> where S : KVEntry = Box<> ;
+
+//pub struct StorageIterator<'a, S : KVEntry> (&'a dyn Iterator<Item = Result<(S::Key, S::Value)>>);
