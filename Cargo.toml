@@ -3,5 +3,7 @@ members = [
     "merkle",
     "trie",
     "node",
-    "crypto"
+    "crypto",
+    "blockchain",
+    "storage"
 ]

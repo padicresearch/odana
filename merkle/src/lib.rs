@@ -120,7 +120,9 @@ impl<H: HashFunction> Merkle<H> {
         let chucks = leaves.chunks(2);
         if chucks.len() == 1 {
             let c = chucks.into_iter().next().unwrap();
-            let p = hash_pair(&self.hasher, (c[0].as_ref(), c[1].as_ref()));
+            let left = &c[0];
+            let right = c.get(1).unwrap_or(&left);
+            let p = hash_pair(&self.hasher, (left.as_ref(), right.as_ref()));
             return Some(p);
         }
         let mut next = Vec::with_capacity(leaves.len() / 2 );
@@ -246,7 +248,6 @@ mod tests {
 
 
         let proof = merkle.proof("baby".as_bytes());
-        println!("Merkel Root: {:?}", merkle_root);
         assert_eq!(merkle_root, merkle.validate_proof("baby".as_bytes(), &proof).unwrap())
     }
 
@@ -291,7 +292,5 @@ mod tests {
 
         let merkle_root = root.unwrap();
         assert_eq!(merkle_root, &c_a_b_c_d_e_f_g_h);
-        println!("{:?}", merkle_root);
-        println!("{:?}", c_a_b_c_d_e_f_g_h);
     }
 }
