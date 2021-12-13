@@ -1,3 +1,4 @@
+use crate::consensus::check_transaction_fee;
 use ed25519_dalek::{PublicKey, Verifier, Signature};
 use anyhow::Result;
 use tiny_keccak::Hasher;
@@ -6,8 +7,12 @@ use std::rc::Rc;
 use crate::errors::BlockChainError;
 use crate::account::Account;
 use serde::{Serialize, Deserialize};
+use storage::codec::{Encoder, Decoder};
+use common::BigArray;
+use crate::utxo::{UTXO, UTXOStore};
+use crate::amount::TUCI;
 
-const MINER_REWARD: u128 = 0;
+const MINER_REWARD: u128 = 10 * TUCI;
 
 pub trait SerialHash {
     fn s_hash(&self) -> [u8; 32];
@@ -70,12 +75,13 @@ impl SerialHash for TxOut {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tx {
     pub tx_id: [u8; 32],
     pub nonce: u128,
     pub inputs: Vec<TxIn>,
     pub outputs: Vec<TxOut>,
+    #[serde(with = "BigArray")]
     pub sig: [u8; 64],
 }
 
@@ -111,11 +117,11 @@ impl Tx {
         })
     }
 
-    pub fn coinbase(account: &Account) -> Result<Self> {
+    pub fn coinbase(account: &Account, tx_fees : u128) -> Result<Self> {
         let nonce: u128 = rand::random();
 
         let inputs = vec![TxIn::new([0; 32], 0, account.pub_key)];
-        let outputs = vec![TxOut::new(account.pub_key, MINER_REWARD)];
+        let outputs = vec![TxOut::new(account.pub_key, MINER_REWARD + tx_fees)];
 
         let mut out = [0_u8; 32];
         let mut sha3 = tiny_keccak::Sha3::v256();
@@ -192,19 +198,40 @@ impl Tx {
         sha3.finalize(&mut out);
         out
     }
+
+}
+
+impl Encoder for Tx {}
+
+impl Decoder for Tx {}
+
+pub fn calculate_tx_in_out_amount(tx : &Tx, utxo : &UTXO) -> Result<(u128,u128)> {
+    if tx.is_coinbase() {
+        return Ok((MINER_REWARD, MINER_REWARD))
+    }
+    let mut input_amount: u128 = 0;
+    for tx_in in tx.inputs.iter() {
+        let coin = utxo.get_coin(tx_in.prev_tx_index as u16, &tx_in.prev_tx_id)?.ok_or(BlockChainError::VerifyError)?;
+        input_amount += coin.tx_out.value
+    }
+    let out_amount = tx.outputs.iter().map(|out| out.value).fold(0, |acc, next| acc + next);
+
+    Ok((input_amount, out_amount))
+
 }
 
 
 #[cfg(test)]
-mod tests {
-    use std::collections::{HashMap, BTreeMap};
+ mod tests {
+    use storage::memstore::MemStore;
+use std::collections::{HashMap, BTreeMap};
     use std::rc::Rc;
     use super::{TxOut, TxIn, Tx};
     use crate::account::{create_account, Account};
     use anyhow::Result;
     use ed25519_dalek::{PublicKey, Signature, Verifier};
     use crate::errors::BlockChainError;
-    use crate::utxo::{UTXO, UTXOStore};
+    use crate::utxo::{UTXO, UTXOStore, CoinOut, CoinKey};
     use storage::{Storage, KVEntry};
     use storage::codec::{Codec, Encoder, Decoder};
     use std::sync::{Arc, RwLock};
@@ -212,107 +239,16 @@ mod tests {
     use std::collections::btree_map::Iter;
     use std::marker::PhantomData;
 
-    #[derive(Debug)]
-    struct MemStore {
-        inner: Arc<RwLock<BTreeMap<Arc<Vec<u8>>, Arc<Vec<u8>>>>>,
+
+    pub struct TempStorage {
+        pub utxo: Arc<UTXO>,
     }
 
-    struct MemStoreIterator {
-        cursor: usize,
-        inner: Vec<(Arc<Vec<u8>>, Arc<Vec<u8>>)>,
-    }
-
-    impl MemStoreIterator {
-        fn new(store: Arc<RwLock<BTreeMap<Arc<Vec<u8>>, Arc<Vec<u8>>>>>) -> Result<Self> {
-            let inner = store.clone();
-            let store = inner.read().map_err(|_| BlockChainError::RWPoison)?;
-            Ok(Self {
-                cursor: 0,
-                inner: store.iter().map(|(k, v)| {
-                    (k.clone(), v.clone())
-                }).collect(),
-            })
-        }
-    }
-
-    impl Iterator for MemStoreIterator {
-        type Item = (Arc<Vec<u8>>, Arc<Vec<u8>>);
-
-        fn next(&mut self) -> Option<Self::Item> {
-            if self.cursor > self.inner.len() {
-                return None
-            }
-
-            let res = self.inner.get(self.cursor).map(|(k, v)| {
-                (k.clone(), v.clone())
-            });
-            self.cursor += 1;
-            res
-        }
-    }
-
-
-    impl MemStore {
-        fn new() -> Self {
-            Self {
-                inner: Arc::new(Default::default())
-            }
-        }
-    }
-
-    impl<S: KVEntry> Storage<S> for MemStore {
-        fn get(&self, key: &S::Key) -> Result<Option<S::Value>> {
-            let inner = self.inner.clone();
-            let store = inner.read().map_err(|_| BlockChainError::RWPoison)?;
-            let key = key.encode()?;
-            let result = store.get(&key);
-            match result {
-                Some(value) => {
-                    Ok(Some(S::Value::decode(value)?))
-                }
-                None => Ok(None),
-            }
-        }
-
-        fn put(&self, key: S::Key, value: S::Value) -> Result<()> {
-            let inner = self.inner.clone();
-            let mut store = inner.write().map_err(|_| BlockChainError::RWPoison)?;
-            let key = key.encode()?;
-            let value = value.encode()?;
-            store.insert(Arc::new(key), Arc::new(value));
-            Ok(())
-        }
-
-        fn delete(&self, key: &S::Key) -> Result<()> {
-            let inner = self.inner.clone();
-            let mut store = inner.write().map_err(|_| BlockChainError::RWPoison)?;
-            let key = key.encode()?;
-            store.remove(&key);
-            Ok(())
-        }
-
-        fn contains(&self, key: &S::Key) -> Result<bool> {
-            let inner = self.inner.clone();
-            let store = inner.read().map_err(|_| BlockChainError::RWPoison)?;
-            let key = key.encode()?;
-            Ok(store.contains_key(&key))
-        }
-
-        fn iter<'a>(&'a self) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<S::Key>, Result<S::Value>)>>> {
-            let iter  = MemStoreIterator::new(self.inner.clone())?;
-            Ok(Box::new(iter.map(|(k,v)|{(S::Key::decode(&k), S::Value::decode(&v))})))
-        }
-    }
-
-    struct TempStorage {
-        utxo: Arc<UTXO>,
-    }
-
-    fn setup_storage(accounts: &Vec<Account>, memstore: Arc<MemStore>) -> (TempStorage) {
+    pub fn setup_storage(accounts: &Vec<Account>, memstore: Arc<MemStore>) -> TempStorage {
         let coin_base = [0_u8; 32];
 
         let res: Result<Vec<_>> = accounts.iter().map(|account| {
-            Tx::coinbase(account)
+            Tx::coinbase(account, 0)
         }).collect();
 
         let txs = res.unwrap();
@@ -333,12 +269,33 @@ mod tests {
 
 
     fn execute_tx(tx: Tx, utxo: &UTXO) -> Result<bool> {
-        let valid = validate_transaction(&tx, utxo)?;
+        validate_transaction(&tx, utxo)?;
         for t in tx.inputs.iter() {
             utxo.spend(t.prev_tx_index, &t.prev_tx_id);
         }
         utxo.put(&tx);
-        Ok(valid)
+        Ok(true)
+    }
+
+    fn get_account_coins(acount: &Account, utxo: &UTXO) -> Vec<(CoinKey, CoinOut)>{
+        let mut res = vec![];
+        for (k, v) in utxo.iter() {
+            let key =  k.unwrap();
+            let coin = v.unwrap();
+            if coin.tx_out.pub_key == acount.pub_key &&  !coin.is_spent{
+                res.push((key,coin))
+            }
+        }
+        res
+        //Ok(valid)
+    }
+
+    fn available_balance(acount: &Account, utxo: &UTXO) -> u128{
+        get_account_coins(acount,utxo).iter().map(|(_,v)| v.tx_out.value).fold(0,|acc, next|{
+            let sum = acc + next;
+            sum
+        })
+        //Ok(valid)
     }
 
 
@@ -350,26 +307,30 @@ mod tests {
         let dave = create_account();
         let storage = setup_storage(&vec![bob, alice], memstore.clone());
 
-        println!("{:#?}", memstore);
+        //println!("{:#?}", memstore);
+        let alice_coins = get_account_coins(&alice, &storage.utxo);
+        println!("Alice Coins Count  : {} , Balance : {}", alice_coins.len(), available_balance(&alice, &storage.utxo));
         // Alice send bob 5 coins
 
-        /* let tx_1 = {
-             let tx_in = TxIn::new(coinbase_tx_id, 1, alice.pub_key);
+        let tx_1 = {
+             let tx_in = TxIn::new(alice_coins[0].0.tx_hash, alice_coins[0].0.index, alice.pub_key);
              let tx_out_1 = TxOut::new(alice.pub_key, 5);
              let tx_out_2 = TxOut::new(bob.pub_key, 3);
              let tx_out_3 = TxOut::new(dave.pub_key, 2);
              let tx = Tx::signed(&alice, 10,vec![tx_in], vec![tx_out_1, tx_out_2, tx_out_3]).unwrap();
              let tx_id = tx.tx_id;
-             assert_eq!(execute_tx(tx, &mut storage.unspent).unwrap(), true);
+             assert_eq!(execute_tx(tx, &storage.utxo).unwrap(), true);
              tx_id
          };
 
-         println!("Bob Balance: {}", available_balance(&bob.pub_key, &storage.unspent));
-         println!("Alice Balance: {}", available_balance(&alice.pub_key, &storage.unspent));
-         println!("Dave Balance: {}", available_balance(&dave.pub_key, &storage.unspent));
+         println!("Bob Balance: {}", available_balance(&bob, &storage.utxo));
+         println!("Alice Balance: {}", available_balance(&alice, &storage.utxo));
+         println!("Dave Balance: {}", available_balance(&dave, &storage.utxo));
          println!("---------------------------------------------------------------------------------------------");
 
-         {
+        storage.utxo.print();
+
+    /*     {
              let tx_in_1 = TxIn::new(tx_1, 1, bob.pub_key);
              let tx_in_2 = TxIn::new(coinbase_tx_id, 0, bob.pub_key);
              let tx_out_1 = TxOut::new(bob.pub_key, 1);

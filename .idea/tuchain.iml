@@ -11,6 +11,7 @@
       <sourceFolder url="file://$MODULE_DIR$/blockchain/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/codec/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/storage/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

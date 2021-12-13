@@ -19,4 +19,7 @@ bincode = "1.0.130"
 serde = { version = "1.0.130", features = ["derive"] }
 merkle = {path = "../merkle"}
 storage = {path = "../storage"}
+common = {path = "../common"}
 chrono = "0.4.19"
+itertools = "0.10.3"
+rusqlite = "0.26.3"

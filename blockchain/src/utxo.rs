@@ -30,6 +30,7 @@ pub trait UTXOStore {
     fn spend(&self, index : u16, tx_hash : &[u8;32]) -> Result<()>;
     fn get_coin(&self, index : u16, tx_hash : &[u8;32]) -> Result<Option<CoinOut>>;
     fn contains(&self, index: u16, tx_hash: &[u8; 32]) -> Result<bool>;
+    fn iter<'a>(&'a self) -> Box< dyn 'a + Send + Iterator<Item = (Result<CoinKey>, Result<CoinOut>)>>;
 }
 
 impl UTXOStore for UTXO {
@@ -61,11 +62,26 @@ impl UTXOStore for UTXO {
         let key = CoinKey::new(index as u16, *tx_hash);
         self.kv.contains(&key)
     }
+
+    fn iter<'a>(&'a self) -> Box<dyn 'a + Send + Iterator<Item=(Result<CoinKey>, Result<CoinOut>)>> {
+        self.kv.iter()
+    }
+}
+
+impl UTXO {
+    pub fn print(&self) -> Result<()> {
+        let iter = self.iter();
+        for (k,v) in iter {
+            let key = k?;
+            let value = v?;
+            println!("{:?}\n{:?}", key,value);
+        }
+        Ok(())
+    }
 }
 
 
-
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CoinKey {
     pub tx_hash : [u8;32],
     pub index : u16
@@ -80,7 +96,7 @@ impl CoinKey {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CoinOut {
     pub tx_out : TxOut,
     pub is_spent : bool
@@ -129,18 +145,10 @@ impl Decoder for CoinKey {
     }
 }
 
-impl Encoder for CoinOut {
-    fn encode(&self) ->Result<Vec<u8>> {
-        bincode::serialize(&self).map_err(|e|BlockChainError::DeserializationError(e).into())
-    }
-}
+impl Encoder for CoinOut {}
 
 
-impl Decoder for CoinOut {
-    fn decode(buf: &[u8]) -> Result<Self> {
-        bincode::deserialize(buf).map_err(|e|BlockChainError::DeserializationError(e).into())
-    }
-}
+impl Decoder for CoinOut {}
 
 
 

@@ -33,10 +33,22 @@
   <component name="CargoProjects">
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
     <cargoProject FILE="$PROJECT_DIR$/eddsa/Cargo.toml" />
+    <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implementing utxo">
+      <change afterPath="$PROJECT_DIR$/blockchain/src/amount.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/blockchain/src/balances.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/blockchain/src/mempool.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/storage/src/error.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/account.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/consensus.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/consensus.rs" afterDir="false" />
@@ -44,6 +56,8 @@
       <change beforePath="$PROJECT_DIR$/blockchain/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/transaction.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/transaction.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/utxo.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/utxo.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/storage/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/codec.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/codec.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -71,6 +85,9 @@
       <filtered-out-file-type name="TAG" />
       <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
     </file-type-list>
+  </component>
+  <component name="GitToolBoxStore">
+    <option name="projectConfigVersion" value="4" />
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="qgmqrl00" />
@@ -109,9 +126,57 @@
       <recent name="$PROJECT_DIR$/trie/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test transaction::tests::test_valid_tx">
+  <component name="RunManager" selected="Cargo.Build">
+    <configuration name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="build " />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clippy" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test blockchain::test::_genesis" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package blockchain --lib blockchain::test::_genesis -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test blockchain::test::mine_genesis" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package blockchain --lib blockchain::test::mine_genesis -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -142,40 +207,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::it_works" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package blockchain --lib tests::it_works -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test tests::test_root_odd_inputs" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package merkle --lib tests::test_root_odd_inputs -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test tests::test_valid_tx" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package blockchain --lib tests::test_valid_tx -- --exact" />
+    <configuration name="Test mempool::tests::test_mempool" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package blockchain --lib mempool::tests::test_mempool -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -223,21 +256,22 @@
       </method>
     </configuration>
     <list>
+      <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test tests::it_works" />
-      <item itemvalue="Cargo.Test tests::test_valid_tx" />
       <item itemvalue="Cargo.Test transaction::tests::test_valid_tx" />
       <item itemvalue="Cargo.Test blockchain::test::test_miner" />
-      <item itemvalue="Cargo.Test tests::test_root_odd_inputs" />
+      <item itemvalue="Cargo.Test blockchain::test::mine_genesis" />
+      <item itemvalue="Cargo.Test blockchain::test::_genesis" />
+      <item itemvalue="Cargo.Test mempool::tests::test_mempool" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test mempool::tests::test_mempool" />
+        <item itemvalue="Cargo.Test blockchain::test::_genesis" />
+        <item itemvalue="Cargo.Test blockchain::test::mine_genesis" />
         <item itemvalue="Cargo.Test transaction::tests::test_valid_tx" />
         <item itemvalue="Cargo.Test blockchain::test::test_miner" />
-        <item itemvalue="Cargo.Test tests::test_root_odd_inputs" />
-        <item itemvalue="Cargo.Test tests::test_valid_tx" />
-        <item itemvalue="Cargo.Test tests::it_works" />
       </list>
     </recent_temporary>
   </component>
@@ -273,7 +307,12 @@
       <workItem from="1637169388323" duration="52219000" />
       <workItem from="1637599584117" duration="7143000" />
       <workItem from="1638280156637" duration="948000" />
-      <workItem from="1638660952563" duration="31241000" />
+      <workItem from="1638660952563" duration="40529000" />
+      <workItem from="1638906068891" duration="15173000" />
+      <workItem from="1639222969218" duration="10298000" />
+      <workItem from="1639297817690" duration="5301000" />
+      <workItem from="1639408601075" duration="7194000" />
+      <workItem from="1639427769419" duration="4608000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -387,7 +426,14 @@
       <option name="project" value="LOCAL" />
       <updated>1638734880883</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="implementing utxo">
+      <created>1638741705129</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1638741705129</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

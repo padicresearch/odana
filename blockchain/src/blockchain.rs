@@ -1,12 +1,18 @@
-use std::collections::HashMap;
-use crate::transaction::{Tx, TxIn, TxOut};
-use crate::account::{Account, create_account};
-use anyhow::Result;
-use merkle::{Merkle, MerkleRoot};
+use crate::account::{create_account, Account};
+use crate::consensus::validate_transaction;
 use crate::errors::BlockChainError;
-use tiny_keccak::Hasher;
+use crate::transaction::{Tx, TxIn, TxOut};
+use crate::utxo::UTXO;
+use anyhow::Result;
 use chrono::Utc;
+use itertools::Itertools;
+use merkle::{Merkle, MerkleRoot};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tiny_keccak::Hasher;
+use std::fmt::Formatter;
+use crate::mempool::MemPool;
 
 pub type BlockHash = [u8; 32];
 pub type TxHash = [u8; 32];
@@ -14,8 +20,8 @@ pub type MinerPubKey = [u8; 32];
 pub type MinerSig = [u8; 64];
 pub type MerkleHash = [u8; 32];
 
-pub const BLOCK_DIFFICULTY: &str = "00000";
-pub const GENESIS_BLOCK: &str = "00000000000000000000000000000000000000000000000000000000000000005ae99a6101002dd70000000000000000000000000000dd0808c02e8a54374128d3d7b8c579c74753f1c89b2c6c2473157a9db4eac730010000000000000034c9605c033fd884d2b11759bfc7de3f469d2b977bbeb4904e018898fddfb80e";
+pub const BLOCK_DIFFICULTY: &str = "0000";
+pub const GENESIS_BLOCK: &str = "0000006c84fcf7baaeefea10dff32bb1a77fcdf29d31e6edaf2a39a48730ad18000000000000000000000000000000000000000000000000000000000000000000c4b461010000fdd7eaabe9ad12278e4336b162c03903c36adf46aff1640c280920f1f4764ad9df4cd1c9e0597b28f85ab9aee8be2201000000000000001a18338c06a3cdfa0394efe757b9054a0fa9a05e61c4f057f4d19ca0fae65090";
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct BlockHeader {
@@ -37,14 +43,18 @@ pub struct BlockTemplate {
 }
 
 impl BlockTemplate {
-    pub fn new(nonce: u128, prev_block_hash: BlockHash, time: u32, tx_count: u16, merkle_root : MerkleHash) -> Result<Self> {
-
-
+    pub fn new(
+        nonce: u128,
+        prev_block_hash: BlockHash,
+        time: u32,
+        tx_count: u16,
+        merkle_root: MerkleHash,
+    ) -> Result<Self> {
         Ok(Self {
             prev_block_hash,
             time,
             tx_count,
-            merkle_root ,
+            merkle_root,
             nonce,
         })
     }
@@ -60,13 +70,12 @@ impl BlockTemplate {
         sha3.finalize(&mut block_hash);
         block_hash
     }
-
-
 }
 
 pub fn genesis_block() -> Block {
     let decoded_bytes = hex::decode(GENESIS_BLOCK).expect("Error creating genesis block");
-    let genesis_block: Block = bincode::deserialize(&decoded_bytes).expect("Error creating genesis block");
+    let genesis_block: Block =
+        bincode::deserialize(&decoded_bytes).expect("Error creating genesis block");
     genesis_block
 }
 
@@ -81,17 +90,41 @@ pub struct Block {
     pub transactions: Vec<TxHash>,
 }
 
+#[derive(Debug)]
+pub struct BlockView {
+    block_hash: String,
+    prev_block_hash: String,
+    time: u32,
+    tx_count: u16,
+    nonce: u128,
+    merkle_root: String,
+    transactions: Vec<String>,
+}
 
+impl std::fmt::Display for Block {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let view = BlockView {
+            block_hash: hex::encode(self.hash),
+            prev_block_hash: hex::encode(self.prev_block_hash),
+            time: self.time,
+            tx_count: self.tx_count,
+            nonce: self.nonce,
+            merkle_root: hex::encode(self.merkle_root),
+            transactions: self.transactions.iter().map(|tx| hex::encode(tx)).collect(),
+        };
+        write!(f, "{:#?}", view)
+    }
+}
 
 impl Block {
-    pub fn new(template : BlockTemplate, transactions: Vec<TxHash>) -> Self {
+    pub fn new(template: BlockTemplate, transactions: Vec<TxHash>) -> Self {
         Self {
             hash: template.block_hash(),
-            prev_block_hash : template.prev_block_hash,
-            time : template.time,
+            prev_block_hash: template.prev_block_hash,
+            time: template.time,
             tx_count: template.tx_count,
-            nonce : template.nonce,
-            merkle_root : template.merkle_root,
+            nonce: template.nonce,
+            merkle_root: template.merkle_root,
             transactions,
         }
     }
@@ -120,10 +153,11 @@ impl Block {
     }
 }
 
-
 pub struct Miner {
     current_nonce: u128,
     account: Account,
+    mempool: Arc<MemPool>,
+    utxo: Arc<UTXO>,
 }
 
 fn validate_block(block_hash: &BlockHash) -> bool {
@@ -132,21 +166,32 @@ fn validate_block(block_hash: &BlockHash) -> bool {
 }
 
 impl Miner {
-    pub fn new() -> Self {
+    pub fn new(mempool: Arc<MemPool>, utxo: Arc<UTXO>) -> Self {
         Self {
             current_nonce: 0,
             account: create_account(),
+            mempool,
+            utxo
         }
     }
-    pub fn mine(&mut self, prev_block_hash: &BlockHash, txs: Vec<Tx>) -> Result<Block> {
-        let mut txs = txs;
-        // Verify User Txs
-        //Add coinbase transaction
-        let tx_nonce: u128 = rand::random();
-        let coinbase_tx_in = TxIn::new([0_u8; 32], 0000, self.account.pub_key);
-        let coinbase_tx_out = TxOut::new(self.account.pub_key, 10);
-        let coin_base_tx = Tx::signed(&self.account, tx_nonce, vec![coinbase_tx_in], vec![coinbase_tx_out])?;
-        txs.insert(0, coin_base_tx);
+    pub fn mine(
+        &mut self,
+        prev_block_hash: &BlockHash,
+    ) -> Result<Block> {
+        let mut txs = self.mempool.fetch()?;
+        let mut fees: u128 = 0;
+        for tx in txs.iter() {
+            fees += crate::transaction::calculate_tx_in_out_amount(tx, self.utxo.as_ref()).map(
+                |(in_amount, out_amount)| {
+                    crate::consensus::check_transaction_fee(in_amount, out_amount)
+                },
+            )??;
+            crate::consensus::validate_transaction(tx, self.utxo.as_ref())?;
+        }
+
+        //let fee : u128 = txs.iter().map(|tx| {crate::consensus::calculate_fees(tx,utxo.as_ref())}).fold_ok(0, |acc, curr| acc + curr)?;
+
+        txs.insert(0, Tx::coinbase(&self.account, fees)?);
 
         let mut merkle = Merkle::default();
         for tx in txs.iter() {
@@ -154,18 +199,23 @@ impl Miner {
         }
         let merkle_root = merkle.finalize().ok_or(BlockChainError::MerkleError)?;
 
-
         loop {
             let time = Utc::now().timestamp() as u32;
 
             let mut new_block_hash = [0_u8; 32];
             self.current_nonce = rand::random();
 
-            let template_block = BlockTemplate::new(self.current_nonce, *prev_block_hash, time, txs.len() as u16, *merkle_root)?;
+            let template_block = BlockTemplate::new(
+                self.current_nonce,
+                *prev_block_hash,
+                time,
+                txs.len() as u16,
+                *merkle_root,
+            )?;
             let empty_block = [0_u8; 32];
             new_block_hash = template_block.block_hash();
             if new_block_hash != empty_block && validate_block(&new_block_hash) {
-                let transactions : Vec<_>= txs.iter().map(|t| t.id().clone()).collect();
+                let transactions: Vec<_> = txs.iter().map(|t| t.id().clone()).collect();
                 return Ok(Block::new(template_block, transactions));
             }
         }
@@ -179,14 +229,52 @@ pub struct BlockChain {
 
 #[cfg(test)]
 mod test {
-    use crate::blockchain::{Miner, Block, validate_block};
-    use tiny_keccak::Hasher;
-    use std::time::Instant;
+    use crate::blockchain::{Account, genesis_block};
+    use crate::blockchain::Tx;
+    use crate::blockchain::{Miner};
+    use crate::utxo::UTXO;
+    use crate::utxo::UTXOStore;
+    use anyhow::Result;
+    use std::sync::Arc;
+    use storage::memstore::MemStore;
+
+    pub struct TempStorage {
+        pub utxo: Arc<UTXO>,
+    }
+
+    pub fn setup_storage(accounts: &Vec<Account>, memstore: Arc<MemStore>) -> TempStorage {
+        let coin_base = [0_u8; 32];
+
+        let res: Result<Vec<_>> = accounts
+            .iter()
+            .map(|account| Tx::coinbase(account, 0))
+            .collect();
+
+        let txs = res.unwrap();
+
+        let temp = TempStorage {
+            utxo: Arc::new(UTXO::new(memstore)),
+        };
+
+        for tx in txs.iter() {
+            temp.utxo.put(tx).unwrap()
+        }
+
+        temp
+    }
+
+    /*#[test]
+    fn mine_genesis() {
+
+        let utxo = Arc::new(UTXO::new(Arc::new(MemStore::new())));
+        let mut miner = Miner::new();
+        let block = miner.mine(&[0; 32], vec![], utxo.clone()).unwrap();
+        println!("{:?}", hex::encode(bincode::serialize(&block).unwrap()));
+    }*/
 
     #[test]
-    fn mine_genesis() {
-        let mut miner = Miner::new();
-        //miner.mine()
+    fn _genesis() {
+        println!("{}", genesis_block());
     }
 
     /*#[test]

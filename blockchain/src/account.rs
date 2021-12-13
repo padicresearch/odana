@@ -4,26 +4,21 @@ use rand_chacha::{ChaCha12Rng, ChaCha20Rng};
 use rand_chacha::rand_core::SeedableRng;
 use rand_core::OsRng;
 use std::hash::{Hash};
-use serde::{Serializer, Deserialize};
+use serde::{Serialize, Deserialize};
 use anyhow::Result;
 use crate::errors::BlockChainError;
+use storage::codec::{Encoder, Decoder};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {
     pub address: [u8; 20],
     pub pri_key: [u8; 32],
     pub pub_key: [u8; 32],
 }
 
-/*impl Encode for Account {
-    fn encode(&self) -> Result<Vec<u8>> {
-        Ok(bincode::serialize(self).map_err(|e| BlockChainError::SerializationError(e))?)
-    }
+impl Encoder for Account {}
+impl Decoder for Account {}
 
-    fn encoded_len(&self) -> Result<usize> {
-        Ok(bincode::serialized_size(self).map(|size| size as usize).map_err(|e| BlockChainError::SerializationError(e))?)
-    }
-}*/
 
 impl PartialEq for Account {
     fn eq(&self, other: &Self) -> bool {
