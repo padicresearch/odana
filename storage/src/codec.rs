@@ -1,6 +1,7 @@
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
+use common::BlockHash;
 
 pub trait Encoder : Sized + Serialize + DeserializeOwned {
     fn encode(&self) -> Result<Vec<u8>> {
@@ -34,3 +35,15 @@ impl Decoder for Hash {
         Ok(buff)
     }
 }
+
+#[macro_export]
+macro_rules! impl_codec {
+    ($type : ty) => {
+        impl Encoder for $type {}
+        impl Decoder for $type {}
+        impl<$type> Codec for $type {}
+    };
+}
+
+
+

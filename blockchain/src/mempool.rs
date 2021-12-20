@@ -2,11 +2,16 @@ use storage::{Storage, KVEntry};
 use crate::transaction::Tx;
 use anyhow::Result;
 use rusqlite::{params, Connection};
-use crate::utxo::UTXO;
+use crate::utxo::{UTXO, UTXOStore};
 use itertools::Itertools;
 use crate::errors::BlockChainError;
 use std::sync::Arc;
 use std::path::{Path, PathBuf};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use common::TxHash;
+use derive_getters::Getters;
+use storage::codec::{Encoder, Decoder};
 
 pub type MemPoolStorageKV = dyn Storage<MemPool> + Send + Sync;
 
@@ -95,6 +100,15 @@ pub struct MemPool {
     utxo : Arc<UTXO>
 }
 
+#[derive(Serialize, Deserialize, Getters)]
+pub struct MempoolSnapsot {
+    pending : VecVec<TxHash>,
+    valid : Vec<TxHash>,
+}
+
+impl Encoder for MempoolSnapsot {}
+impl Decoder for MempoolSnapsot {}
+
 
 impl MemPool {
     pub fn new(utxo : Arc<UTXO>, primary: Arc<MemPoolStorageKV>, index_path : Option<PathBuf> ) -> Result<MemPool> {
@@ -122,10 +136,18 @@ impl MemPool {
         })
     }
 
+    pub fn contains(&self, tx_id: &[u8;32]) -> Result<bool> {
+        self.primary.contains(tx_id)
+    }
+
     pub fn remove(&self, tx_id: &[u8; 32]) -> Result<()> {
         self.primary.delete(tx_id);
         self.index.delete(&hex::encode(tx_id))?;
         Ok(())
+    }
+
+    pub fn get_tx(&self, tx_id: &[u8; 32]) -> Result<Option<Tx>> {
+        self.primary.get(tx_id)
     }
 
     pub fn fetch(&self) -> Result<Vec<Tx>> {
@@ -138,6 +160,23 @@ impl MemPool {
             value.ok_or(BlockChainError::MemPoolTransactionNotFound)
         }).collect();
         results.map_err(|e| e.into())
+    }
+
+    pub fn snapshot(&self) -> Result<MempoolSnapsot> {
+        let valid_transactions: Vec<TxHash> = self.utxo.iter()?.map_ok(|(k,_)| {
+            let key = k?;
+            key.tx_id
+        }).collect();
+
+        let pending_transactions: Vec<TxHash> = self.primary.iter()?.map_ok(|(k,_)| {
+            let key = k?;
+            key.tx_id
+        }).collect();
+
+        Ok(MempoolSnapsot {
+            pending: pending_transactions,
+            valid: valid_transactions
+        })
     }
 }
 

@@ -1,9 +1,11 @@
-use crate::blockchain::Block;
+use crate::blockchain::{ BLOCK_DIFFICULTY};
 use crate::errors::BlockChainError;
 use crate::transaction::Tx;
 use crate::utxo::{UTXOStore, UTXO};
 use anyhow::Result;
 use ed25519_dalek::{PublicKey, Signature, Verifier};
+use common::BlockHash;
+use crate::block::Block;
 
 pub fn validate_transaction(tx: &Tx, utxo: &UTXO) -> Result<()> {
     if tx.is_coinbase() {
@@ -53,3 +55,34 @@ pub fn check_transaction_fee(in_amount: u128, out_amount: u128) -> Result<u128> 
 }
 
 
+pub fn check_block_pow(block_hash: &BlockHash) -> bool {
+    let block_hash_encoded = hex::encode(block_hash);
+    block_hash_encoded.starts_with(BLOCK_DIFFICULTY)
+}
+
+pub fn validate_block(block: &Block) -> Result<()> {
+    let block_hash = block.calculate_hash();
+    if !check_block_pow(&block_hash) {
+        return Err(BlockChainError::InvalidBlock.into())
+    }
+    let mut merkle = Merkle::default();
+    for tx in block.transactions().iter() {
+        let _ = merkle.update(tx.id())?;
+    }
+    let merkle_root = merkle.finalize().ok_or(BlockChainError::MerkleError)?;
+    if merkle_root != block.merkle_root() {
+        Err(BlockChainError::InvalidBlock.into())
+    }
+    Ok(())
+}
+
+
+
+pub fn execute_tx(tx: Tx, utxo: &UTXO) -> Result<()> {
+    validate_transaction(&tx, utxo)?;
+    for t in tx.inputs.iter() {
+        utxo.spend(t.prev_tx_index, &t.prev_tx_id)?;
+    }
+    utxo.put(&tx)?;
+    Ok(())
+}

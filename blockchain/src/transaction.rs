@@ -279,7 +279,7 @@ use std::collections::{HashMap, BTreeMap};
 
     fn get_account_coins(acount: &Account, utxo: &UTXO) -> Vec<(CoinKey, CoinOut)>{
         let mut res = vec![];
-        for (k, v) in utxo.iter() {
+        for (k, v) in utxo.iter().unwrap() {
             let key =  k.unwrap();
             let coin = v.unwrap();
             if coin.tx_out.pub_key == acount.pub_key &&  !coin.is_spent{

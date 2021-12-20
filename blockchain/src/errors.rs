@@ -33,4 +33,10 @@ pub enum BlockChainError {
     InvalidTransaction,
     #[error("InvalidTransactionCoinSpent")]
     InvalidTransactionCoinSpent,
+    #[error("TransactionNotFound")]
+    TransactionNotFound,
+    #[error("InvalidBlock")]
+    InvalidBlock,
+    #[error("UnknownError")]
+    UnknownError,
 }

@@ -36,7 +36,7 @@ impl Hash for Account {
 
 impl Account {
     pub fn address_encoded(&self) -> String {
-        "0x".to_string() + &hex::encode(self.address)
+        format!("0x{}",hex::encode(self.address))
     }
 
     pub fn sign(&self, payload: &[u8]) -> Result<[u8; 64]> {

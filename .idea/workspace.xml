@@ -36,29 +36,29 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implementing utxo">
-      <change afterPath="$PROJECT_DIR$/blockchain/src/amount.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/balances.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/blockchain/src/mempool.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/storage/src/error.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implementing mempool">
+      <change afterPath="$PROJECT_DIR$/blockchain/src/block.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/blockchain/src/chain_manager.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/blockchain/src/p2p.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/storage/src/presistent_store.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/account.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/consensus.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/consensus.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/errors.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/errors.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/mempool.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/mempool.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/miner.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/miner.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/transaction.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/transaction.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/utxo.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/utxo.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/storage/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/storage/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/storage/src/codec.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/codec.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -223,8 +223,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test transaction::tests::test_valid_tx" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package blockchain --lib transaction::tests::test_valid_tx -- --exact" />
+    <configuration name="Test p2p::tests::account_to_node_id" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package blockchain --lib p2p::tests::account_to_node_id -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -259,19 +259,19 @@
       <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test transaction::tests::test_valid_tx" />
       <item itemvalue="Cargo.Test blockchain::test::test_miner" />
       <item itemvalue="Cargo.Test blockchain::test::mine_genesis" />
       <item itemvalue="Cargo.Test blockchain::test::_genesis" />
       <item itemvalue="Cargo.Test mempool::tests::test_mempool" />
+      <item itemvalue="Cargo.Test p2p::tests::account_to_node_id" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test mempool::tests::test_mempool" />
+        <item itemvalue="Cargo.Test p2p::tests::account_to_node_id" />
+        <item itemvalue="Cargo.Test blockchain::test::test_miner" />
         <item itemvalue="Cargo.Test blockchain::test::_genesis" />
         <item itemvalue="Cargo.Test blockchain::test::mine_genesis" />
-        <item itemvalue="Cargo.Test transaction::tests::test_valid_tx" />
-        <item itemvalue="Cargo.Test blockchain::test::test_miner" />
+        <item itemvalue="Cargo.Test mempool::tests::test_mempool" />
       </list>
     </recent_temporary>
   </component>
@@ -312,7 +312,8 @@
       <workItem from="1639222969218" duration="10298000" />
       <workItem from="1639297817690" duration="5301000" />
       <workItem from="1639408601075" duration="7194000" />
-      <workItem from="1639427769419" duration="4608000" />
+      <workItem from="1639427769419" duration="8457000" />
+      <workItem from="1639767253851" duration="51775000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -433,7 +434,14 @@
       <option name="project" value="LOCAL" />
       <updated>1638741705129</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="implementing mempool">
+      <created>1639432611469</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1639432611469</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -464,6 +472,7 @@
     <MESSAGE value="code improvement" />
     <MESSAGE value="Blockchain" />
     <MESSAGE value="implementing utxo" />
-    <option name="LAST_COMMIT_MESSAGE" value="implementing utxo" />
+    <MESSAGE value="implementing mempool" />
+    <option name="LAST_COMMIT_MESSAGE" value="implementing mempool" />
   </component>
 </project>

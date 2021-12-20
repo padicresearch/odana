@@ -14,11 +14,11 @@ const ERROR_MSG_COIN_NOT_FOUND: &str = "Spendable output not found";
 
 
 pub struct UTXO {
-    kv : Arc<UTXOStorageKV>
+    kv: Arc<UTXOStorageKV>,
 }
 
 impl UTXO {
-    pub fn new(storage : Arc<UTXOStorageKV>) -> Self {
+    pub fn new(storage: Arc<UTXOStorageKV>) -> Self {
         Self {
             kv: storage
         }
@@ -26,11 +26,11 @@ impl UTXO {
 }
 
 pub trait UTXOStore {
-    fn put(&self, tx : &Tx) -> Result<()>;
-    fn spend(&self, index : u16, tx_hash : &[u8;32]) -> Result<()>;
-    fn get_coin(&self, index : u16, tx_hash : &[u8;32]) -> Result<Option<CoinOut>>;
+    fn put(&self, tx: &Tx) -> Result<()>;
+    fn spend(&self, index: u16, tx_hash: &[u8; 32]) -> Result<()>;
+    fn get_coin(&self, index: u16, tx_hash: &[u8; 32]) -> Result<Option<CoinOut>>;
     fn contains(&self, index: u16, tx_hash: &[u8; 32]) -> Result<bool>;
-    fn iter<'a>(&'a self) -> Box< dyn 'a + Send + Iterator<Item = (Result<CoinKey>, Result<CoinOut>)>>;
+    fn iter<'a>(&'a self) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<CoinKey>, Result<CoinOut>)>>> ;
 }
 
 impl UTXOStore for UTXO {
@@ -38,7 +38,7 @@ impl UTXOStore for UTXO {
         for (index, tx_out) in tx.outputs.iter().enumerate() {
             let key = CoinKey::new(index as u16, tx.tx_id);
             if self.kv.contains(&key)? {
-                return Err(BlockChainError::UTXOError(ERROR_MSG_KEY_EXISTS).into())
+                return Err(BlockChainError::UTXOError(ERROR_MSG_KEY_EXISTS).into());
             }
 
             self.kv.put(key, CoinOut::new(tx_out.clone()));
@@ -50,7 +50,7 @@ impl UTXOStore for UTXO {
         let key = CoinKey::new(index as u16, *tx_hash);
         let mut coin = self.kv.get(&key)?.ok_or(BlockChainError::UTXOError(ERROR_MSG_COIN_NOT_FOUND))?;
         coin.spend();
-        self.kv.put(key,coin)
+        self.kv.put(key, coin)
     }
 
     fn get_coin(&self, index: u16, tx_hash: &[u8; 32]) -> Result<Option<CoinOut>> {
@@ -63,18 +63,18 @@ impl UTXOStore for UTXO {
         self.kv.contains(&key)
     }
 
-    fn iter<'a>(&'a self) -> Box<dyn 'a + Send + Iterator<Item=(Result<CoinKey>, Result<CoinOut>)>> {
+    fn iter<'a>(&'a self) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<CoinKey>, Result<CoinOut>)>>> {
         self.kv.iter()
     }
 }
 
 impl UTXO {
     pub fn print(&self) -> Result<()> {
-        let iter = self.iter();
-        for (k,v) in iter {
+        let iter = self.iter()?;
+        for (k, v) in iter {
             let key = k?;
             let value = v?;
-            println!("{:?}\n{:?}", key,value);
+            println!("{:?}\n{:?}", key, value);
         }
         Ok(())
     }
@@ -83,30 +83,30 @@ impl UTXO {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CoinKey {
-    pub tx_hash : [u8;32],
-    pub index : u16
+    pub tx_hash: [u8; 32],
+    pub index: u16,
 }
 
 impl CoinKey {
-    fn new(index : u16, tx_hash : [u8;32]) -> Self {
+    fn new(index: u16, tx_hash: [u8; 32]) -> Self {
         CoinKey {
             tx_hash,
-            index
+            index,
         }
     }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CoinOut {
-    pub tx_out : TxOut,
-    pub is_spent : bool
+    pub tx_out: TxOut,
+    pub is_spent: bool,
 }
 
 impl CoinOut {
-    pub(crate) fn new(tx_out : TxOut) -> Self{
+    pub(crate) fn new(tx_out: TxOut) -> Self {
         CoinOut {
             tx_out,
-            is_spent: false
+            is_spent: false,
         }
     }
 
@@ -127,7 +127,6 @@ impl Encoder for CoinKey {
 
 impl Decoder for CoinKey {
     fn decode(buf: &[u8]) -> Result<Self> {
-
         let mut cursor = Cursor::new(buf);
         let mut tx_hash = [0_u8; 32];
         let mut raw_index = [0_u8; 2];
@@ -139,9 +138,8 @@ impl Decoder for CoinKey {
 
         Ok(CoinKey {
             tx_hash,
-            index
+            index,
         })
-
     }
 }
 
@@ -149,8 +147,6 @@ impl Encoder for CoinOut {}
 
 
 impl Decoder for CoinOut {}
-
-
 
 
 impl KVEntry for UTXO {

@@ -94,11 +94,11 @@ impl<S: KVEntry> Storage<S> for MemStore {
 
     fn iter<'a>(
         &'a self,
-    ) -> Box<dyn 'a + Send + Iterator<Item = (Result<S::Key>, Result<S::Value>)>> {
+    ) -> Result<Box<dyn 'a + Send + Iterator<Item = (Result<S::Key>, Result<S::Value>)>>> {
         let iter = MemStoreIterator::new(self.inner.clone());
-        Box::new(
+        Ok(Box::new(
             iter.into_iter()
                 .map(|(k, v)| (S::Key::decode(&k), S::Value::decode(&v))),
-        )
+        ))
     }
 }
