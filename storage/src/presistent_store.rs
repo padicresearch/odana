@@ -1,5 +1,5 @@
-use crate::{Storage, KVEntry, StorageIterator};
-use sled::IVec;
+use crate::{KVStore, KVEntry, StorageIterator};
+use sled::{IVec, Tree};
 use crate::codec::{Encoder, Decoder};
 use itertools::Itertools;
 use anyhow::Result;
@@ -16,12 +16,16 @@ impl PersistentStore {
             inner: db
         })
     }
+
+    fn column(&self, name : &'static str) -> Result<Tree> {
+        self.inner.open_tree(name).map_err(|e| e.into())
+    }
 }
 
-impl<S: KVEntry> Storage<S> for PersistentStore {
+impl<S: KVEntry> KVStore<S> for PersistentStore {
     fn get(&self, key: &S::Key) -> anyhow::Result<Option<S::Value>> {
         let key = key.encode()?;
-        let result = self.inner.get(&key)?;
+        let result = self.column(S::column())?.get(&key)?;
         match result {
             None => {
                 Ok(None)
@@ -35,23 +39,23 @@ impl<S: KVEntry> Storage<S> for PersistentStore {
     fn put(&self, key: S::Key, value: S::Value) -> anyhow::Result<()> {
         let key = key.encode()?;
         let value = value.encode()?;
-        self.inner.insert(key, value)?;
+        self.column(S::column())?.insert(key, value)?;
         Ok(())
     }
 
     fn delete(&self, key: &S::Key) -> anyhow::Result<()> {
         let key = key.encode()?;
-        self.inner.remove(key)?;
+        self.column(S::column())?.remove(key)?;
         Ok(())
     }
 
     fn contains(&self, key: &S::Key) -> anyhow::Result<bool> {
         let key = key.encode()?;
-        self.inner.contains_key(key).map_err(|e| e.into())
+        self.column(S::column())?.contains_key(key).map_err(|e| e.into())
     }
 
     fn iter(&self) -> Result<StorageIterator<S>> {
-        let iter = self.inner.iter();
+        let iter = self.column(S::column())?.iter();
         Ok(Box::new(iter.map(|result| {
             let (k,v) = result.unwrap();
             (S::Key::decode(k.as_ref()), S::Value::decode(v.as_ref()))

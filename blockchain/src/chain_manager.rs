@@ -11,7 +11,7 @@ use crate::blockchain::BlockChainState;
 use crate::errors::BlockChainError;
 
 pub struct ChainManager {
-
+    mempool : Arc<MemPool>
 }
 
 impl ChainManager {
@@ -36,10 +36,11 @@ impl ChainManager {
     }
 }
 
-pub fn start_mining(miner: Arc<Miner>, state: Arc<BlockChainState>, sender: UnboundedSender<Block>) -> Result<()> {
+pub fn start_mining(miner: Arc<Miner>, state: Arc<BlockChainState>, sender: UnboundedSender<Block>)  {
     tokio::task::spawn( async move {
         loop {
-            match miner.mine(&state.get_current_head()?.ok_or(BlockChainError::UnknownError).expect("Blockchain state failed")) {
+            let state = state.clone();
+            match miner.mine(&state.get_current_head().expect("Blockchain state failed").ok_or(BlockChainError::UnknownError).expect("Blockchain state failed")) {
                 Ok(new_block) => {
                     sender.send(new_block);
                 }
@@ -49,6 +50,5 @@ pub fn start_mining(miner: Arc<Miner>, state: Arc<BlockChainState>, sender: Unbo
             }
         }
     });
-    Ok(())
 }
 

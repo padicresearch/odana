@@ -1,4 +1,5 @@
 #![feature(async_closure)]
+#![feature(trivial_bounds)]
 
 mod account;
 mod errors;

@@ -3,6 +3,8 @@ use anyhow::Result;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::RwLock;
+use crate::memstore::MemStore;
+use crate::presistent_store::PersistentStore;
 
 pub mod codec;
 pub mod memstore;
@@ -12,9 +14,15 @@ pub mod presistent_store;
 pub trait KVEntry {
     type Key: Codec + Clone;
     type Value: Codec;
+    fn column() -> &'static str;
 }
 
-pub trait Storage<Entry>
+pub enum PersistentStorage {
+    MemStore(Arc<MemStore>),
+    PersistentStore(Arc<PersistentStore>)
+}
+
+pub trait KVStore<Entry>
 where
     Entry: KVEntry,
 {

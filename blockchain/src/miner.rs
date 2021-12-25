@@ -102,12 +102,15 @@ mod test {
     use crate::miner::Miner;
     use crate::account::Account;
     use crate::transaction::Tx;
+    use storage::{PersistentStorage, KVEntry};
+    use crate::block_storage::BlockStorage;
+    use crate::blockchain::BlockChainState;
 
     pub struct TempStorage {
         pub utxo: Arc<UTXO>,
     }
 
-    pub fn setup_storage(accounts: &Vec<Account>, memstore: Arc<MemStore>) -> TempStorage {
+    pub fn setup_storage(accounts: &Vec<Account>, storage: Arc<PersistentStorage>) -> TempStorage {
         let coin_base = [0_u8; 32];
 
         let res: Result<Vec<_>> = accounts
@@ -118,7 +121,7 @@ mod test {
         let txs = res.unwrap();
 
         let temp = TempStorage {
-            utxo: Arc::new(UTXO::new(memstore)),
+            utxo: Arc::new(UTXO::new(storage)),
         };
 
         for tx in txs.iter() {
@@ -130,8 +133,9 @@ mod test {
 
     #[test]
     fn mine_genesis() {
-        let utxo = Arc::new(UTXO::new(Arc::new(MemStore::new())));
-        let mempool = Arc::new(MemPool::new(utxo.clone(), Arc::new(MemStore::new()), None).unwrap());
+        let storage = Arc::new(PersistentStorage::MemStore(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
+        let utxo = Arc::new(UTXO::new(storage.clone()));
+        let mempool = Arc::new(MemPool::new(utxo.clone(), storage.clone(), None).unwrap());
         let mut miner = Miner::new(mempool.clone(), utxo.clone());
         let block = miner.mine(&BlockHeader::new(
             [0; 32],
@@ -153,8 +157,9 @@ mod test {
     #[test]
     fn test_miner() {
         let mut current_block = genesis_block().header();
-        let utxo = Arc::new(UTXO::new(Arc::new(MemStore::new())));
-        let mempool = Arc::new(MemPool::new(utxo.clone(), Arc::new(MemStore::new()), None).unwrap());
+        let storage = Arc::new(PersistentStorage::MemStore(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
+        let utxo = Arc::new(UTXO::new(storage.clone()));
+        let mempool = Arc::new(MemPool::new(utxo.clone(), storage.clone(), None).unwrap());
         let miner = Arc::new(Miner::new(mempool.clone(), utxo.clone()));
         println!("🔨 Genesis block:  {}", hex::encode(current_block.block_hash()));
         for i in 0..1 {

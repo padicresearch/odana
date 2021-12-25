@@ -1,4 +1,4 @@
-use storage::{KVEntry, Storage};
+use storage::{KVEntry, KVStore, PersistentStorage};
 use storage::codec::{Encoder, Decoder};
 use std::io::{Cursor, Read};
 use crate::transaction::{Tx, TxOut};
@@ -7,7 +7,7 @@ use anyhow::Result;
 use crate::errors::BlockChainError;
 use serde::{Serialize, Deserialize};
 
-pub type UTXOStorageKV = dyn Storage<UTXO> + Send + Sync;
+pub type UTXOStorageKV = dyn KVStore<UTXO> + Send + Sync;
 
 const ERROR_MSG_KEY_EXISTS: &str = "Key already exist in utxo";
 const ERROR_MSG_COIN_NOT_FOUND: &str = "Spendable output not found";
@@ -18,10 +18,20 @@ pub struct UTXO {
 }
 
 impl UTXO {
-    pub fn new(storage: Arc<UTXOStorageKV>) -> Self {
+    pub fn new(storage: Arc<PersistentStorage>) -> Self {
         Self {
-            kv: storage
+            kv: {
+                match storage.as_ref() {
+                    PersistentStorage::MemStore(storage) => {
+                        storage.clone()
+                    }
+                    PersistentStorage::PersistentStore(storage) => {
+                        storage.clone()
+                    }
+                }
+            }
         }
+
     }
 }
 
@@ -152,4 +162,8 @@ impl Decoder for CoinOut {}
 impl KVEntry for UTXO {
     type Key = CoinKey;
     type Value = CoinOut;
+
+    fn column() -> &'static str {
+        "utxo"
+    }
 }

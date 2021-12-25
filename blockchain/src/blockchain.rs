@@ -7,7 +7,7 @@ use crate::utxo::{UTXO, UTXOStorageKV};
 use crate::consensus::{validate_transaction, check_block_pow, execute_tx, validate_block};
 use crate::errors::BlockChainError;
 use crate::block_storage::{BlockStorage, BlockStorageKV};
-use storage::{Storage, KVEntry};
+use storage::{KVStore, KVEntry, PersistentStorage};
 use storage::codec::{Encoder, Decoder};
 use serde::{Serialize, Deserialize};
 use std::path::{Path, PathBuf};
@@ -21,31 +21,42 @@ pub struct BlockChain {
 }
 
 impl BlockChain {
-    pub fn new(mempool : Arc<MemPool>, utxo : Arc<UTXO>, block_storage : Arc<BlockStorage>, state: Arc<BlockChainStateKV>) -> Self {
+    pub fn new(storage : Arc<PersistentStorage>) -> Result<Self> {
+        let utxo = Arc::new(UTXO::new(storage.clone()));
+        let mempool = Arc::new(MemPool::new(utxo.clone(), storage.clone(), None)?);
+        let block_storage = Arc::new(BlockStorage::new(storage.clone()));
         let chain_state = BlockChainState {
             mempool,
             utxo,
             block_storage,
-            state
+            state :  match storage.as_ref() {
+                PersistentStorage::MemStore(storage) => {
+                    storage.clone()
+                }
+                PersistentStorage::PersistentStore(storage) => {
+                    storage.clone()
+                }
+            }
+
         };
 
-        Self {
+        Ok(Self {
             state: chain_state
-        }
+        })
     }
 
 }
 
 const CURRENT_HEAD_KEY : &str = "current-head";
 
-pub type BlockChainStateKV = dyn Storage<BlockChainState> + Send + Sync;
+pub type BlockChainStateKV = dyn KVStore<BlockChainState> + Send + Sync;
 
 #[derive(Serialize, Deserialize)]
 pub enum StateValue {
     CurrentHead(BlockHeader)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
  pub struct  StateKey {
     key : String
 }
@@ -55,7 +66,7 @@ impl Decoder for StateValue {}
 
 impl Encoder for StateKey {
     fn encode(&self) -> Result<Vec<u8>> {
-        Ok(self.key.into_bytes())
+        Ok(self.key.as_bytes().to_vec())
     }
 }
 
@@ -91,6 +102,9 @@ pub struct BlockChainState {
     state: Arc<BlockChainStateKV>
 }
 
+unsafe impl Send for BlockChainState {}
+unsafe impl Sync for BlockChainState {}
+
 impl BlockChainState {
     pub fn new(mempool: Arc<MemPool>,
                 utxo: Arc<UTXO>,
@@ -109,6 +123,10 @@ impl BlockChainState {
 impl KVEntry for BlockChainState {
     type Key = StateKey;
     type Value = StateValue;
+
+    fn column() -> &'static str {
+        "chain_state"
+    }
 }
 
 impl BlockChainState {
@@ -131,8 +149,9 @@ impl BlockChainState {
             }
             Some(current_head) => {
                 if current_head.block_hash() == new_block.prev_block_hash() {
-                    self.state.put(CURRENT_HEAD_KEY.into(), StateValue::CurrentHead(new_block.header()))
+                    return self.state.put(CURRENT_HEAD_KEY.into(), StateValue::CurrentHead(new_block.header()))
                 }
+                Ok(())
             }
         }
     }
@@ -146,7 +165,7 @@ impl BlockChainState {
                     self.mempool.remove(tx_hash);
                 }
 
-                self.block_storage.put_block(block)
+                self.block_storage.put_block(block);
 
             }
             StateAction::AddNewTransaction(tx) => {

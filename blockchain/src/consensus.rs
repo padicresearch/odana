@@ -6,6 +6,7 @@ use anyhow::Result;
 use ed25519_dalek::{PublicKey, Signature, Verifier};
 use common::BlockHash;
 use crate::block::Block;
+use merkle::Merkle;
 
 pub fn validate_transaction(tx: &Tx, utxo: &UTXO) -> Result<()> {
     if tx.is_coinbase() {
@@ -67,11 +68,11 @@ pub fn validate_block(block: &Block) -> Result<()> {
     }
     let mut merkle = Merkle::default();
     for tx in block.transactions().iter() {
-        let _ = merkle.update(tx.id())?;
+        let _ = merkle.update(&tx[..])?;
     }
     let merkle_root = merkle.finalize().ok_or(BlockChainError::MerkleError)?;
     if merkle_root != block.merkle_root() {
-        Err(BlockChainError::InvalidBlock.into())
+        return Err(BlockChainError::InvalidBlock.into())
     }
     Ok(())
 }

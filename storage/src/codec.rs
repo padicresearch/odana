@@ -41,7 +41,6 @@ macro_rules! impl_codec {
     ($type : ty) => {
         impl Encoder for $type {}
         impl Decoder for $type {}
-        impl<$type> Codec for $type {}
     };
 }
 

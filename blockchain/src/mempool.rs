@@ -1,4 +1,4 @@
-use storage::{Storage, KVEntry};
+use storage::{KVStore, KVEntry, PersistentStorage};
 use crate::transaction::Tx;
 use anyhow::Result;
 use rusqlite::{params, Connection};
@@ -13,7 +13,7 @@ use common::TxHash;
 use derive_getters::Getters;
 use storage::codec::{Encoder, Decoder};
 
-pub type MemPoolStorageKV = dyn Storage<MemPool> + Send + Sync;
+pub type MemPoolStorageKV = dyn KVStore<MemPool> + Send + Sync;
 
 pub struct MemPoolDB {
     conn: Connection,
@@ -42,7 +42,7 @@ impl MemPoolDB {
         })
     }
 
-    pub fn open<P :AsRef<Path>>(p : P) -> Result<MemPoolDB> {
+    pub fn open<P: AsRef<Path>>(p: P) -> Result<MemPoolDB> {
         let conn = Connection::open(p)?;
         conn.execute(INIT_DB, [])?;
         Ok(MemPoolDB {
@@ -64,8 +64,8 @@ impl MemPoolDB {
         let mut stmt = self.conn.prepare(QUERY_ORDER_BY_FEES_DESC)?;
 
         let rows = stmt.query_map([], |row| {
-            let id : String = row.get(0)?;
-            println!("{:?}",  id);
+            let id: String = row.get(0)?;
+            println!("{:?}", id);
             Ok(MemPoolIndex {
                 id: row.get(0)?,
                 fees: row.get(1)?,
@@ -97,28 +97,38 @@ pub struct MemPoolIndex {
 pub struct MemPool {
     primary: Arc<MemPoolStorageKV>,
     index: MemPoolDB,
-    utxo : Arc<UTXO>
+    utxo: Arc<UTXO>,
 }
 
 #[derive(Serialize, Deserialize, Getters)]
 pub struct MempoolSnapsot {
-    pending : VecVec<TxHash>,
-    valid : Vec<TxHash>,
+    pending: Vec<TxHash>,
+    valid: Vec<TxHash>,
 }
 
 impl Encoder for MempoolSnapsot {}
+
 impl Decoder for MempoolSnapsot {}
 
 
 impl MemPool {
-    pub fn new(utxo : Arc<UTXO>, primary: Arc<MemPoolStorageKV>, index_path : Option<PathBuf> ) -> Result<MemPool> {
+    pub fn new(utxo: Arc<UTXO>, storage: Arc<PersistentStorage>, index_path: Option<PathBuf>) -> Result<MemPool> {
         Ok(MemPool {
-            primary,
+            primary: {
+                match storage.as_ref() {
+                    PersistentStorage::MemStore(storage) => {
+                        storage.clone()
+                    }
+                    PersistentStorage::PersistentStore(storage) => {
+                        storage.clone()
+                    }
+                }
+            },
             index: match index_path {
                 Some(index_path) => MemPoolDB::open(index_path.as_path()),
                 None => MemPoolDB::open_in_memory()
             }?,
-            utxo
+            utxo,
         })
     }
 
@@ -136,7 +146,7 @@ impl MemPool {
         })
     }
 
-    pub fn contains(&self, tx_id: &[u8;32]) -> Result<bool> {
+    pub fn contains(&self, tx_id: &[u8; 32]) -> Result<bool> {
         self.primary.contains(tx_id)
     }
 
@@ -163,26 +173,30 @@ impl MemPool {
     }
 
     pub fn snapshot(&self) -> Result<MempoolSnapsot> {
-        let valid_transactions: Vec<TxHash> = self.utxo.iter()?.map_ok(|(k,_)| {
+        let valid_transactions: Result<Vec<TxHash>> = self.utxo.iter()?.map(|(k, _)| {
             let key = k?;
-            key.tx_id
+            Ok(key.tx_hash)
         }).collect();
 
-        let pending_transactions: Vec<TxHash> = self.primary.iter()?.map_ok(|(k,_)| {
-            let key = k?;
-            key.tx_id
+        let pending_transactions: Result<Vec<TxHash>> = self.primary.iter()?.map(|(_, v)| {
+            let tx = v?;
+            Ok(tx.tx_id)
         }).collect();
 
         Ok(MempoolSnapsot {
-            pending: pending_transactions,
-            valid: valid_transactions
+            pending: pending_transactions?,
+            valid: valid_transactions?,
         })
     }
 }
 
-impl KVEntry for MemPool {
+impl KVEntry for  MemPool {
     type Key = [u8; 32];
     type Value = Tx;
+
+    fn column() -> &'static str {
+        "mempool"
+    }
 }
 
 #[cfg(test)]
@@ -194,14 +208,17 @@ mod tests {
     use crate::transaction::Tx;
     use anyhow::Result;
     use crate::utxo::UTXO;
+    use storage::PersistentStorage::PersistentStore;
+    use storage::{PersistentStorage, KVEntry};
+    use crate::block_storage::BlockStorage;
+    use crate::blockchain::BlockChainState;
 
     #[test]
     fn test_mempool() {
-        let memstore = Arc::new(MemStore::new());
-        let memstore2 = Arc::new(MemStore::new());
-        let utxo = Arc::new(UTXO::new(memstore2));
+        let storage = Arc::new(PersistentStorage::MemStore(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
+        let utxo = Arc::new(UTXO::new(storage.clone()));
         //let mempool = Arc::new(MemPool::new(utxo,memstore, Some("/home/mambisi/CLionProjects/tuchain/test/mempoolidx.db")).unwrap());
-        let mempool = Arc::new(MemPool::new(utxo,memstore, None).unwrap());
+        let mempool = Arc::new(MemPool::new(utxo, storage.clone(), None).unwrap());
 
         let bob = create_account();
         let alice = create_account();
@@ -219,6 +236,5 @@ mod tests {
 
         let txs = mempool.fetch().unwrap();
         println!("{:?}", txs.len());
-
     }
 }

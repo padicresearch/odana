@@ -232,19 +232,22 @@ use std::collections::{HashMap, BTreeMap};
     use ed25519_dalek::{PublicKey, Signature, Verifier};
     use crate::errors::BlockChainError;
     use crate::utxo::{UTXO, UTXOStore, CoinOut, CoinKey};
-    use storage::{Storage, KVEntry};
+    use storage::{KVStore, KVEntry, PersistentStorage};
     use storage::codec::{Codec, Encoder, Decoder};
     use std::sync::{Arc, RwLock};
     use crate::consensus::validate_transaction;
     use std::collections::btree_map::Iter;
     use std::marker::PhantomData;
+    use crate::block_storage::BlockStorage;
+    use crate::mempool::MemPool;
+    use crate::blockchain::BlockChainState;
 
 
     pub struct TempStorage {
         pub utxo: Arc<UTXO>,
     }
 
-    pub fn setup_storage(accounts: &Vec<Account>, memstore: Arc<MemStore>) -> TempStorage {
+    pub fn setup_storage(accounts: &Vec<Account>, storage: Arc<PersistentStorage>) -> TempStorage {
         let coin_base = [0_u8; 32];
 
         let res: Result<Vec<_>> = accounts.iter().map(|account| {
@@ -255,7 +258,7 @@ use std::collections::{HashMap, BTreeMap};
 
 
         let temp = TempStorage {
-            utxo: Arc::new(UTXO::new(memstore))
+            utxo: Arc::new(UTXO::new(storage))
         };
 
 
@@ -301,13 +304,13 @@ use std::collections::{HashMap, BTreeMap};
 
     #[test]
     fn test_valid_tx() {
-        let memstore = Arc::new(MemStore::new());
+        let memstore = Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]));
         let bob = create_account();
         let alice = create_account();
         let dave = create_account();
-        let storage = setup_storage(&vec![bob, alice], memstore.clone());
+        let storage = setup_storage(&vec![bob, alice], Arc::new(PersistentStorage::MemStore(memstore.clone())));
 
-        //println!("{:#?}", memstore);
+        println!("{:#?}", memstore);
         let alice_coins = get_account_coins(&alice, &storage.utxo);
         println!("Alice Coins Count  : {} , Balance : {}", alice_coins.len(), available_balance(&alice, &storage.utxo));
         // Alice send bob 5 coins

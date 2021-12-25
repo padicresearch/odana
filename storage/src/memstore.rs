@@ -1,18 +1,29 @@
-use crate::Storage;
+use crate::KVStore;
 use crate::KVEntry;
 use crate::error::StorageError;
 use crate::codec::{Codec, Encoder, Decoder};
-use anyhow::Result;
-use std::collections::BTreeMap;
+use anyhow::{Result, Error};
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use std::sync::RwLock;
+use std::ops::Deref;
 
+#[derive(Debug)]
+pub struct ColumnMemStore {
+    inner : Arc<RwLock<BTreeMap<Arc<Vec<u8>>, Arc<Vec<u8>>>>>
+}
 
-
+impl Default for ColumnMemStore {
+    fn default() -> Self {
+        Self {
+            inner: Arc::new(Default::default())
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct MemStore {
-    inner: Arc<RwLock<BTreeMap<Arc<Vec<u8>>, Arc<Vec<u8>>>>>,
+    inner: Arc<HashMap<&'static str, Arc<ColumnMemStore>>>,
 }
 
 pub struct MemStoreIterator {
@@ -49,56 +60,99 @@ impl Iterator for MemStoreIterator {
 }
 
 impl MemStore {
-    pub fn new() -> Self {
+    pub fn new(columns : Vec<&'static str>) -> Self {
+        let columns : HashMap<_,_> = columns.iter().map(|name| {
+            (*name, Arc::new(ColumnMemStore::default()))
+        }).collect();
         Self {
-            inner: Arc::new(Default::default()),
+            inner: Arc::new(columns),
+        }
+    }
+
+    fn column(&self, name : &'static str) -> Result<Arc<ColumnMemStore>> {
+        match self.inner.get(name) {
+            None => {
+                anyhow::bail!("")
+            }
+            Some(col) => {
+                Ok(col.clone())
+            }
         }
     }
 }
 
-impl<S: KVEntry> Storage<S> for MemStore {
+impl<S: KVEntry> KVStore<S> for MemStore {
     fn get(&self, key: &S::Key) -> Result<Option<S::Value>> {
-        let inner = self.inner.clone();
-        let store = inner.read().map_err(|_| StorageError::RWPoison)?;
         let key = key.encode()?;
-        let result = store.get(&key);
-        match result {
-            Some(value) => Ok(Some(S::Value::decode(value)?)),
-            None => Ok(None),
+        match self.column(S::column())?.get(key)? {
+            None => {
+                Ok(None)
+            }
+            Some(value) => {
+                Ok(Some(S::Value::decode(&value)?))
+            }
         }
     }
 
     fn put(&self, key: S::Key, value: S::Value) -> Result<()> {
-        let inner = self.inner.clone();
-        let mut store = inner.write().map_err(|_| StorageError::RWPoison)?;
         let key = key.encode()?;
         let value = value.encode()?;
-        store.insert(Arc::new(key), Arc::new(value));
-        Ok(())
+        self.column(S::column())?.put(key, value)
     }
 
     fn delete(&self, key: &S::Key) -> Result<()> {
-        let inner = self.inner.clone();
-        let mut store = inner.write().map_err(|_| StorageError::RWPoison)?;
         let key = key.encode()?;
-        store.remove(&key);
-        Ok(())
+        self.column(S::column())?.delete(key)
     }
 
     fn contains(&self, key: &S::Key) -> Result<bool> {
-        let inner = self.inner.clone();
-        let store = inner.read().map_err(|_| StorageError::RWPoison)?;
         let key = key.encode()?;
-        Ok(store.contains_key(&key))
+        self.column(S::column())?.contains(key)
     }
 
     fn iter<'a>(
         &'a self,
     ) -> Result<Box<dyn 'a + Send + Iterator<Item = (Result<S::Key>, Result<S::Value>)>>> {
-        let iter = MemStoreIterator::new(self.inner.clone());
-        Ok(Box::new(
-            iter.into_iter()
-                .map(|(k, v)| (S::Key::decode(&k), S::Value::decode(&v))),
-        ))
+        Ok(Box::new(self.column(S::column())?.iter().map(|(k,v)| {
+            (S::Key::decode(&k), S::Value::decode(&v))
+        })))
+    }
+}
+
+impl ColumnMemStore {
+    fn get(&self, key: Vec<u8>) -> Result<Option<Vec<u8>>> {
+        let inner = self.inner.clone();
+        let store = inner.read().map_err(|_| StorageError::RWPoison)?;
+        let result = store.get(&key);
+        match result {
+            Some(value) => Ok(Some(value.deref().clone())),
+            None => Ok(None),
+        }
+    }
+
+    fn put(&self, key: Vec<u8>, value: Vec<u8>) -> Result<()> {
+        let inner = self.inner.clone();
+        let mut store = inner.write().map_err(|_| StorageError::RWPoison)?;
+        store.insert(Arc::new(key), Arc::new(value));
+        Ok(())
+    }
+
+    fn delete(&self, key: Vec<u8>) -> Result<()> {
+        let inner = self.inner.clone();
+        let mut store = inner.write().map_err(|_| StorageError::RWPoison)?;
+        store.remove(&key);
+        Ok(())
+    }
+
+    fn contains(&self, key: Vec<u8>) -> Result<bool> {
+        let inner = self.inner.clone();
+        let store = inner.read().map_err(|_| StorageError::RWPoison)?;
+        Ok(store.contains_key(&key))
+    }
+
+    fn iter(
+        &self,
+    ) -> MemStoreIterator {
+        MemStoreIterator::new(self.inner.clone())
     }
 }
