@@ -36,19 +36,3 @@ impl ChainManager {
     }
 }
 
-pub fn start_mining(miner: Arc<Miner>, state: Arc<BlockChainState>, sender: UnboundedSender<Block>)  {
-    tokio::task::spawn( async move {
-        loop {
-            let state = state.clone();
-            match miner.mine(&state.get_current_head().expect("Blockchain state failed").ok_or(BlockChainError::UnknownError).expect("Blockchain state failed")) {
-                Ok(new_block) => {
-                    sender.send(new_block);
-                }
-                Err(error) => {
-                    println!("Miner Error: {}", error);
-                }
-            }
-        }
-    });
-}
-

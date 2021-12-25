@@ -46,11 +46,10 @@
       <change beforePath="$PROJECT_DIR$/blockchain/src/mempool.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/mempool.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/miner.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/miner.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/p2p.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/p2p.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/transaction.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/transaction.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/utxo.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/utxo.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/codec.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/codec.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/storage/src/presistent_store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/presistent_store.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -324,7 +323,7 @@
       <workItem from="1639408601075" duration="7194000" />
       <workItem from="1639427769419" duration="8457000" />
       <workItem from="1639767253851" duration="56741000" />
-      <workItem from="1640345901081" duration="14474000" />
+      <workItem from="1640345901081" duration="38248000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -459,7 +458,14 @@
       <option name="project" value="LOCAL" />
       <updated>1639963096146</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="implementing blockchain">
+      <created>1640421977381</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1640421977381</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -81,8 +81,10 @@ pub fn validate_block(block: &Block) -> Result<()> {
 
 pub fn execute_tx(tx: Tx, utxo: &UTXO) -> Result<()> {
     validate_transaction(&tx, utxo)?;
-    for t in tx.inputs.iter() {
-        utxo.spend(t.prev_tx_index, &t.prev_tx_id)?;
+    if !tx.is_coinbase() {
+        for t in tx.inputs.iter() {
+            utxo.spend(t.prev_tx_index, &t.prev_tx_id)?;
+        }
     }
     utxo.put(&tx)?;
     Ok(())

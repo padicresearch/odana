@@ -5,11 +5,11 @@ use itertools::Itertools;
 use anyhow::Result;
 use std::path::Path;
 
-pub struct PersistentStore {
+pub struct SledDB {
     inner: sled::Db,
 }
 
-impl PersistentStore {
+impl SledDB {
     pub fn new<P : AsRef<Path>>(path : P) -> Result<Self> {
         let db = sled::open(path)?;
         Ok(Self {
@@ -22,7 +22,7 @@ impl PersistentStore {
     }
 }
 
-impl<S: KVEntry> KVStore<S> for PersistentStore {
+impl<S: KVEntry> KVStore<S> for SledDB {
     fn get(&self, key: &S::Key) -> anyhow::Result<Option<S::Value>> {
         let key = key.encode()?;
         let result = self.column(S::column())?.get(&key)?;

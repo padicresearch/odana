@@ -25,13 +25,14 @@ CREATE TABLE IF NOT EXISTS mempool (
     id              VARCHAR(64) NOT NULL PRIMARY KEY,
     fees            INTEGER NOT NULL,
     amount          INTEGER NOT NULL,
-    timestamp       INTEGER NOT NULL
+    timestamp       INTEGER NOT NULL,
+    is_coinbase     BOOLEAN
 );
 "#;
 
 const COMMAND_INSERT: &str = "INSERT INTO mempool (id, fees, amount, timestamp) VALUES (?1,?2,?3,?4)";
 const COMMAND_DELETE: &str = "DELETE FROM mempool WHERE id = ?1;";
-const QUERY_ORDER_BY_FEES_DESC: &str = "SELECT id, fees, amount, timestamp FROM mempool ORDER BY fees DESC, timestamp DESC LIMIT 2500";
+const QUERY_ORDER_BY_FEES_DESC: &str = "SELECT id, fees, amount, timestamp, is_coinbase FROM mempool WHERE is_coinbase == false ORDER BY fees DESC, timestamp DESC LIMIT 2500";
 
 impl MemPoolDB {
     pub fn open_in_memory() -> Result<MemPoolDB> {
@@ -71,6 +72,7 @@ impl MemPoolDB {
                 fees: row.get(1)?,
                 amount: row.get(2)?,
                 timestamp: row.get(3)?,
+                is_coinbase: row.get(4)?,
             })
         })?;
 
@@ -92,6 +94,7 @@ pub struct MemPoolIndex {
     fees: i64,
     amount: i64,
     timestamp: i64,
+    is_coinbase : bool
 }
 
 pub struct MemPool {
@@ -100,7 +103,7 @@ pub struct MemPool {
     utxo: Arc<UTXO>,
 }
 
-#[derive(Serialize, Deserialize, Getters)]
+#[derive(Serialize, Deserialize, Getters, Debug, Clone)]
 pub struct MempoolSnapsot {
     pending: Vec<TxHash>,
     valid: Vec<TxHash>,
@@ -119,7 +122,7 @@ impl MemPool {
                     PersistentStorage::MemStore(storage) => {
                         storage.clone()
                     }
-                    PersistentStorage::PersistentStore(storage) => {
+                    PersistentStorage::SledDB(storage) => {
                         storage.clone()
                     }
                 }
@@ -143,6 +146,7 @@ impl MemPool {
             fees: (in_amount as i64).saturating_sub((out_amount as i64)),
             amount: in_amount as i64,
             timestamp: chrono::Utc::now().timestamp(),
+            is_coinbase: tx.is_coinbase()
         })
     }
 
@@ -208,7 +212,7 @@ mod tests {
     use crate::transaction::Tx;
     use anyhow::Result;
     use crate::utxo::UTXO;
-    use storage::PersistentStorage::PersistentStore;
+    use storage::PersistentStorage::SledDB;
     use storage::{PersistentStorage, KVEntry};
     use crate::block_storage::BlockStorage;
     use crate::blockchain::BlockChainState;

@@ -25,7 +25,7 @@ impl UTXO {
                     PersistentStorage::MemStore(storage) => {
                         storage.clone()
                     }
-                    PersistentStorage::PersistentStore(storage) => {
+                    PersistentStorage::SledDB(storage) => {
                         storage.clone()
                     }
                 }

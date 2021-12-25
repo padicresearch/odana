@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::RwLock;
 use crate::memstore::MemStore;
-use crate::presistent_store::PersistentStore;
+use crate::presistent_store::SledDB;
 
 pub mod codec;
 pub mod memstore;
@@ -19,7 +19,7 @@ pub trait KVEntry {
 
 pub enum PersistentStorage {
     MemStore(Arc<MemStore>),
-    PersistentStore(Arc<PersistentStore>)
+    SledDB(Arc<SledDB>)
 }
 
 pub trait KVStore<Entry>

@@ -10,12 +10,16 @@ use crate::errors::BlockChainError;
 use chrono::Utc;
 use crate::consensus::check_block_pow;
 use merkle::Merkle;
+use tokio::sync::mpsc::UnboundedSender;
+use crate::blockchain::LocalMessage;
 
 
 pub struct Miner {
     account: Account,
     mempool: Arc<MemPool>,
     utxo: Arc<UTXO>,
+    local_mpsc_sender : UnboundedSender<LocalMessage>
+
 }
 
 
@@ -24,20 +28,26 @@ unsafe impl Send for Miner {}
 unsafe impl Sync for Miner {}
 
 impl Miner {
-    pub fn new(mempool: Arc<MemPool>, utxo: Arc<UTXO>) -> Self {
+    pub fn new(mempool: Arc<MemPool>, utxo: Arc<UTXO>, local_mpsc_sender : UnboundedSender<LocalMessage>) -> Self {
         Self {
             account: create_account(),
             mempool,
             utxo,
+            local_mpsc_sender
         }
     }
 
-    pub fn new_with_account(account: Account, mempool: Arc<MemPool>, utxo: Arc<UTXO>) -> Self {
+    pub fn new_with_account(account: Account, mempool: Arc<MemPool>, utxo: Arc<UTXO>, local_mpsc_sender : UnboundedSender<LocalMessage>) -> Self {
         Self {
             account,
             mempool,
             utxo,
+            local_mpsc_sender
         }
+    }
+
+    fn broadcast_msg(&self, msg : LocalMessage) {
+        self.local_mpsc_sender.send(msg);
     }
     pub fn mine(
         &self,
@@ -46,6 +56,10 @@ impl Miner {
         let mut txs = self.mempool.fetch()?;
         let mut fees: u128 = 0;
         for tx in txs.iter() {
+            // skip coinbase txs
+            if tx.is_coinbase() {
+
+            }
             fees += crate::transaction::calculate_tx_in_out_amount(tx, self.utxo.as_ref()).map(
                 |(in_amount, out_amount)| {
                     crate::consensus::check_transaction_fee(in_amount, out_amount)
@@ -54,7 +68,10 @@ impl Miner {
             crate::consensus::validate_transaction(tx, self.utxo.as_ref())?;
         }
 
-        txs.insert(0, Tx::coinbase(&self.account, fees)?);
+        let coinbase = Tx::coinbase(&self.account, fees)?;
+        self.broadcast_msg(LocalMessage::BroadcastTx(coinbase.clone()), );
+        txs.insert(0, coinbase);
+
 
         let mut merkle = Merkle::default();
         for tx in txs.iter() {
@@ -136,7 +153,8 @@ mod test {
         let storage = Arc::new(PersistentStorage::MemStore(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
         let utxo = Arc::new(UTXO::new(storage.clone()));
         let mempool = Arc::new(MemPool::new(utxo.clone(), storage.clone(), None).unwrap());
-        let mut miner = Miner::new(mempool.clone(), utxo.clone());
+        let local_mpsc = tokio::sync::mpsc::unbounded_channel();
+        let mut miner = Miner::new(mempool.clone(), utxo.clone(), local_mpsc.0);
         let block = miner.mine(&BlockHeader::new(
             [0; 32],
             [0; 32],
@@ -160,7 +178,8 @@ mod test {
         let storage = Arc::new(PersistentStorage::MemStore(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
         let utxo = Arc::new(UTXO::new(storage.clone()));
         let mempool = Arc::new(MemPool::new(utxo.clone(), storage.clone(), None).unwrap());
-        let miner = Arc::new(Miner::new(mempool.clone(), utxo.clone()));
+        let local_mpsc = tokio::sync::mpsc::unbounded_channel();
+        let miner = Arc::new(Miner::new(mempool.clone(), utxo.clone(), local_mpsc.0));
         println!("🔨 Genesis block:  {}", hex::encode(current_block.block_hash()));
         for i in 0..1 {
             let timer = Instant::now();
