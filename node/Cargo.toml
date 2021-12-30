@@ -15,3 +15,4 @@ blockchain = {path = "../blockchain"}
 storage = {path = "../storage"}
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0.45"
+types = {path = "../common/types"}

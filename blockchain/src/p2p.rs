@@ -1,5 +1,4 @@
 use libp2p::{PeerId, Transport, Swarm, Multiaddr};
-use crate::account::Account;
 use anyhow::{Result, Error};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::core::transport::upgrade::Version;
@@ -12,7 +11,7 @@ use libp2p::swarm::{SwarmBuilder, NetworkBehaviourEventProcess, SwarmEvent};
 use serde::{Serialize, Deserialize};
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver};
 use crate::block::{BlockHeader, Block};
-use common::{TxHash, BlockHash};
+use types::{TxHash, BlockHash};
 use crate::mempool::MempoolSnapsot;
 use storage::codec::{Encoder, Decoder, Codec};
 use storage::impl_codec;
@@ -243,21 +242,9 @@ async fn config_network(node_identity: NodeIdentity, p2p_to_node: UnboundedSende
 
 pub async fn start_p2p_server(node_identity: NodeIdentity, mut node_to_p2p: UnboundedReceiver<PeerMessage>, p2p_to_node: UnboundedSender<PeerMessage>) -> Result<()> {
     let mut swarm = config_network(node_identity, p2p_to_node).await?;
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse()?).expect("Error connecting to p2p");
+    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?).expect("Error connecting to p2p");
 
     tokio::task::spawn(async move {
-        /*println!("Started Receiving Node-p2p");
-        while let Some(msg) = node_to_p2p.recv().await {
-
-            match handle_publish_message(msg, &mut swarm).await {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Failed to publish  msg: {}", e)
-                }
-            };
-        }
-        println!("Stopped Receiving Node-p2p");*/
-
         loop {
             tokio::select! {
             msg = node_to_p2p.recv() => {handle_publish_message(msg, &mut swarm).await}
@@ -303,11 +290,6 @@ async fn handle_swam_event<T>(event: SwarmEvent<OutEvent, T>, swarm: &mut Swarm<
                                   FloodsubEvent::Message(message)
                               )) => {
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
-                println!(
-                    "Received: '{:?}' from {:?}",
-                    peer_message,
-                    message.source
-                );
                 swarm.behaviour_mut().p2p_to_node.send(peer_message);
             }
         }
@@ -332,6 +314,10 @@ async fn handle_swam_event<T>(event: SwarmEvent<OutEvent, T>, swarm: &mut Swarm<
                         .remove_node_from_partial_view(&peer);
                 }
             }
+        }
+
+        SwarmEvent::ConnectionEstablished {peer_id,..} => {
+
         }
         _ => {}
     }

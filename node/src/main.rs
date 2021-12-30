@@ -18,6 +18,8 @@ enum EventStream {
 ///tmp/tuchain
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    //logging
+    common::tracing_subscriber::fmt::init();
 
     // Communications
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
@@ -95,7 +97,6 @@ async fn main() -> anyhow::Result<()> {
                     };
 
                 }
-                EventStream::Unhandled => {}
                 EventStream::LocalMessage(local_msg) => {
                     match local_msg {
                         LocalMessage::MindedBlock(block) => {
@@ -109,6 +110,7 @@ async fn main() -> anyhow::Result<()> {
                             };
                         }
                         LocalMessage::BroadcastTx(tx) => {
+
 
                             match blockchain.dispatch(StateAction::AddNewTransaction(tx.clone())) {
                                 Ok(_) => {}
@@ -124,6 +126,7 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                 }
+                EventStream::Unhandled => {}
             }
 
         }

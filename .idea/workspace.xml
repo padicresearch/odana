@@ -37,8 +37,62 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implementing blockchain">
+      <change afterPath="$PROJECT_DIR$/account/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/blockchain/src/bootstrap.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/blockchain/src/crypto.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/blockchain/src/nonce.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/fixed-hash/CHANGELOG.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/fixed-hash/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/fixed-hash/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/fixed-hash/benches/cmp.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/fixed-hash/src/hash.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/fixed-hash/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/fixed-hash/src/tests.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/CHANGELOG.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/num-traits/CHANGELOG.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/num-traits/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/num-traits/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/CHANGELOG.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/impl_serde.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/input.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/serialize.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/src/fp_conversion.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/tests/fp_conversion.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/tests/num_traits.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/primitive-types/tests/scale_info.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/tracing/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/tracing/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/traits/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/types/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/types/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/CHANGELOG.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/benches/bigint.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/examples/modular.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/fuzz/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/fuzz/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/fuzz/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/fuzz/fuzz_targets/div_mod.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/fuzz/fuzz_targets/div_mod_word.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/fuzz/fuzz_targets/isqrt.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/src/uint.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/morph/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/morph/src/error.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/account.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/chain_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_manager.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/consensus.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/consensus.rs" afterDir="false" />
@@ -46,11 +100,12 @@
       <change beforePath="$PROJECT_DIR$/blockchain/src/mempool.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/mempool.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/miner.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/miner.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/p2p.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/p2p.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/utxo.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/utxo.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/transaction.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/transaction.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/account/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/src/lib.rs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/presistent_store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/presistent_store.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/storage/Cargo.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -104,7 +159,7 @@
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="cf.first.check.clang-format" value="false" />
     <property name="cidr.known.project.marker" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../defi-chain" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/common" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
@@ -115,10 +170,15 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/common" />
+      <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/trie/src" />
     </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/common" />
+    </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test transaction::tests::test_valid_tx">
+  <component name="RunManager" selected="Cargo.Build">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -167,38 +227,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test blockchain::test::_genesis" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package blockchain --lib blockchain::test::_genesis -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test blockchain::test::mine_genesis" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package blockchain --lib blockchain::test::mine_genesis -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Test blockchain::test::test_miner" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package blockchain --lib blockchain::test::test_miner -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -215,8 +243,40 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test crypto::tests::difficulty" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package blockchain --lib crypto::tests::difficulty -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test p2p::tests::account_to_node_id" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package blockchain --lib p2p::tests::account_to_node_id -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::test_morph" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package morph --lib tests::test_morph -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -269,18 +329,18 @@
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Test blockchain::test::test_miner" />
-      <item itemvalue="Cargo.Test blockchain::test::mine_genesis" />
-      <item itemvalue="Cargo.Test blockchain::test::_genesis" />
       <item itemvalue="Cargo.Test p2p::tests::account_to_node_id" />
       <item itemvalue="Cargo.Test transaction::tests::test_valid_tx" />
+      <item itemvalue="Cargo.Test crypto::tests::difficulty" />
+      <item itemvalue="Cargo.Test tests::test_morph" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::test_morph" />
+        <item itemvalue="Cargo.Test crypto::tests::difficulty" />
         <item itemvalue="Cargo.Test transaction::tests::test_valid_tx" />
         <item itemvalue="Cargo.Test p2p::tests::account_to_node_id" />
         <item itemvalue="Cargo.Test blockchain::test::test_miner" />
-        <item itemvalue="Cargo.Test blockchain::test::_genesis" />
-        <item itemvalue="Cargo.Test blockchain::test::mine_genesis" />
       </list>
     </recent_temporary>
   </component>
@@ -323,7 +383,15 @@
       <workItem from="1639408601075" duration="7194000" />
       <workItem from="1639427769419" duration="8457000" />
       <workItem from="1639767253851" duration="56741000" />
-      <workItem from="1640345901081" duration="38248000" />
+      <workItem from="1640345901081" duration="75755000" />
+      <workItem from="1640684008978" duration="2564000" />
+      <workItem from="1640686587740" duration="39636000" />
+      <workItem from="1640853013602" duration="1846000" />
+      <workItem from="1640854878560" duration="124000" />
+      <workItem from="1640855271357" duration="1493000" />
+      <workItem from="1640856777469" duration="33000" />
+      <workItem from="1640856823301" duration="59000" />
+      <workItem from="1640856909996" duration="3125000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -465,7 +533,14 @@
       <option name="project" value="LOCAL" />
       <updated>1640421977381</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="implementing blockchain">
+      <created>1640455934149</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1640455934149</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

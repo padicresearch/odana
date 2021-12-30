@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use common::TxHash;
+use types::TxHash;
 use derive_getters::Getters;
 use storage::codec::{Encoder, Decoder};
 

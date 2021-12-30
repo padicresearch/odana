@@ -10,6 +10,6 @@ thiserror = "1.0"
 anyhow = "1.0.45"
 serde = { version = "1.0.130", features = ["derive"] }
 bincode = "1.0.130"
-common = {path = "../common"}
+types = {path = "../common/types"}
 sled = "0.34.7"
 itertools = "0.10.3"

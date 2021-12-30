@@ -1,13 +1,13 @@
-use ed25519_dalek::{Keypair, SecretKey, PublicKey, Signer};
-use tiny_keccak::Hasher;
-use rand_chacha::{ChaCha12Rng, ChaCha20Rng};
-use rand_chacha::rand_core::SeedableRng;
-use rand_core::OsRng;
-use std::hash::{Hash};
-use serde::{Serialize, Deserialize};
 use anyhow::Result;
-use crate::errors::BlockChainError;
+use ed25519_dalek::{Keypair, SecretKey, PublicKey, Signer, Verifier};
+use rand_chacha::ChaCha20Rng;
+use rand::SeedableRng;
+use tiny_keccak::Hasher;
+use std::hash::Hash;
+use serde::{Serialize, Deserialize};
 use storage::codec::{Encoder, Decoder};
+use ed25519_dalek::ed25519::signature::Signature;
+use primitive_types::H160;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {
@@ -47,7 +47,17 @@ impl Account {
         let sig = key_pair.sign(payload);
         Ok(sig.to_bytes())
     }
+
+
 }
+
+impl Into<H160> for Account {
+    fn into(self) -> H160 {
+        H160::from(self.address)
+    }
+}
+
+
 
 pub fn create_account() -> Account {
     let mut csprng = ChaCha20Rng::from_entropy();
@@ -67,11 +77,17 @@ pub fn create_account() -> Account {
     }
 }
 
+pub fn verify_signature(pub_key : &[u8;32], sig : &[u8; 64], message : &[u8]) -> Result<()> {
+    let pub_key = PublicKey::from_bytes(pub_key)?;
+    let sig : ed25519_dalek::Signature = Signature::from_bytes(sig)?;
+    pub_key.verify(message, &sig).map_err(|e| e.into())
+}
+
 #[cfg(test)]
 mod test {
-    use crate::account::{create_account, Account};
     use std::collections::{HashMap, HashSet};
     use ed25519_dalek::Signature;
+    use crate::create_account;
 
     #[test]
     fn test_create_account() {

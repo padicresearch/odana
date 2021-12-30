@@ -1,4 +1,4 @@
-use common::{BlockHash, MerkleHash, TxHash};
+use types::{BlockHash, MerkleHash, TxHash};
 use tiny_keccak::Hasher;
 use crate::blockchain::GENESIS_BLOCK;
 use std::fmt::Formatter;

@@ -1,4 +1,3 @@
-use crate::account::{Account, create_account};
 use std::sync::Arc;
 use crate::mempool::MemPool;
 use crate::utxo::UTXO;
@@ -12,6 +11,7 @@ use crate::consensus::check_block_pow;
 use merkle::Merkle;
 use tokio::sync::mpsc::UnboundedSender;
 use crate::blockchain::LocalMessage;
+use account::{Account, create_account};
 
 
 pub struct Miner {

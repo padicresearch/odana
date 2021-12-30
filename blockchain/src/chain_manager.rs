@@ -4,7 +4,6 @@ use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver};
 use crate::utxo::UTXO;
 use std::sync::Arc;
 use crate::mempool::MemPool;
-use crate::account::Account;
 use crate::block::Block;
 use crate::miner::Miner;
 use crate::blockchain::BlockChainState;

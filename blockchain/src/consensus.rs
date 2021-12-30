@@ -4,7 +4,7 @@ use crate::transaction::Tx;
 use crate::utxo::{UTXOStore, UTXO};
 use anyhow::Result;
 use ed25519_dalek::{PublicKey, Signature, Verifier};
-use common::BlockHash;
+use types::BlockHash;
 use crate::block::Block;
 use merkle::Merkle;
 

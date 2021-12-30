@@ -12,8 +12,25 @@
       <sourceFolder url="file://$MODULE_DIR$/codec/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/storage/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/common/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/morph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/account/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/tracing/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/types/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/traits/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/uint/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/uint/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/uint/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/uint/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/fixed-hash/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/fixed-hash/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/impls/num-traits/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/impls/serde/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/impls/serde/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
+      <excludeFolder url="file://$MODULE_DIR$/common/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

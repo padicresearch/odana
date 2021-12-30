@@ -5,12 +5,12 @@ use tiny_keccak::Hasher;
 use std::collections::HashMap;
 use std::rc::Rc;
 use crate::errors::BlockChainError;
-use crate::account::Account;
 use serde::{Serialize, Deserialize};
 use storage::codec::{Encoder, Decoder};
-use common::BigArray;
+use types::BigArray;
 use crate::utxo::{UTXO, UTXOStore};
 use crate::amount::TUCI;
+use account::Account;
 
 const MINER_REWARD: u128 = 10 * TUCI;
 
@@ -241,6 +241,7 @@ use std::collections::{HashMap, BTreeMap};
     use crate::block_storage::BlockStorage;
     use crate::mempool::MemPool;
     use crate::blockchain::BlockChainState;
+    use account::Account;
 
 
     pub struct TempStorage {

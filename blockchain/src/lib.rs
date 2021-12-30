@@ -1,7 +1,6 @@
 #![feature(async_closure)]
 #![feature(trivial_bounds)]
 
-pub mod account;
 pub mod errors;
 pub mod transaction;
 pub mod blockchain;
@@ -15,4 +14,7 @@ pub mod block_storage;
 pub mod block;
 pub mod miner;
 pub mod p2p;
+mod bootstrap;
+mod crypto;
+pub mod nonce;
 
