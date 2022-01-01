@@ -38,6 +38,14 @@ impl LogData {
     }
 }
 
+impl PartialEq for LogData {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash.eq(&other.hash)
+    }
+}
+
+impl Eq for LogData {}
+
 impl_codec!(LogData);
 impl_codec!(LogIndex);
 
@@ -134,10 +142,10 @@ impl HistoryLog {
 
     pub fn iter_operations(&self) -> Result<OperationsIterator> {
         let commit_log = self.commit_log.clone();
-        let iter = self.kv.iter()?.map( move |(_, v)| {
+        let iter = self.kv.iter()?.map(move |(_, v)| {
             v.and_then(|index| {
                 let commit_log = commit_log.read().map_err(|e| Error::RWPoison)?;
-                commit_log.read(index.offset,index.read_limit() ).map_err(|e|e.into()).and_then(|msg_buf|{
+                commit_log.read(index.offset, index.read_limit()).map_err(|e| e.into()).and_then(|msg_buf| {
                     msg_buf.iter().next().ok_or(Error::CommitLogReadError(ReadError::CorruptLog).into()).and_then(|bytes| {
                         LogData::decode(bytes.payload()).and_then(|data| {
                             Ok(data.op)
@@ -151,10 +159,10 @@ impl HistoryLog {
 
     pub fn iter_history(&self) -> Result<HistoryRootIterator> {
         let commit_log = self.commit_log.clone();
-        let iter = self.kv.iter()?.map( move |(_, v)| {
+        let iter = self.kv.iter()?.map(move |(_, v)| {
             v.and_then(|index| {
                 let commit_log = commit_log.read().map_err(|e| Error::RWPoison)?;
-                commit_log.read(index.offset,index.read_limit() ).map_err(|e|e.into()).and_then(|msg_buf|{
+                commit_log.read(index.offset, index.read_limit()).map_err(|e| e.into()).and_then(|msg_buf| {
                     msg_buf.iter().next().ok_or(Error::CommitLogReadError(ReadError::CorruptLog).into()).and_then(|bytes| {
                         LogData::decode(bytes.payload()).and_then(|data| {
                             Ok(data.hash)
@@ -168,10 +176,10 @@ impl HistoryLog {
 
     pub fn iter(&self) -> Result<HistoryLogIterator> {
         let commit_log = self.commit_log.clone();
-        let iter = self.kv.iter()?.map( move |(_, v)| {
+        let iter = self.kv.iter()?.map(move |(_, v)| {
             v.and_then(|index| {
                 let commit_log = commit_log.read().map_err(|e| Error::RWPoison)?;
-                commit_log.read(index.offset, index.read_limit()).map_err(|e|e.into()).and_then(|msg_buf|{
+                commit_log.read(index.offset, index.read_limit()).map_err(|e| e.into()).and_then(|msg_buf| {
                     msg_buf.iter().next().ok_or(Error::CommitLogReadError(ReadError::CorruptLog).into()).and_then(|bytes| {
                         LogData::decode(bytes.payload()).and_then(|data| {
                             Ok(data)
@@ -184,27 +192,23 @@ impl HistoryLog {
     }
 
     pub fn last_index(&self) -> u64 {
-        let commit_log = match self.commit_log.read().map_err(|e| Error::RWPoison){
+        let commit_log = match self.commit_log.read().map_err(|e| Error::RWPoison) {
             Ok(commit_log) => {
                 commit_log
             }
             Err(_) => {
-                return Default::default()
+                return Default::default();
             }
         };
         commit_log.last_offset().unwrap_or_default()
     }
 
     pub fn len(&self) -> u64 {
-        let commit_log = match self.commit_log.read().map_err(|e| Error::RWPoison){
-            Ok(commit_log) => {
-                commit_log
-            }
-            Err(_) => {
-                return Default::default()
-            }
-        };
-        commit_log.last_offset().map(|last_offset| if last_offset > 0 { last_offset + 1 } else { last_offset }).unwrap_or_default()
+        let last_index = self.last_index();
+        if last_index > 0 {
+            return last_index + 1;
+        }
+        last_index
     }
 }
 
@@ -224,8 +228,8 @@ mod tests {
     use std::convert::TryInto;
     use tiny_keccak::Hasher;
 
-    fn sha3_hash(data : &[u8] ) -> [u8;32] {
-        let mut out = [0;32];
+    fn sha3_hash(data: &[u8]) -> [u8; 32] {
+        let mut out = [0; 32];
         let mut sha3 = tiny_keccak::Sha3::v256();
         sha3.update(data);
         sha3.finalize(&mut out);
@@ -239,7 +243,7 @@ mod tests {
         let t = make_sign_transaction(&alice, Utc::now().timestamp_subsec_nanos(), TransactionKind::Transfer {
             from: alice.pub_key,
             to: bob.pub_key,
-            amount: 10
+            amount: 10,
         }).unwrap();
         let opsz = get_operations(&t);
         //println!("{:?} ", opsz);
@@ -252,19 +256,18 @@ mod tests {
 
     #[test]
     fn log_test() {
-        let tmp_dir = TempDir::new("historyf").unwrap();
+        let tmp_dir = TempDir::new("history").unwrap();
         let commit_log = Arc::new(RwLock::new(CommitLog::new(LogOptions::new(tmp_dir.path())).unwrap()));
         let memstore = Arc::new(MemStore::new(vec![HistoryLog::column()]));
         let history = HistoryLog::new(commit_log, memstore).unwrap();
 
-        for log in sample_log_data() {
-            println!("LOG R {:?}", log);
-            println!("LOG MED {:?}", MorphOperation::decode(&log.encode().unwrap()));
-            history.append( log).unwrap();
+        let sample_data = sample_log_data();
+        for log in sample_data.iter() {
+            history.append(log.clone()).unwrap();
         }
 
-        for log in history.iter().unwrap() {
-            println!("{:?}", log)
-        }
+        let decoded_history: Vec<_> = history.iter().unwrap().map(|res| res.unwrap()).collect();
+        assert_eq!(sample_data, decoded_history);
+        assert_eq!(history.len() as usize, sample_data.len());
     }
 }
