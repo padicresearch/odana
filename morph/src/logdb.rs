@@ -1,4 +1,4 @@
-use commitlog::{CommitLog, ReadLimit};
+use commitlog::{CommitLog, ReadLimit, ReadError};
 use storage::{KVStore, KVEntry};
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 use anyhow::Result;
@@ -81,14 +81,12 @@ impl HistoryLog {
         let mut commit_log = self.commit_log.write().map_err(|e| Error::RWPoison)?;
         let encoded_data = data.encode()?;
         let encoded_data_size = encoded_data.len() as u64;
-        let mut msg = MessageBuf::default();
-        msg.push(encoded_data);
         // let mut msg = MessageBuf::from_bytes().map_err(|e|
         //     Error::CommitLogMessageError(e))?;
-        let range = commit_log.append(&mut msg)?;
+        let offset = commit_log.append_msg(encoded_data)?;
         let index = LogIndex {
             message_len: encoded_data_size,
-            offset: range.first(),
+            offset,
         };
         self.kv.put(index.offset, index)
     }
@@ -103,8 +101,9 @@ impl HistoryLog {
                 index
             }
         };
-        let message = commit_log.read(index.offset, index.read_limit())?;
-        Ok(Some(LogData::decode(message.bytes())?))
+        let msg_buf = commit_log.read(index.offset, index.read_limit())?;
+        let bytes = msg_buf.iter().next().ok_or(Error::CommitLogReadErrorCorruptData)?;
+        Ok(Some(LogData::decode(bytes.payload())?))
     }
 
     pub fn get_operation(&self, index: u64) -> Result<Option<MorphOperation>> {
@@ -138,9 +137,11 @@ impl HistoryLog {
         let iter = self.kv.iter()?.map( move |(_, v)| {
             v.and_then(|index| {
                 let commit_log = commit_log.read().map_err(|e| Error::RWPoison)?;
-                commit_log.read(index.offset,index.read_limit() ).map_err(|e|e.into()).and_then(|message|{
-                    LogData::decode(message.bytes()).and_then(|data| {
-                        Ok(data.op)
+                commit_log.read(index.offset,index.read_limit() ).map_err(|e|e.into()).and_then(|msg_buf|{
+                    msg_buf.iter().next().ok_or(Error::CommitLogReadError(ReadError::CorruptLog).into()).and_then(|bytes| {
+                        LogData::decode(bytes.payload()).and_then(|data| {
+                            Ok(data.op)
+                        })
                     })
                 })
             })
@@ -153,9 +154,11 @@ impl HistoryLog {
         let iter = self.kv.iter()?.map( move |(_, v)| {
             v.and_then(|index| {
                 let commit_log = commit_log.read().map_err(|e| Error::RWPoison)?;
-                commit_log.read(index.offset,index.read_limit() ).map_err(|e|e.into()).and_then(|message|{
-                    LogData::decode(message.bytes()).and_then(|data| {
-                        Ok(data.hash)
+                commit_log.read(index.offset,index.read_limit() ).map_err(|e|e.into()).and_then(|msg_buf|{
+                    msg_buf.iter().next().ok_or(Error::CommitLogReadError(ReadError::CorruptLog).into()).and_then(|bytes| {
+                        LogData::decode(bytes.payload()).and_then(|data| {
+                            Ok(data.hash)
+                        })
                     })
                 })
             })
@@ -168,9 +171,11 @@ impl HistoryLog {
         let iter = self.kv.iter()?.map( move |(_, v)| {
             v.and_then(|index| {
                 let commit_log = commit_log.read().map_err(|e| Error::RWPoison)?;
-                commit_log.read(index.offset, index.read_limit()).map_err(|e|e.into()).and_then(|message|{
-                    LogData::decode(message.bytes()).and_then(|data| {
-                        Ok(data)
+                commit_log.read(index.offset, index.read_limit()).map_err(|e|e.into()).and_then(|msg_buf|{
+                    msg_buf.iter().next().ok_or(Error::CommitLogReadError(ReadError::CorruptLog).into()).and_then(|bytes| {
+                        LogData::decode(bytes.payload()).and_then(|data| {
+                            Ok(data)
+                        })
                     })
                 })
             })
@@ -215,7 +220,7 @@ mod tests {
     use transaction::{Transaction, make_sign_transaction, TransactionKind};
     use chrono::Utc;
     use crate::{get_operations, MorphOperation};
-    use codec::Encoder;
+    use codec::{Encoder, Decoder};
     use std::convert::TryInto;
     use tiny_keccak::Hasher;
 
@@ -236,7 +241,9 @@ mod tests {
             to: bob.pub_key,
             amount: 10
         }).unwrap();
-        ops.extend(get_operations(&t).into_iter());
+        let opsz = get_operations(&t);
+        //println!("{:?} ", opsz);
+        ops.extend(opsz.into_iter());
         ops.into_iter().map(|t| {
             LogData::new(t.clone(), sha3_hash(&t.encode().unwrap()))
         }).collect()
@@ -245,12 +252,14 @@ mod tests {
 
     #[test]
     fn log_test() {
-        let tmp_dir = TempDir::new("history").unwrap();
+        let tmp_dir = TempDir::new("historyf").unwrap();
         let commit_log = Arc::new(RwLock::new(CommitLog::new(LogOptions::new(tmp_dir.path())).unwrap()));
         let memstore = Arc::new(MemStore::new(vec![HistoryLog::column()]));
         let history = HistoryLog::new(commit_log, memstore).unwrap();
 
         for log in sample_log_data() {
+            println!("LOG R {:?}", log);
+            println!("LOG MED {:?}", MorphOperation::decode(&log.encode().unwrap()));
             history.append( log).unwrap();
         }
 

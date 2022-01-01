@@ -11,6 +11,8 @@ pub enum Error {
     CommitLogMessageError(commitlog::message::MessageError),
     #[error("`CommitLogReadError {0}`")]
     CommitLogReadError(#[from] commitlog::ReadError),
+    #[error("`CommitLogReadErrorCorruptData`")]
+    CommitLogReadErrorCorruptData,
     #[error("AccountNotFound")]
     AccountNotFound,
     #[error("ValidationFailed")]
