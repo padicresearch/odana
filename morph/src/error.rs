@@ -7,14 +7,12 @@ pub enum Error {
     RWPoison,
     #[error("`{0}`")]
     GenericError(#[from] anyhow::Error),
-    #[error("`{0}`")]
-    SerializationError(bincode::Error),
-    #[error("`{0}`")]
-    DeserializationError(bincode::Error),
     #[error("AccountNotFound")]
     AccountNotFound,
     #[error("ValidationFailed")]
     ValidationFailed,
+    #[error("TransactionAlreadyApplied")]
+    TransactionAlreadyApplied,
     #[error("ValidationFailedHistoryNotFound")]
     ValidationFailedHistoryNotFound,
     #[error("ValidationFailedAccountState")]
@@ -23,4 +21,10 @@ pub enum Error {
     ValidationFailedRootNotValid,
     #[error("TransactionFailed")]
     TransactionFailed,
+    #[error("SnapshotCreationErrorRootNotFound")]
+    SnapshotCreationErrorRootNotFound,
+    #[error("GenesisAlreadyInitialized")]
+    GenesisAlreadyInitialized,
+    #[error("NonceIsLessThanCurrent")]
+    NonceIsLessThanCurrent,
 }

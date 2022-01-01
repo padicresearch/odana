@@ -1,5 +1,5 @@
 use storage::{PersistentStorage, KVEntry};
-use storage::presistent_store::SledDB;
+use storage::sleddb::SledDB;
 use std::sync::Arc;
 use blockchain::blockchain::{BlockChain, start_mining, StateAction, BlockChainState, LocalMessage};
 use blockchain::p2p::{start_p2p_server, NodeIdentity, PeerMessage, BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage};

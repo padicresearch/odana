@@ -1,7 +1,7 @@
 use crate::KVStore;
 use crate::KVEntry;
 use crate::error::StorageError;
-use crate::codec::{Codec, Encoder, Decoder};
+use codec::{Codec, Encoder, Decoder};
 use anyhow::{Result, Error};
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;

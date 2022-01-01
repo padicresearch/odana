@@ -28,6 +28,7 @@
       <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/impls/serde/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/transaction/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/common/target" />

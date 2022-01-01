@@ -1,7 +1,6 @@
 use std::collections::{HashSet, HashMap};
 use libp2p::PeerId;
 use crate::mempool::MempoolSnapsot;
-use crate::block::BlockHeader;
 
 struct Bootstrapper {
 

@@ -1,19 +1,22 @@
 mod error;
+mod snapshot;
+mod logdb;
 
 use std::collections::HashMap;
 use tiny_keccak::Hasher;
 use serde::{Serialize, Deserialize};
 use anyhow::Result;
 use crate::error::Error;
-use storage::codec::{Codec, Encoder};
+use codec::{Codec, Encoder, Decoder};
 use storage::{KVStore, KVEntry};
-use storage::impl_codec;
-use types::TxHash;
-use account::Account;
+use codec::impl_codec;
+use types::{TxHash, BlockHash, AccountId};
+use account::{Account, TREASURY_ACCOUNT_PK};
 use chrono::Utc;
+use transaction::{Transaction, TransactionKind, verify_signed_transaction};
+use std::sync::Arc;
+use crate::snapshot::MorphSnapshot;
 
-
-type AccountId = [u8; 32];
 type Hash = [u8; 32];
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -22,69 +25,87 @@ pub enum ProofElement {
     StateHash { seq: usize },
 }
 
-pub type MorphStorageKV<C> = dyn KVStore<Morph<C>> + Send + Sync;
+pub type MorphStorageKV = dyn KVStore<Morph> + Send + Sync;
 
-pub trait Config: SudoAccount + TreasuryAccount {}
 
-#[derive(Clone, Debug)]
-pub struct Morph<Config> {
-    kv: MorphStorageKV<Config>,
+#[derive(Clone)]
+pub struct Morph {
+    kv: Arc<MorphStorageKV>,
     log: Vec<MorphOperation>,
     history: Vec<Hash>,
-    config: Config,
 }
 
-
-impl<C> KVEntry for Morph<C> {
+impl KVEntry for Morph {
     type Key = AccountId;
     type Value = AccountState;
 
     fn column() -> &'static str {
-        "balances"
+        "account_balances"
     }
 }
 
-impl<C> Morph<C> where C : Config {
-    pub fn new(genesis_balances: HashMap<AccountId, AccountState>) -> Self {
-        Self {
-            kv: genesis_balances,
+impl Morph {
+    pub fn new(kv: Arc<MorphStorageKV>) -> Result<Self> {
+        let mut morph = Self {
+            kv,
             log: vec![],
-            history: vec![[0_u8; 32]],
-            config: Config,
-        }
+            history: vec![],
+        };
+        Ok(morph)
     }
-    pub fn add_transaction(&mut self, transaction: MorphTransaction) -> Result<()> {
-        verify_signed_transaction(&transaction)?;
-        for action in transaction.get_operations(&self.config).iter() {
-            let new_account_state = self.apply_action(action)?;
+
+    pub fn apply_transaction(&mut self, transaction: Transaction) -> Result<()> {
+        //TODO: verify transaction (probably)
+        for action in get_operations(&transaction).iter() {
+            let mut new_account_state = self.apply_action(action)?;
             let mut sha3 = tiny_keccak::Sha3::v256();
-            sha3.update(self.history.last().ok_or(Error::TransactionFailed)?);
-            sha3.update(&bincode::serialize(action)?);
-            sha3.update(&bincode::serialize(&new_account_state)?);
+            let current_root = match self.history.last() {
+                None => {
+                    if self.history.len() > 0 {
+                        return Err(Error::ValidationFailedRootNotValid.into())
+                    }
+                    [0_u8;32]
+                }
+                Some(root) => {
+                    *root
+                }
+            };
+            sha3.update(&current_root);
+            sha3.update(&action.encode()?);
+            sha3.update(&new_account_state.encode()?);
             let mut new_root = [0; 32];
             sha3.finalize(&mut new_root);
             self.history.push(new_root);
             self.log.push(action.clone());
+            self.kv.put(action.get_account_id(), new_account_state)?;
         }
         Ok(())
     }
 
-    pub fn check_transaction(&mut self, transaction: &MorphTransaction) -> Result<()> {
+    //fn commit(&self, new_root : )
+
+    pub fn check_transaction(&mut self, transaction: &Transaction) -> Result<()> {
         Ok(())
     }
 
     fn apply_action(&mut self, action: &MorphOperation) -> Result<AccountState> {
         match action {
-            MorphOperation::Debit { account, amount, .. } => {
-                let mut account_state = self.kv.get(account)?.or_else(Error::AccountNotFound.into())?;
+            MorphOperation::DebitBalance { account, amount, .. } => {
+                let mut account_state = self.kv.get(account)?.ok_or(Error::AccountNotFound)?;
                 account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
-                self.kv.put(*account, account_state);
                 Ok(account_state)
             }
-            MorphOperation::Credit { account, amount, .. } => {
+            MorphOperation::CreditBalance { account, amount, .. } => {
                 let mut account_state = self.kv.get(account)?.unwrap_or_default();
                 account_state.free_balance = account_state.free_balance.saturating_add(*amount);
-                self.kv.put(*account, account_state);
+                Ok(account_state)
+            }
+            MorphOperation::UpdateNonce { account, nonce,.. } => {
+                let mut account_state = self.kv.get(account)?.unwrap_or_default();
+                if *nonce < account_state.nonce {
+                    return Err(Error::NonceIsLessThanCurrent.into())
+                }
+                account_state.nonce = *nonce;
                 Ok(account_state)
             }
         }
@@ -94,48 +115,41 @@ impl<C> Morph<C> where C : Config {
         self.kv.get(account_id)
     }
 
-    fn proof(&self, account_id: u128) -> Vec<ProofElement> {
+    fn proof(&self, account_id: AccountId) -> Vec<ProofElement> {
         let mut proof = Vec::new();
         for (idx, op) in self.log.iter().enumerate() {
-            let account = match op {
-                MorphOperation::Debit { account, .. } => {
-                    account
-                }
-                MorphOperation::Credit { account, .. } => {
-                    account
-                }
-            };
-
-            if *account == account_id {
-                proof.push(ProofElement::Operation { op: op.clone(), seq: idx + 1 })
+            let account =op.get_account_id();
+            if account == account_id {
+                proof.push(ProofElement::Operation { op: op.clone(), seq: idx })
             } else {
-                proof.push(ProofElement::StateHash { seq: idx + 1 });
+                proof.push(ProofElement::StateHash { seq: idx });
             }
         }
         proof
     }
 
-    fn compact_proof(&self, account_id: u128) -> Result<Vec<ProofElement>> {
+    pub fn create_snapshot(&self) -> Result<MorphSnapshot> {
+        MorphSnapshot::new(self)
+    }
+
+    pub fn commit_snapshot(&self, snapshot: MorphSnapshot) -> Result<()> {
+        Ok(())
+    }
+
+    fn compact_proof(&self, account_id: AccountId) -> Result<Vec<ProofElement>> {
         let mut proof = Vec::new();
         for (idx, op) in self.log.iter().enumerate() {
-            let account = match op {
-                MorphOperation::Debit { account, .. } => {
-                    account
-                }
-                MorphOperation::Credit { account, .. } => {
-                    account
-                }
-            };
+            let account =op.get_account_id();
 
-            if *account == account_id {
-                proof.push(ProofElement::Operation { op: op.clone(), seq: idx + 1 })
+            if account == account_id {
+                proof.push(ProofElement::Operation { op: op.clone(), seq: idx })
             } else {
                 if let Some(ProofElement::StateHash { .. }) = proof.last() {
                     let d = proof.len() - 1;
-                    std::mem::swap(proof.get_mut(d).ok_or(anyhow!("poof index not found"))?, &mut ProofElement::StateHash { seq: idx + 1 })
+                    std::mem::swap(proof.get_mut(d).ok_or(anyhow::anyhow!("poof index not found"))?, &mut ProofElement::StateHash { seq: idx })
                     //proof.push();
                 } else {
-                    proof.push(ProofElement::StateHash { seq: idx + 1 });
+                    proof.push(ProofElement::StateHash { seq: idx });
                 }
             }
         }
@@ -151,32 +165,37 @@ impl<C> Morph<C> where C : Config {
 //
 // }
 
-pub fn validate_account_state<C>(proof: &Vec<ProofElement>, morph: &Morph<C>) -> Result<(AccountState, usize), Error> where C : Config {
+pub fn validate_account_state(proof: &Vec<ProofElement>, morph: &Morph) -> Result<(AccountState, usize), Error>{
     let mut account_state: AccountState = AccountState::default();
-    let mut history = vec![[0; 32]];
+    let mut history : Vec<[u8;32]> = vec![];
     let mut last_valid_seq = 0;
     for el in proof {
         match el {
             ProofElement::Operation { op, seq } => {
                 match op {
-                    MorphOperation::Debit { amount, .. } => {
+                    MorphOperation::DebitBalance { amount, .. } => {
                         account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
                     }
-                    MorphOperation::Credit { amount, .. } => {
+                    MorphOperation::CreditBalance { amount, .. } => {
                         account_state.free_balance = account_state.free_balance.saturating_add(*amount);
                     }
+                    MorphOperation::UpdateNonce { nonce, .. } => {
+                        account_state.nonce = *nonce;
+                    }
                 }
-
-                let account_state = account_state.ok_or(())?;
+                let prev_root = history.last().unwrap_or(&[0;32]);
                 let mut sha3 = tiny_keccak::Sha3::v256();
-                sha3.update(history.last().unwrap());
-                sha3.update(&bincode::serialize(op)?);
-                sha3.update(&bincode::serialize(&account_state)?);
+                sha3.update(prev_root);
+                sha3.update(&op.encode()?);
+                sha3.update(&account_state.encode()?);
                 let mut new_root = [0; 32];
                 sha3.finalize(&mut new_root);
 
 
-                let valid_history_hash = morph.history.get(*seq).ok_or((Error::ValidationFailedHistoryNotFound)?;
+                let valid_history_hash = morph.history.get(*seq).ok_or((Error::ValidationFailedHistoryNotFound))?;
+
+                println!("valid_history_hash: {}", hex::encode(&valid_history_hash));
+                println!("calcu_history_hash: {}", hex::encode(&new_root));
                 if &new_root != valid_history_hash {
                     return Err(Error::ValidationFailedRootNotValid);
                 }
@@ -189,21 +208,54 @@ pub fn validate_account_state<C>(proof: &Vec<ProofElement>, morph: &Morph<C>) ->
         }
     }
 
-    let account_state = account_state.ok_or(())?;
     Ok((account_state, last_valid_seq))
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum MorphOperation {
-    Debit { account: AccountId, amount: u128, tx_hash: Hash },
-    Credit { account: AccountId, amount: u128, tx_hash: Hash },
+    DebitBalance { account: AccountId, amount: u128, tx_hash: Hash },
+    CreditBalance { account: AccountId, amount: u128, tx_hash: Hash },
+    UpdateNonce { account: AccountId, nonce: u32, tx_hash: Hash }
 }
+
+impl MorphOperation {
+    fn get_account_id(&self) -> AccountId {
+        match self {
+            MorphOperation::DebitBalance { account, .. } => {
+                *account
+            }
+            MorphOperation::CreditBalance { account, .. } => {
+                *account
+            }
+            MorphOperation::UpdateNonce { account,.. } => {
+                *account
+            }
+        }
+    }
+}
+
+pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
+    let mut ops = Vec::new();
+    let tx_hash = tx.id();
+    match tx.kind() {
+        TransactionKind::Transfer { from, to, amount, .. } => {
+            ops.push(MorphOperation::DebitBalance { account: *from, amount: *amount, tx_hash });
+            ops.push(MorphOperation::CreditBalance { account: *to, amount: *amount, tx_hash });
+            ops.push(MorphOperation::UpdateNonce { account: *from, nonce: tx.nonce_u32(), tx_hash });
+        }
+        TransactionKind::Coinbase { amount, miner, .. } => {
+            ops.push(MorphOperation::CreditBalance { account: *miner, amount: *amount, tx_hash });
+        }
+    }
+    ops
+}
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountState {
     free_balance: u128,
     reserve_balance: u128,
-    nonce : u32
+    nonce: u32,
 }
 
 impl Default for AccountState {
@@ -211,118 +263,50 @@ impl Default for AccountState {
         Self {
             free_balance: 0,
             reserve_balance: 0,
-            nonce: 0
+            nonce: 0,
         }
     }
 }
 
-pub type Sig = [u8; 64];
-
-#[derive(Serialize, Deserialize, Clone)]
-pub enum MorphTransactionKind {
-    Transfer { from: AccountId, to: AccountId, amount: u128, nonce: u32 },
-    Coinbase { miner: AccountId, amount: u128 },
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct MorphTransaction {
-    sig: Sig,
-    origin: AccountId,
-    nonce: u32,
-    #[serde(flatten)]
-    kind: MorphTransactionKind,
-}
-
-impl MorphTransaction {
-    fn new(origin: AccountId, nonce: u32, sig: Sig, kind: MorphTransactionKind) -> Result<Self> {
-        Ok(Self {
-            sig,
-            origin,
-            nonce,
-            kind,
-        })
-    }
-
-    pub fn origin(&self) -> &AccountId {
-        &self.origin
-    }
-
-    pub fn id(&self) -> [u8; 32] {
-        let mut out = [0_u8; 32];
-        let mut sha3 = tiny_keccak::Sha3::v256();
-        match self.encode() {
-            Ok(encoded_self) => {
-                sha3.update(&encoded_self);
-            }
-            Err(_) => {}
-        }
-        sha3.finalize(&mut out);
-        out
-    }
-
-    pub fn signature(&self) -> &Sig {
-        &self.sig
-    }
-    pub fn nonce(&self) -> [u8; 4] {
-        self.nonce.to_be_bytes()
-    }
-
-    pub fn get_operations<Config>(&self, config : &Config) -> Vec<MorphOperation> where Config : TreasuryAccount {
-        let mut ops = Vec::new();
-        let tx_hash = self.id();
-        match &self.kind {
-            MorphTransactionKind::Transfer { from, to, amount, .. } => {
-                ops.push(MorphOperation::Debit { account: *from, amount: *amount, tx_hash });
-                ops.push(MorphOperation::Credit { account: *to, amount: *amount, tx_hash });
-            }
-            MorphTransactionKind::Coinbase{amount, miner} => {
-                ops.push(MorphOperation::Debit { account: config.treasury(), amount: *amount, tx_hash });
-                ops.push(MorphOperation::Credit { account: *miner, amount: *amount, tx_hash });
-            }
-        }
-        ops
-    }
-
-    pub fn sig_hash(&self) -> Box<[u8]> {
-        let mut out = [0_u8; 32];
-        let mut sha3 = tiny_keccak::Sha3::v256();
-        sha3.update(self.origin());
-        sha3.update(&self.nonce());
-        sha3.update(&self.kind.encode()?);
-        sha3.finalize(&mut out);
-        Box::new(*out)
-    }
-}
-
-pub fn make_sign_transaction(account: &Account, nonce: u32, kind: MorphTransactionKind) -> Result<MorphTransaction> {
-    let mut out = [0_u8; 32];
-    let mut sha3 = tiny_keccak::Sha3::v256();
-    sha3.update(&account.pub_key);
-    sha3.update(&nonce.to_be_bytes());
-    sha3.update(&kind.encode()?);
-    sha3.finalize(&mut out);
-
-    let sig = account.sign(&out)?;
-    Ok(MorphTransaction::new(*account.pub_key, nonce, sig, kind))
-}
-
-pub fn verify_signed_transaction(transaction: &MorphTransaction) -> Result<()> {
-    account::verify_signature(transaction.origin(), transaction.signature(), &transaction.sig_hash())
-}
-
-pub fn verify_transaction_origin(origin: &[u8; 32], transaction: &MorphTransaction) -> Result<()> {
-    account::verify_signature(origin, transaction.signature(), &transaction.sig_hash())
-}
-
-impl_codec!(MorphTransaction);
-impl_codec!(MorphTransactionKind);
 impl_codec!(AccountState);
+impl_codec!(MorphOperation);
 
 #[cfg(test)]
 mod tests {
-    use crate::{Morph, AccountState, MorphOperation, validate_account_state};
-    use std::collections::HashMap;
-    use crate::MorphOperation::{Debit, Credit};
+    use super::*;
+    use storage::memstore::MemStore;
+    use account::create_account;
+    use transaction::make_sign_transaction;
+
+    #[test]
+    fn test_morph() {
+        let memstore = Arc::new(MemStore::new(vec![Morph::column()]));
+        let mut morph = Morph::new(memstore).unwrap();
+        let alice = create_account();
+        let bob = create_account();
+        let jake = create_account();
+
+        morph.apply_transaction(make_sign_transaction(&alice, 1, TransactionKind::Coinbase {
+            miner: alice.pub_key,
+            block_hash: bob.pub_key,
+            amount: 10000000,
+        }).unwrap());
+
+        morph.apply_transaction(make_sign_transaction(&alice, 1, TransactionKind::Transfer {
+            from: alice.pub_key,
+            to: bob.pub_key,
+            amount: 10,
+        }).unwrap());
+
+        println!("Alice {:#?}", morph.get_account_state(&alice.pub_key).unwrap().unwrap());
+        println!("Bob {:#?}", morph.get_account_state(&bob.pub_key).unwrap().unwrap());
+        println!("----------------------------------------------------------------------------------------------------------------");
+        println!("Alice Proof: {:?}", morph.compact_proof(alice.pub_key));
+        println!("Bob Proof: {:?}", morph.compact_proof(bob.pub_key));
+       // validate_account_state(&morph.compact_proof(alice.pub_key).unwrap(), &morph).unwrap();
+        validate_account_state(&morph.compact_proof(bob.pub_key).unwrap(), &morph).unwrap();
+        //assert!()
+    }
 
     // #[test]
     // fn test_morph() {

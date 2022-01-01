@@ -15,5 +15,7 @@ members = [
     "common/primitive-types",
     "common/fixed-hash",
     "common/types",
-    "common/tracing"
+    "common/tracing",
+    "codec",
+    "transaction"
 ]

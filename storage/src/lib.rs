@@ -1,15 +1,14 @@
-use crate::codec::Codec;
 use anyhow::Result;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::RwLock;
 use crate::memstore::MemStore;
-use crate::presistent_store::SledDB;
+use crate::sleddb::SledDB;
+use codec::Codec;
 
-pub mod codec;
 pub mod memstore;
 pub mod error;
-pub mod presistent_store;
+pub mod sleddb;
 
 pub trait KVEntry {
     type Key: Codec + Clone;

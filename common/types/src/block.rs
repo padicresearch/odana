@@ -1,11 +1,10 @@
-use types::{BlockHash, MerkleHash, TxHash};
+use super::*;
 use tiny_keccak::Hasher;
-use crate::blockchain::GENESIS_BLOCK;
 use std::fmt::Formatter;
 use anyhow::Result;
 use derive_getters::Getters;
 use serde::{Serialize, Deserialize};
-use storage::codec::{Encoder, Decoder};
+use codec::{Encoder, Decoder};
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
 pub struct BlockHeader {
@@ -95,12 +94,7 @@ impl BlockTemplate {
     }
 }
 
-pub fn genesis_block() -> Block {
-    let decoded_bytes = hex::decode(GENESIS_BLOCK).expect("Error creating genesis block");
-    let genesis_block: Block =
-        bincode::deserialize(&decoded_bytes).expect("Error creating genesis block");
-    genesis_block
-}
+
 
 #[derive(Debug, Serialize, Deserialize, Clone, Getters)]
 pub struct Block {

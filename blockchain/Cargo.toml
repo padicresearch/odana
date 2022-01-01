@@ -19,6 +19,7 @@ bincode = "1.0.130"
 serde = { version = "1.0.130", features = ["derive"] }
 merkle = {path = "../merkle"}
 storage = {path = "../storage"}
+codec = {path = "../codec"}
 types = {path = "../common/types"}
 account = {path = "../account"}
 chrono = "0.4.19"
@@ -29,3 +30,4 @@ commitlog = "0.2"
 derive-getters = "0.2.0"
 libp2p = { version = "0.41.0", features = ["tcp-tokio"] }
 num-bigint = "0.4.3"
+primitive-types = { path = "../common/primitive-types"}

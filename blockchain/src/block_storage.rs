@@ -1,8 +1,8 @@
 use commitlog::CommitLog;
 use storage::{KVStore, KVEntry, PersistentStorage};
 use anyhow::Result;
-use crate::block::Block;
-use common::BlockHash;
+use types::block::Block;
+use types::BlockHash;
 use std::sync::Arc;
 
 pub type BlockStorageKV = dyn KVStore<BlockStorage> + Send + Sync;

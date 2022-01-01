@@ -1,7 +1,6 @@
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
-use common::BlockHash;
 
 pub trait Encoder : Sized + Serialize + DeserializeOwned {
     fn encode(&self) -> Result<Vec<u8>> {

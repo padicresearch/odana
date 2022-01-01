@@ -5,9 +5,11 @@ use rand::SeedableRng;
 use tiny_keccak::Hasher;
 use std::hash::Hash;
 use serde::{Serialize, Deserialize};
-use storage::codec::{Encoder, Decoder};
+use codec::{Encoder, Decoder};
 use ed25519_dalek::ed25519::signature::Signature;
 use primitive_types::H160;
+
+pub const TREASURY_ACCOUNT_PK : [u8; 32] = [1;32];
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {

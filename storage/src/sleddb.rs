@@ -1,6 +1,6 @@
 use crate::{KVStore, KVEntry, StorageIterator};
 use sled::{IVec, Tree};
-use crate::codec::{Encoder, Decoder};
+use codec::{Encoder, Decoder};
 use itertools::Itertools;
 use anyhow::Result;
 use std::path::Path;

@@ -5,7 +5,7 @@ use crate::utxo::{UTXOStore, UTXO};
 use anyhow::Result;
 use ed25519_dalek::{PublicKey, Signature, Verifier};
 use types::BlockHash;
-use crate::block::Block;
+use types::block::Block;
 use merkle::Merkle;
 
 pub fn validate_transaction(tx: &Tx, utxo: &UTXO) -> Result<()> {

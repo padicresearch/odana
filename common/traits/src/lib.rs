@@ -1,14 +1,20 @@
-use common::TxHash;
+use types::{TxHash, BlockHash, AccountId};
+use types::block::Block;
 
-pub trait SudoAccount {
-    fn is_sudo(&self, account: &AccountId) -> bool;
-    fn sudo(&self) -> AccountId;
-}
-
-pub trait TreasuryAccount {
-    fn treasury(&self) -> AccountId;
-}
-
-pub trait TxDatabase {
-    fn get_transaction(&self, hash : &TxHash) -> MorphTransaction;
-}
+// pub trait SudoAccount {
+//     fn is_sudo(&self, account: &AccountId) -> bool;
+//     fn sudo(&self) -> AccountId;
+// }
+//
+// pub trait TreasuryAccount {
+//     fn treasury(&self) -> AccountId;
+// }
+//
+// pub trait Txs {
+//     fn get_transaction(&self, hash : &TxHash) -> Transaction;
+// }
+//
+//
+// pub trait Blocks {
+//     fn get_block(&self, hash : &BlockHash) -> Block;
+// }

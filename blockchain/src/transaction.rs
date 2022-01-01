@@ -11,6 +11,7 @@ use types::BigArray;
 use crate::utxo::{UTXO, UTXOStore};
 use crate::amount::TUCI;
 use account::Account;
+use codec::{Encoder, Decoder};
 
 const MINER_REWARD: u128 = 10 * TUCI;
 
@@ -241,7 +242,7 @@ use std::collections::{HashMap, BTreeMap};
     use crate::block_storage::BlockStorage;
     use crate::mempool::MemPool;
     use crate::blockchain::BlockChainState;
-    use account::Account;
+    use account::{Account, create_account};
 
 
     pub struct TempStorage {

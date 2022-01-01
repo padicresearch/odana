@@ -1,6 +1,6 @@
 use anyhow::{Result, Error};
 use crate::transaction::Tx;
-use crate::block::{BlockHeader, Block, genesis_block};
+use types::block::{BlockHeader, Block, genesis_block};
 use crate::mempool::{MemPool, MemPoolStorageKV, MempoolSnapsot};
 use std::sync::Arc;
 use crate::utxo::{UTXO, UTXOStorageKV};
@@ -8,10 +8,10 @@ use crate::consensus::{validate_transaction, check_block_pow, execute_tx, valida
 use crate::errors::BlockChainError;
 use crate::block_storage::{BlockStorage, BlockStorageKV};
 use storage::{KVStore, KVEntry, PersistentStorage};
-use storage::codec::{Encoder, Decoder};
+use codec::{Encoder, Decoder};
 use serde::{Serialize, Deserialize};
 use std::path::{Path, PathBuf};
-use storage::presistent_store::SledDB;
+use storage::sleddb::SledDB;
 use crate::miner::Miner;
 use tokio::sync::mpsc::UnboundedSender;
 use std::f32::consts::E;
@@ -20,6 +20,14 @@ pub const PROTOCOL_VERSION : u16 = 10001;
 pub const SOFTWARE_VERSION : u16 = 10001;
 pub const BLOCK_DIFFICULTY: &str = "000000";
 pub const GENESIS_BLOCK: &str = "0000004cf909c9a9c71ada661a3e4104e004db406f3dcdf25fd6e0aad664b15700000000000000000000000000000000000000000000000000000000000000000000000097f9bc610100a44f0000000000000000000000000000e972937e71e8b54595f3d9659050c3ee906337896a9eb96e74dfb0e702bb3d680100000000000000e536ea0295f24623b9ccbb5b96babbe586c8efd6f2745a19fcf7e3f195af63b8";
+
+
+pub fn genesis_block() -> Block {
+    let decoded_bytes = hex::decode(GENESIS_BLOCK).expect("Error creating genesis block");
+    let genesis_block: Block =
+        bincode::deserialize(&decoded_bytes).expect("Error creating genesis block");
+    genesis_block
+}
 
 pub struct BlockChain {
     state :  Arc<BlockChainState>,
