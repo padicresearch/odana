@@ -7,6 +7,10 @@ pub enum Error {
     RWPoison,
     #[error("`{0}`")]
     GenericError(#[from] anyhow::Error),
+    #[error("`CommitLogMessageError {0:?}`")]
+    CommitLogMessageError(commitlog::message::MessageError),
+    #[error("`CommitLogReadError {0}`")]
+    CommitLogReadError(#[from] commitlog::ReadError),
     #[error("AccountNotFound")]
     AccountNotFound,
     #[error("ValidationFailed")]
@@ -27,4 +31,6 @@ pub enum Error {
     GenesisAlreadyInitialized,
     #[error("NonceIsLessThanCurrent")]
     NonceIsLessThanCurrent,
+    #[error("LogIndexNoFound")]
+    LogIndexNoFound,
 }

@@ -10,7 +10,7 @@ use libp2p::NetworkBehaviour;
 use libp2p::swarm::{SwarmBuilder, NetworkBehaviourEventProcess, SwarmEvent};
 use serde::{Serialize, Deserialize};
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver};
-use crate::block::{BlockHeader, Block};
+use types::block::{BlockHeader, Block};
 use types::{TxHash, BlockHash};
 use crate::mempool::MempoolSnapsot;
 use storage::codec::{Encoder, Decoder, Codec};

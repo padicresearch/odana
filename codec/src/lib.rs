@@ -1,6 +1,7 @@
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
 use serde::de::DeserializeOwned;
+use std::convert::TryInto;
 
 pub trait Encoder : Sized + Serialize + DeserializeOwned {
     fn encode(&self) -> Result<Vec<u8>> {
@@ -43,5 +44,17 @@ macro_rules! impl_codec {
     };
 }
 
+
+impl Encoder for u64 {
+    fn encode(&self) -> Result<Vec<u8>> {
+        Ok(self.to_be_bytes().to_vec())
+    }
+}
+
+impl Decoder for u64 {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        Ok(Self::from_be_bytes(buf.try_into()?))
+    }
+}
 
 
