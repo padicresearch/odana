@@ -11,7 +11,7 @@ use primitive_types::U256;
 
 #[test]
 fn u256_isqrt() {
-	let x = U256::MAX;
-	let s = x.integer_sqrt_checked().unwrap();
-	assert_eq!(x.integer_sqrt(), s);
+    let x = U256::MAX;
+    let s = x.integer_sqrt_checked().unwrap();
+    assert_eq!(x.integer_sqrt(), s);
 }

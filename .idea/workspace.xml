@@ -36,10 +36,65 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="update morph(account engine) tests">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="add `impl_codec_primitives`">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/codec/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/codec/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/account/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/amount.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/amount.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/balances.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/balances.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/bootstrap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/bootstrap.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_manager.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/consensus.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/consensus.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/crypto.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/crypto.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/errors.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/errors.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/mempool.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/mempool.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/miner.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/miner.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/nonce.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/nonce.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/p2p.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/p2p.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/transaction.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/transaction.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/utxo.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/utxo.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/fixed-hash/benches/cmp.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/benches/cmp.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/fixed-hash/src/hash.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/src/hash.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/fixed-hash/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/fixed-hash/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/src/tests.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/num-traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/num-traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/impl_serde.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/impl_serde.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/input.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/input.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/serialize.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/serialize.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/fp_conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/fp_conversion.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/tests/fp_conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/tests/fp_conversion.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/tests/num_traits.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/tests/num_traits.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/tests/scale_info.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/tests/scale_info.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/tracing/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/tracing/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/benches/bigint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/benches/bigint.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/examples/modular.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/examples/modular.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/src/errors.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/errors.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/logdb.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/logdb.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/snapshot.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/snapshot.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/sleddb.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/sleddb.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/transaction/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trie/src/compact.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/compact.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trie/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trie/src/simple.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/simple.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trie/src/tests/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/tests/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trie/src/word.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/word.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -100,7 +155,7 @@
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="nodejs_package_manager_path" value="npm" />
     <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
-    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
+    <property name="settings.editor.selected.configurable" value="vcs.Git" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -326,7 +381,7 @@
       <workItem from="1640856777469" duration="33000" />
       <workItem from="1640856823301" duration="59000" />
       <workItem from="1640856909996" duration="15765000" />
-      <workItem from="1640948420444" duration="52367000" />
+      <workItem from="1640948420444" duration="53036000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -524,7 +579,14 @@
       <option name="project" value="LOCAL" />
       <updated>1641107091164</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="add `impl_codec_primitives`">
+      <created>1641109232200</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1641109232200</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -564,6 +626,11 @@
     <MESSAGE value="fix history log database tests" />
     <MESSAGE value="fix proof validation error" />
     <MESSAGE value="update morph(account engine) tests" />
-    <option name="LAST_COMMIT_MESSAGE" value="update morph(account engine) tests" />
+    <MESSAGE value="add `impl_codec_primitives`" />
+    <option name="LAST_COMMIT_MESSAGE" value="add `impl_codec_primitives`" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>

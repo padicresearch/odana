@@ -1,15 +1,15 @@
 use anyhow::Result;
-use ed25519_dalek::{Keypair, SecretKey, PublicKey, Signer, Verifier};
-use rand_chacha::ChaCha20Rng;
-use rand::SeedableRng;
-use tiny_keccak::Hasher;
-use std::hash::Hash;
-use serde::{Serialize, Deserialize};
-use codec::{Encoder, Decoder};
+use codec::{Decoder, Encoder};
 use ed25519_dalek::ed25519::signature::Signature;
+use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signer, Verifier};
 use primitive_types::H160;
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
+use serde::{Deserialize, Serialize};
+use std::hash::Hash;
+use tiny_keccak::Hasher;
 
-pub const TREASURY_ACCOUNT_PK : [u8; 32] = [1;32];
+pub const TREASURY_ACCOUNT_PK: [u8; 32] = [1; 32];
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {
@@ -20,7 +20,6 @@ pub struct Account {
 
 impl Encoder for Account {}
 impl Decoder for Account {}
-
 
 impl PartialEq for Account {
     fn eq(&self, other: &Self) -> bool {
@@ -38,7 +37,7 @@ impl Hash for Account {
 
 impl Account {
     pub fn address_encoded(&self) -> String {
-        format!("0x{}",hex::encode(self.address))
+        format!("0x{}", hex::encode(self.address))
     }
 
     pub fn sign(&self, payload: &[u8]) -> Result<[u8; 64]> {
@@ -49,8 +48,6 @@ impl Account {
         let sig = key_pair.sign(payload);
         Ok(sig.to_bytes())
     }
-
-
 }
 
 impl Into<H160> for Account {
@@ -58,8 +55,6 @@ impl Into<H160> for Account {
         H160::from(self.address)
     }
 }
-
-
 
 pub fn create_account() -> Account {
     let mut csprng = ChaCha20Rng::from_entropy();
@@ -79,17 +74,17 @@ pub fn create_account() -> Account {
     }
 }
 
-pub fn verify_signature(pub_key : &[u8;32], sig : &[u8; 64], message : &[u8]) -> Result<()> {
+pub fn verify_signature(pub_key: &[u8; 32], sig: &[u8; 64], message: &[u8]) -> Result<()> {
     let pub_key = PublicKey::from_bytes(pub_key)?;
-    let sig : ed25519_dalek::Signature = Signature::from_bytes(sig)?;
+    let sig: ed25519_dalek::Signature = Signature::from_bytes(sig)?;
     pub_key.verify(message, &sig).map_err(|e| e.into())
 }
 
 #[cfg(test)]
 mod test {
-    use std::collections::{HashMap, HashSet};
-    use ed25519_dalek::Signature;
     use crate::create_account;
+    use ed25519_dalek::Signature;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn test_create_account() {
@@ -104,7 +99,7 @@ mod test {
     #[test]
     fn test_signature() {
         let account = create_account();
-//Signature
+        //Signature
         //account.sign()
     }
 }

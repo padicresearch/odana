@@ -1,8 +1,8 @@
-use std::ops::{Sub, Add, Mul};
+use std::ops::{Add, Mul, Sub};
 
-pub const TUCI : u128 = 1_000_000_000;
+pub const TUCI: u128 = 1_000_000_000;
 
-pub const MAX_MONEY : u128 = 1_000_000_000 * TUCI;
+pub const MAX_MONEY: u128 = 1_000_000_000 * TUCI;
 
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
 pub struct Tuci(u128);
@@ -37,7 +37,6 @@ impl Add for Tuci {
     }
 }
 
-
 impl Mul for Tuci {
     type Output = Tuci;
 
@@ -52,11 +51,7 @@ pub trait Saturating {
     fn saturating_sub(self, o: Self) -> Self;
 
     fn saturating_mul(self, o: Self) -> Self;
-
 }
-
-
-
 
 /*
 pub fn money_range() -> bool {

@@ -1,5 +1,5 @@
-use types::{TxHash, BlockHash, AccountId};
 use types::block::Block;
+use types::{AccountId, BlockHash, TxHash};
 
 // pub trait SudoAccount {
 //     fn is_sudo(&self, account: &AccountId) -> bool;

@@ -1,8 +1,13 @@
-use crate::{Word, Symbol, Trie};
+use crate::{Symbol, Trie, Word};
 use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
-pub struct CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
+pub struct CompactTrie<C, K, V>
+    where
+        V: Sized + Clone,
+        K: Word<C>,
+        C: Symbol,
+{
     key: Option<K>,
     value: Option<V>,
     root: bool,
@@ -11,7 +16,12 @@ pub struct CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
     data: PhantomData<C>,
 }
 
-impl<C, K, V> CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
+impl<C, K, V> CompactTrie<C, K, V>
+    where
+        V: Sized + Clone,
+        K: Word<C>,
+        C: Symbol,
+{
     pub fn new() -> Self {
         Self {
             key: None,
@@ -30,16 +40,18 @@ impl<C, K, V> CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol
         for child in root.children.iter() {
             match child {
                 None => {}
-                Some(child) => {
-                    self._search(child, values)
-                }
+                Some(child) => self._search(child, values),
             }
         }
     }
 }
 
-
-impl<C, K, V> Trie<C, K, V> for CompactTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
+impl<C, K, V> Trie<C, K, V> for CompactTrie<C, K, V>
+    where
+        V: Sized + Clone,
+        K: Word<C>,
+        C: Symbol,
+{
     fn insert(&mut self, key: K, value: V) {
         let mut current_tree = self;
 
@@ -58,9 +70,7 @@ impl<C, K, V> Trie<C, K, V> for CompactTrie<C, K, V> where V: Sized + Clone, K: 
                 None => {
                     return;
                 }
-                Some(child_tree) => {
-                    child_tree
-                }
+                Some(child_tree) => child_tree,
             };
         }
         current_tree.key = Some(key.clone());
@@ -75,15 +85,13 @@ impl<C, K, V> Trie<C, K, V> for CompactTrie<C, K, V> where V: Sized + Clone, K: 
                 None => {
                     return None;
                 }
-                Some(item) => {
-                    item
-                }
+                Some(item) => item,
             };
-        };
+        }
         if current_tree.is_word {
-             current_tree.value.clone()
+            current_tree.value.clone()
         } else {
-             None
+            None
         }
     }
 
@@ -95,15 +103,12 @@ impl<C, K, V> Trie<C, K, V> for CompactTrie<C, K, V> where V: Sized + Clone, K: 
                 None => {
                     return None;
                 }
-                Some(item) => {
-                    item
-                }
+                Some(item) => item,
             };
-        };
+        }
         self._search(current_tree, &mut found);
         Some(found)
     }
-
 
     fn remove(&mut self, key: K) {
         let mut tries = vec![];
@@ -114,24 +119,18 @@ impl<C, K, V> Trie<C, K, V> for CompactTrie<C, K, V> where V: Sized + Clone, K: 
                 None => {
                     return;
                 }
-                Some(child_tree) => {
-                    child_tree
-                }
+                Some(child_tree) => child_tree,
             };
             tries.push(current_tree as *mut CompactTrie<C, K, V>)
         }
         for (i, c) in key.chars().iter().rev().enumerate() {
             let index = (key.len() - 1) - i;
-            let parent_tree = unsafe {
-                &mut *tries[index]
-            };
+            let parent_tree = unsafe { &mut *tries[index] };
             let child_tree = match &mut parent_tree.children[(c.index())] {
                 None => {
                     return;
                 }
-                Some(tree) => {
-                    tree
-                }
+                Some(tree) => tree,
             };
             if child_tree.is_word && i == 0 && child_tree.children.is_empty() {
                 parent_tree.children.remove(c.index());

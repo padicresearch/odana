@@ -1,8 +1,8 @@
-use crate::{KVStore, KVEntry, StorageIterator};
-use sled::{IVec, Tree};
-use codec::{Encoder, Decoder};
-use itertools::Itertools;
+use crate::{KVEntry, KVStore, StorageIterator};
 use anyhow::Result;
+use codec::{Decoder, Encoder};
+use itertools::Itertools;
+use sled::{IVec, Tree};
 use std::path::Path;
 
 pub struct SledDB {
@@ -10,14 +10,12 @@ pub struct SledDB {
 }
 
 impl SledDB {
-    pub fn new<P : AsRef<Path>>(path : P) -> Result<Self> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = sled::open(path)?;
-        Ok(Self {
-            inner: db
-        })
+        Ok(Self { inner: db })
     }
 
-    fn column(&self, name : &'static str) -> Result<Tree> {
+    fn column(&self, name: &'static str) -> Result<Tree> {
         self.inner.open_tree(name).map_err(|e| e.into())
     }
 }
@@ -27,12 +25,8 @@ impl<S: KVEntry> KVStore<S> for SledDB {
         let key = key.encode()?;
         let result = self.column(S::column())?.get(&key)?;
         match result {
-            None => {
-                Ok(None)
-            }
-            Some(raw) => {
-                Ok(Some(S::Value::decode(raw.as_ref())?))
-            }
+            None => Ok(None),
+            Some(raw) => Ok(Some(S::Value::decode(raw.as_ref())?)),
         }
     }
 
@@ -51,13 +45,15 @@ impl<S: KVEntry> KVStore<S> for SledDB {
 
     fn contains(&self, key: &S::Key) -> anyhow::Result<bool> {
         let key = key.encode()?;
-        self.column(S::column())?.contains_key(key).map_err(|e| e.into())
+        self.column(S::column())?
+            .contains_key(key)
+            .map_err(|e| e.into())
     }
 
     fn iter(&self) -> Result<StorageIterator<S>> {
         let iter = self.column(S::column())?.iter();
         Ok(Box::new(iter.map(|result| {
-            let (k,v) = result.unwrap();
+            let (k, v) = result.unwrap();
             (S::Key::decode(k.as_ref()), S::Value::decode(v.as_ref()))
         })))
     }

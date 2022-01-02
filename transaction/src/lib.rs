@@ -1,16 +1,24 @@
-use types::{AccountId, Sig, BlockHash};
-use tiny_keccak::Hasher;
 use account::{Account, TREASURY_ACCOUNT_PK};
 use anyhow::Result;
 use codec::impl_codec;
-use codec::{Encoder, Decoder};
-use serde::{Serialize, Deserialize};
+use codec::{Decoder, Encoder};
+use serde::{Deserialize, Serialize};
+use tiny_keccak::Hasher;
 use types::BigArray;
+use types::{AccountId, BlockHash, Sig};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum TransactionKind {
-    Transfer { from: AccountId, to: AccountId, amount: u128},
-    Coinbase { miner: AccountId, amount: u128, block_hash: BlockHash },
+    Transfer {
+        from: AccountId,
+        to: AccountId,
+        amount: u128,
+    },
+    Coinbase {
+        miner: AccountId,
+        amount: u128,
+        block_hash: BlockHash,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -63,18 +71,22 @@ impl Transaction {
         self.nonce
     }
 
-    pub fn sig_hash(&self) -> Result<[u8;32]> {
+    pub fn sig_hash(&self) -> Result<[u8; 32]> {
         let mut out = [0_u8; 32];
         let mut sha3 = tiny_keccak::Sha3::v256();
         sha3.update(self.origin());
         sha3.update(&self.nonce());
         sha3.update(&self.kind.encode()?);
         sha3.finalize(&mut out);
-       Ok(out)
+        Ok(out)
     }
 }
 
-pub fn make_sign_transaction(account: &Account, nonce: u32, kind: TransactionKind) -> Result<Transaction> {
+pub fn make_sign_transaction(
+    account: &Account,
+    nonce: u32,
+    kind: TransactionKind,
+) -> Result<Transaction> {
     let mut out = [0_u8; 32];
     let mut sha3 = tiny_keccak::Sha3::v256();
     sha3.update(&account.pub_key);
@@ -87,7 +99,11 @@ pub fn make_sign_transaction(account: &Account, nonce: u32, kind: TransactionKin
 }
 
 pub fn verify_signed_transaction(transaction: &Transaction) -> Result<()> {
-    account::verify_signature(transaction.origin(), transaction.signature(), &transaction.sig_hash()?)
+    account::verify_signature(
+        transaction.origin(),
+        transaction.signature(),
+        &transaction.sig_hash()?,
+    )
 }
 
 pub fn verify_transaction_origin(origin: &[u8; 32], transaction: &Transaction) -> Result<()> {

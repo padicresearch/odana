@@ -1,13 +1,13 @@
+use crate::memstore::MemStore;
+use crate::sleddb::SledDB;
 use anyhow::Result;
+use codec::Codec;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::RwLock;
-use crate::memstore::MemStore;
-use crate::sleddb::SledDB;
-use codec::Codec;
 
-pub mod memstore;
 pub mod error;
+pub mod memstore;
 pub mod sleddb;
 
 pub trait KVEntry {
@@ -18,7 +18,7 @@ pub trait KVEntry {
 
 pub enum PersistentStorage {
     InMemory(Arc<MemStore>),
-    Sled(Arc<SledDB>)
+    Sled(Arc<SledDB>),
 }
 
 pub trait KVStore<Entry>
@@ -35,5 +35,3 @@ where
 }
 pub type StorageIterator<'a, Entry: KVEntry> =
     Box<dyn 'a + Send + Iterator<Item = (Result<Entry::Key>, Result<Entry::Value>)>>;
-
-

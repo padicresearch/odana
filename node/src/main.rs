@@ -1,40 +1,54 @@
-use storage::{PersistentStorage, KVEntry};
-use storage::sleddb::SledDB;
-use std::sync::Arc;
-use blockchain::blockchain::{BlockChain, start_mining, StateAction, BlockChainState, LocalMessage};
-use blockchain::p2p::{start_p2p_server, NodeIdentity, PeerMessage, BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage};
-use blockchain::block::Block;
-use std::env;
-use storage::memstore::MemStore;
-use blockchain::block_storage::BlockStorage;
-use blockchain::utxo::UTXO;
-use blockchain::mempool::MemPool;
 use anyhow::Error;
+use blockchain::block_storage::BlockStorage;
+use blockchain::blockchain::{
+    start_mining, BlockChain, BlockChainState, LocalMessage, StateAction,
+};
+use blockchain::mempool::MemPool;
+use blockchain::p2p::{
+    start_p2p_server, BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage,
+    NodeIdentity, PeerMessage,
+};
+use blockchain::utxo::UTXO;
+use std::env;
+use std::sync::Arc;
+use storage::memstore::MemStore;
+use storage::sleddb::SledDB;
+use storage::{KVEntry, PersistentStorage};
+use types::block::Block;
+
 enum EventStream {
     LocalMessage(LocalMessage),
     PeerMessage(PeerMessage),
     Unhandled,
 }
+
 ///tmp/tuchain
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     //logging
-    common::tracing_subscriber::fmt::init();
+    tracing::tracing_subscriber::fmt::init();
 
     // Communications
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (node_2_peer_sender, mut node_2_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_2_node_sender, mut peer_2_node_receiver) = tokio::sync::mpsc::unbounded_channel();
 
-
-    let kv = Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]));
+    let kv = Arc::new(MemStore::new(vec![
+        BlockStorage::column(),
+        UTXO::column(),
+        MemPool::column(),
+        BlockChainState::column(),
+    ]));
     let storage = Arc::new(PersistentStorage::InMemory(kv));
     let blockchain = BlockChain::new(storage, local_mpsc_sender.clone())?;
 
-
-
     start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
-    start_p2p_server(NodeIdentity::generate(), node_2_peer_receiver, peer_2_node_sender).await?;
+    start_p2p_server(
+        NodeIdentity::generate(),
+        node_2_peer_receiver,
+        peer_2_node_sender,
+    )
+        .await?;
 
     loop {
         let event = tokio::select! {
@@ -59,15 +73,21 @@ async fn main() -> anyhow::Result<()> {
         };
 
         if let Some(event) = event {
-
             match event {
-
                 EventStream::PeerMessage(msg) => {
-
                     match msg {
                         PeerMessage::GetCurrentHead(req) => {
-                            if let (Ok(Some(current_head)),Ok(mempool))  = (blockchain.state().get_current_head(),blockchain.state().get_mempool()) {
-                                node_2_peer_sender.send(PeerMessage::CurrentHead(CurrentHeadMessage::new(current_head, mempool, Some(req.sender))));
+                            if let (Ok(Some(current_head)), Ok(mempool)) = (
+                                blockchain.state().get_current_head(),
+                                blockchain.state().get_mempool(),
+                            ) {
+                                node_2_peer_sender.send(PeerMessage::CurrentHead(
+                                    CurrentHeadMessage::new(
+                                        current_head,
+                                        mempool,
+                                        Some(req.sender),
+                                    ),
+                                ));
                             }
                         }
                         PeerMessage::CurrentHead(msg) => {
@@ -92,16 +112,16 @@ async fn main() -> anyhow::Result<()> {
                                     println!("State Dispatch Error {}", e)
                                 }
                             };
-
                         }
                     };
-
                 }
                 EventStream::LocalMessage(local_msg) => {
                     match local_msg {
                         LocalMessage::MindedBlock(block) => {
-                           println!("Minded new Block : {}", block);
-                            node_2_peer_sender.send(PeerMessage::BroadcastBlock(BroadcastBlockMessage::new(block.clone())));
+                            println!("Minded new Block : {}", block);
+                            node_2_peer_sender.send(PeerMessage::BroadcastBlock(
+                                BroadcastBlockMessage::new(block.clone()),
+                            ));
                             match blockchain.dispatch(StateAction::AddNewBlock(block)) {
                                 Ok(_) => {}
                                 Err(e) => {
@@ -110,8 +130,6 @@ async fn main() -> anyhow::Result<()> {
                             };
                         }
                         LocalMessage::BroadcastTx(tx) => {
-
-
                             match blockchain.dispatch(StateAction::AddNewTransaction(tx.clone())) {
                                 Ok(_) => {}
                                 Err(e) => {
@@ -119,18 +137,22 @@ async fn main() -> anyhow::Result<()> {
                                 }
                             };
                             //println!("Sending Transaction to Chain : {:?}", tx);
-                            node_2_peer_sender.send(PeerMessage::BroadcastTransaction(BroadcastTransactionMessage::new(tx)));
+                            node_2_peer_sender.send(PeerMessage::BroadcastTransaction(
+                                BroadcastTransactionMessage::new(tx),
+                            ));
                         }
-                        LocalMessage::StateChanged { current_head, mempool } => {
-                            node_2_peer_sender.send(PeerMessage::CurrentHead(CurrentHeadMessage::new(current_head, mempool, None)));
+                        LocalMessage::StateChanged {
+                            current_head,
+                            mempool,
+                        } => {
+                            node_2_peer_sender.send(PeerMessage::CurrentHead(
+                                CurrentHeadMessage::new(current_head, mempool, None),
+                            ));
                         }
                     }
                 }
                 EventStream::Unhandled => {}
             }
-
         }
-
-
     }
 }

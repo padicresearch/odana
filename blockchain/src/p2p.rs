@@ -1,24 +1,24 @@
-use libp2p::{PeerId, Transport, Swarm, Multiaddr};
-use anyhow::{Result, Error};
-use libp2p::tcp::TokioTcpConfig;
-use libp2p::core::transport::upgrade::Version;
-use libp2p::identity::Keypair;
-use libp2p::noise::{X25519Spec, NoiseConfig, AuthenticKeypair};
-use libp2p::floodsub::{Floodsub, FloodsubEvent};
-use libp2p::mdns::{Mdns, MdnsEvent};
-use libp2p::NetworkBehaviour;
-use libp2p::swarm::{SwarmBuilder, NetworkBehaviourEventProcess, SwarmEvent};
-use serde::{Serialize, Deserialize};
-use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver};
-use types::block::{BlockHeader, Block};
-use types::{TxHash, BlockHash};
 use crate::mempool::MempoolSnapsot;
-use storage::codec::{Encoder, Decoder, Codec};
-use storage::impl_codec;
 use crate::transaction::Tx;
+use anyhow::{Error, Result};
+use codec::impl_codec;
+use codec::{Codec, Decoder, Encoder};
 use hex::ToHex;
-use libp2p::futures::StreamExt;
 use libp2p::core::either::EitherError;
+use libp2p::core::transport::upgrade::Version;
+use libp2p::floodsub::{Floodsub, FloodsubEvent};
+use libp2p::futures::StreamExt;
+use libp2p::identity::Keypair;
+use libp2p::mdns::{Mdns, MdnsEvent};
+use libp2p::noise::{AuthenticKeypair, NoiseConfig, X25519Spec};
+use libp2p::swarm::{NetworkBehaviourEventProcess, SwarmBuilder, SwarmEvent};
+use libp2p::tcp::TokioTcpConfig;
+use libp2p::NetworkBehaviour;
+use libp2p::{Multiaddr, PeerId, Swarm, Transport};
+use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use types::block::{Block, BlockHeader};
+use types::{BlockHash, TxHash};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CurrentHeadMessage {
@@ -28,15 +28,18 @@ pub struct CurrentHeadMessage {
 }
 
 impl CurrentHeadMessage {
-    pub fn new(block_header: BlockHeader, mempool: MempoolSnapsot, recipient: Option<String>) -> Self{
+    pub fn new(
+        block_header: BlockHeader,
+        mempool: MempoolSnapsot,
+        recipient: Option<String>,
+    ) -> Self {
         Self {
             block_header,
             mempool,
-            recipient
+            recipient,
         }
     }
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BroadcastTransactionMessage {
@@ -44,9 +47,7 @@ pub struct BroadcastTransactionMessage {
 }
 impl BroadcastTransactionMessage {
     pub fn new(tx: Tx) -> Self {
-        Self {
-            tx
-        }
+        Self { tx }
     }
 
     pub fn tx(self) -> Tx {
@@ -60,9 +61,7 @@ pub struct BroadcastBlockMessage {
 }
 impl BroadcastBlockMessage {
     pub fn new(block: Block) -> Self {
-        Self {
-            block
-        }
+        Self { block }
     }
 
     pub fn block(self) -> Block {
@@ -77,23 +76,21 @@ pub struct GetCurrentHeadMessage {
 
 impl GetCurrentHeadMessage {
     pub fn new(sender: String) -> Self {
-        Self {
-            sender
-        }
+        Self { sender }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetBlockHeaderMessage {
     pub sender: String,
-    pub block_hashes : Vec<BlockHash>
+    pub block_hashes: Vec<BlockHash>,
 }
 
 impl GetBlockHeaderMessage {
-    pub fn new(sender: String, block_hashes : Vec<BlockHash>) -> Self {
+    pub fn new(sender: String, block_hashes: Vec<BlockHash>) -> Self {
         Self {
             sender,
-            block_hashes
+            block_hashes,
         }
     }
 }
@@ -101,30 +98,26 @@ impl GetBlockHeaderMessage {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BlockTransactionsMessage {
     pub recipient: String,
-    pub txs : Vec<Tx>
+    pub txs: Vec<Tx>,
 }
 
 impl BlockTransactionsMessage {
-    pub fn new(recipient: String, txs : Vec<Tx>) -> Self {
-        Self {
-            recipient,
-            txs
-        }
+    pub fn new(recipient: String, txs: Vec<Tx>) -> Self {
+        Self { recipient, txs }
     }
 }
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BlockHeaderMessage {
     pub recipient: String,
-    pub block_headers : Vec<BlockHeader>
+    pub block_headers: Vec<BlockHeader>,
 }
 
 impl BlockHeaderMessage {
-    pub fn new(recipient: PeerId, block_headers : Vec<BlockHeader>) -> Self {
+    pub fn new(recipient: PeerId, block_headers: Vec<BlockHeader>) -> Self {
         Self {
-            recipient : recipient.to_string(),
-            block_headers
+            recipient: recipient.to_string(),
+            block_headers,
         }
     }
 }
@@ -132,18 +125,17 @@ impl BlockHeaderMessage {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetBlockTransactionsMessage {
     pub sender: String,
-    pub tx_ids : Vec<TxHash>
+    pub tx_ids: Vec<TxHash>,
 }
 
 impl GetBlockTransactionsMessage {
-    pub fn new(sender: PeerId, tx_ids : Vec<TxHash>) -> Self {
+    pub fn new(sender: PeerId, tx_ids: Vec<TxHash>) -> Self {
         Self {
-            sender : sender.to_string(),
-            tx_ids
+            sender: sender.to_string(),
+            tx_ids,
         }
     }
 }
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum PeerMessage {
@@ -159,9 +151,7 @@ pub enum PeerMessage {
 
 impl_codec!(PeerMessage);
 
-
 pub struct Peer {}
-
 
 pub struct NodeIdentity {
     pub_key: libp2p::identity::ed25519::PublicKey,
@@ -176,8 +166,8 @@ impl NodeIdentity {
         let pub_key = keys.public();
         let secret_key = keys.secret();
 
-
-        let peer_id = PeerId::from_public_key(&libp2p::identity::PublicKey::Ed25519(pub_key.clone()));
+        let peer_id =
+            PeerId::from_public_key(&libp2p::identity::PublicKey::Ed25519(pub_key.clone()));
 
         Self {
             pub_key,
@@ -192,8 +182,8 @@ impl NodeIdentity {
         let pub_key = keys.public();
         let secret_key = keys.secret();
 
-
-        let peer_id = PeerId::from_public_key(&libp2p::identity::PublicKey::Ed25519(pub_key.clone()));
+        let peer_id =
+            PeerId::from_public_key(&libp2p::identity::PublicKey::Ed25519(pub_key.clone()));
 
         Self {
             pub_key,
@@ -203,13 +193,17 @@ impl NodeIdentity {
     }
 
     pub fn identity_keys(&self) -> libp2p::identity::Keypair {
-        let keys = libp2p::identity::Keypair::Ed25519(libp2p::identity::ed25519::Keypair::from(self.secret_key.clone()));
+        let keys = libp2p::identity::Keypair::Ed25519(libp2p::identity::ed25519::Keypair::from(
+            self.secret_key.clone(),
+        ));
         keys
     }
 }
 
-
-async fn config_network(node_identity: NodeIdentity, p2p_to_node: UnboundedSender<PeerMessage>) -> Result<Swarm<ChainNetworkBehavior>> {
+async fn config_network(
+    node_identity: NodeIdentity,
+    p2p_to_node: UnboundedSender<PeerMessage>,
+) -> Result<Swarm<ChainNetworkBehavior>> {
     let auth_keys = libp2p::noise::Keypair::<X25519Spec>::new()
         .into_authentic(&node_identity.identity_keys())
         .expect("cannot create auth keys");
@@ -222,7 +216,9 @@ async fn config_network(node_identity: NodeIdentity, p2p_to_node: UnboundedSende
 
     let network_topic = libp2p::floodsub::Topic::new("testnet");
 
-    let mdns = Mdns::new(Default::default()).await.expect("Cannot create mdns");
+    let mdns = Mdns::new(Default::default())
+        .await
+        .expect("Cannot create mdns");
     let mut behaviour = ChainNetworkBehavior {
         floodsub: Floodsub::new(node_identity.peer_id.clone()),
         mdns,
@@ -240,9 +236,14 @@ async fn config_network(node_identity: NodeIdentity, p2p_to_node: UnboundedSende
     Ok(swarm)
 }
 
-pub async fn start_p2p_server(node_identity: NodeIdentity, mut node_to_p2p: UnboundedReceiver<PeerMessage>, p2p_to_node: UnboundedSender<PeerMessage>) -> Result<()> {
+pub async fn start_p2p_server(
+    node_identity: NodeIdentity,
+    mut node_to_p2p: UnboundedReceiver<PeerMessage>,
+    p2p_to_node: UnboundedSender<PeerMessage>,
+) -> Result<()> {
     let mut swarm = config_network(node_identity, p2p_to_node).await?;
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?).expect("Error connecting to p2p");
+    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
+        .expect("Error connecting to p2p");
 
     tokio::task::spawn(async move {
         loop {
@@ -254,20 +255,24 @@ pub async fn start_p2p_server(node_identity: NodeIdentity, mut node_to_p2p: Unbo
     Ok(())
 }
 
-async fn handle_publish_message(msg: Option<PeerMessage>, swarm: &mut Swarm<ChainNetworkBehavior>){
-
+async fn handle_publish_message(msg: Option<PeerMessage>, swarm: &mut Swarm<ChainNetworkBehavior>) {
     if let Some(msg) = msg {
         if let Ok(encoded_msg) = msg.encode() {
             let network_topic = libp2p::floodsub::Topic::new("testnet");
-            swarm.behaviour_mut().floodsub.publish(network_topic, encoded_msg);
-        }else {
+            swarm
+                .behaviour_mut()
+                .floodsub
+                .publish(network_topic, encoded_msg);
+        } else {
             println!("Failed to encode message {:?}", msg)
         }
-
     }
 }
 
-async fn handle_swam_event<T>(event: SwarmEvent<OutEvent, T>, swarm: &mut Swarm<ChainNetworkBehavior>) {
+async fn handle_swam_event<T>(
+    event: SwarmEvent<OutEvent, T>,
+    swarm: &mut Swarm<ChainNetworkBehavior>,
+) {
     /*match event {
         SwarmEvent::Behaviour(_) => {}
         SwarmEvent::ConnectionEstablished { .. } => {}
@@ -286,16 +291,12 @@ async fn handle_swam_event<T>(event: SwarmEvent<OutEvent, T>, swarm: &mut Swarm<
         SwarmEvent::NewListenAddr { address, .. } => {
             println!("Listening on {:?}", address);
         }
-        SwarmEvent::Behaviour(OutEvent::Floodsub(
-                                  FloodsubEvent::Message(message)
-                              )) => {
+        SwarmEvent::Behaviour(OutEvent::Floodsub(FloodsubEvent::Message(message))) => {
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 swarm.behaviour_mut().p2p_to_node.send(peer_message);
             }
         }
-        SwarmEvent::Behaviour(OutEvent::Mdns(
-                                  MdnsEvent::Discovered(list)
-                              )) => {
+        SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Discovered(list))) => {
             for (peer, _) in list {
                 swarm
                     .behaviour_mut()
@@ -303,9 +304,7 @@ async fn handle_swam_event<T>(event: SwarmEvent<OutEvent, T>, swarm: &mut Swarm<
                     .add_node_to_partial_view(peer);
             }
         }
-        SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Expired(
-                                                 list
-                                             ))) => {
+        SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Expired(list))) => {
             for (peer, _) in list {
                 if !swarm.behaviour_mut().mdns.has_node(&peer) {
                     swarm
@@ -316,13 +315,10 @@ async fn handle_swam_event<T>(event: SwarmEvent<OutEvent, T>, swarm: &mut Swarm<
             }
         }
 
-        SwarmEvent::ConnectionEstablished {peer_id,..} => {
-
-        }
+        SwarmEvent::ConnectionEstablished { peer_id, .. } => {}
         _ => {}
     }
 }
-
 
 #[derive(NetworkBehaviour)]
 #[behaviour(out_event = "OutEvent")]
@@ -350,7 +346,6 @@ impl From<FloodsubEvent> for OutEvent {
         Self::Floodsub(v)
     }
 }
-
 
 /*impl NetworkBehaviourEventProcess<MdnsEvent> for ChainNetworkBehavior {
     fn inject_event(&mut self, event: MdnsEvent) {

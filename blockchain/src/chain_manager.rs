@@ -1,16 +1,16 @@
-use anyhow::{Result, Error};
-use crate::transaction::Tx;
-use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver};
-use crate::utxo::UTXO;
-use std::sync::Arc;
-use crate::mempool::MemPool;
-use crate::block::Block;
-use crate::miner::Miner;
 use crate::blockchain::BlockChainState;
 use crate::errors::BlockChainError;
+use crate::mempool::MemPool;
+use crate::miner::Miner;
+use crate::transaction::Tx;
+use crate::utxo::UTXO;
+use anyhow::{Error, Result};
+use std::sync::Arc;
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use types::block::Block;
 
 pub struct ChainManager {
-    mempool : Arc<MemPool>
+    mempool: Arc<MemPool>,
 }
 
 impl ChainManager {
@@ -34,4 +34,3 @@ impl ChainManager {
         todo!()
     }
 }
-

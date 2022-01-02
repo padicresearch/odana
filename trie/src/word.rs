@@ -1,5 +1,5 @@
-use std::hash::{Hash, Hasher};
 use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 
 pub trait Index {
     fn index(&self) -> usize;
@@ -8,7 +8,10 @@ pub trait Index {
 
 pub trait Symbol: PartialOrd + Ord + Index + Sized + Hash + Clone {}
 
-pub trait Word<T>: Sized + Clone where T: Symbol {
+pub trait Word<T>: Sized + Clone
+    where
+        T: Symbol,
+{
     fn chars(&self) -> &Vec<T>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
@@ -16,14 +19,12 @@ pub trait Word<T>: Sized + Clone where T: Symbol {
 
 #[derive(Clone, Debug)]
 pub struct Char {
-    c: char
+    c: char,
 }
 
 impl Char {
-    pub fn new(c : char) -> Self {
-        Char {
-            c
-        }
+    pub fn new(c: char) -> Self {
+        Char { c }
     }
 }
 
@@ -65,10 +66,9 @@ impl Ord for Char {
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub struct TString {
-    chars: Vec<Char>
+    chars: Vec<Char>,
 }
 
 impl From<String> for TString {
@@ -77,9 +77,7 @@ impl From<String> for TString {
         for c in word.chars() {
             chars.push(Char::new(c))
         }
-        TString {
-            chars
-        }
+        TString { chars }
     }
 }
 
@@ -89,9 +87,7 @@ impl From<&str> for TString {
         for c in word.chars() {
             chars.push(Char::new(c))
         }
-        TString {
-            chars
-        }
+        TString { chars }
     }
 }
 

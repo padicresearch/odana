@@ -1,16 +1,16 @@
-use crate::blockchain::{ BLOCK_DIFFICULTY};
+use crate::blockchain::BLOCK_DIFFICULTY;
 use crate::errors::BlockChainError;
 use crate::transaction::Tx;
 use crate::utxo::{UTXOStore, UTXO};
 use anyhow::Result;
 use ed25519_dalek::{PublicKey, Signature, Verifier};
-use types::BlockHash;
-use types::block::Block;
 use merkle::Merkle;
+use types::block::Block;
+use types::BlockHash;
 
 pub fn validate_transaction(tx: &Tx, utxo: &UTXO) -> Result<()> {
     if tx.is_coinbase() {
-        return Ok(())
+        return Ok(());
     }
     let sighash = tx.sighash();
     let mut input_amount: u128 = 0;
@@ -35,7 +35,11 @@ pub fn validate_transaction(tx: &Tx, utxo: &UTXO) -> Result<()> {
         .iter()
         .map(|out| out.value)
         .fold(0, |acc, next| acc + next);
-    if input_amount >= out_amount {Ok(())} else {Err(BlockChainError::InvalidTransaction.into())}
+    if input_amount >= out_amount {
+        Ok(())
+    } else {
+        Err(BlockChainError::InvalidTransaction.into())
+    }
 }
 
 pub fn validate_chain(block_height: u128, block_storage: ()) -> Result<()> {
@@ -55,7 +59,6 @@ pub fn check_transaction_fee(in_amount: u128, out_amount: u128) -> Result<u128> 
     Ok(fee)
 }
 
-
 pub fn check_block_pow(block_hash: &BlockHash) -> bool {
     let block_hash_encoded = hex::encode(block_hash);
     block_hash_encoded.starts_with(BLOCK_DIFFICULTY)
@@ -64,7 +67,7 @@ pub fn check_block_pow(block_hash: &BlockHash) -> bool {
 pub fn validate_block(block: &Block) -> Result<()> {
     let block_hash = block.calculate_hash();
     if !check_block_pow(&block_hash) {
-        return Err(BlockChainError::InvalidBlock.into())
+        return Err(BlockChainError::InvalidBlock.into());
     }
     let mut merkle = Merkle::default();
     for tx in block.transactions().iter() {
@@ -72,12 +75,10 @@ pub fn validate_block(block: &Block) -> Result<()> {
     }
     let merkle_root = merkle.finalize().ok_or(BlockChainError::MerkleError)?;
     if merkle_root != block.merkle_root() {
-        return Err(BlockChainError::InvalidBlock.into())
+        return Err(BlockChainError::InvalidBlock.into());
     }
     Ok(())
 }
-
-
 
 pub fn execute_tx(tx: Tx, utxo: &UTXO) -> Result<()> {
     validate_transaction(&tx, utxo)?;

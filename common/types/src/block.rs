@@ -1,30 +1,32 @@
 use super::*;
-use tiny_keccak::Hasher;
-use std::fmt::Formatter;
 use anyhow::Result;
+use codec::{Decoder, Encoder};
 use derive_getters::Getters;
-use serde::{Serialize, Deserialize};
-use codec::{Encoder, Decoder};
+use serde::{Deserialize, Serialize};
+use std::fmt::Formatter;
+use tiny_keccak::Hasher;
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
 pub struct BlockHeader {
     prev_block_hash: BlockHash,
     block_hash: BlockHash,
     time: u32,
-    level : i32,
+    level: i32,
     tx_count: u16,
     merkle_root: MerkleHash,
     nonce: u128,
 }
 
 impl BlockHeader {
-    pub fn new(prev_block_hash: BlockHash,
-               block_hash: BlockHash,
-               time: u32,
-               level : i32,
-               tx_count: u16,
-               merkle_root: MerkleHash,
-               nonce: u128) -> Self {
+    pub fn new(
+        prev_block_hash: BlockHash,
+        block_hash: BlockHash,
+        time: u32,
+        level: i32,
+        tx_count: u16,
+        merkle_root: MerkleHash,
+        nonce: u128,
+    ) -> Self {
         Self {
             prev_block_hash,
             block_hash,
@@ -32,7 +34,7 @@ impl BlockHeader {
             level,
             tx_count,
             merkle_root,
-            nonce
+            nonce,
         }
     }
 }
@@ -46,7 +48,7 @@ impl From<&BlockHeader> for BlockHeader {
             level: block.level,
             tx_count: block.tx_count,
             merkle_root: block.merkle_root,
-            nonce: block.nonce
+            nonce: block.nonce,
         }
     }
 }
@@ -55,7 +57,7 @@ impl From<&BlockHeader> for BlockHeader {
 pub struct BlockTemplate {
     prev_block_hash: BlockHash,
     time: u32,
-    level : i32,
+    level: i32,
     tx_count: u16,
     merkle_root: MerkleHash,
     nonce: u128,
@@ -63,7 +65,7 @@ pub struct BlockTemplate {
 
 impl BlockTemplate {
     pub fn new(
-        level : i32,
+        level: i32,
         nonce: u128,
         prev_block_hash: BlockHash,
         time: u32,
@@ -94,13 +96,11 @@ impl BlockTemplate {
     }
 }
 
-
-
 #[derive(Debug, Serialize, Deserialize, Clone, Getters)]
 pub struct Block {
     hash: BlockHash,
     prev_block_hash: BlockHash,
-    level : i32,
+    level: i32,
     time: u32,
     tx_count: u16,
     nonce: u128,
@@ -117,7 +117,7 @@ pub struct BlockView {
     prev_block_hash: String,
     time: u32,
     tx_count: u16,
-    level : i32,
+    level: i32,
     nonce: u128,
     merkle_root: String,
     transactions: Vec<String>,

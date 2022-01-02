@@ -1,20 +1,18 @@
 #![feature(async_closure)]
 #![feature(trivial_bounds)]
 
-pub mod errors;
-pub mod transaction;
-pub mod blockchain;
-pub mod consensus;
-pub mod utxo;
-pub mod balances;
-pub mod mempool;
 pub mod amount;
-pub mod chain_manager;
+pub mod balances;
 pub mod block_storage;
-pub mod block;
-pub mod miner;
-pub mod p2p;
+pub mod blockchain;
 mod bootstrap;
+pub mod chain_manager;
+pub mod consensus;
 mod crypto;
+pub mod errors;
+pub mod mempool;
+pub mod miner;
 pub mod nonce;
-
+pub mod p2p;
+pub mod transaction;
+pub mod utxo;

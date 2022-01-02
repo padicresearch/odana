@@ -1,7 +1,5 @@
 pub mod block;
 
-
-
 use serde_big_array::big_array;
 
 pub type BlockHash = [u8; 32];

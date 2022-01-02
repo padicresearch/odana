@@ -1,8 +1,13 @@
-use crate::{Word, Symbol, Trie};
-use std::collections::{BTreeMap};
+use crate::{Symbol, Trie, Word};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone)]
-pub struct SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
+pub struct SimpleTrie<C, K, V>
+    where
+        V: Sized + Clone,
+        K: Word<C>,
+        C: Symbol,
+{
     key: Option<K>,
     value: Option<V>,
     root: bool,
@@ -10,7 +15,12 @@ pub struct SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
     children: BTreeMap<C, SimpleTrie<C, K, V>>,
 }
 
-impl<C, K, V> Default for SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
+impl<C, K, V> Default for SimpleTrie<C, K, V>
+    where
+        V: Sized + Clone,
+        K: Word<C>,
+        C: Symbol,
+{
     fn default() -> Self {
         Self {
             key: None,
@@ -22,9 +32,14 @@ impl<C, K, V> Default for SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>
     }
 }
 
-impl<C, K, V> SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
+impl<C, K, V> SimpleTrie<C, K, V>
+    where
+        V: Sized + Clone,
+        K: Word<C>,
+        C: Symbol,
+{
     pub fn new() -> Self {
-       Self::default()
+        Self::default()
     }
 
     fn _search(&self, root: &SimpleTrie<C, K, V>, values: &mut Vec<(K, V)>) {
@@ -34,22 +49,28 @@ impl<C, K, V> SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol 
         for (_, child) in root.children.iter() {
             self._search(child, values)
         }
-
     }
 }
 
-
-impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V> where V: Sized + Clone, K: Word<C>, C: Symbol {
+impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V>
+    where
+        V: Sized + Clone,
+        K: Word<C>,
+        C: Symbol,
+{
     fn insert(&mut self, key: K, value: V) {
         let mut current_tree = self;
-        for char in key.chars().iter(){
-            current_tree = current_tree.children.entry(char.clone()).or_insert(SimpleTrie {
-                key: None,
-                value: None,
-                root: false,
-                is_word: false,
-                children: Default::default(),
-            });
+        for char in key.chars().iter() {
+            current_tree = current_tree
+                .children
+                .entry(char.clone())
+                .or_insert(SimpleTrie {
+                    key: None,
+                    value: None,
+                    root: false,
+                    is_word: false,
+                    children: Default::default(),
+                });
         }
         current_tree.is_word = true;
         current_tree.key = Some(key.clone());
@@ -58,16 +79,14 @@ impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V> where V: Sized + Clone, K: W
 
     fn get(&self, key: K) -> Option<V> {
         let mut current_tree = self;
-        for char in key.chars().iter(){
+        for char in key.chars().iter() {
             current_tree = match current_tree.children.get(char) {
                 None => {
                     return None;
                 }
-                Some(item) => {
-                    item
-                }
+                Some(item) => item,
             };
-        };
+        }
         if current_tree.is_word {
             current_tree.value.clone()
         } else {
@@ -83,17 +102,14 @@ impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V> where V: Sized + Clone, K: W
                 None => {
                     return None;
                 }
-                Some(item) => {
-                    item
-                }
+                Some(item) => item,
             };
             if index == key.len() - 1 {
                 self._search(current_tree, &mut found)
             }
-        };
+        }
         Some(found)
     }
-
 
     fn remove(&mut self, key: K) {
         let mut tries = vec![];
@@ -104,17 +120,13 @@ impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V> where V: Sized + Clone, K: W
                 None => {
                     return;
                 }
-                Some(child_tree) => {
-                    child_tree
-                }
+                Some(child_tree) => child_tree,
             };
             tries.push(current_tree as *mut SimpleTrie<C, K, V>)
         }
         for (i, c) in key.chars().iter().rev().enumerate() {
             let index = (key.len() - 1) - i;
-            let parent_tree = unsafe{
-                &mut *tries[index]
-            };
+            let parent_tree = unsafe { &mut *tries[index] };
             let child_tree = parent_tree.children.get_mut(c).unwrap();
             if child_tree.is_word && i == 0 && child_tree.children.is_empty() {
                 parent_tree.children.remove(c);

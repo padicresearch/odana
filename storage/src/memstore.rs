@@ -1,22 +1,22 @@
-use crate::KVStore;
-use crate::KVEntry;
 use crate::error::StorageError;
-use codec::{Codec, Encoder, Decoder};
-use anyhow::{Result, Error};
+use crate::KVEntry;
+use crate::KVStore;
+use anyhow::{Error, Result};
+use codec::{Codec, Decoder, Encoder};
 use std::collections::{BTreeMap, HashMap};
+use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::RwLock;
-use std::ops::Deref;
 
 #[derive(Debug)]
 pub struct ColumnMemStore {
-    inner : Arc<RwLock<BTreeMap<Arc<Vec<u8>>, Arc<Vec<u8>>>>>
+    inner: Arc<RwLock<BTreeMap<Arc<Vec<u8>>, Arc<Vec<u8>>>>>,
 }
 
 impl Default for ColumnMemStore {
     fn default() -> Self {
         Self {
-            inner: Arc::new(Default::default())
+            inner: Arc::new(Default::default()),
         }
     }
 }
@@ -60,23 +60,22 @@ impl Iterator for MemStoreIterator {
 }
 
 impl MemStore {
-    pub fn new(columns : Vec<&'static str>) -> Self {
-        let columns : HashMap<_,_> = columns.iter().map(|name| {
-            (*name, Arc::new(ColumnMemStore::default()))
-        }).collect();
+    pub fn new(columns: Vec<&'static str>) -> Self {
+        let columns: HashMap<_, _> = columns
+            .iter()
+            .map(|name| (*name, Arc::new(ColumnMemStore::default())))
+            .collect();
         Self {
             inner: Arc::new(columns),
         }
     }
 
-    fn column(&self, name : &'static str) -> Result<Arc<ColumnMemStore>> {
+    fn column(&self, name: &'static str) -> Result<Arc<ColumnMemStore>> {
         match self.inner.get(name) {
             None => {
                 anyhow::bail!("")
             }
-            Some(col) => {
-                Ok(col.clone())
-            }
+            Some(col) => Ok(col.clone()),
         }
     }
 }
@@ -85,12 +84,8 @@ impl<S: KVEntry> KVStore<S> for MemStore {
     fn get(&self, key: &S::Key) -> Result<Option<S::Value>> {
         let key = key.encode()?;
         match self.column(S::column())?.get(key)? {
-            None => {
-                Ok(None)
-            }
-            Some(value) => {
-                Ok(Some(S::Value::decode(&value)?))
-            }
+            None => Ok(None),
+            Some(value) => Ok(Some(S::Value::decode(&value)?)),
         }
     }
 
@@ -113,9 +108,11 @@ impl<S: KVEntry> KVStore<S> for MemStore {
     fn iter<'a>(
         &'a self,
     ) -> Result<Box<dyn 'a + Send + Iterator<Item = (Result<S::Key>, Result<S::Value>)>>> {
-        Ok(Box::new(self.column(S::column())?.iter().map(|(k,v)| {
-            (S::Key::decode(&k), S::Value::decode(&v))
-        })))
+        Ok(Box::new(
+            self.column(S::column())?
+                .iter()
+                .map(|(k, v)| (S::Key::decode(&k), S::Value::decode(&v))),
+        ))
     }
 }
 
@@ -150,9 +147,7 @@ impl ColumnMemStore {
         Ok(store.contains_key(&key))
     }
 
-    fn iter(
-        &self,
-    ) -> MemStoreIterator {
+    fn iter(&self) -> MemStoreIterator {
         MemStoreIterator::new(self.inner.clone())
     }
 }

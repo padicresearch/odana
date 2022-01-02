@@ -1,24 +1,22 @@
+use crate::amount::TUCI;
 use crate::consensus::check_transaction_fee;
-use ed25519_dalek::{PublicKey, Verifier, Signature};
+use crate::errors::BlockChainError;
+use crate::utxo::{UTXOStore, UTXO};
+use account::Account;
 use anyhow::Result;
-use tiny_keccak::Hasher;
+use codec::{Decoder, Encoder};
+use ed25519_dalek::{PublicKey, Signature, Verifier};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::errors::BlockChainError;
-use serde::{Serialize, Deserialize};
-use storage::codec::{Encoder, Decoder};
+use tiny_keccak::Hasher;
 use types::BigArray;
-use crate::utxo::{UTXO, UTXOStore};
-use crate::amount::TUCI;
-use account::Account;
-use codec::{Encoder, Decoder};
 
 const MINER_REWARD: u128 = 10 * TUCI;
 
 pub trait SerialHash {
     fn s_hash(&self) -> [u8; 32];
 }
-
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct TxIn {
@@ -55,13 +53,9 @@ pub struct TxOut {
     pub value: u128,
 }
 
-
 impl TxOut {
     pub fn new(pub_key: [u8; 32], value: u128) -> Self {
-        Self {
-            pub_key,
-            value,
-        }
+        Self { pub_key, value }
     }
 }
 
@@ -87,7 +81,12 @@ pub struct Tx {
 }
 
 impl Tx {
-    pub fn signed(account: &Account, nonce: u128, inputs: Vec<TxIn>, outputs: Vec<TxOut>) -> Result<Self> {
+    pub fn signed(
+        account: &Account,
+        nonce: u128,
+        inputs: Vec<TxIn>,
+        outputs: Vec<TxOut>,
+    ) -> Result<Self> {
         if inputs.is_empty() && outputs.is_empty() {
             return Err(BlockChainError::TxInputOrOutputEmpty.into());
         }
@@ -105,7 +104,6 @@ impl Tx {
 
         let signature = account.sign(&out)?;
 
-
         let mut sha3 = tiny_keccak::Sha3::v256();
         sha3.update(&out);
         sha3.finalize(&mut out);
@@ -118,7 +116,7 @@ impl Tx {
         })
     }
 
-    pub fn coinbase(account: &Account, tx_fees : u128) -> Result<Self> {
+    pub fn coinbase(account: &Account, tx_fees: u128) -> Result<Self> {
         let nonce: u128 = rand::random();
 
         let inputs = vec![TxIn::new([0; 32], 0, account.pub_key)];
@@ -136,7 +134,6 @@ impl Tx {
         sha3.finalize(&mut out);
 
         let signature = account.sign(&out)?;
-
 
         let mut sha3 = tiny_keccak::Sha3::v256();
         sha3.update(&out);
@@ -199,51 +196,53 @@ impl Tx {
         sha3.finalize(&mut out);
         out
     }
-
 }
 
 impl Encoder for Tx {}
 
 impl Decoder for Tx {}
 
-pub fn calculate_tx_in_out_amount(tx : &Tx, utxo : &UTXO) -> Result<(u128,u128)> {
+pub fn calculate_tx_in_out_amount(tx: &Tx, utxo: &UTXO) -> Result<(u128, u128)> {
     if tx.is_coinbase() {
-        return Ok((MINER_REWARD, MINER_REWARD))
+        return Ok((MINER_REWARD, MINER_REWARD));
     }
     let mut input_amount: u128 = 0;
     for tx_in in tx.inputs.iter() {
-        let coin = utxo.get_coin(tx_in.prev_tx_index as u16, &tx_in.prev_tx_id)?.ok_or(BlockChainError::VerifyError)?;
+        let coin = utxo
+            .get_coin(tx_in.prev_tx_index as u16, &tx_in.prev_tx_id)?
+            .ok_or(BlockChainError::VerifyError)?;
         input_amount += coin.tx_out.value
     }
-    let out_amount = tx.outputs.iter().map(|out| out.value).fold(0, |acc, next| acc + next);
+    let out_amount = tx
+        .outputs
+        .iter()
+        .map(|out| out.value)
+        .fold(0, |acc, next| acc + next);
 
     Ok((input_amount, out_amount))
-
 }
 
-
 #[cfg(test)]
- mod tests {
-    use storage::memstore::MemStore;
-use std::collections::{HashMap, BTreeMap};
-    use std::rc::Rc;
-    use super::{TxOut, TxIn, Tx};
+mod tests {
+    use super::{Tx, TxIn, TxOut};
     use crate::account::{create_account, Account};
+    use crate::block_storage::BlockStorage;
+    use crate::blockchain::BlockChainState;
+    use crate::consensus::validate_transaction;
+    use crate::errors::BlockChainError;
+    use crate::mempool::MemPool;
+    use crate::utxo::{CoinKey, CoinOut, UTXOStore, UTXO};
+    use account::{create_account, Account};
     use anyhow::Result;
     use ed25519_dalek::{PublicKey, Signature, Verifier};
-    use crate::errors::BlockChainError;
-    use crate::utxo::{UTXO, UTXOStore, CoinOut, CoinKey};
-    use storage::{KVStore, KVEntry, PersistentStorage};
-    use storage::codec::{Codec, Encoder, Decoder};
-    use std::sync::{Arc, RwLock};
-    use crate::consensus::validate_transaction;
     use std::collections::btree_map::Iter;
+    use std::collections::{BTreeMap, HashMap};
     use std::marker::PhantomData;
-    use crate::block_storage::BlockStorage;
-    use crate::mempool::MemPool;
-    use crate::blockchain::BlockChainState;
-    use account::{Account, create_account};
-
+    use std::rc::Rc;
+    use std::sync::{Arc, RwLock};
+    use storage::codec::{Codec, Decoder, Encoder};
+    use storage::memstore::MemStore;
+    use storage::{KVEntry, KVStore, PersistentStorage};
 
     pub struct TempStorage {
         pub utxo: Arc<UTXO>,
@@ -252,26 +251,23 @@ use std::collections::{HashMap, BTreeMap};
     pub fn setup_storage(accounts: &Vec<Account>, storage: Arc<PersistentStorage>) -> TempStorage {
         let coin_base = [0_u8; 32];
 
-        let res: Result<Vec<_>> = accounts.iter().map(|account| {
-            Tx::coinbase(account, 0)
-        }).collect();
+        let res: Result<Vec<_>> = accounts
+            .iter()
+            .map(|account| Tx::coinbase(account, 0))
+            .collect();
 
         let txs = res.unwrap();
 
-
         let temp = TempStorage {
-            utxo: Arc::new(UTXO::new(storage))
+            utxo: Arc::new(UTXO::new(storage)),
         };
-
 
         for tx in txs.iter() {
             temp.utxo.put(tx).unwrap()
         }
 
-
         temp
     }
-
 
     fn execute_tx(tx: Tx, utxo: &UTXO) -> Result<bool> {
         validate_transaction(&tx, utxo)?;
@@ -282,71 +278,93 @@ use std::collections::{HashMap, BTreeMap};
         Ok(true)
     }
 
-    fn get_account_coins(acount: &Account, utxo: &UTXO) -> Vec<(CoinKey, CoinOut)>{
+    fn get_account_coins(acount: &Account, utxo: &UTXO) -> Vec<(CoinKey, CoinOut)> {
         let mut res = vec![];
         for (k, v) in utxo.iter().unwrap() {
-            let key =  k.unwrap();
+            let key = k.unwrap();
             let coin = v.unwrap();
-            if coin.tx_out.pub_key == acount.pub_key &&  !coin.is_spent{
-                res.push((key,coin))
+            if coin.tx_out.pub_key == acount.pub_key && !coin.is_spent {
+                res.push((key, coin))
             }
         }
         res
         //Ok(valid)
     }
 
-    fn available_balance(acount: &Account, utxo: &UTXO) -> u128{
-        get_account_coins(acount,utxo).iter().map(|(_,v)| v.tx_out.value).fold(0,|acc, next|{
-            let sum = acc + next;
-            sum
-        })
+    fn available_balance(acount: &Account, utxo: &UTXO) -> u128 {
+        get_account_coins(acount, utxo)
+            .iter()
+            .map(|(_, v)| v.tx_out.value)
+            .fold(0, |acc, next| {
+                let sum = acc + next;
+                sum
+            })
         //Ok(valid)
     }
 
-
     #[test]
     fn test_valid_tx() {
-        let memstore = Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]));
+        let memstore = Arc::new(MemStore::new(vec![
+            BlockStorage::column(),
+            UTXO::column(),
+            MemPool::column(),
+            BlockChainState::column(),
+        ]));
         let bob = create_account();
         let alice = create_account();
         let dave = create_account();
-        let storage = setup_storage(&vec![bob, alice], Arc::new(PersistentStorage::InMemory(memstore.clone())));
+        let storage = setup_storage(
+            &vec![bob, alice],
+            Arc::new(PersistentStorage::InMemory(memstore.clone())),
+        );
 
         println!("{:#?}", memstore);
         let alice_coins = get_account_coins(&alice, &storage.utxo);
-        println!("Alice Coins Count  : {} , Balance : {}", alice_coins.len(), available_balance(&alice, &storage.utxo));
+        println!(
+            "Alice Coins Count  : {} , Balance : {}",
+            alice_coins.len(),
+            available_balance(&alice, &storage.utxo)
+        );
         // Alice send bob 5 coins
 
         let tx_1 = {
-             let tx_in = TxIn::new(alice_coins[0].0.tx_hash, alice_coins[0].0.index, alice.pub_key);
-             let tx_out_1 = TxOut::new(alice.pub_key, 5);
-             let tx_out_2 = TxOut::new(bob.pub_key, 3);
-             let tx_out_3 = TxOut::new(dave.pub_key, 2);
-             let tx = Tx::signed(&alice, 10,vec![tx_in], vec![tx_out_1, tx_out_2, tx_out_3]).unwrap();
-             let tx_id = tx.tx_id;
-             assert_eq!(execute_tx(tx, &storage.utxo).unwrap(), true);
-             tx_id
-         };
+            let tx_in = TxIn::new(
+                alice_coins[0].0.tx_hash,
+                alice_coins[0].0.index,
+                alice.pub_key,
+            );
+            let tx_out_1 = TxOut::new(alice.pub_key, 5);
+            let tx_out_2 = TxOut::new(bob.pub_key, 3);
+            let tx_out_3 = TxOut::new(dave.pub_key, 2);
+            let tx =
+                Tx::signed(&alice, 10, vec![tx_in], vec![tx_out_1, tx_out_2, tx_out_3]).unwrap();
+            let tx_id = tx.tx_id;
+            assert_eq!(execute_tx(tx, &storage.utxo).unwrap(), true);
+            tx_id
+        };
 
-         println!("Bob Balance: {}", available_balance(&bob, &storage.utxo));
-         println!("Alice Balance: {}", available_balance(&alice, &storage.utxo));
-         println!("Dave Balance: {}", available_balance(&dave, &storage.utxo));
-         println!("---------------------------------------------------------------------------------------------");
+        println!("Bob Balance: {}", available_balance(&bob, &storage.utxo));
+        println!(
+            "Alice Balance: {}",
+            available_balance(&alice, &storage.utxo)
+        );
+        println!("Dave Balance: {}", available_balance(&dave, &storage.utxo));
+        println!("---------------------------------------------------------------------------------------------");
 
         storage.utxo.print();
 
-    /*     {
-             let tx_in_1 = TxIn::new(tx_1, 1, bob.pub_key);
-             let tx_in_2 = TxIn::new(coinbase_tx_id, 0, bob.pub_key);
-             let tx_out_1 = TxOut::new(bob.pub_key, 1);
-             let tx_out_2 = TxOut::new(dave.pub_key, 12);
-             let tx = Tx::signed(&bob, 10,vec![tx_in_1, tx_in_2], vec![tx_out_1, tx_out_2]).unwrap();
-             assert_eq!(execute_tx(tx, &mut storage.unspent).unwrap(), true);
-         }
+        /*     {
+            let tx_in_1 = TxIn::new(tx_1, 1, bob.pub_key);
+            let tx_in_2 = TxIn::new(coinbase_tx_id, 0, bob.pub_key);
+            let tx_out_1 = TxOut::new(bob.pub_key, 1);
+            let tx_out_2 = TxOut::new(dave.pub_key, 12);
+            let tx = Tx::signed(&bob, 10,vec![tx_in_1, tx_in_2], vec![tx_out_1, tx_out_2]).unwrap();
+            assert_eq!(execute_tx(tx, &mut storage.unspent).unwrap(), true);
+        }
 
 
-         println!("Bob Balance: {}", available_balance(&bob.pub_key, &storage.unspent));
-         println!("Alice Balance: {}", available_balance(&alice.pub_key, &storage.unspent));
-         println!("Dave Balance: {}", available_balance(&dave.pub_key, &storage.unspent));*/
+        println!("Bob Balance: {}", available_balance(&bob.pub_key, &storage.unspent));
+        println!("Alice Balance: {}", available_balance(&alice.pub_key, &storage.unspent));
+        println!("Dave Balance: {}", available_balance(&dave.pub_key, &storage.unspent));*/
     }
 }

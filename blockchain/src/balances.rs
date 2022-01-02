@@ -1,11 +1,8 @@
-use std::sync::Arc;
 use crate::utxo::UTXO;
+use std::sync::Arc;
 
 pub struct Balances {
-    utxo : Arc<UTXO>
+    utxo: Arc<UTXO>,
 }
 
-impl Balances {
-
-}
-
+impl Balances {}

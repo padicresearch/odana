@@ -1,17 +1,17 @@
-use storage::{KVStore, KVEntry, PersistentStorage};
-use crate::transaction::Tx;
-use anyhow::Result;
-use rusqlite::{params, Connection};
-use crate::utxo::{UTXO, UTXOStore};
-use itertools::Itertools;
 use crate::errors::BlockChainError;
-use std::sync::Arc;
-use std::path::{Path, PathBuf};
+use crate::transaction::Tx;
+use crate::utxo::{UTXOStore, UTXO};
+use anyhow::Result;
+use codec::{Decoder, Encoder};
+use derive_getters::Getters;
+use itertools::Itertools;
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use storage::{KVEntry, KVStore, PersistentStorage};
 use types::TxHash;
-use derive_getters::Getters;
-use storage::codec::{Encoder, Decoder};
 
 pub type MemPoolStorageKV = dyn KVStore<MemPool> + Send + Sync;
 
@@ -19,8 +19,7 @@ pub struct MemPoolDB {
     conn: Connection,
 }
 
-const INIT_DB: &str =
-    r#"
+const INIT_DB: &str = r#"
 CREATE TABLE IF NOT EXISTS mempool (
     id              VARCHAR(64) NOT NULL PRIMARY KEY,
     fees            INTEGER NOT NULL,
@@ -30,7 +29,8 @@ CREATE TABLE IF NOT EXISTS mempool (
 );
 "#;
 
-const COMMAND_INSERT: &str = "INSERT INTO mempool (id, fees, amount, timestamp) VALUES (?1,?2,?3,?4)";
+const COMMAND_INSERT: &str =
+    "INSERT INTO mempool (id, fees, amount, timestamp) VALUES (?1,?2,?3,?4)";
 const COMMAND_DELETE: &str = "DELETE FROM mempool WHERE id = ?1;";
 const QUERY_ORDER_BY_FEES_DESC: &str = "SELECT id, fees, amount, timestamp, is_coinbase FROM mempool WHERE is_coinbase == false ORDER BY fees DESC, timestamp DESC LIMIT 2500";
 
@@ -38,21 +38,20 @@ impl MemPoolDB {
     pub fn open_in_memory() -> Result<MemPoolDB> {
         let conn = Connection::open_in_memory()?;
         conn.execute(INIT_DB, [])?;
-        Ok(MemPoolDB {
-            conn
-        })
+        Ok(MemPoolDB { conn })
     }
 
     pub fn open<P: AsRef<Path>>(p: P) -> Result<MemPoolDB> {
         let conn = Connection::open(p)?;
         conn.execute(INIT_DB, [])?;
-        Ok(MemPoolDB {
-            conn
-        })
+        Ok(MemPoolDB { conn })
     }
 
     pub fn insert(&self, index: MemPoolIndex) -> Result<()> {
-        self.conn.execute(COMMAND_INSERT, params![index.id, index.fees, index.amount, index.timestamp])?;
+        self.conn.execute(
+            COMMAND_INSERT,
+            params![index.id, index.fees, index.amount, index.timestamp],
+        )?;
         Ok(())
     }
 
@@ -76,7 +75,6 @@ impl MemPoolDB {
             })
         })?;
 
-
         let mut results = Vec::with_capacity(2500);
 
         for index in rows {
@@ -94,7 +92,7 @@ pub struct MemPoolIndex {
     fees: i64,
     amount: i64,
     timestamp: i64,
-    is_coinbase : bool
+    is_coinbase: bool,
 }
 
 pub struct MemPool {
@@ -113,30 +111,30 @@ impl Encoder for MempoolSnapsot {}
 
 impl Decoder for MempoolSnapsot {}
 
-
 impl MemPool {
-    pub fn new(utxo: Arc<UTXO>, storage: Arc<PersistentStorage>, index_path: Option<PathBuf>) -> Result<MemPool> {
+    pub fn new(
+        utxo: Arc<UTXO>,
+        storage: Arc<PersistentStorage>,
+        index_path: Option<PathBuf>,
+    ) -> Result<MemPool> {
         Ok(MemPool {
             primary: {
                 match storage.as_ref() {
-                    PersistentStorage::InMemory(storage) => {
-                        storage.clone()
-                    }
-                    PersistentStorage::Sled(storage) => {
-                        storage.clone()
-                    }
+                    PersistentStorage::InMemory(storage) => storage.clone(),
+                    PersistentStorage::Sled(storage) => storage.clone(),
                 }
             },
             index: match index_path {
                 Some(index_path) => MemPoolDB::open(index_path.as_path()),
-                None => MemPoolDB::open_in_memory()
+                None => MemPoolDB::open_in_memory(),
             }?,
             utxo,
         })
     }
 
     pub fn put(&self, tx: &Tx) -> Result<()> {
-        let (in_amount, out_amount) = crate::transaction::calculate_tx_in_out_amount(tx, self.utxo.as_ref())?;
+        let (in_amount, out_amount) =
+            crate::transaction::calculate_tx_in_out_amount(tx, self.utxo.as_ref())?;
         if self.primary.contains(&tx.tx_id)? {
             return Ok(());
         }
@@ -146,7 +144,7 @@ impl MemPool {
             fees: (in_amount as i64).saturating_sub((out_amount as i64)),
             amount: in_amount as i64,
             timestamp: chrono::Utc::now().timestamp(),
-            is_coinbase: tx.is_coinbase()
+            is_coinbase: tx.is_coinbase(),
         })
     }
 
@@ -166,26 +164,37 @@ impl MemPool {
 
     pub fn fetch(&self) -> Result<Vec<Tx>> {
         let iter = self.index.all_order_by_fees_desc()?;
-        let results: Result<Vec<_>, _> = iter.iter().map(|index| {
-            let tx_id_raw = hex::decode(index.id.clone())?;
-            let mut tx_id = [0_u8; 32];
-            tx_id.copy_from_slice(&tx_id_raw);
-            let value = self.primary.get(&tx_id)?;
-            value.ok_or(BlockChainError::MemPoolTransactionNotFound)
-        }).collect();
+        let results: Result<Vec<_>, _> = iter
+            .iter()
+            .map(|index| {
+                let tx_id_raw = hex::decode(index.id.clone())?;
+                let mut tx_id = [0_u8; 32];
+                tx_id.copy_from_slice(&tx_id_raw);
+                let value = self.primary.get(&tx_id)?;
+                value.ok_or(BlockChainError::MemPoolTransactionNotFound)
+            })
+            .collect();
         results.map_err(|e| e.into())
     }
 
     pub fn snapshot(&self) -> Result<MempoolSnapsot> {
-        let valid_transactions: Result<Vec<TxHash>> = self.utxo.iter()?.map(|(k, _)| {
-            let key = k?;
-            Ok(key.tx_hash)
-        }).collect();
+        let valid_transactions: Result<Vec<TxHash>> = self
+            .utxo
+            .iter()?
+            .map(|(k, _)| {
+                let key = k?;
+                Ok(key.tx_hash)
+            })
+            .collect();
 
-        let pending_transactions: Result<Vec<TxHash>> = self.primary.iter()?.map(|(_, v)| {
-            let tx = v?;
-            Ok(tx.tx_id)
-        }).collect();
+        let pending_transactions: Result<Vec<TxHash>> = self
+            .primary
+            .iter()?
+            .map(|(_, v)| {
+                let tx = v?;
+                Ok(tx.tx_id)
+            })
+            .collect();
 
         Ok(MempoolSnapsot {
             pending: pending_transactions?,
@@ -194,7 +203,7 @@ impl MemPool {
     }
 }
 
-impl KVEntry for  MemPool {
+impl KVEntry for MemPool {
     type Key = [u8; 32];
     type Value = Tx;
 
@@ -205,21 +214,26 @@ impl KVEntry for  MemPool {
 
 #[cfg(test)]
 mod tests {
-    use crate::mempool::MemPool;
-    use storage::memstore::MemStore;
-    use std::sync::Arc;
     use crate::account::create_account;
-    use crate::transaction::Tx;
-    use anyhow::Result;
-    use crate::utxo::UTXO;
-    use storage::PersistentStorage::Sled;
-    use storage::{PersistentStorage, KVEntry};
     use crate::block_storage::BlockStorage;
     use crate::blockchain::BlockChainState;
+    use crate::mempool::MemPool;
+    use crate::transaction::Tx;
+    use crate::utxo::UTXO;
+    use anyhow::Result;
+    use std::sync::Arc;
+    use storage::memstore::MemStore;
+    use storage::PersistentStorage::Sled;
+    use storage::{KVEntry, PersistentStorage};
 
     #[test]
     fn test_mempool() {
-        let storage = Arc::new(PersistentStorage::InMemory(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
+        let storage = Arc::new(PersistentStorage::InMemory(Arc::new(MemStore::new(vec![
+            BlockStorage::column(),
+            UTXO::column(),
+            MemPool::column(),
+            BlockChainState::column(),
+        ]))));
         let utxo = Arc::new(UTXO::new(storage.clone()));
         //let mempool = Arc::new(MemPool::new(utxo,memstore, Some("/home/mambisi/CLionProjects/tuchain/test/mempoolidx.db")).unwrap());
         let mempool = Arc::new(MemPool::new(utxo, storage.clone(), None).unwrap());

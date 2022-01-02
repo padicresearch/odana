@@ -1,4 +1,4 @@
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 pub const HASH_LEN: usize = 32;
 pub const BLOCK_HASH_LEN: usize = 32;
@@ -6,7 +6,6 @@ pub const BLOCK_HASH_LEN: usize = 32;
 pub trait HashFunction {
     fn digest(&self, input: &[u8]) -> [u8; HASH_LEN];
 }
-
 
 #[derive(Debug, Clone)]
 pub struct SHA256;
