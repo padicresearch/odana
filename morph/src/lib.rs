@@ -305,9 +305,6 @@ mod tests {
                 assert_eq!(validate_account_state(&morph.compact_proof(bob.pub_key).unwrap(), &morph).unwrap().0, morph.get_account_state(&bob.pub_key).unwrap().unwrap());
             }
         }
-        println!("Alice {:#?}", morph.get_account_state(&alice.pub_key).unwrap().unwrap());
-        println!("Bob {:#?}", morph.get_account_state(&bob.pub_key).unwrap().unwrap());
-
 
         //assert!()
     }
