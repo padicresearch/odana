@@ -119,10 +119,10 @@ impl MemPool {
         Ok(MemPool {
             primary: {
                 match storage.as_ref() {
-                    PersistentStorage::MemStore(storage) => {
+                    PersistentStorage::InMemory(storage) => {
                         storage.clone()
                     }
-                    PersistentStorage::SledDB(storage) => {
+                    PersistentStorage::Sled(storage) => {
                         storage.clone()
                     }
                 }
@@ -212,14 +212,14 @@ mod tests {
     use crate::transaction::Tx;
     use anyhow::Result;
     use crate::utxo::UTXO;
-    use storage::PersistentStorage::SledDB;
+    use storage::PersistentStorage::Sled;
     use storage::{PersistentStorage, KVEntry};
     use crate::block_storage::BlockStorage;
     use crate::blockchain::BlockChainState;
 
     #[test]
     fn test_mempool() {
-        let storage = Arc::new(PersistentStorage::MemStore(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
+        let storage = Arc::new(PersistentStorage::InMemory(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
         let utxo = Arc::new(UTXO::new(storage.clone()));
         //let mempool = Arc::new(MemPool::new(utxo,memstore, Some("/home/mambisi/CLionProjects/tuchain/test/mempoolidx.db")).unwrap());
         let mempool = Arc::new(MemPool::new(utxo, storage.clone(), None).unwrap());

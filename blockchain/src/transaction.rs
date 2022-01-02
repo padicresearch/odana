@@ -310,7 +310,7 @@ use std::collections::{HashMap, BTreeMap};
         let bob = create_account();
         let alice = create_account();
         let dave = create_account();
-        let storage = setup_storage(&vec![bob, alice], Arc::new(PersistentStorage::MemStore(memstore.clone())));
+        let storage = setup_storage(&vec![bob, alice], Arc::new(PersistentStorage::InMemory(memstore.clone())));
 
         println!("{:#?}", memstore);
         let alice_coins = get_account_coins(&alice, &storage.utxo);

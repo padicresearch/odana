@@ -28,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
 
 
     let kv = Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]));
-    let storage = Arc::new(PersistentStorage::MemStore(kv));
+    let storage = Arc::new(PersistentStorage::InMemory(kv));
     let blockchain = BlockChain::new(storage, local_mpsc_sender.clone())?;
 
 

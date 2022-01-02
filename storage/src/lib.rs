@@ -17,8 +17,8 @@ pub trait KVEntry {
 }
 
 pub enum PersistentStorage {
-    MemStore(Arc<MemStore>),
-    SledDB(Arc<SledDB>)
+    InMemory(Arc<MemStore>),
+    Sled(Arc<SledDB>)
 }
 
 pub trait KVStore<Entry>

@@ -150,7 +150,7 @@ mod test {
 
     #[test]
     fn mine_genesis() {
-        let storage = Arc::new(PersistentStorage::MemStore(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
+        let storage = Arc::new(PersistentStorage::InMemory(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
         let utxo = Arc::new(UTXO::new(storage.clone()));
         let mempool = Arc::new(MemPool::new(utxo.clone(), storage.clone(), None).unwrap());
         let local_mpsc = tokio::sync::mpsc::unbounded_channel();
@@ -175,7 +175,7 @@ mod test {
     #[test]
     fn test_miner() {
         let mut current_block = genesis_block().header();
-        let storage = Arc::new(PersistentStorage::MemStore(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
+        let storage = Arc::new(PersistentStorage::InMemory(Arc::new(MemStore::new(vec![BlockStorage::column(), UTXO::column(), MemPool::column(), BlockChainState::column()]))));
         let utxo = Arc::new(UTXO::new(storage.clone()));
         let mempool = Arc::new(MemPool::new(utxo.clone(), storage.clone(), None).unwrap());
         let local_mpsc = tokio::sync::mpsc::unbounded_channel();

@@ -57,8 +57,8 @@ impl Morph {
 
     pub fn apply_transaction(&mut self, transaction: Transaction) -> Result<()> {
         //TODO: verify transaction (probably)
-        for action in get_operations(&transaction).iter() {
-            let mut new_account_state = self.apply_action(action)?;
+        for action in get_operations(&transaction) {
+            let mut new_account_state = self.apply_action(&action)?;
             let mut sha3 = tiny_keccak::Sha3::v256();
             let current_root = match self.history_log.last_history() {
                 None => {
@@ -102,7 +102,7 @@ impl Morph {
             }
             MorphOperation::UpdateNonce { account, nonce,.. } => {
                 let mut account_state = self.kv.get(account)?.unwrap_or_default();
-                if *nonce < account_state.nonce {
+                if *nonce <= account_state.nonce {
                     return Err(Error::NonceIsLessThanCurrent.into())
                 }
                 account_state.nonce = *nonce;
@@ -276,13 +276,15 @@ mod tests {
     use tempdir::TempDir;
     use std::sync::RwLock;
     use commitlog::{CommitLog, LogOptions};
+    use storage::sleddb::SledDB;
 
     #[test]
     fn test_morph() {
-        let memstore = Arc::new(MemStore::new(vec![Morph::column(),HistoryLog::column()]));
+        let tmp_dir = TempDir::new("maindb").unwrap();
+        let database = Arc::new(SledDB::new(tmp_dir.path()).unwrap());
         let tmp_dir = TempDir::new("history").unwrap();
         let commit_log = Arc::new(RwLock::new(CommitLog::new(LogOptions::new(tmp_dir.path())).unwrap()));
-        let mut morph = Morph::new(memstore.clone(), Arc::new(HistoryLog::new(commit_log, memstore).unwrap())).unwrap();
+        let mut morph = Morph::new(database.clone(), Arc::new(HistoryLog::new(commit_log, database).unwrap())).unwrap();
         let alice = create_account();
         let bob = create_account();
         let jake = create_account();
@@ -292,20 +294,21 @@ mod tests {
             block_hash: bob.pub_key,
             amount: 10000000,
         }).unwrap());
-
-        morph.apply_transaction(make_sign_transaction(&alice, 1, TransactionKind::Transfer {
-            from: alice.pub_key,
-            to: bob.pub_key,
-            amount: 10,
-        }).unwrap());
-
+        for i in 0..1000 {
+            assert!(morph.apply_transaction(make_sign_transaction(&alice, i + 2000, TransactionKind::Transfer {
+                from: alice.pub_key,
+                to: bob.pub_key,
+                amount: i as u128 * 10,
+            }).unwrap()).is_ok());
+            if i % 100 == 0 {
+                assert_eq!(validate_account_state(&morph.compact_proof(alice.pub_key).unwrap(), &morph).unwrap().0, morph.get_account_state(&alice.pub_key).unwrap().unwrap());
+                assert_eq!(validate_account_state(&morph.compact_proof(bob.pub_key).unwrap(), &morph).unwrap().0, morph.get_account_state(&bob.pub_key).unwrap().unwrap());
+            }
+        }
         println!("Alice {:#?}", morph.get_account_state(&alice.pub_key).unwrap().unwrap());
         println!("Bob {:#?}", morph.get_account_state(&bob.pub_key).unwrap().unwrap());
-        println!("----------------------------------------------------------------------------------------------------------------");
-        println!("Alice Proof: {:?}", morph.compact_proof(alice.pub_key));
-        println!("Bob Proof: {:?}", morph.compact_proof(bob.pub_key));
-        validate_account_state(&morph.compact_proof(alice.pub_key).unwrap(), &morph).unwrap();
-        //validate_account_state(&morph.compact_proof(bob.pub_key).unwrap(), &morph).unwrap();
+
+
         //assert!()
     }
 

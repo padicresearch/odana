@@ -22,10 +22,10 @@ impl UTXO {
         Self {
             kv: {
                 match storage.as_ref() {
-                    PersistentStorage::MemStore(storage) => {
+                    PersistentStorage::InMemory(storage) => {
                         storage.clone()
                     }
-                    PersistentStorage::SledDB(storage) => {
+                    PersistentStorage::Sled(storage) => {
                         storage.clone()
                     }
                 }

@@ -75,7 +75,7 @@ impl MorphSnapshot {
             }
             MorphOperation::UpdateNonce { account, nonce,.. } => {
                 let mut account_state = self.kv.get(account)?.unwrap_or_default();
-                if *nonce < account_state.nonce {
+                if *nonce <= account_state.nonce {
                     return Err(Error::NonceIsLessThanCurrent.into())
                 }
                 account_state.nonce = *nonce;

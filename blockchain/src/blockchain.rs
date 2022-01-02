@@ -52,10 +52,10 @@ impl BlockChain {
             utxo,
             block_storage,
             state :  match storage.as_ref() {
-                PersistentStorage::MemStore(storage) => {
+                PersistentStorage::InMemory(storage) => {
                     storage.clone()
                 }
-                PersistentStorage::SledDB(storage) => {
+                PersistentStorage::Sled(storage) => {
                     storage.clone()
                 }
             }
