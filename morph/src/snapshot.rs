@@ -10,9 +10,9 @@ use codec::Encoder;
 
 pub struct MorphSnapshot {
     origin_root : Hash,
-    origin_index : usize,
+    origin_index : u64,
     current_root : Hash,
-    current_seq : usize,
+    current_seq : u64,
     roots: Vec<Hash>,
     log : Vec<MorphOperation>,
     kv : Arc<MorphStorageKV>,
@@ -22,10 +22,10 @@ pub struct MorphSnapshot {
 
 impl MorphSnapshot {
     pub fn new( morph : &Morph) -> Result<Self> {
-        let root = *morph.history.last().ok_or(Error::SnapshotCreationErrorRootNotFound)?;
-        let index = morph.history.len() - 1;
+        let root = morph.history_log.last_history().ok_or(Error::SnapshotCreationErrorRootNotFound)?;
+        let index = morph.history_log.len() - 1;
         let roots = vec![root];
-        let log = morph.log.last().map(|op| vec![op.clone()]).unwrap_or_default();
+        let log = morph.history_log.last_op().map(|op| vec![op.clone()]).unwrap_or_default();
         Ok(Self {
             origin_root:root ,
             origin_index: index,

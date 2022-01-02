@@ -64,10 +64,10 @@ impl KVEntry for HistoryLog {
 }
 
 pub type OperationsIterator<'a> =
-Box<dyn 'a + Send + Iterator<Item=Result<MorphOperation>>>;
+Box<dyn 'a + Send + Iterator<Item=Result<(u64, MorphOperation)>>>;
 
 pub type HistoryRootIterator<'a> =
-Box<dyn 'a + Send + Iterator<Item=Result<Hash>>>;
+Box<dyn 'a + Send + Iterator<Item=Result<(u64, Hash)>>>;
 
 pub type HistoryLogIterator<'a> =
 Box<dyn 'a + Send + Iterator<Item=Result<LogData>>>;
@@ -148,7 +148,7 @@ impl HistoryLog {
                 commit_log.read(index.offset, index.read_limit()).map_err(|e| e.into()).and_then(|msg_buf| {
                     msg_buf.iter().next().ok_or(Error::CommitLogReadError(ReadError::CorruptLog).into()).and_then(|bytes| {
                         LogData::decode(bytes.payload()).and_then(|data| {
-                            Ok(data.op)
+                            Ok((index.offset, data.op))
                         })
                     })
                 })
@@ -165,7 +165,7 @@ impl HistoryLog {
                 commit_log.read(index.offset, index.read_limit()).map_err(|e| e.into()).and_then(|msg_buf| {
                     msg_buf.iter().next().ok_or(Error::CommitLogReadError(ReadError::CorruptLog).into()).and_then(|bytes| {
                         LogData::decode(bytes.payload()).and_then(|data| {
-                            Ok(data.hash)
+                            Ok((index.offset, data.hash))
                         })
                     })
                 })
@@ -209,6 +209,30 @@ impl HistoryLog {
             return last_index + 1;
         }
         last_index
+    }
+
+    pub fn last_history(&self) -> Option<Hash> {
+        let last_index = self.last_index();
+        return match self.get_root_at(last_index) {
+            Ok(root) => {
+                root
+            }
+            Err(_) => {
+                None
+            }
+        }
+    }
+
+    pub fn last_op(&self) -> Option<MorphOperation> {
+        let last_index = self.last_index();
+        return match self.get_operation(last_index) {
+            Ok(root) => {
+                root
+            }
+            Err(_) => {
+                None
+            }
+        }
     }
 }
 
