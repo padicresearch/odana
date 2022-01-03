@@ -5,7 +5,7 @@ mod snapshot;
 use crate::error::Error;
 use crate::logdb::{HistoryLog, LogData};
 use crate::snapshot::MorphSnapshot;
-use account::{Account, TREASURY_ACCOUNT_PK};
+use account::{Account};
 use anyhow::Result;
 use chrono::Utc;
 use codec::impl_codec;
@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use storage::{KVEntry, KVStore};
 use tiny_keccak::Hasher;
-use transaction::{verify_signed_transaction, Transaction, TransactionKind};
+use types::tx::{Transaction, TransactionKind};
 use types::{AccountId, BlockHash, TxHash};
 
 type Hash = [u8; 32];
@@ -261,7 +261,7 @@ impl MorphOperation {
 
 pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
     let mut ops = Vec::new();
-    let tx_hash = tx.id();
+    let tx_hash = tx.hash();
     match tx.kind() {
         TransactionKind::Transfer {
             from, to, amount, ..

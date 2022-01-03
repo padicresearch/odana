@@ -1,4 +1,5 @@
 pub mod block;
+pub mod tx;
 
 use serde_big_array::big_array;
 

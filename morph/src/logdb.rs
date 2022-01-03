@@ -246,7 +246,8 @@ mod tests {
     use storage::KVEntry;
     use tempdir::TempDir;
     use tiny_keccak::Hasher;
-    use transaction::{make_sign_transaction, Transaction, TransactionKind};
+    use transaction::{make_sign_transaction};
+    use types::tx::TransactionKind;
 
     fn sha3_hash(data: &[u8]) -> [u8; 32] {
         let mut out = [0; 32];

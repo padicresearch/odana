@@ -9,7 +9,10 @@ use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 use tiny_keccak::Hasher;
 
-pub const TREASURY_ACCOUNT_PK: [u8; 32] = [1; 32];
+pub const SUDO_PUB_KEY: [u8; 32] = [
+    102, 129, 71, 31, 126, 221, 234, 218, 37, 39, 104, 100, 107, 75, 80, 209, 8, 43, 33, 26, 137,
+    251, 184, 15, 106, 108, 183, 54, 227, 161, 217, 70,
+];
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {
@@ -94,12 +97,5 @@ mod test {
             assert_eq!(accounts.contains(&account), false);
             accounts.insert(account);
         }
-    }
-
-    #[test]
-    fn test_signature() {
-        let account = create_account();
-        //Signature
-        //account.sign()
     }
 }

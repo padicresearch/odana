@@ -5,7 +5,7 @@ use codec::Encoder;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tiny_keccak::Hasher;
-use transaction::Transaction;
+use types::tx::Transaction;
 use types::TxHash;
 
 pub struct MorphSnapshot {
@@ -49,7 +49,7 @@ impl MorphSnapshot {
 
 impl MorphSnapshot {
     pub fn apply_transaction(&mut self, tx: &Transaction) -> Result<()> {
-        let tx_hash = tx.id();
+        let tx_hash = tx.hash();
         anyhow::ensure!(
             self.applied_txs.contains(&tx_hash) == false,
             Error::TransactionAlreadyApplied
@@ -67,7 +67,7 @@ impl MorphSnapshot {
             self.account_state
                 .insert(action.get_account_id(), new_account_state);
         }
-        self.applied_txs.insert(tx.id());
+        self.applied_txs.insert(tx.hash());
         Ok(())
     }
 

@@ -17,5 +17,6 @@ members = [
     "common/types",
     "common/tracing",
     "codec",
-    "transaction"
+    "transaction",
+    "txpool"
 ]

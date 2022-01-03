@@ -1,0 +1,13 @@
+[package]
+name = "txpool"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+types = { path = "../common/types" }
+transaction = { path = "../transaction" }
+dashmap = "5.0.0"
+anyhow = "1.0.45"
+thiserror = "1.0.30"
