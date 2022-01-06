@@ -11,7 +11,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use storage::{KVEntry, KVStore, PersistentStorage};
-use types::TxHash;
+use types::{TxHash, MempoolSnapsot};
 
 pub type MemPoolStorageKV = dyn KVStore<MemPool> + Send + Sync;
 
@@ -101,15 +101,7 @@ pub struct MemPool {
     utxo: Arc<UTXO>,
 }
 
-#[derive(Serialize, Deserialize, Getters, Debug, Clone)]
-pub struct MempoolSnapsot {
-    pending: Vec<TxHash>,
-    valid: Vec<TxHash>,
-}
 
-impl Encoder for MempoolSnapsot {}
-
-impl Decoder for MempoolSnapsot {}
 
 impl MemPool {
     pub fn new(
@@ -225,6 +217,7 @@ mod tests {
     use storage::memstore::MemStore;
     use storage::PersistentStorage::Sled;
     use storage::{KVEntry, PersistentStorage};
+    use account::create_account;
 
     #[test]
     fn test_mempool() {

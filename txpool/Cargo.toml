@@ -8,6 +8,16 @@ edition = "2018"
 [dependencies]
 types = { path = "../common/types" }
 transaction = { path = "../transaction" }
+account = { path = "../account" }
 dashmap = "5.0.0"
 anyhow = "1.0.45"
 thiserror = "1.0.30"
+rusqlite = { version = "0.26.3", features = ["i128_blob"] }
+hex = "0.4.3"
+primitive-types = { path = "../common/primitive-types" }
+traits = { path = "../common/traits" }
+itertools = "0.10.3"
+[dev-dependencies]
+rand = "0.7"
+rand_chacha = "0.2"
+codec = { path = "../codec" }

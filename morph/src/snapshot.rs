@@ -25,7 +25,7 @@ impl MorphSnapshot {
         let root = morph
             .history_log
             .last_history()
-            .ok_or(Error::SnapshotCreationErrorRootNotFound)?;
+            .ok_or(MorthError::SnapshotCreationErrorRootNotFound)?;
         let index = morph.history_log.len() - 1;
         let roots = vec![root];
         let log = morph
@@ -52,7 +52,7 @@ impl MorphSnapshot {
         let tx_hash = tx.hash();
         anyhow::ensure!(
             self.applied_txs.contains(&tx_hash) == false,
-            Error::TransactionAlreadyApplied
+            MorthError::TransactionAlreadyApplied
         );
         for action in get_operations(tx).iter() {
             let new_account_state = self.apply_action(action)?;
@@ -90,7 +90,7 @@ impl MorphSnapshot {
             MorphOperation::UpdateNonce { account, nonce, .. } => {
                 let mut account_state = self.kv.get(account)?.unwrap_or_default();
                 if *nonce <= account_state.nonce {
-                    return Err(Error::NonceIsLessThanCurrent.into());
+                    return Err(MorthError::NonceIsLessThanCurrent.into());
                 }
                 account_state.nonce = *nonce;
                 Ok(account_state)

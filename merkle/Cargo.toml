@@ -9,5 +9,3 @@ edition = "2018"
 [dependencies]
 bloomfilter = { git = "https://github.com/mambisi/rust-bloom-filter.git"}
 thiserror = "1.0"
-# Local Dependencies
-crypto = {path = "../crypto"}

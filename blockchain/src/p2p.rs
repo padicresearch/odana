@@ -1,4 +1,3 @@
-use crate::mempool::MempoolSnapsot;
 use crate::transaction::Tx;
 use anyhow::{Error, Result};
 use codec::impl_codec;
@@ -18,7 +17,7 @@ use libp2p::{Multiaddr, PeerId, Swarm, Transport};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use types::block::{Block, BlockHeader};
-use types::{BlockHash, TxHash};
+use types::{BlockHash, TxHash, MempoolSnapsot};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CurrentHeadMessage {

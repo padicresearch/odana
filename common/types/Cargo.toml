@@ -7,10 +7,12 @@ edition = "2018"
 
 [dependencies]
 serde-big-array = "0.3.2"
-primitive-types = { path = "../primitive-types"}
+primitive-types = { path = "../primitive-types" }
 serde = { version = "1.0.130", features = ["derive"] }
 tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
 anyhow = "1"
 derive-getters = "0.2.0"
 hex = "0.4.3"
-codec = {path = "../../codec"}
+codec = { path = "../../codec" }
+crypto = { path = "../../crypto" }
+ed25519-dalek = "1.0.1"

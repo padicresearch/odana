@@ -1,9 +1,12 @@
-use account::{Account, SUDO_PUB_KEY};
+use account::{GOVERNANCE_ACCOUNTID};
 use types::tx::{TransactionKind, Transaction};
 use tiny_keccak::Hasher;
 use codec::Encoder;
 use anyhow::Result;
 use types::{BlockHash, AccountId};
+use primitive_types::H160;
+use crypto::{Ripe160, SHA256};
+use types::account::Account;
 
 pub fn make_sign_transaction(
     account: &Account,
@@ -21,16 +24,20 @@ pub fn make_sign_transaction(
     Ok(Transaction::new(account.pub_key.clone(), nonce, sig, kind))
 }
 
-pub fn verify_signed_transaction(transaction: &Transaction, block: &BlockHash, block_miner: &AccountId) -> Result<()> {
+pub fn validate_transaction(transaction: &Transaction, block: Option<BlockHash>, block_miner: Option<AccountId>) -> Result<()> {
     match transaction.kind() {
         TransactionKind::Transfer { from, .. } => {
-            if from != transaction.origin() && transaction.origin() != SUDO_PUB_KEY {
+            if from != transaction.origin() && transaction.origin() != &GOVERNANCE_ACCOUNTID {
                 anyhow::bail!("Bad origin")
             }
         }
         TransactionKind::Coinbase { block_hash, miner, .. } => {
-            if block != block_hash && block_miner != miner {
-                anyhow::bail!("invalid coinbase transaction")
+            if let (Some(block), Some(block_miner)) = (block, block_miner) {
+                if block != *block_hash && block_miner != *miner {
+                    anyhow::bail!("invalid coinbase transaction")
+                }
+            } else {
+                anyhow::bail!("block and block miner args not provided")
             }
         }
     }
@@ -52,7 +59,6 @@ mod test {
     #[test]
     fn generate_sudo_address() {
         let sudo_account = create_account();
-        println!("{:?}", sudo_account.pri_key);
-        println!("{:?}", sudo_account.pub_key);
+        println!("{:?}", sudo_account);
     }
 }

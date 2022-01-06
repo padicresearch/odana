@@ -5,13 +5,16 @@ use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 use crate::BigArray;
 use crate::{AccountId, BlockHash, Sig};
+use primitive_types::H160;
+use crypto::{Ripe160, SHA256};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum TransactionKind {
     Transfer {
         from: AccountId,
         to: AccountId,
         amount: u128,
+        fee: u128,
     },
     Coinbase {
         miner: AccountId,
@@ -20,13 +23,12 @@ pub enum TransactionKind {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Transaction {
     #[serde(with = "BigArray")]
     sig: Sig,
     origin: AccountId,
     nonce: u32,
-    #[serde(flatten)]
     kind: TransactionKind,
 }
 
@@ -51,7 +53,9 @@ impl Transaction {
             Ok(encoded_self) => {
                 sha3.update(&encoded_self);
             }
-            Err(_) => {}
+            Err(e) => {
+                panic!(e)
+            }
         }
         sha3.finalize(&mut out);
         out
@@ -68,6 +72,19 @@ impl Transaction {
     }
     pub fn nonce_u32(&self) -> u32 {
         self.nonce
+    }
+    pub fn sender_address(&self) -> H160 {
+        Ripe160::digest(&SHA256::digest(&self.origin))
+    }
+    pub fn fees(&self) -> u128 {
+        match &self.kind {
+            TransactionKind::Transfer { fee, .. } => {
+                *fee
+            }
+            TransactionKind::Coinbase { .. } => {
+                0
+            }
+        }
     }
 
     pub fn sig_hash(&self) -> Result<[u8; 32]> {

@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum Error {
+pub enum MorphError {
     #[error("RWPoison")]
     RWPoison,
     #[error("`{0}`")]

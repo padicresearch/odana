@@ -12,8 +12,10 @@ rand_chacha = "0.2"
 tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
 rand_core = "0.5.0"
 anyhow = "1.0.45"
-storage = {path = "../storage"}
+storage = { path = "../storage" }
 serde = { version = "1.0.130", features = ["derive"] }
 hex = "0.4.3"
-primitive-types = { path = "../common/primitive-types"}
-codec = {path = "../codec"}
+primitive-types = { path = "../common/primitive-types" }
+crypto = { path = "../crypto" }
+codec = { path = "../codec" }
+types = { path = "../common/types" }

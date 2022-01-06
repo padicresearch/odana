@@ -1,22 +1,27 @@
-mod error;
-mod logdb;
-mod snapshot;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use anyhow::Result;
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use tiny_keccak::Hasher;
+
+use account::Account;
+use codec::impl_codec;
+use codec::{Codec, Decoder, Encoder};
+use storage::{KVEntry, KVStore};
+use types::tx::{Transaction, TransactionKind};
+use types::{AccountId, BlockHash, TxHash};
 
 use crate::error::Error;
 use crate::logdb::{HistoryLog, LogData};
 use crate::snapshot::MorphSnapshot;
-use account::{Account};
-use anyhow::Result;
-use chrono::Utc;
-use codec::impl_codec;
-use codec::{Codec, Decoder, Encoder};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use storage::{KVEntry, KVStore};
-use tiny_keccak::Hasher;
-use types::tx::{Transaction, TransactionKind};
-use types::{AccountId, BlockHash, TxHash};
+use traits::StateDB;
+use types::account::AccountState;
+
+mod error;
+mod logdb;
+mod snapshot;
 
 type Hash = [u8; 32];
 
@@ -45,6 +50,31 @@ impl KVEntry for Morph {
     }
 }
 
+impl StateDB for Morph {
+    fn account_nonce(&self, account_id: &AccountId) -> u64 {
+        match self.get_account_state(account_id)
+            .map(|account_state| account_state.map(|state| state.nonce as u64)) {
+            Ok(Some(nonce)) => {
+                nonce
+            }
+            _ => {
+                0
+            }
+        }
+    }
+
+    fn account_state(&self, account_id: &AccountId) -> AccountState {
+        match self.get_account_state(account_id) {
+            Ok(Some(state)) => {
+                state
+            }
+            _ => {
+                AccountState::default()
+            }
+        }
+    }
+}
+
 impl Morph {
     pub fn new(kv: Arc<MorphStorageKV>, history_log: Arc<HistoryLog>) -> Result<Self> {
         let mut morph = Self { kv, history_log };
@@ -59,7 +89,7 @@ impl Morph {
             let current_root = match self.history_log.last_history() {
                 None => {
                     if self.history_log.len() > 0 {
-                        return Err(Error::ValidationFailedRootNotValid.into());
+                        return Err(MorthError::ValidationFailedRootNotValid.into());
                     }
                     GENESIS_ROOT
                 }
@@ -88,7 +118,7 @@ impl Morph {
             MorphOperation::DebitBalance {
                 account, amount, ..
             } => {
-                let mut account_state = self.kv.get(account)?.ok_or(Error::AccountNotFound)?;
+                let mut account_state = self.kv.get(account)?.ok_or(MorthError::AccountNotFound)?;
                 account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
                 Ok(account_state)
             }
@@ -102,7 +132,7 @@ impl Morph {
             MorphOperation::UpdateNonce { account, nonce, .. } => {
                 let mut account_state = self.kv.get(account)?.unwrap_or_default();
                 if *nonce <= account_state.nonce {
-                    return Err(Error::NonceIsLessThanCurrent.into());
+                    return Err(MorthError::NonceIsLessThanCurrent.into());
                 }
                 account_state.nonce = *nonce;
                 Ok(account_state)
@@ -179,7 +209,7 @@ impl Morph {
 pub fn validate_account_state(
     proof: &Vec<ProofElement>,
     morph: &Morph,
-) -> Result<(AccountState, u64), Error> {
+) -> Result<(AccountState, u64), MorthError> {
     let mut account_state: AccountState = AccountState::default();
     let mut history: Vec<[u8; 32]> = vec![];
     let mut last_valid_seq = 0;
@@ -209,9 +239,9 @@ pub fn validate_account_state(
                 let valid_history_hash = morph
                     .history_log
                     .get_root_at(*seq)?
-                    .ok_or((Error::ValidationFailedHistoryNotFound))?;
+                    .ok_or((MorthError::ValidationFailedHistoryNotFound))?;
                 if new_root != valid_history_hash {
-                    return Err(Error::ValidationFailedRootNotValid);
+                    return Err(MorthError::ValidationFailedRootNotValid);
                 }
                 history.push(new_root);
                 last_valid_seq = *seq
@@ -221,7 +251,7 @@ pub fn validate_account_state(
                     morph
                         .history_log
                         .get_root_at(*seq)?
-                        .ok_or(Error::ValidationFailedHistoryNotFound)?,
+                        .ok_or(MorthError::ValidationFailedHistoryNotFound)?,
                 );
             }
         }
@@ -264,11 +294,15 @@ pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
     let tx_hash = tx.hash();
     match tx.kind() {
         TransactionKind::Transfer {
-            from, to, amount, ..
+            from,
+            to,
+            amount,
+            fee,
+            ..
         } => {
             ops.push(MorphOperation::DebitBalance {
                 account: *from,
-                amount: *amount,
+                amount: *amount + *fee,
                 tx_hash,
             });
             ops.push(MorphOperation::CreditBalance {
@@ -292,37 +326,25 @@ pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
     }
     ops
 }
-
-#[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AccountState {
-    free_balance: u128,
-    reserve_balance: u128,
-    nonce: u32,
-}
-
-impl Default for AccountState {
-    fn default() -> Self {
-        Self {
-            free_balance: 0,
-            reserve_balance: 0,
-            nonce: 0,
-        }
-    }
-}
-
-impl_codec!(AccountState);
 impl_codec!(MorphOperation);
+
+pub trait MorphCheckPoint {
+    fn checkpoint(&self) -> Morph;
+}
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use account::create_account;
-    use commitlog::{CommitLog, LogOptions};
     use std::sync::RwLock;
+
+    use commitlog::{CommitLog, LogOptions};
+    use tempdir::TempDir;
+
+    use account::create_account;
     use storage::memstore::MemStore;
     use storage::sleddb::SledDB;
-    use tempdir::TempDir;
     use transaction::make_sign_transaction;
+
+    use super::*;
 
     #[test]
     fn test_morph() {
@@ -354,6 +376,7 @@ mod tests {
                 .unwrap(),
         );
         for i in 0..1000 {
+            let amount = i as u128 * 10;
             assert!(morph
                 .apply_transaction(
                     make_sign_transaction(
@@ -362,7 +385,8 @@ mod tests {
                         TransactionKind::Transfer {
                             from: alice.pub_key,
                             to: bob.pub_key,
-                            amount: i as u128 * 10,
+                            amount,
+                            fee: (amount as f64 * 0.01) as u128,
                         },
                     )
                         .unwrap()
