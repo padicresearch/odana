@@ -37,10 +37,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implementing txpool">
-      <change afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -335,7 +332,7 @@
       <workItem from="1640948420444" duration="68591000" />
       <workItem from="1641211248424" duration="11320000" />
       <workItem from="1641289911967" duration="40611000" />
-      <workItem from="1641398352914" duration="31243000" />
+      <workItem from="1641398352914" duration="32265000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -561,7 +558,14 @@
       <option name="project" value="LOCAL" />
       <updated>1641492856337</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="implementing txpool">
+      <created>1641505049122</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1641505049122</updated>
+    </task>
+    <option name="localTasksCounter" value="34" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

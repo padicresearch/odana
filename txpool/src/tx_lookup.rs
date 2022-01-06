@@ -4,7 +4,7 @@ use anyhow::Result;
 use dashmap::DashMap;
 use itertools::Itertools;
 use primitive_types::H160;
-use rusqlite::{Connection, Error, MappedRows, Row, ToSql};
+use rusqlite::{Connection, Error, MappedRows, Row, ToSql, Statement};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryInto;
 use std::fs::read_to_string;
@@ -246,7 +246,7 @@ impl TxLookup {
         let index_row = TxIndexRow::new(&tx, is_local);
         self.conn
             .execute(INSERT_TX, index_row.as_sql_param().as_slice())?;
-        self.txs.insert(tx_hash.clone(), tx);
+        self.txs.insert(tx_hash.clone(), tx.clone());
         self.senders.insert(tx_hash, tx.sender_address());
         println!("new transaction {} added to index", index_row.id);
         Ok(())
@@ -377,11 +377,53 @@ impl TxLookup {
         }
     }
 
-    pub(crate) fn pending_count(&self) -> usize {
-        todo!()
+    fn pending_count(&self) -> usize {
+        let mut stmt = match self.conn.prepare(COUNT_GET_PENDING) {
+            Ok(stmt) => { stmt }
+            Err(_) => {
+                return 0
+            }
+        };
+        let mut res = stmt.query_map([],
+                                     |row| {
+                                         let count: i64 = row.get(0).unwrap_or(0);
+                                         Ok(count)
+                                     },
+        );
+        match res {
+            Ok(mut res) => {
+                res.next().unwrap_or(Ok(0)).unwrap_or(0) as usize
+            }
+            Err(_) => {
+                return 0
+            }
+        }
     }
-    pub(crate) fn queue_count(&self) -> usize {
-        todo!()
+    fn queue_count(&self) -> usize {
+        let mut stmt = match self.conn.prepare(COUNT_GET_QUEUE) {
+            Ok(stmt) => { stmt }
+            Err(_) => {
+                return 0
+            }
+        };
+        let mut res = stmt.query_map([],
+                                     |row| {
+                                         let count: i64 = row.get(0).unwrap_or(0);
+                                         Ok(count)
+                                     },
+        );
+        match res {
+            Ok(mut res) => {
+                res.next().unwrap_or(Ok(0)).unwrap_or(0) as usize
+            }
+            Err(_) => {
+                return 0
+            }
+        }
+    }
+
+    pub(crate) fn stats(&self) -> (usize, usize) {
+        (self.pending_count(), self.queue_count())
     }
 
     pub(crate) fn content(
@@ -410,7 +452,7 @@ impl TxLookup {
                     .entry(tx.sender_address())
                     .or_insert(Default::default())
             };
-            list.insert(tx_hash, tx)
+            list.insert(tx_hash, tx);
         }
 
         Ok((pending, queue))
@@ -463,7 +505,7 @@ impl TxLookup {
                 let list = pending
                     .entry(tx.sender_address())
                     .or_insert(Default::default());
-                list.insert(tx_hash, tx)
+                list.insert(tx_hash, tx);
             }
         }
 
@@ -487,13 +529,13 @@ impl TxLookup {
                 .map(|r| r.value().clone())
                 .unwrap_or(tx.sender_address());
             if is_local && !locals.contains(&sender) {
-                locals.insert(sender)
+                locals.insert(sender);
             }
         }
         Ok((locals))
     }
 
-    pub fn get_lowest_priced(&self, threshold: u128) -> Result<Option<TransactionRef>> {
+    pub(crate) fn get_lowest_priced(&self, threshold: u128) -> Result<Option<TransactionRef>> {
         self.mu
             .lock()
             .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
