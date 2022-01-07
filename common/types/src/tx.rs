@@ -7,6 +7,7 @@ use crypto::{Ripe160, SHA256};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
+use std::cmp::Ordering;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum TransactionKind {
@@ -32,6 +33,26 @@ pub struct Transaction {
     kind: TransactionKind,
 }
 
+impl PartialEq for Transaction {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash().eq(&other.hash())
+    }
+}
+
+impl Eq for Transaction {}
+
+impl Ord for Transaction {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.nonce.cmp(&other.nonce)
+    }
+}
+
+impl PartialOrd for Transaction {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.nonce.cmp(&other.nonce))
+    }
+}
+
 impl Transaction {
     pub fn new(origin: PubKey, nonce: u64, sig: Sig, kind: TransactionKind) -> Self {
         Self {
@@ -49,14 +70,10 @@ impl Transaction {
     pub fn hash(&self) -> [u8; 32] {
         let mut out = [0_u8; 32];
         let mut sha3 = tiny_keccak::Sha3::v256();
-        match self.encode() {
-            Ok(encoded_self) => {
-                sha3.update(&encoded_self);
-            }
-            Err(e) => {
-                panic!(e)
-            }
-        }
+        sha3.update(self.signature());
+        sha3.update(self.origin());
+        sha3.update(&self.nonce().to_be_bytes());
+        sha3.update(&self.kind.encode().unwrap());
         sha3.finalize(&mut out);
         out
     }

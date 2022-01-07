@@ -21,7 +21,7 @@ CREATE TABLE txpool (
     id              VARCHAR(64) NOT NULL PRIMARY KEY,
     fees            BLOB NOT NULL,
     nonce           INTEGER NOT NULL,
-    address         VARCHAR(64) NOT NULL,
+    address         BLOB NOT NULL,
     is_local        BOOLEAN NOT NULL,
     is_pending      BOOLEAN NOT NULL DEFAULT false
 );
@@ -77,7 +77,7 @@ const GET_CONTENT: &str =
     "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool ORDER BY nonce GROUP BY address;";
 
 const GET_CONTENT_BY: &str =
-    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool ORDER BY nonce WHERE address == :address;";
+    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE address == :address ORDER BY nonce;";
 
 const COUNT_GET_PENDING: &str = "SELECT COUNT(id) FROM txpool WHERE is_pending == true;";
 const COUNT_GET_QUEUE: &str = "SELECT COUNT(id) FROM txpool WHERE is_pending == false;";
@@ -105,7 +105,15 @@ pub struct TxIndexRow {
     id: String,
     fees: i128,
     nonce: i64,
-    address: String,
+    address: Vec<u8>,
+    is_local: bool,
+    is_pending: bool,
+}
+
+pub struct TxRowResult {
+    tx_hash: TxHashRef,
+    tx: TransactionRef,
+    sender: H160,
     is_local: bool,
     is_pending: bool,
 }
@@ -116,7 +124,7 @@ impl TxIndexRow {
             id: hex::encode(tx.hash()),
             fees: tx.fees() as i128,
             nonce: tx.nonce() as i64,
-            address: tx.sender_address().to_string(),
+            address: tx.sender_address().as_bytes().to_vec(),
             is_local,
             is_pending,
         }
@@ -169,20 +177,20 @@ impl TxLookup {
     fn conv_tx<'a>(
         &'a self,
         rows: Box<dyn 'a + Iterator<Item=rusqlite::Result<TxIndexRow, rusqlite::Error>>>,
-    ) -> Box<dyn 'a + Iterator<Item=Result<(TxHashRef, TransactionRef, bool, bool), TxPoolError>>>
+    ) -> Box<dyn 'a + Iterator<Item=Result<TxRowResult, TxPoolError>>>
     {
         let mut iter_tx_hash = rows.map(|index| {
             index
                 .map_err(|e| TxPoolError::SqliteError(e))
                 .and_then(|index| {
                     hex::decode(&index.id)
-                        .map(|out| (out, index.is_pending, index.is_local))
+                        .map(|out| (out, H160::from_slice(index.address.as_slice()), index.is_pending, index.is_local))
                         .map_err(|hex_error| TxPoolError::HexError(hex_error))
                 })
-                .and_then(|(tx_id_raw, is_pending, is_local)| {
+                .and_then(|(tx_id_raw, sender, is_pending, is_local)| {
                     let mut tx_id = [0_u8; 32];
                     tx_id.copy_from_slice(&tx_id_raw);
-                    Ok((tx_id, is_pending, is_local))
+                    Ok((tx_id, sender, is_pending, is_local))
                 })
         });
 
@@ -190,11 +198,17 @@ impl TxLookup {
 
         let result = iter_tx_hash.map(move |tx_hash| {
             tx_hash
-                .and_then(|(tx_hash, is_pending, is_local)| {
+                .and_then(|(tx_hash, sender, is_pending, is_local)| {
                     txs.get(&tx_hash)
                         .ok_or(TxPoolError::TransactionNotFoundInPrimary)
                         .and_then(|r| {
-                            Ok((r.key().clone(), r.value().clone(), is_pending, is_local))
+                            Ok(TxRowResult {
+                                tx_hash: r.key().clone(),
+                                tx: r.value().clone(),
+                                sender,
+                                is_local,
+                                is_pending,
+                            })
                         })
                 })
                 .map_err(|e| TxPoolError::GenericError(e.into()))
@@ -283,7 +297,7 @@ impl TxLookup {
         let mut rows = stmt.query_map(
             rusqlite::named_params! {
                 ":current_nonce" : current_nonce as i64,
-                ":account" : address.to_string()
+                ":account" : address.as_bytes()
             },
             |row| TxIndexRow::from_row(row),
         )?;
@@ -298,7 +312,7 @@ impl TxLookup {
         let mut rows = stmt.query_map(
             rusqlite::named_params! {
                 ":cost_limit" : cost_limit.to_be_bytes().to_vec(),
-                ":account" : address.to_string()
+                ":account" : address.as_bytes()
             },
             |row| TxIndexRow::from_row(row),
         )?;
@@ -313,7 +327,7 @@ impl TxLookup {
         let mut rows = stmt.query_map(
             rusqlite::named_params! {
                 ":current_nonce" : current_nonce as i64,
-                ":account" : address.to_string()
+                ":account" : address.as_bytes()
             },
             |row| TxIndexRow::from_row(row),
         )?;
@@ -353,7 +367,7 @@ impl TxLookup {
         let mut rows = stmt.query_map(
             rusqlite::named_params! {
                 ":nonce" : nonce as i64,
-                ":address" : address.to_string()
+                ":address" : address.as_bytes()
             },
             |row| TxIndexRow::from_row(row),
         )?;
@@ -420,18 +434,18 @@ impl TxLookup {
         let mut rows = stmt.query_map([], |row| TxIndexRow::from_row(row))?;
 
         let txs = self.conv_tx(Box::new(rows));
-        for tx in txs {
-            let (tx_hash, tx, is_pending, _) = tx?;
-            let mut list = if is_pending {
+        for res in txs {
+            let res = res?;
+            let mut list = if res.is_pending {
                 pending
-                    .entry(tx.sender_address())
+                    .entry(res.sender)
                     .or_insert(Default::default())
             } else {
                 queue
-                    .entry(tx.sender_address())
+                    .entry(res.sender)
                     .or_insert(Default::default())
             };
-            list.insert(tx_hash, tx);
+            list.insert(res.tx_hash, res.tx);
         }
 
         Ok((pending, queue))
@@ -452,18 +466,18 @@ impl TxLookup {
         let mut stmt = self.conn.prepare(GET_CONTENT_BY)?;
         let mut rows = stmt.query_map(
             rusqlite::named_params! {
-                ":address" : address.to_string()
+                ":address" : address.as_bytes()
             },
             |row| TxIndexRow::from_row(row),
         )?;
 
         let txs = self.conv_tx(Box::new(rows));
-        for tx in txs {
-            let (tx_hash, tx, is_pending, _) = tx?;
-            if is_pending {
-                pending.insert(tx_hash, tx)
+        for res in txs {
+            let res = res?;
+            if res.is_pending {
+                pending.insert(res.tx_hash, res.tx)
             } else {
-                queue.insert(tx_hash, tx)
+                queue.insert(res.tx_hash, res.tx)
             };
         }
         Ok((pending, queue))
@@ -478,13 +492,13 @@ impl TxLookup {
         let mut rows = stmt.query_map([], |row| TxIndexRow::from_row(row))?;
 
         let txs = self.conv_tx(Box::new(rows));
-        for tx in txs {
-            let (tx_hash, tx, is_pending, _) = tx?;
-            if is_pending {
+        for res in txs {
+            let res = res?;
+            if res.is_pending {
                 let list = pending
-                    .entry(tx.sender_address())
+                    .entry(res.sender)
                     .or_insert(Default::default());
-                list.insert(tx_hash, tx);
+                list.insert(res.tx_hash, res.tx);
             }
         }
 
@@ -500,15 +514,10 @@ impl TxLookup {
         let mut rows = stmt.query_map([], |row| TxIndexRow::from_row(row))?;
 
         let txs = self.conv_tx(Box::new(rows));
-        for tx in txs {
-            let (tx_hash, tx, _, is_local) = tx?;
-            let sender = self
-                .senders
-                .get(&tx_hash)
-                .map(|r| r.value().clone())
-                .unwrap_or(tx.sender_address());
-            if is_local && !locals.contains(&sender) {
-                locals.insert(sender);
+        for res in txs {
+            let res = res?;
+            if res.is_local && !locals.contains(&res.sender) {
+                locals.insert(res.sender);
             }
         }
         Ok((locals))

@@ -169,13 +169,17 @@ fn test_txpool() {
             from: alice.pub_key,
             to: bob.pub_key,
             amount: 1,
-            fee: u128::MAX,
+            fee: 100,
         },
-    )
-        .unwrap();
+    ).unwrap();
+
+    let tx2_hash = tx2.hash();
+
     println!("{:}\n{:}", hex::encode(tx1.hash()), hex::encode(tx2.hash()));
     //txpool.add(, true).unwrap();
-    txpool.add(tx1, true).unwrap();
-    txpool.add(tx2, true).unwrap();
+    txpool.add(tx1.clone(), true).unwrap();
+    txpool.add(tx2.clone(), true).unwrap();
+    assert_eq!(tx2, **txpool.content_from(alice.address).unwrap().1.get(&tx2_hash).unwrap());
+    println!("Content From Alice: {:?}", txpool.content_from(alice.address))
     //println!("{:?}", txpool)
 }

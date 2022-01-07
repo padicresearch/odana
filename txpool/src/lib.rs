@@ -19,6 +19,7 @@ use traits::{BlockchainState, StateDB};
 use transaction::validate_transaction;
 use types::tx::Transaction;
 use types::TxHash;
+use std::collections::{BTreeMap, BTreeSet};
 
 type TxHashRef = Arc<TxHash>;
 type TransactionRef = Arc<Transaction>;
@@ -121,6 +122,39 @@ impl<Chain, State> TxPool<Chain, State>
         self.lookup.add(tx_hash, tx, is_local, false)?;
         Ok(false)
     }
+
+    pub fn stats(&self) -> (usize, usize) {
+        self.lookup.stats()
+    }
+
+    pub fn content(
+        &self,
+    ) -> Result<(
+        BTreeMap<H160, BTreeMap<TxHashRef, TransactionRef>>,
+        BTreeMap<H160, BTreeMap<TxHashRef, TransactionRef>>,
+    )> {
+        self.lookup.content()
+    }
+
+    pub fn content_from(
+        &self,
+        address: H160,
+    ) -> Result<(
+        BTreeMap<TxHashRef, TransactionRef>,
+        BTreeMap<TxHashRef, TransactionRef>,
+    )> {
+        self.lookup.content_from(address)
+    }
+
+    pub fn pending(&self) -> Result<BTreeMap<H160, BTreeMap<TxHashRef, TransactionRef>>> {
+        self.lookup.pending()
+    }
+
+    pub fn locals(&self) -> Result<BTreeSet<H160>> {
+        self.lookup.locals()
+    }
+
+
     /// Takes transaction form queue and adds them to pending
     fn reorg(&self) {}
 
