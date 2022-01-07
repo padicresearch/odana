@@ -79,8 +79,8 @@ const GET_CONTENT: &str =
 const GET_CONTENT_BY: &str =
     "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE address == :address ORDER BY nonce;";
 
-const COUNT_GET_PENDING: &str = "SELECT COUNT(id) FROM txpool WHERE is_pending == true;";
-const COUNT_GET_QUEUE: &str = "SELECT COUNT(id) FROM txpool WHERE is_pending == false;";
+const COUNT_PENDING: &str = "SELECT COUNT(id) FROM txpool WHERE is_pending == true;";
+const COUNT_QUEUE: &str = "SELECT COUNT(id) FROM txpool WHERE is_pending == false;";
 
 const GET_LOCALS: &str =
     "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE is_local == true ORDER BY nonce GROUP BY address;";
@@ -387,7 +387,7 @@ impl TxLookup {
     }
 
     fn pending_count(&self) -> usize {
-        let mut stmt = match self.conn.prepare(COUNT_GET_PENDING) {
+        let mut stmt = match self.conn.prepare(COUNT_PENDING) {
             Ok(stmt) => stmt,
             Err(_) => return 0,
         };
@@ -401,7 +401,7 @@ impl TxLookup {
         }
     }
     fn queue_count(&self) -> usize {
-        let mut stmt = match self.conn.prepare(COUNT_GET_QUEUE) {
+        let mut stmt = match self.conn.prepare(COUNT_QUEUE) {
             Ok(stmt) => stmt,
             Err(_) => return 0,
         };
