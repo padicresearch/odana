@@ -3,14 +3,14 @@ use types::tx::{TransactionKind, Transaction};
 use tiny_keccak::Hasher;
 use codec::Encoder;
 use anyhow::Result;
-use types::{BlockHash, AccountId};
+use types::{BlockHash, PubKey};
 use primitive_types::H160;
 use crypto::{Ripe160, SHA256};
 use types::account::Account;
 
 pub fn make_sign_transaction(
     account: &Account,
-    nonce: u32,
+    nonce: u64,
     kind: TransactionKind,
 ) -> Result<Transaction> {
     let mut out = [0_u8; 32];
@@ -24,7 +24,7 @@ pub fn make_sign_transaction(
     Ok(Transaction::new(account.pub_key.clone(), nonce, sig, kind))
 }
 
-pub fn validate_transaction(transaction: &Transaction, block: Option<BlockHash>, block_miner: Option<AccountId>) -> Result<()> {
+pub fn validate_transaction(transaction: &Transaction, block: Option<BlockHash>, block_miner: Option<PubKey>) -> Result<()> {
     match transaction.kind() {
         TransactionKind::Transfer { from, .. } => {
             if from != transaction.origin() && transaction.origin() != &GOVERNANCE_ACCOUNTID {

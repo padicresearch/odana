@@ -6,18 +6,19 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
-use account::Account;
+use account::{get_address_from_pub_key};
 use codec::impl_codec;
 use codec::{Codec, Decoder, Encoder};
 use storage::{KVEntry, KVStore};
 use types::tx::{Transaction, TransactionKind};
-use types::{AccountId, BlockHash, TxHash};
+use types::{BlockHash, TxHash};
 
-use crate::error::Error;
+use crate::error::{MorphError};
 use crate::logdb::{HistoryLog, LogData};
 use crate::snapshot::MorphSnapshot;
 use traits::StateDB;
 use types::account::AccountState;
+use primitive_types::H160;
 
 mod error;
 mod logdb;
@@ -42,17 +43,17 @@ pub struct Morph {
 }
 
 impl KVEntry for Morph {
-    type Key = AccountId;
+    type Key = H160;
     type Value = AccountState;
 
     fn column() -> &'static str {
-        "account_balances"
+        "state"
     }
 }
 
 impl StateDB for Morph {
-    fn account_nonce(&self, account_id: &AccountId) -> u64 {
-        match self.get_account_state(account_id)
+    fn account_nonce(&self, address: &H160) -> u64 {
+        match self.get_account_state(address)
             .map(|account_state| account_state.map(|state| state.nonce as u64)) {
             Ok(Some(nonce)) => {
                 nonce
@@ -63,8 +64,8 @@ impl StateDB for Morph {
         }
     }
 
-    fn account_state(&self, account_id: &AccountId) -> AccountState {
-        match self.get_account_state(account_id) {
+    fn account_state(&self, address: &H160) -> AccountState {
+        match self.get_account_state(address) {
             Ok(Some(state)) => {
                 state
             }
@@ -89,7 +90,7 @@ impl Morph {
             let current_root = match self.history_log.last_history() {
                 None => {
                     if self.history_log.len() > 0 {
-                        return Err(MorthError::ValidationFailedRootNotValid.into());
+                        return Err(MorphError::ValidationFailedRootNotValid.into());
                     }
                     GENESIS_ROOT
                 }
@@ -102,7 +103,7 @@ impl Morph {
             sha3.finalize(&mut new_root);
             self.history_log
                 .append(LogData::new(action.clone(), new_root));
-            self.kv.put(action.get_account_id(), new_account_state)?;
+            self.kv.put(action.get_address(), new_account_state)?;
         }
         Ok(())
     }
@@ -118,7 +119,7 @@ impl Morph {
             MorphOperation::DebitBalance {
                 account, amount, ..
             } => {
-                let mut account_state = self.kv.get(account)?.ok_or(MorthError::AccountNotFound)?;
+                let mut account_state = self.kv.get(account)?.ok_or(MorphError::AccountNotFound)?;
                 account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
                 Ok(account_state)
             }
@@ -132,7 +133,7 @@ impl Morph {
             MorphOperation::UpdateNonce { account, nonce, .. } => {
                 let mut account_state = self.kv.get(account)?.unwrap_or_default();
                 if *nonce <= account_state.nonce {
-                    return Err(MorthError::NonceIsLessThanCurrent.into());
+                    return Err(MorphError::NonceIsLessThanCurrent.into());
                 }
                 account_state.nonce = *nonce;
                 Ok(account_state)
@@ -140,16 +141,16 @@ impl Morph {
         }
     }
 
-    fn get_account_state(&self, account_id: &Hash) -> Result<Option<AccountState>> {
-        self.kv.get(account_id)
+    fn get_account_state(&self, address: &H160) -> Result<Option<AccountState>> {
+        self.kv.get(address)
     }
 
-    fn proof(&self, account_id: AccountId) -> Result<Vec<ProofElement>> {
+    fn proof(&self, address: H160) -> Result<Vec<ProofElement>> {
         let mut proof = Vec::new();
         for res in self.history_log.iter_operations()? {
             let (idx, op) = res?;
-            let account = op.get_account_id();
-            if account == account_id {
+            let account = op.get_address();
+            if account == address {
                 proof.push(ProofElement::Operation {
                     op: op.clone(),
                     index: idx as u64,
@@ -169,12 +170,12 @@ impl Morph {
         Ok(())
     }
 
-    fn compact_proof(&self, account_id: AccountId) -> Result<Vec<ProofElement>> {
+    fn compact_proof(&self, address: H160) -> Result<Vec<ProofElement>> {
         let mut proof = Vec::new();
         for res in self.history_log.iter_operations()? {
             let (idx, op) = res?;
-            let account = op.get_account_id();
-            if account == account_id {
+            let op_address = op.get_address();
+            if op_address == address {
                 proof.push(ProofElement::Operation {
                     op: op.clone(),
                     index: idx as u64,
@@ -209,7 +210,7 @@ impl Morph {
 pub fn validate_account_state(
     proof: &Vec<ProofElement>,
     morph: &Morph,
-) -> Result<(AccountState, u64), MorthError> {
+) -> Result<(AccountState, u64), MorphError> {
     let mut account_state: AccountState = AccountState::default();
     let mut history: Vec<[u8; 32]> = vec![];
     let mut last_valid_seq = 0;
@@ -239,9 +240,9 @@ pub fn validate_account_state(
                 let valid_history_hash = morph
                     .history_log
                     .get_root_at(*seq)?
-                    .ok_or((MorthError::ValidationFailedHistoryNotFound))?;
+                    .ok_or((MorphError::ValidationFailedHistoryNotFound))?;
                 if new_root != valid_history_hash {
-                    return Err(MorthError::ValidationFailedRootNotValid);
+                    return Err(MorphError::ValidationFailedRootNotValid);
                 }
                 history.push(new_root);
                 last_valid_seq = *seq
@@ -251,7 +252,7 @@ pub fn validate_account_state(
                     morph
                         .history_log
                         .get_root_at(*seq)?
-                        .ok_or(MorthError::ValidationFailedHistoryNotFound)?,
+                        .ok_or(MorphError::ValidationFailedHistoryNotFound)?,
                 );
             }
         }
@@ -263,24 +264,24 @@ pub fn validate_account_state(
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum MorphOperation {
     DebitBalance {
-        account: AccountId,
+        account: H160,
         amount: u128,
         tx_hash: Hash,
     },
     CreditBalance {
-        account: AccountId,
+        account: H160,
         amount: u128,
         tx_hash: Hash,
     },
     UpdateNonce {
-        account: AccountId,
-        nonce: u32,
+        account: H160,
+        nonce: u64,
         tx_hash: Hash,
     },
 }
 
 impl MorphOperation {
-    fn get_account_id(&self) -> AccountId {
+    fn get_address(&self) -> H160 {
         match self {
             MorphOperation::DebitBalance { account, .. } => *account,
             MorphOperation::CreditBalance { account, .. } => *account,
@@ -301,24 +302,24 @@ pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
             ..
         } => {
             ops.push(MorphOperation::DebitBalance {
-                account: *from,
+                account: get_address_from_pub_key(from),
                 amount: *amount + *fee,
                 tx_hash,
             });
             ops.push(MorphOperation::CreditBalance {
-                account: *to,
+                account: get_address_from_pub_key(to),
                 amount: *amount,
                 tx_hash,
             });
             ops.push(MorphOperation::UpdateNonce {
-                account: *from,
-                nonce: tx.nonce_u32(),
+                account: get_address_from_pub_key(from),
+                nonce: tx.nonce(),
                 tx_hash,
             });
         }
         TransactionKind::Coinbase { amount, miner, .. } => {
             ops.push(MorphOperation::CreditBalance {
-                account: *miner,
+                account: get_address_from_pub_key(miner),
                 amount: *amount,
                 tx_hash,
             });
@@ -394,16 +395,16 @@ mod tests {
                 .is_ok());
             if i % 100 == 0 {
                 assert_eq!(
-                    validate_account_state(&morph.compact_proof(alice.pub_key).unwrap(), &morph)
+                    validate_account_state(&morph.compact_proof(alice.address).unwrap(), &morph)
                         .unwrap()
                         .0,
-                    morph.get_account_state(&alice.pub_key).unwrap().unwrap()
+                    morph.get_account_state(&alice.address).unwrap().unwrap()
                 );
                 assert_eq!(
-                    validate_account_state(&morph.compact_proof(bob.pub_key).unwrap(), &morph)
+                    validate_account_state(&morph.compact_proof(bob.address).unwrap(), &morph)
                         .unwrap()
                         .0,
-                    morph.get_account_state(&bob.pub_key).unwrap().unwrap()
+                    morph.get_account_state(&bob.address).unwrap().unwrap()
                 );
             }
         }

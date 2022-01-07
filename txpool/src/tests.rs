@@ -13,41 +13,41 @@ use transaction::make_sign_transaction;
 use types::account::AccountState;
 use types::block::BlockHeader;
 use types::tx::TransactionKind;
-use types::AccountId;
+use types::PubKey;
 
 #[derive(Clone)]
 struct DummyStateDB {
-    accounts: DashMap<AccountId, AccountState>,
+    accounts: DashMap<H160, AccountState>,
 }
 
 impl DummyStateDB {
-    fn with_accounts(iter: Box<dyn Iterator<Item=(AccountId, AccountState)>>) -> Self {
+    fn with_accounts(iter: Box<dyn Iterator<Item=(H160, AccountState)>>) -> Self {
         let mut accounts = DashMap::from_iter(iter);
         Self { accounts }
     }
 
     pub fn set_account_state(
         &mut self,
-        account: AccountId,
+        address: H160,
         state: AccountState,
     ) -> Result<Option<AccountState>> {
-        Ok(self.accounts.insert(account, state))
+        Ok(self.accounts.insert(address, state))
     }
 
-    pub fn increment_nonce(&mut self, account: &AccountId, nonce: u64) -> AccountState {
+    pub fn increment_nonce(&mut self, address: &H160, nonce: u64) -> AccountState {
         let mut entry = self
             .accounts
-            .entry(*account)
+            .entry(*address)
             .or_insert(AccountState::default());
-        entry.value_mut().nonce += nonce as u32;
+        entry.value_mut().nonce += nonce;
         entry.value().clone()
     }
-    pub fn set_nonce(&mut self, account: &AccountId, nonce: u64) -> AccountState {
+    pub fn set_nonce(&mut self, address: &H160, nonce: u64) -> AccountState {
         let mut entry = self
             .accounts
-            .entry(*account)
+            .entry(*address)
             .or_insert(AccountState::default());
-        entry.value_mut().nonce = nonce as u32;
+        entry.value_mut().nonce = nonce;
         entry.value().clone()
     }
 }
@@ -74,14 +74,14 @@ impl DummyChain {
 }
 
 impl StateDB for DummyStateDB {
-    fn account_nonce(&self, account_id: &AccountId) -> u64 {
+    fn account_nonce(&self, account_id: &H160) -> u64 {
         self.accounts
             .get(account_id)
             .map(|state| state.nonce as u64)
             .unwrap_or_default()
     }
 
-    fn account_state(&self, account_id: &AccountId) -> AccountState {
+    fn account_state(&self, account_id: &H160) -> AccountState {
         self.accounts
             .get(account_id)
             .map(|state| state.value().clone())
@@ -137,8 +137,8 @@ fn test_txpool() {
     let bob = create_account();
 
     let accounts = vec![
-        (alice.pub_key, AccountState::default()),
-        (bob.pub_key, AccountState::default()),
+        (alice.address, AccountState::default()),
+        (bob.address, AccountState::default()),
     ];
     let chain = DummyChain::new(generate_blocks(10));
     let state = DummyStateDB::with_accounts(Box::new(accounts.into_iter()));

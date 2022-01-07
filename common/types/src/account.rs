@@ -10,7 +10,7 @@ use ed25519_dalek::{Keypair, SecretKey, PublicKey, Signer};
 pub struct AccountState {
     pub free_balance: u128,
     pub reserve_balance: u128,
-    pub nonce: u32,
+    pub nonce: u64,
 }
 
 impl Default for AccountState {

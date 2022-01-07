@@ -1,7 +1,8 @@
 use types::block::{Block, BlockHeader};
-use types::{AccountId, BlockHash, TxHash};
+use types::{PubKey, BlockHash, TxHash};
 use types::account::AccountState;
 use anyhow::Result;
+use primitive_types::H160;
 // pub trait SudoAccount {
 //     fn is_sudo(&self, account: &AccountId) -> bool;
 //     fn sudo(&self) -> AccountId;
@@ -25,6 +26,6 @@ pub trait BlockchainState: Send + Sync + Clone {
 }
 
 pub trait StateDB: Send + Sync + Clone {
-    fn account_nonce(&self, account_id: &AccountId) -> u64;
-    fn account_state(&self, account_id: &AccountId) -> AccountState;
+    fn account_nonce(&self, address: &H160) -> u64;
+    fn account_state(&self, address: &H160) -> AccountState;
 }

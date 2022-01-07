@@ -18,6 +18,7 @@ codec = {path = "../codec"}
 chrono = "0.4.19"
 hex = "0.4.3"
 commitlog = "0.2"
-transaction = {path = "../transaction"}
+primitive-types = { path = "../common/primitive-types" }
+transaction = { path = "../transaction" }
 [dev-dependencies]
 tempdir = "0.3.7"

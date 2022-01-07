@@ -10,18 +10,7 @@ use std::convert::TryInto;
 use std::fs::read_to_string;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use types::{AccountId, TxHash};
-
-// const CREATE_TXPOOL_TABLE: &str = r#"
-// CREATE TABLE IF NOT EXISTS txpool (
-//     id              VARCHAR(64) NOT NULL PRIMARY KEY,
-//     fees            BLOB NOT NULL,
-//     nonce           INTEGER NOT NULL,
-//     address         VARCHAR(64) NOT NULL,
-//     is_local        BOOLEAN NOT NULL,
-//     is_pending      BOOLEAN NOT NULL DEFAULT false
-// );
-// "#;
+use types::{PubKey, TxHash};
 
 const RESET_TXPOOL_TABLE: &str = r#"
 BEGIN;
@@ -122,14 +111,14 @@ pub struct TxIndexRow {
 }
 
 impl TxIndexRow {
-    pub fn new(tx: &TransactionRef, is_local: bool) -> Self {
+    pub fn new(tx: &TransactionRef, is_local: bool, is_pending: bool) -> Self {
         Self {
             id: hex::encode(tx.hash()),
             fees: tx.fees() as i128,
-            nonce: tx.nonce_u32() as i64,
+            nonce: tx.nonce() as i64,
             address: tx.sender_address().to_string(),
             is_local,
-            is_pending: false,
+            is_pending,
         }
     }
     fn as_sql_param(&self) -> Vec<(&str, &dyn ToSql)> {
@@ -239,11 +228,11 @@ impl TxLookup {
         })
     }
 
-    pub(crate) fn add(&self, tx_hash: TxHashRef, tx: TransactionRef, is_local: bool) -> Result<()> {
+    pub(crate) fn add(&self, tx_hash: TxHashRef, tx: TransactionRef, is_local: bool, is_pending: bool) -> Result<()> {
         self.mu
             .lock()
             .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
-        let index_row = TxIndexRow::new(&tx, is_local);
+        let index_row = TxIndexRow::new(&tx, is_local, is_pending);
         self.conn
             .execute(INSERT_TX, index_row.as_sql_param().as_slice())?;
         self.txs.insert(tx_hash.clone(), tx.clone());

@@ -4,20 +4,20 @@ use codec::{Decoder, Encoder};
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 use crate::BigArray;
-use crate::{AccountId, BlockHash, Sig};
+use crate::{PubKey, BlockHash, Sig};
 use primitive_types::H160;
 use crypto::{Ripe160, SHA256};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum TransactionKind {
     Transfer {
-        from: AccountId,
-        to: AccountId,
+        from: PubKey,
+        to: PubKey,
         amount: u128,
         fee: u128,
     },
     Coinbase {
-        miner: AccountId,
+        miner: PubKey,
         amount: u128,
         block_hash: BlockHash,
     },
@@ -27,13 +27,13 @@ pub enum TransactionKind {
 pub struct Transaction {
     #[serde(with = "BigArray")]
     sig: Sig,
-    origin: AccountId,
-    nonce: u32,
+    origin: PubKey,
+    nonce: u64,
     kind: TransactionKind,
 }
 
 impl Transaction {
-    pub fn new(origin: AccountId, nonce: u32, sig: Sig, kind: TransactionKind) -> Self {
+    pub fn new(origin: PubKey, nonce: u64, sig: Sig, kind: TransactionKind) -> Self {
         Self {
             sig,
             origin,
@@ -42,7 +42,7 @@ impl Transaction {
         }
     }
 
-    pub fn origin(&self) -> &AccountId {
+    pub fn origin(&self) -> &PubKey {
         &self.origin
     }
 
@@ -67,10 +67,7 @@ impl Transaction {
     pub fn kind(&self) -> &TransactionKind {
         &self.kind
     }
-    pub fn nonce(&self) -> [u8; 4] {
-        self.nonce.to_be_bytes()
-    }
-    pub fn nonce_u32(&self) -> u32 {
+    pub fn nonce(&self) -> u64 {
         self.nonce
     }
     pub fn sender_address(&self) -> H160 {
@@ -91,7 +88,7 @@ impl Transaction {
         let mut out = [0_u8; 32];
         let mut sha3 = tiny_keccak::Sha3::v256();
         sha3.update(self.origin());
-        sha3.update(&self.nonce());
+        sha3.update(&self.nonce().to_be_bytes());
         sha3.update(&self.kind.encode()?);
         sha3.finalize(&mut out);
         Ok(out)

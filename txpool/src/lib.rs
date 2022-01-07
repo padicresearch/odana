@@ -18,6 +18,7 @@ use transaction::validate_transaction;
 use types::tx::Transaction;
 use types::TxHash;
 use crate::error::TxPoolError;
+use primitive_types::H160;
 
 type TxHashRef = Arc<TxHash>;
 type TransactionRef = Arc<Transaction>;
@@ -100,7 +101,7 @@ impl<Chain, State> TxPool<Chain, State>
                 }
                 Some(old_tx) => {
                     self.lookup.delete(&old_tx.hash())?;
-                    self.lookup.add(tx_hash, tx, is_local)?;
+                    self.lookup.add(tx_hash, tx, is_local, false)?;
                     return Ok(true);
                 }
             }
@@ -108,27 +109,22 @@ impl<Chain, State> TxPool<Chain, State>
 
         let overlaping_tx = self
             .lookup
-            .get_overlap_pending_tx(tx.sender_address(), tx.nonce_u32() as u64)?;
+            .get_overlap_pending_tx(tx.sender_address(), tx.nonce())?;
         if let Some((overlaping_tx, overlaping_tx_is_pending, _)) = overlaping_tx {
             let overlaping_tx_hash = overlaping_tx.hash();
             self.lookup.delete(&overlaping_tx_hash)?;
-            self.lookup.add(tx_hash.clone(), tx, is_local)?;
-            if overlaping_tx_is_pending {
-                self.lookup.promote(vec![*tx_hash])?;
-            }
+            self.lookup.add(tx_hash.clone(), tx, is_local, overlaping_tx_is_pending)?;
             return Ok(true);
         }
         // Add transaction to queue
-        self.lookup.add(tx_hash, tx, is_local)?;
+        self.lookup.add(tx_hash, tx, is_local, false)?;
         Ok(false)
     }
     /// Takes transaction form queue and adds them to pending
     fn reorg(&self) {}
 
-    pub fn remove_batch(&self, txs: Vec<TxHashRef>) {
-        for tx_hash in txs.iter() {
-            self.remove(tx_hash);
-        }
+    pub fn nonce(&self, address: &H160) -> u64 {
+        self.pending_nonces.get(address)
     }
 
     /// Remove transaction form pending and queue

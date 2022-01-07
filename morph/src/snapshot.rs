@@ -1,5 +1,5 @@
-use crate::error::Error;
-use crate::{get_operations, AccountId, AccountState, Hash, Morph, MorphOperation, MorphStorageKV};
+use crate::error::{MorphError};
+use crate::{get_operations, AccountState, Hash, Morph, MorphOperation, MorphStorageKV};
 use anyhow::Result;
 use codec::Encoder;
 use std::collections::{HashMap, HashSet};
@@ -7,6 +7,7 @@ use std::sync::Arc;
 use tiny_keccak::Hasher;
 use types::tx::Transaction;
 use types::TxHash;
+use primitive_types::H160;
 
 pub struct MorphSnapshot {
     origin_root: Hash,
@@ -17,7 +18,7 @@ pub struct MorphSnapshot {
     log: Vec<MorphOperation>,
     kv: Arc<MorphStorageKV>,
     applied_txs: HashSet<TxHash>,
-    account_state: HashMap<AccountId, AccountState>,
+    account_state: HashMap<H160, AccountState>,
 }
 
 impl MorphSnapshot {
@@ -25,7 +26,7 @@ impl MorphSnapshot {
         let root = morph
             .history_log
             .last_history()
-            .ok_or(MorthError::SnapshotCreationErrorRootNotFound)?;
+            .ok_or(MorphError::SnapshotCreationErrorRootNotFound)?;
         let index = morph.history_log.len() - 1;
         let roots = vec![root];
         let log = morph
@@ -52,7 +53,7 @@ impl MorphSnapshot {
         let tx_hash = tx.hash();
         anyhow::ensure!(
             self.applied_txs.contains(&tx_hash) == false,
-            MorthError::TransactionAlreadyApplied
+            MorphError::TransactionAlreadyApplied
         );
         for action in get_operations(tx).iter() {
             let new_account_state = self.apply_action(action)?;
@@ -65,7 +66,7 @@ impl MorphSnapshot {
             self.current_root = new_root;
             self.log.push(action.clone());
             self.account_state
-                .insert(action.get_account_id(), new_account_state);
+                .insert(action.get_address(), new_account_state);
         }
         self.applied_txs.insert(tx.hash());
         Ok(())
@@ -90,7 +91,7 @@ impl MorphSnapshot {
             MorphOperation::UpdateNonce { account, nonce, .. } => {
                 let mut account_state = self.kv.get(account)?.unwrap_or_default();
                 if *nonce <= account_state.nonce {
-                    return Err(MorthError::NonceIsLessThanCurrent.into());
+                    return Err(MorphError::NonceIsLessThanCurrent.into());
                 }
                 account_state.nonce = *nonce;
                 Ok(account_state)
@@ -98,7 +99,7 @@ impl MorphSnapshot {
         }
     }
 
-    fn get_account(&self, account_id: &AccountId) -> AccountState {
+    fn get_account(&self, account_id: &H160) -> AccountState {
         if let Some(state) = self.account_state.get(account_id) {
             return state.clone();
         }

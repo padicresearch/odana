@@ -12,7 +12,7 @@ pub type BlockHash = [u8; 32];
 pub type TxHash = [u8; 32];
 pub type MerkleHash = [u8; 32];
 pub type Sig = [u8; 64];
-pub type AccountId = [u8; 32];
+pub type PubKey = [u8; 32];
 
 #[derive(Serialize, Deserialize, Getters, Debug, Clone)]
 pub struct MempoolSnapsot {

@@ -1,4 +1,4 @@
-use crate::error::Error;
+use crate::error::{MorphError};
 use crate::{Hash, MorphOperation};
 use anyhow::Result;
 use codec::impl_codec;
@@ -78,7 +78,7 @@ impl HistoryLog {
     }
 
     pub fn append(&self, data: LogData) -> Result<()> {
-        let mut commit_log = self.commit_log.write().map_err(|e| MorthError::RWPoison)?;
+        let mut commit_log = self.commit_log.write().map_err(|e| MorphError::RWPoison)?;
         let encoded_data = data.encode()?;
         let encoded_data_size = encoded_data.len() as u64;
         // let mut msg = MessageBuf::from_bytes().map_err(|e|
@@ -92,7 +92,7 @@ impl HistoryLog {
     }
 
     pub fn get(&self, index: u64) -> Result<Option<LogData>> {
-        let commit_log = self.commit_log.read().map_err(|e| MorthError::RWPoison)?;
+        let commit_log = self.commit_log.read().map_err(|e| MorphError::RWPoison)?;
         let index = match self.kv.get(&index)? {
             None => {
                 return Ok(None);
@@ -103,7 +103,7 @@ impl HistoryLog {
         let bytes = msg_buf
             .iter()
             .next()
-            .ok_or(MorthError::CommitLogReadErrorCorruptData)?;
+            .ok_or(MorphError::CommitLogReadErrorCorruptData)?;
         Ok(Some(LogData::decode(bytes.payload())?))
     }
 
@@ -133,7 +133,7 @@ impl HistoryLog {
         let commit_log = self.commit_log.clone();
         let iter = self.kv.iter()?.map(move |(_, v)| {
             v.and_then(|index| {
-                let commit_log = commit_log.read().map_err(|e| MorthError::RWPoison)?;
+                let commit_log = commit_log.read().map_err(|e| MorphError::RWPoison)?;
                 commit_log
                     .read(index.offset, index.read_limit())
                     .map_err(|e| e.into())
@@ -141,7 +141,7 @@ impl HistoryLog {
                         msg_buf
                             .iter()
                             .next()
-                            .ok_or(MorthError::CommitLogReadError(ReadError::CorruptLog).into())
+                            .ok_or(MorphError::CommitLogReadError(ReadError::CorruptLog).into())
                             .and_then(|bytes| {
                                 LogData::decode(bytes.payload())
                                     .and_then(|data| Ok((index.offset, data.op)))
@@ -156,7 +156,7 @@ impl HistoryLog {
         let commit_log = self.commit_log.clone();
         let iter = self.kv.iter()?.map(move |(_, v)| {
             v.and_then(|index| {
-                let commit_log = commit_log.read().map_err(|e| MorthError::RWPoison)?;
+                let commit_log = commit_log.read().map_err(|e| MorphError::RWPoison)?;
                 commit_log
                     .read(index.offset, index.read_limit())
                     .map_err(|e| e.into())
@@ -164,7 +164,7 @@ impl HistoryLog {
                         msg_buf
                             .iter()
                             .next()
-                            .ok_or(MorthError::CommitLogReadError(ReadError::CorruptLog).into())
+                            .ok_or(MorphError::CommitLogReadError(ReadError::CorruptLog).into())
                             .and_then(|bytes| {
                                 LogData::decode(bytes.payload())
                                     .and_then(|data| Ok((index.offset, data.hash)))
@@ -179,7 +179,7 @@ impl HistoryLog {
         let commit_log = self.commit_log.clone();
         let iter = self.kv.iter()?.map(move |(_, v)| {
             v.and_then(|index| {
-                let commit_log = commit_log.read().map_err(|e| MorthError::RWPoison)?;
+                let commit_log = commit_log.read().map_err(|e| MorphError::RWPoison)?;
                 commit_log
                     .read(index.offset, index.read_limit())
                     .map_err(|e| e.into())
@@ -187,7 +187,7 @@ impl HistoryLog {
                         msg_buf
                             .iter()
                             .next()
-                            .ok_or(MorthError::CommitLogReadError(ReadError::CorruptLog).into())
+                            .ok_or(MorphError::CommitLogReadError(ReadError::CorruptLog).into())
                             .and_then(|bytes| {
                                 LogData::decode(bytes.payload()).and_then(|data| Ok(data))
                             })
@@ -198,7 +198,7 @@ impl HistoryLog {
     }
 
     pub fn last_index(&self) -> u64 {
-        let commit_log = match self.commit_log.read().map_err(|e| MorthError::RWPoison) {
+        let commit_log = match self.commit_log.read().map_err(|e| MorphError::RWPoison) {
             Ok(commit_log) => commit_log,
             Err(_) => {
                 return Default::default();
@@ -263,12 +263,12 @@ mod tests {
         let mut ops = Vec::new();
         let t = make_sign_transaction(
             &alice,
-            Utc::now().timestamp_subsec_nanos(),
+            Utc::now().timestamp_nanos() as u64,
             TransactionKind::Transfer {
                 from: alice.pub_key,
                 to: bob.pub_key,
                 amount: 10,
-                fee: 0
+                fee: 0,
             },
         )
             .unwrap();
