@@ -9,10 +9,10 @@ pub use crate::simple::*;
 pub use crate::word::*;
 
 pub trait Trie<C, K, V>
-    where
-        V: Sized + Clone,
-        K: Word<C>,
-        C: Symbol,
+where
+    V: Sized + Clone,
+    K: Word<C>,
+    C: Symbol,
 {
     fn insert(&mut self, key: K, value: V);
     fn get(&self, key: K) -> Option<V>;

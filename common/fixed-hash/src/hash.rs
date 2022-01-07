@@ -348,10 +348,10 @@ macro_rules! impl_byteorder_for_fixed_hash {
         /// Utilities using the `byteorder` crate.
         impl $name {
             /// Returns the least significant `n` bytes as slice.
-			///
-			/// # Panics
-			///
-			/// If `n` is greater than the number of bytes in `self`.
+            ///
+            /// # Panics
+            ///
+            /// If `n` is greater than the number of bytes in `self`.
             #[inline]
             fn least_significant_bytes(&self, n: usize) -> &[u8] {
                 $crate::core_::assert_eq!(true, n <= Self::len_bytes());
@@ -369,33 +369,33 @@ macro_rules! impl_byteorder_for_fixed_hash {
             }
 
             /// Returns the lowest 8 bytes interpreted as big-endian.
-			///
-			/// # Note
-			///
-			/// For hash type with less than 8 bytes the missing bytes
-			/// are interpreted as being zero.
+            ///
+            /// # Note
+            ///
+            /// For hash type with less than 8 bytes the missing bytes
+            /// are interpreted as being zero.
             #[inline]
             pub fn to_low_u64_be(&self) -> u64 {
                 self.to_low_u64_with_byteorder::<$crate::byteorder::BigEndian>()
             }
 
             /// Returns the lowest 8 bytes interpreted as little-endian.
-			///
-			/// # Note
-			///
-			/// For hash type with less than 8 bytes the missing bytes
-			/// are interpreted as being zero.
+            ///
+            /// # Note
+            ///
+            /// For hash type with less than 8 bytes the missing bytes
+            /// are interpreted as being zero.
             #[inline]
             pub fn to_low_u64_le(&self) -> u64 {
                 self.to_low_u64_with_byteorder::<$crate::byteorder::LittleEndian>()
             }
 
             /// Returns the lowest 8 bytes interpreted as native-endian.
-			///
-			/// # Note
-			///
-			/// For hash type with less than 8 bytes the missing bytes
-			/// are interpreted as being zero.
+            ///
+            /// # Note
+            ///
+            /// For hash type with less than 8 bytes the missing bytes
+            /// are interpreted as being zero.
             #[inline]
             pub fn to_low_u64_ne(&self) -> u64 {
                 self.to_low_u64_with_byteorder::<$crate::byteorder::NativeEndian>()
@@ -414,36 +414,36 @@ macro_rules! impl_byteorder_for_fixed_hash {
             }
 
             /// Creates a new hash type from the given `u64` value.
-			///
-			/// # Note
-			///
-			/// - The given `u64` value is interpreted as big endian.
-			/// - Ignores the most significant bits of the given value
-			///   if the hash type has less than 8 bytes.
+            ///
+            /// # Note
+            ///
+            /// - The given `u64` value is interpreted as big endian.
+            /// - Ignores the most significant bits of the given value
+            ///   if the hash type has less than 8 bytes.
             #[inline]
             pub fn from_low_u64_be(val: u64) -> Self {
                 Self::from_low_u64_with_byteorder::<$crate::byteorder::BigEndian>(val)
             }
 
             /// Creates a new hash type from the given `u64` value.
-			///
-			/// # Note
-			///
-			/// - The given `u64` value is interpreted as little endian.
-			/// - Ignores the most significant bits of the given value
-			///   if the hash type has less than 8 bytes.
+            ///
+            /// # Note
+            ///
+            /// - The given `u64` value is interpreted as little endian.
+            /// - Ignores the most significant bits of the given value
+            ///   if the hash type has less than 8 bytes.
             #[inline]
             pub fn from_low_u64_le(val: u64) -> Self {
                 Self::from_low_u64_with_byteorder::<$crate::byteorder::LittleEndian>(val)
             }
 
             /// Creates a new hash type from the given `u64` value.
-			///
-			/// # Note
-			///
-			/// - The given `u64` value is interpreted as native endian.
-			/// - Ignores the most significant bits of the given value
-			///   if the hash type has less than 8 bytes.
+            ///
+            /// # Note
+            ///
+            /// - The given `u64` value is interpreted as native endian.
+            /// - Ignores the most significant bits of the given value
+            ///   if the hash type has less than 8 bytes.
             #[inline]
             pub fn from_low_u64_ne(val: u64) -> Self {
                 Self::from_low_u64_with_byteorder::<$crate::byteorder::NativeEndian>(val)
@@ -493,7 +493,7 @@ macro_rules! impl_rand_for_fixed_hash {
         /// Utilities using the `rand` crate.
         impl $name {
             /// Assign `self` to a cryptographically random value using the
-			/// given random number generator.
+            /// given random number generator.
             pub fn randomize_using<R>(&mut self, rng: &mut R)
             where
                 R: $crate::rand::Rng + ?Sized,
@@ -509,7 +509,7 @@ macro_rules! impl_rand_for_fixed_hash {
             }
 
             /// Create a new hash with cryptographically random content using the
-			/// given random number generator.
+            /// given random number generator.
             pub fn random_using<R>(rng: &mut R) -> Self
             where
                 R: $crate::rand::Rng + ?Sized,
@@ -579,15 +579,15 @@ macro_rules! impl_rustc_hex_for_fixed_hash {
             type Err = $crate::rustc_hex::FromHexError;
 
             /// Creates a hash type instance from the given string.
-			///
-			/// # Note
-			///
-			/// The given input string is interpreted in big endian.
-			///
-			/// # Errors
-			///
-			/// - When encountering invalid non hex-digits
-			/// - Upon empty string input or invalid input length in general
+            ///
+            /// # Note
+            ///
+            /// The given input string is interpreted in big endian.
+            ///
+            /// # Errors
+            ///
+            /// - When encountering invalid non hex-digits
+            /// - Upon empty string input or invalid input length in general
             fn from_str(
                 input: &str,
             ) -> $crate::core_::result::Result<$name, $crate::rustc_hex::FromHexError> {

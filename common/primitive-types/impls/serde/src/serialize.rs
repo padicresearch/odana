@@ -145,8 +145,8 @@ fn from_hex_raw(v: &str, bytes: &mut [u8], stripped: bool) -> Result<usize, From
 
 /// Serializes a slice of bytes.
 pub fn serialize_raw<S>(slice: &mut [u8], bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+where
+    S: Serializer,
 {
     if bytes.is_empty() {
         serializer.serialize_str("0x")

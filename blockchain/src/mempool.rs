@@ -11,7 +11,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use storage::{KVEntry, KVStore, PersistentStorage};
-use types::{TxHash, MempoolSnapsot};
+use types::{MempoolSnapsot, TxHash};
 
 pub type MemPoolStorageKV = dyn KVStore<MemPool> + Send + Sync;
 
@@ -100,8 +100,6 @@ pub struct MemPool {
     index: MemPoolDB,
     utxo: Arc<UTXO>,
 }
-
-
 
 impl MemPool {
     pub fn new(
@@ -212,12 +210,12 @@ mod tests {
     use crate::mempool::MemPool;
     use crate::transaction::Tx;
     use crate::utxo::UTXO;
+    use account::create_account;
     use anyhow::Result;
     use std::sync::Arc;
     use storage::memstore::MemStore;
     use storage::PersistentStorage::Sled;
     use storage::{KVEntry, PersistentStorage};
-    use account::create_account;
 
     #[test]
     fn test_mempool() {

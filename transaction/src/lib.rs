@@ -1,12 +1,12 @@
-use account::{GOVERNANCE_ACCOUNTID};
-use types::tx::{TransactionKind, Transaction};
-use tiny_keccak::Hasher;
-use codec::Encoder;
+use account::GOVERNANCE_ACCOUNTID;
 use anyhow::Result;
-use types::{BlockHash, PubKey};
-use primitive_types::H160;
+use codec::Encoder;
 use crypto::{Ripe160, SHA256};
+use primitive_types::H160;
+use tiny_keccak::Hasher;
 use types::account::Account;
+use types::tx::{Transaction, TransactionKind};
+use types::{BlockHash, PubKey};
 
 pub fn make_sign_transaction(
     account: &Account,
@@ -24,14 +24,20 @@ pub fn make_sign_transaction(
     Ok(Transaction::new(account.pub_key.clone(), nonce, sig, kind))
 }
 
-pub fn validate_transaction(transaction: &Transaction, block: Option<BlockHash>, block_miner: Option<PubKey>) -> Result<()> {
+pub fn validate_transaction(
+    transaction: &Transaction,
+    block: Option<BlockHash>,
+    block_miner: Option<PubKey>,
+) -> Result<()> {
     match transaction.kind() {
         TransactionKind::Transfer { from, .. } => {
             if from != transaction.origin() && transaction.origin() != &GOVERNANCE_ACCOUNTID {
                 anyhow::bail!("Bad origin")
             }
         }
-        TransactionKind::Coinbase { block_hash, miner, .. } => {
+        TransactionKind::Coinbase {
+            block_hash, miner, ..
+        } => {
             if let (Some(block), Some(block_miner)) = (block, block_miner) {
                 if block != *block_hash && block_miner != *miner {
                     anyhow::bail!("invalid coinbase transaction")

@@ -1,3 +1,4 @@
+use crate::blockchain::LocalMessage;
 use crate::consensus::check_block_pow;
 use crate::errors::BlockChainError;
 use crate::mempool::MemPool;
@@ -10,7 +11,6 @@ use merkle::Merkle;
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 use types::block::{Block, BlockHeader, BlockTemplate};
-use crate::blockchain::LocalMessage;
 pub struct Miner {
     account: Account,
     mempool: Arc<MemPool>,

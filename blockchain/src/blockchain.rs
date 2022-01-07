@@ -78,7 +78,7 @@ impl BlockChain {
         match self.state.dispatch(action)? {
             StateEffect::CurrentHeadChanged => {
                 if let (Ok(Some(current_head)), Ok(mempool)) =
-                (self.state.get_current_head(), self.state.get_mempool())
+                    (self.state.get_current_head(), self.state.get_mempool())
                 {
                     self.local_mpsc_sender.send(LocalMessage::StateChanged {
                         current_head,

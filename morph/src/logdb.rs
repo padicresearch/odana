@@ -1,4 +1,4 @@
-use crate::error::{MorphError};
+use crate::error::MorphError;
 use crate::{Hash, MorphOperation};
 use anyhow::Result;
 use codec::impl_codec;
@@ -246,7 +246,7 @@ mod tests {
     use storage::KVEntry;
     use tempdir::TempDir;
     use tiny_keccak::Hasher;
-    use transaction::{make_sign_transaction};
+    use transaction::make_sign_transaction;
     use types::tx::TransactionKind;
 
     fn sha3_hash(data: &[u8]) -> [u8; 32] {

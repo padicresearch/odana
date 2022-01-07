@@ -3,10 +3,10 @@ use std::collections::BTreeMap;
 
 #[derive(Debug, Clone)]
 pub struct SimpleTrie<C, K, V>
-    where
-        V: Sized + Clone,
-        K: Word<C>,
-        C: Symbol,
+where
+    V: Sized + Clone,
+    K: Word<C>,
+    C: Symbol,
 {
     key: Option<K>,
     value: Option<V>,

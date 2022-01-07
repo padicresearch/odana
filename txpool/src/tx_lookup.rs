@@ -4,7 +4,7 @@ use anyhow::Result;
 use dashmap::DashMap;
 use itertools::Itertools;
 use primitive_types::H160;
-use rusqlite::{Connection, Error, MappedRows, Row, ToSql, Statement};
+use rusqlite::{Connection, Error, MappedRows, Row, Statement, ToSql};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryInto;
 use std::fs::read_to_string;
@@ -228,7 +228,13 @@ impl TxLookup {
         })
     }
 
-    pub(crate) fn add(&self, tx_hash: TxHashRef, tx: TransactionRef, is_local: bool, is_pending: bool) -> Result<()> {
+    pub(crate) fn add(
+        &self,
+        tx_hash: TxHashRef,
+        tx: TransactionRef,
+        is_local: bool,
+        is_pending: bool,
+    ) -> Result<()> {
         self.mu
             .lock()
             .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
@@ -368,46 +374,30 @@ impl TxLookup {
 
     fn pending_count(&self) -> usize {
         let mut stmt = match self.conn.prepare(COUNT_GET_PENDING) {
-            Ok(stmt) => { stmt }
-            Err(_) => {
-                return 0
-            }
+            Ok(stmt) => stmt,
+            Err(_) => return 0,
         };
-        let mut res = stmt.query_map([],
-                                     |row| {
-                                         let count: i64 = row.get(0).unwrap_or(0);
-                                         Ok(count)
-                                     },
-        );
+        let mut res = stmt.query_map([], |row| {
+            let count: i64 = row.get(0).unwrap_or(0);
+            Ok(count)
+        });
         match res {
-            Ok(mut res) => {
-                res.next().unwrap_or(Ok(0)).unwrap_or(0) as usize
-            }
-            Err(_) => {
-                return 0
-            }
+            Ok(mut res) => res.next().unwrap_or(Ok(0)).unwrap_or(0) as usize,
+            Err(_) => return 0,
         }
     }
     fn queue_count(&self) -> usize {
         let mut stmt = match self.conn.prepare(COUNT_GET_QUEUE) {
-            Ok(stmt) => { stmt }
-            Err(_) => {
-                return 0
-            }
+            Ok(stmt) => stmt,
+            Err(_) => return 0,
         };
-        let mut res = stmt.query_map([],
-                                     |row| {
-                                         let count: i64 = row.get(0).unwrap_or(0);
-                                         Ok(count)
-                                     },
-        );
+        let mut res = stmt.query_map([], |row| {
+            let count: i64 = row.get(0).unwrap_or(0);
+            Ok(count)
+        });
         match res {
-            Ok(mut res) => {
-                res.next().unwrap_or(Ok(0)).unwrap_or(0) as usize
-            }
-            Err(_) => {
-                return 0
-            }
+            Ok(mut res) => res.next().unwrap_or(Ok(0)).unwrap_or(0) as usize,
+            Err(_) => return 0,
         }
     }
 

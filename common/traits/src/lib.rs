@@ -1,8 +1,8 @@
-use types::block::{Block, BlockHeader};
-use types::{PubKey, BlockHash, TxHash};
-use types::account::AccountState;
 use anyhow::Result;
 use primitive_types::H160;
+use types::account::AccountState;
+use types::block::{Block, BlockHeader};
+use types::{BlockHash, PubKey, TxHash};
 // pub trait SudoAccount {
 //     fn is_sudo(&self, account: &AccountId) -> bool;
 //     fn sudo(&self) -> AccountId;

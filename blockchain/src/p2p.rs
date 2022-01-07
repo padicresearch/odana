@@ -17,7 +17,7 @@ use libp2p::{Multiaddr, PeerId, Swarm, Transport};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use types::block::{Block, BlockHeader};
-use types::{BlockHash, TxHash, MempoolSnapsot};
+use types::{BlockHash, MempoolSnapsot, TxHash};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CurrentHeadMessage {

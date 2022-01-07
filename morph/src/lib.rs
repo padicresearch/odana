@@ -6,19 +6,19 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
-use account::{get_address_from_pub_key};
+use account::get_address_from_pub_key;
 use codec::impl_codec;
 use codec::{Codec, Decoder, Encoder};
 use storage::{KVEntry, KVStore};
 use types::tx::{Transaction, TransactionKind};
 use types::{BlockHash, TxHash};
 
-use crate::error::{MorphError};
+use crate::error::MorphError;
 use crate::logdb::{HistoryLog, LogData};
 use crate::snapshot::MorphSnapshot;
+use primitive_types::H160;
 use traits::StateDB;
 use types::account::AccountState;
-use primitive_types::H160;
 
 mod error;
 mod logdb;
@@ -53,25 +53,19 @@ impl KVEntry for Morph {
 
 impl StateDB for Morph {
     fn account_nonce(&self, address: &H160) -> u64 {
-        match self.get_account_state(address)
-            .map(|account_state| account_state.map(|state| state.nonce as u64)) {
-            Ok(Some(nonce)) => {
-                nonce
-            }
-            _ => {
-                0
-            }
+        match self
+            .get_account_state(address)
+            .map(|account_state| account_state.map(|state| state.nonce as u64))
+        {
+            Ok(Some(nonce)) => nonce,
+            _ => 0,
         }
     }
 
     fn account_state(&self, address: &H160) -> AccountState {
         match self.get_account_state(address) {
-            Ok(Some(state)) => {
-                state
-            }
-            _ => {
-                AccountState::default()
-            }
+            Ok(Some(state)) => state,
+            _ => AccountState::default(),
         }
     }
 }

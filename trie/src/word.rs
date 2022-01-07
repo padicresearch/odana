@@ -9,8 +9,8 @@ pub trait Index {
 pub trait Symbol: PartialOrd + Ord + Index + Sized + Hash + Clone {}
 
 pub trait Word<T>: Sized + Clone
-    where
-        T: Symbol,
+where
+    T: Symbol,
 {
     fn chars(&self) -> &Vec<T>;
     fn len(&self) -> usize;

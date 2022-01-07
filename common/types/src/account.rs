@@ -1,10 +1,10 @@
 use anyhow::Result;
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
-use serde::{Deserialize, Serialize};
+use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signer};
 use primitive_types::H160;
+use serde::{Deserialize, Serialize};
 use std::hash::Hash;
-use ed25519_dalek::{Keypair, SecretKey, PublicKey, Signer};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountState {
@@ -24,8 +24,6 @@ impl Default for AccountState {
 }
 
 impl_codec!(AccountState);
-
-
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {

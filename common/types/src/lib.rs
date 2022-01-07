@@ -1,12 +1,12 @@
-pub mod block;
-pub mod tx;
-pub mod events;
 pub mod account;
+pub mod block;
+pub mod events;
+pub mod tx;
 
-use serde::{Serialize, Deserialize};
-use serde_big_array::big_array;
-use codec::{Encoder, Decoder};
+use codec::{Decoder, Encoder};
 use derive_getters::Getters;
+use serde::{Deserialize, Serialize};
+use serde_big_array::big_array;
 
 pub type BlockHash = [u8; 32];
 pub type TxHash = [u8; 32];

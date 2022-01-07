@@ -6,10 +6,12 @@ mod txlist;
 #[cfg(test)]
 mod tests;
 
+use crate::error::TxPoolError;
 use crate::tx_lookup::TxLookup;
 use crate::tx_noncer::TxNoncer;
 use anyhow::{Error, Result};
 use dashmap::{DashMap, ReadOnlyView};
+use primitive_types::H160;
 use std::borrow::BorrowMut;
 use std::ops::DerefMut;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -17,8 +19,6 @@ use traits::{BlockchainState, StateDB};
 use transaction::validate_transaction;
 use types::tx::Transaction;
 use types::TxHash;
-use crate::error::TxPoolError;
-use primitive_types::H160;
 
 type TxHashRef = Arc<TxHash>;
 type TransactionRef = Arc<Transaction>;
@@ -83,7 +83,7 @@ impl<Chain, State> TxPool<Chain, State>
         let tx = Arc::new(tx);
 
         if self.lookup.contains(&tx_hash) {
-            return Err(TxPoolError::TransactionAlreadyKnown.into())
+            return Err(TxPoolError::TransactionAlreadyKnown.into());
         }
 
         match validate_transaction(&tx, None, None) {
@@ -113,7 +113,8 @@ impl<Chain, State> TxPool<Chain, State>
         if let Some((overlaping_tx, overlaping_tx_is_pending, _)) = overlaping_tx {
             let overlaping_tx_hash = overlaping_tx.hash();
             self.lookup.delete(&overlaping_tx_hash)?;
-            self.lookup.add(tx_hash.clone(), tx, is_local, overlaping_tx_is_pending)?;
+            self.lookup
+                .add(tx_hash.clone(), tx, is_local, overlaping_tx_is_pending)?;
             return Ok(true);
         }
         // Add transaction to queue

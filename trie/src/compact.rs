@@ -3,10 +3,10 @@ use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
 pub struct CompactTrie<C, K, V>
-    where
-        V: Sized + Clone,
-        K: Word<C>,
-        C: Symbol,
+where
+    V: Sized + Clone,
+    K: Word<C>,
+    C: Symbol,
 {
     key: Option<K>,
     value: Option<V>,

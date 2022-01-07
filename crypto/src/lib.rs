@@ -1,6 +1,6 @@
-use primitive_types::{H256, H160};
+use primitive_types::{H160, H256};
+use ripemd::{Digest, Ripemd160};
 use tiny_keccak::Hasher;
-use ripemd::{Ripemd160, Digest};
 
 pub struct SHA256;
 
@@ -25,10 +25,9 @@ impl Ripe160 {
     }
 }
 
-
 #[cfg(test)]
 mod test {
-    use crate::{SHA256, Ripe160};
+    use crate::{Ripe160, SHA256};
 
     #[test]
     fn test_hashes() {

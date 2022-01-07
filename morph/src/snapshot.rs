@@ -1,13 +1,13 @@
-use crate::error::{MorphError};
+use crate::error::MorphError;
 use crate::{get_operations, AccountState, Hash, Morph, MorphOperation, MorphStorageKV};
 use anyhow::Result;
 use codec::Encoder;
+use primitive_types::H160;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tiny_keccak::Hasher;
 use types::tx::Transaction;
 use types::TxHash;
-use primitive_types::H160;
 
 pub struct MorphSnapshot {
     origin_root: Hash,

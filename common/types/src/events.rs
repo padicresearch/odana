@@ -1,6 +1,6 @@
 use crate::block::{Block, BlockHeader};
-use crate::{MempoolSnapsot, TxHash};
 use crate::tx::Transaction;
+use crate::{MempoolSnapsot, TxHash};
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]

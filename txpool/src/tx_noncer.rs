@@ -1,10 +1,10 @@
-use traits::StateDB;
-use std::sync::Arc;
+use dashmap::mapref::one::Ref;
 use dashmap::DashMap;
 use primitive_types::H160;
-use types::PubKey;
 use std::collections::hash_map::RandomState;
-use dashmap::mapref::one::Ref;
+use std::sync::Arc;
+use traits::StateDB;
+use types::PubKey;
 
 #[derive(Clone)]
 pub struct TxNoncer<State> {
@@ -12,7 +12,10 @@ pub struct TxNoncer<State> {
     nonces: Arc<DashMap<H160, u64>>,
 }
 
-impl<State> TxNoncer<State> where State: StateDB {
+impl<State> TxNoncer<State>
+    where
+        State: StateDB,
+{
     pub fn new(state: State) -> Self {
         Self {
             fallback: state,
@@ -20,9 +23,11 @@ impl<State> TxNoncer<State> where State: StateDB {
         }
     }
     pub fn get(&self, address: &H160) -> u64 {
-        *self.nonces.entry(*address).or_insert_with(|| {
-            self.fallback.account_nonce(address)
-        }).value()
+        *self
+            .nonces
+            .entry(*address)
+            .or_insert_with(|| self.fallback.account_nonce(address))
+            .value()
     }
 
     pub fn set(&self, account_id: H160, nonce: u64) {
@@ -30,12 +35,13 @@ impl<State> TxNoncer<State> where State: StateDB {
     }
 
     pub fn set_if_lower(&self, address: H160, nonce: u64) {
-        let mut entry = self.nonces.entry(address).or_insert_with(|| {
-            self.fallback.account_nonce(&address)
-        });
+        let mut entry = self
+            .nonces
+            .entry(address)
+            .or_insert_with(|| self.fallback.account_nonce(&address));
 
         if *entry.value() <= nonce {
-            return
+            return;
         }
 
         *entry.value_mut() = nonce;
@@ -48,4 +54,3 @@ impl<State> TxNoncer<State> where State: StateDB {
         }
     }
 }
-

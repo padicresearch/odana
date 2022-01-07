@@ -2,12 +2,12 @@ use std::hash::{Hash, Hasher};
 
 use bloomfilter::Bloom;
 
-use crate::crypto::{HASH_LEN, HashFunction, SHA256};
+use crate::crypto::{HashFunction, HASH_LEN, SHA256};
 
 use crate::errors::*;
 
-mod errors;
 mod crypto;
+mod errors;
 
 const BITMAP_SIZE: usize = 32 * 1024 * 1024;
 
@@ -204,8 +204,8 @@ pub fn hash_pair(h: &dyn HashFunction, pair: (&[u8; HASH_LEN], &[u8; HASH_LEN]))
 
 #[cfg(test)]
 mod tests {
-    use crate::{hash_pair, HashFunction, Merkle};
     use crate::crypto::SHA256;
+    use crate::{hash_pair, HashFunction, Merkle};
 
     #[test]
     fn test_with_even_inputs() {

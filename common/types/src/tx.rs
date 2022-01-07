@@ -1,12 +1,12 @@
+use crate::BigArray;
+use crate::{BlockHash, PubKey, Sig};
 use anyhow::Result;
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
+use crypto::{Ripe160, SHA256};
+use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
-use crate::BigArray;
-use crate::{PubKey, BlockHash, Sig};
-use primitive_types::H160;
-use crypto::{Ripe160, SHA256};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum TransactionKind {
@@ -75,12 +75,8 @@ impl Transaction {
     }
     pub fn fees(&self) -> u128 {
         match &self.kind {
-            TransactionKind::Transfer { fee, .. } => {
-                *fee
-            }
-            TransactionKind::Coinbase { .. } => {
-                0
-            }
+            TransactionKind::Transfer { fee, .. } => *fee,
+            TransactionKind::Coinbase { .. } => 0,
         }
     }
 
