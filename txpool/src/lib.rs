@@ -6,6 +6,7 @@ mod txlist;
 #[cfg(test)]
 mod tests;
 
+use tracing::{debug, info};
 use crate::error::TxPoolError;
 use crate::tx_lookup::TxLookup;
 use crate::tx_noncer::TxNoncer;
@@ -15,11 +16,12 @@ use primitive_types::H160;
 use std::borrow::BorrowMut;
 use std::ops::DerefMut;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
-use traits::{BlockchainState, StateDB};
+use traits::{ChainState, StateDB};
 use transaction::validate_transaction;
 use types::tx::Transaction;
 use types::TxHash;
 use std::collections::{BTreeMap, BTreeSet};
+use types::block::BlockHeader;
 
 type TxHashRef = Arc<TxHash>;
 type TransactionRef = Arc<Transaction>;
@@ -44,13 +46,15 @@ pub struct TxPool<Chain, State> {
     pending_nonces: TxNoncer<State>,
     lookup: TxLookup,
     config: TxPoolConfig,
+    head: BlockHeader,
+
 }
 
 pub type TxPoolIterator<'a> = Box<dyn 'a + Send + Iterator<Item=(TxHashRef, TransactionRef)>>;
 
 impl<Chain, State> TxPool<Chain, State>
     where
-        Chain: BlockchainState,
+        Chain: ChainState,
         State: StateDB,
 {
     pub fn new(config: TxPoolConfig, chain: Chain, state: State) -> Result<Self> {
@@ -60,6 +64,7 @@ impl<Chain, State> TxPool<Chain, State>
             pending_nonces: TxNoncer::new(state),
             lookup: TxLookup::new()?,
             config,
+            head: chain.current_head()?
         })
     }
 
@@ -76,6 +81,7 @@ impl<Chain, State> TxPool<Chain, State>
             pending_nonces: TxNoncer::new(state),
             lookup,
             config,
+            head: chain.current_head()?
         })
     }
 
@@ -154,9 +160,28 @@ impl<Chain, State> TxPool<Chain, State>
         self.lookup.locals()
     }
 
+    pub fn reset(&self, new_head: &BlockHeader) -> Result<()> {
+        if self.head.block_hash() != new_head.block_hash() {
+            let depth = ((self.head.level() as f64) - (new_head.level() as f64)).abs() as u64;
+            if depth > 64 {
+                info!(depth = depth, "Skipped deep transaction packing")
+            } else {
+                let rem = self.chain.get_block()
+            }
+        }
+
+        todo!()
+    }
+
 
     /// Takes transaction form queue and adds them to pending
-    fn reorg(&self) {}
+    fn package(&self) {
+        // Remove transactions with nonce lower than current account state
+        // Remove transactions that are too costly ( sender cannot fulfil transaction)
+        // Get all remaining transactions and promote them
+    }
+
+    fn promote_executables(&self) {}
 
     pub fn nonce(&self, address: &H160) -> u64 {
         self.pending_nonces.get(address)
@@ -167,16 +192,4 @@ impl<Chain, State> TxPool<Chain, State>
     pub fn remove(&self, tx_hash: &TxHash) {
         self.reorg()
     }
-
-    // pub fn queue(&self) -> TxPoolIterator {
-    //     Box::new(self.queue.iter().map(|kv| {
-    //         (kv.key().clone(), kv.value().clone())
-    //     }))
-    // }
-    //
-    // pub fn pending(&self) -> TxPoolIterator {
-    //     Box::new(self.pending.iter().map(|kv| {
-    //         (kv.key().clone(), kv.value().clone())
-    //     }))
-    // }
 }

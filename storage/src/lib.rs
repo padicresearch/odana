@@ -1,20 +1,25 @@
-use crate::memstore::MemStore;
-use crate::sleddb::SledDB;
-use anyhow::Result;
-use codec::Codec;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::RwLock;
 
+use anyhow::Result;
+
+use codec::Codec;
+
+use crate::memstore::MemStore;
+use crate::sleddb::SledDB;
+
 pub mod error;
 pub mod memstore;
 pub mod sleddb;
+mod rocks;
 
 pub trait KVEntry {
     type Key: Codec + Clone;
     type Value: Codec;
     fn column() -> &'static str;
 }
+
 
 pub enum PersistentStorage {
     InMemory(Arc<MemStore>),

@@ -1,7 +1,7 @@
 use account::GOVERNANCE_ACCOUNTID;
 use anyhow::Result;
 use codec::Encoder;
-use crypto::{Ripe160, SHA256};
+use crypto::{RIPEMD160, SHA256};
 use primitive_types::H160;
 use tiny_keccak::Hasher;
 use types::account::Account;

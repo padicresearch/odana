@@ -20,5 +20,6 @@ hex = "0.4.3"
 commitlog = "0.2"
 primitive-types = { path = "../common/primitive-types" }
 transaction = { path = "../transaction" }
+rocksdb = "0.17.0"
 [dev-dependencies]
 tempdir = "0.3.7"

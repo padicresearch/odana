@@ -3,11 +3,12 @@ use crate::{BlockHash, PubKey, Sig};
 use anyhow::Result;
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
-use crypto::{Ripe160, SHA256};
+use crypto::{RIPEMD160, SHA256};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum TransactionKind {
@@ -53,6 +54,12 @@ impl PartialOrd for Transaction {
     }
 }
 
+impl Hash for Transaction {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write(&self.hash())
+    }
+}
+
 impl Transaction {
     pub fn new(origin: PubKey, nonce: u64, sig: Sig, kind: TransactionKind) -> Self {
         Self {
@@ -88,7 +95,7 @@ impl Transaction {
         self.nonce
     }
     pub fn sender_address(&self) -> H160 {
-        Ripe160::digest(&SHA256::digest(&self.origin))
+        RIPEMD160::digest(&SHA256::digest(&self.origin))
     }
     pub fn fees(&self) -> u128 {
         match &self.kind {

@@ -8,12 +8,13 @@ use rand::Rng;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::sync::{Arc, RwLock};
-use traits::{BlockchainState, StateDB};
+use traits::{ChainState, StateDB};
 use transaction::make_sign_transaction;
 use types::account::AccountState;
 use types::block::BlockHeader;
 use types::tx::TransactionKind;
 use types::PubKey;
+use std::env;
 
 #[derive(Clone)]
 struct DummyStateDB {
@@ -89,7 +90,7 @@ impl StateDB for DummyStateDB {
     }
 }
 
-impl BlockchainState for DummyChain {
+impl ChainState for DummyChain {
     fn current_head(&self) -> anyhow::Result<Option<BlockHeader>> {
         let blocks = self.chain.read().map_err(|_| anyhow::anyhow!("RW error"))?;
         Ok(blocks.last().map(|block| block.clone()))
@@ -129,7 +130,6 @@ fn generate_blocks(n: usize) -> Vec<BlockHeader> {
     blocks
 }
 
-use codec::Encoder;
 
 #[test]
 fn test_txpool() {
@@ -142,9 +142,11 @@ fn test_txpool() {
     ];
     let chain = DummyChain::new(generate_blocks(10));
     let state = DummyStateDB::with_accounts(Box::new(accounts.into_iter()));
+    let test_dir = env::var("TEST_DIR").unwrap();
+
 
     let txpool = TxPool::new_lookup(
-        TxLookup::new_in_path("/home/mambisi/CLionProjects/tuchain/test/txpool.db").unwrap(),
+        TxLookup::new_in_path(format!("{}{}", test_dir, "txpool.db")).unwrap(),
         TxPoolConfig::default(),
         chain,
         state,
@@ -180,6 +182,6 @@ fn test_txpool() {
     txpool.add(tx1.clone(), true).unwrap();
     txpool.add(tx2.clone(), true).unwrap();
     assert_eq!(tx2, **txpool.content_from(alice.address).unwrap().1.get(&tx2_hash).unwrap());
-    println!("Content From Alice: {:?}", txpool.content_from(alice.address))
+    println!("Stats: {:?}", txpool.stats())
     //println!("{:?}", txpool)
 }

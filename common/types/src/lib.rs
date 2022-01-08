@@ -7,7 +7,7 @@ use codec::{Decoder, Encoder};
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 use serde_big_array::big_array;
-
+pub type Hash = [u8; 32];
 pub type BlockHash = [u8; 32];
 pub type TxHash = [u8; 32];
 pub type MerkleHash = [u8; 32];

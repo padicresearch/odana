@@ -177,14 +177,20 @@ impl TxLookup {
     fn conv_tx<'a>(
         &'a self,
         rows: Box<dyn 'a + Iterator<Item=rusqlite::Result<TxIndexRow, rusqlite::Error>>>,
-    ) -> Box<dyn 'a + Iterator<Item=Result<TxRowResult, TxPoolError>>>
-    {
+    ) -> Box<dyn 'a + Iterator<Item=Result<TxRowResult, TxPoolError>>> {
         let mut iter_tx_hash = rows.map(|index| {
             index
                 .map_err(|e| TxPoolError::SqliteError(e))
                 .and_then(|index| {
                     hex::decode(&index.id)
-                        .map(|out| (out, H160::from_slice(index.address.as_slice()), index.is_pending, index.is_local))
+                        .map(|out| {
+                            (
+                                out,
+                                H160::from_slice(index.address.as_slice()),
+                                index.is_pending,
+                                index.is_local,
+                            )
+                        })
                         .map_err(|hex_error| TxPoolError::HexError(hex_error))
                 })
                 .and_then(|(tx_id_raw, sender, is_pending, is_local)| {
@@ -437,13 +443,9 @@ impl TxLookup {
         for res in txs {
             let res = res?;
             let mut list = if res.is_pending {
-                pending
-                    .entry(res.sender)
-                    .or_insert(Default::default())
+                pending.entry(res.sender).or_insert(Default::default())
             } else {
-                queue
-                    .entry(res.sender)
-                    .or_insert(Default::default())
+                queue.entry(res.sender).or_insert(Default::default())
             };
             list.insert(res.tx_hash, res.tx);
         }
@@ -495,9 +497,7 @@ impl TxLookup {
         for res in txs {
             let res = res?;
             if res.is_pending {
-                let list = pending
-                    .entry(res.sender)
-                    .or_insert(Default::default());
+                let list = pending.entry(res.sender).or_insert(Default::default());
                 list.insert(res.tx_hash, res.tx);
             }
         }

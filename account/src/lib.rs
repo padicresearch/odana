@@ -1,6 +1,6 @@
 use anyhow::Result;
 use codec::{Decoder, Encoder};
-use crypto::{Ripe160, SHA256};
+use crypto::{RIPEMD160, SHA256};
 use ed25519_dalek::ed25519::signature::Signature;
 use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signer, Verifier};
 use primitive_types::H160;
@@ -22,7 +22,7 @@ pub fn create_account() -> Account {
     let keypair = Keypair::generate(&mut csprng);
     let pri_key = keypair.secret.to_bytes();
     let pub_key = keypair.public.to_bytes();
-    let mut address = Ripe160::digest(SHA256::digest(&pub_key).as_bytes());
+    let mut address = RIPEMD160::digest(SHA256::digest(&pub_key).as_bytes());
     Account {
         address,
         pri_key,
@@ -31,7 +31,7 @@ pub fn create_account() -> Account {
 }
 
 pub fn get_address_from_pub_key(pub_key: &PubKey) -> H160 {
-    Ripe160::digest(SHA256::digest(&pub_key).as_bytes())
+    RIPEMD160::digest(SHA256::digest(&pub_key).as_bytes())
 }
 
 pub fn verify_signature(pub_key: &[u8; 32], sig: &[u8; 64], message: &[u8]) -> Result<()> {

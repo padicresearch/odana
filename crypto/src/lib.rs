@@ -14,9 +14,9 @@ impl SHA256 {
     }
 }
 
-pub struct Ripe160;
+pub struct RIPEMD160;
 
-impl Ripe160 {
+impl RIPEMD160 {
     pub fn digest<B: AsRef<[u8]>>(bytes: B) -> H160 {
         let mut hasher = Ripemd160::new();
         hasher.update(bytes);
@@ -27,12 +27,12 @@ impl Ripe160 {
 
 #[cfg(test)]
 mod test {
-    use crate::{Ripe160, SHA256};
+    use crate::{RIPEMD160, SHA256};
 
     #[test]
     fn test_hashes() {
         let hello = SHA256::digest(b"hello");
         println!("{:?}", hello.as_fixed_bytes());
-        println!("{:?}", Ripe160::digest(hello.as_bytes()));
+        println!("{:?}", RIPEMD160::digest(hello.as_bytes()));
     }
 }

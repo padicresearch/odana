@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -7,22 +8,23 @@ use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
 use account::get_address_from_pub_key;
-use codec::impl_codec;
 use codec::{Codec, Decoder, Encoder};
+use codec::impl_codec;
+use primitive_types::H160;
 use storage::{KVEntry, KVStore};
-use types::tx::{Transaction, TransactionKind};
+use traits::StateDB;
 use types::{BlockHash, TxHash};
+use types::account::AccountState;
+use types::tx::{Transaction, TransactionKind};
 
 use crate::error::MorphError;
 use crate::logdb::{HistoryLog, LogData};
 use crate::snapshot::MorphSnapshot;
-use primitive_types::H160;
-use traits::StateDB;
-use types::account::AccountState;
 
 mod error;
 mod logdb;
 mod snapshot;
+mod kv;
 
 type Hash = [u8; 32];
 
@@ -35,6 +37,7 @@ pub enum ProofElement {
 }
 
 pub type MorphStorageKV = dyn KVStore<Morph> + Send + Sync;
+
 
 #[derive(Clone)]
 pub struct Morph {
@@ -191,6 +194,10 @@ impl Morph {
         }
         Ok(proof)
     }
+
+    pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {}
+
+    pub fn recover<P: AsRef<Path>>(&self, path: P) -> Result<Self> {}
 
     pub fn root_hash(&self) -> Option<Hash> {
         self.history_log.last_history()
