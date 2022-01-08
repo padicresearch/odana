@@ -25,6 +25,7 @@ mod error;
 mod logdb;
 mod snapshot;
 mod kv;
+mod store;
 
 type Hash = [u8; 32];
 
@@ -195,9 +196,9 @@ impl Morph {
         Ok(proof)
     }
 
-    pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {}
-
-    pub fn recover<P: AsRef<Path>>(&self, path: P) -> Result<Self> {}
+    // pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {}
+    //
+    // pub fn recover<P: AsRef<Path>>(&self, path: P) -> Result<Self> {}
 
     pub fn root_hash(&self) -> Option<Hash> {
         self.history_log.last_history()

@@ -22,13 +22,13 @@ use std::sync::Arc;
 //     fn get_block(&self, hash : &BlockHash) -> Block;
 // }
 
-pub trait ChainState: Send + Sync + Clone {
+pub trait ChainState: Send + Sync {
     fn current_head(&self) -> Result<BlockHeader>;
     fn get_block(&self, block_hash: &types::Hash) -> Result<Option<Block>>;
-    fn get_state_at(&self, root: &types::Hash) -> Result<dyn StateDB>;
+    fn get_state_at(&self, root: &types::Hash) -> Result<Box<dyn StateDB>>;
 }
 
-pub trait StateDB: Send + Sync + Clone {
+pub trait StateDB: Send + Sync {
     fn account_nonce(&self, address: &H160) -> u64;
     fn account_state(&self, address: &H160) -> AccountState;
 }

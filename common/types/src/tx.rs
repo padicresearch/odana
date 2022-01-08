@@ -8,7 +8,7 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 use std::cmp::Ordering;
-use std::hash::{Hash, Hasher};
+use std::hash::{Hash};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum TransactionKind {

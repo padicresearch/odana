@@ -32,9 +32,7 @@ pub struct Account {
     pub pub_key: [u8; 32],
 }
 
-impl Encoder for Account {}
-
-impl Decoder for Account {}
+impl_codec!(Account);
 
 impl PartialEq for Account {
     fn eq(&self, other: &Self) -> bool {

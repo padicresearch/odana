@@ -19,7 +19,9 @@ chrono = "0.4.19"
 hex = "0.4.3"
 commitlog = "0.2"
 primitive-types = { path = "../common/primitive-types" }
+tracing = { path = "../common/tracing" }
 transaction = { path = "../transaction" }
 rocksdb = "0.17.0"
+num_cpus = "1.13.1"
 [dev-dependencies]
 tempdir = "0.3.7"

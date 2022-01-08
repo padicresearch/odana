@@ -34,4 +34,12 @@ pub enum MorphError {
     NonceIsLessThanCurrent,
     #[error("LogIndexNoFound")]
     LogIndexNoFound,
+    #[error("ColumnFamilyMissing {0}")]
+    ColumnFamilyMissing(&'static str),
+    #[error("SequenceAlreadyPresent {0}")]
+    SequenceAlreadyPresent(u128),
+    #[error("CodecErrorDecoding")]
+    CodecErrorDecoding,
+    #[error("CodecErrorEncoding")]
+    CodecErrorEncoding,
 }

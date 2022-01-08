@@ -5,7 +5,7 @@ use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 use std::fmt::Formatter;
 use tiny_keccak::Hasher;
-
+use codec::impl_codec;
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
 pub struct BlockHeader {
     prev_block_hash: BlockHash,
@@ -108,8 +108,7 @@ pub struct Block {
     transactions: Vec<TxHash>,
 }
 
-impl Encoder for Block {}
-impl Decoder for Block {}
+impl_codec!(Block);
 
 #[derive(Debug, Getters)]
 pub struct BlockView {

@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 bloomfilter = { git = "https://github.com/mambisi/rust-bloom-filter.git"}
 thiserror = "1.0"
+sha2 = "0.9.2"
