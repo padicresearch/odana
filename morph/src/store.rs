@@ -1,5 +1,5 @@
 use crate::kv::{KV, Schema};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
 use types::Hash;
 use codec::{Encoder, Decoder};
@@ -7,7 +7,7 @@ use codec::impl_codec;
 use crate::{MorphOperation, GENESIS_ROOT};
 use anyhow::Result;
 use crate::error::MorphError;
-use tracing::warn;
+use tracing::{warn, Value};
 use primitive_types::H160;
 use types::account::AccountState;
 use rocksdb::{ColumnFamilyDescriptor, BlockBasedOptions, MergeOperands};
@@ -52,17 +52,17 @@ pub fn default_table_options() -> Options {
 
 pub type HistoryStorageKV = dyn KV<HistoryStorage> + Send + Sync;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum HistoryIKey {
     Root,
     Lookup(Hash),
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct HistoryIValue {
     operation: MorphOperation,
     root: Hash,
-    prev_root: Hash,
+    parent_root: Hash,
     seq: u128,
 }
 
@@ -83,18 +83,32 @@ impl Schema for HistoryStorage {
     }
 }
 
-#[derive(Clone)]
 pub struct HistoryStorage {
+    mu: Mutex<()>,
     kv: Arc<HistoryStorageKV>,
 }
 
 impl HistoryStorage {
-    pub fn set_root(&self, value: HistoryIValue) -> Result<()> {
-        self.kv.put(HistoryIKey::Root, value)
+    pub fn new(kv: Arc<HistoryStorageKV>) -> Self {
+        Self {
+            mu: Mutex::new(()),
+            kv,
+        }
     }
 
-    pub fn put(&self, key: HistoryIKey, value: HistoryIValue) -> Result<()> {
-        self.kv.put(key, value)
+    //TODO:  implement Rollback
+    pub fn append(&self, key: Hash, value: MorphOperation) -> Result<HistoryIValue> {
+        self.mu.lock().map_err(|e| anyhow::anyhow!("{}", e))?;
+        anyhow::ensure!(!self.kv.contains(&HistoryIKey::Lookup(key))?, "duplicate state root");
+        let root_seq = self.root()?.map(|root| root.seq).unwrap_or_default();
+        let value = HistoryIValue {
+            operation: value,
+            root: key,
+            parent_root: self.root_hash()?,
+            seq: root_seq + 1,
+        };
+        self.kv.batch(vec![(HistoryIKey::Lookup(key), value.clone()), (HistoryIKey::Root, value.clone())])?;
+        Ok(value)
     }
 
     pub fn get(&self, key: &HistoryIKey) -> Result<Option<HistoryIValue>> {
@@ -108,6 +122,10 @@ impl HistoryStorage {
     pub fn root_hash(&self) -> Result<Hash> {
         let root = self.kv.get(&HistoryIKey::Root)?.map(|history| history.root);
         Ok(root.unwrap_or(GENESIS_ROOT))
+    }
+    pub fn root_seq(&self) -> Result<u128> {
+        let root = self.kv.get(&HistoryIKey::Root)?.map(|history| history.seq);
+        Ok(root.unwrap_or(0))
     }
 }
 
@@ -133,6 +151,11 @@ pub struct AccountStateStorage {
 }
 
 impl AccountStateStorage {
+    pub fn new(kv: Arc<AccountStateStorageKV>) -> Self {
+        Self {
+            kv
+        }
+    }
     pub fn put(&self, key: H160, value: AccountState) -> Result<()> {
         self.kv.put(key, value)
     }
@@ -228,19 +251,66 @@ fn column_families() -> Vec<ColumnFamilyDescriptor> {
     vec![
         HistoryStorage::descriptor(),
         AccountStateStorage::descriptor(),
-        AccountMetadataStorage::descriptor()
+        AccountMetadataStorage::descriptor(),
+        HistorySequenceStorage::descriptor()
     ]
+}
+
+pub type HistorySequenceIterator<'a> =
+Box<dyn 'a + Send + Iterator<Item=(Result<u128>, Result<Hash>)>>;
+pub type HistorySequenceStorageKV = dyn KV<HistorySequenceStorage> + Send + Sync;
+
+impl Schema for HistorySequenceStorage {
+    type Key = u128;
+    type Value = Hash;
+
+    fn column() -> &'static str {
+        "history_sequence"
+    }
+
+    fn descriptor() -> ColumnFamilyDescriptor {
+        ColumnFamilyDescriptor::new(Self::column(), default_table_options())
+    }
+}
+
+#[derive(Clone)]
+pub struct HistorySequenceStorage {
+    kv: Arc<HistorySequenceStorageKV>,
+}
+
+impl HistorySequenceStorage {
+    pub fn new(kv: Arc<HistorySequenceStorageKV>) -> Self {
+        Self {
+            kv
+        }
+    }
+    pub fn put(&self, key: u128, value: Hash) -> Result<()> {
+        if self.kv.contains(&key)? {
+            warn!(target : "key", warning = "Ward", "already present");
+            return Err(MorphError::SequenceAlreadyPresent(key).into());
+        }
+        self.kv.put(key, value)
+    }
+
+    pub fn get(&self, key: &u128) -> Result<Option<Hash>> {
+        self.kv.get(key)
+    }
+
+    pub fn iter(&self) -> Result<HistorySequenceIterator> {
+        self.kv.iter()
+    }
 }
 
 #[cfg(test)]
 mod test {
     use tempdir::TempDir;
-    use crate::store::{default_db_opts, column_families, AccountMetadataStorage, AccountRoots};
+    use crate::store::{default_db_opts, column_families, AccountMetadataStorage, AccountRoots, AccountStateStorage, HistoryStorage, HistoryIKey, HistoryIValue, HistorySequenceStorage};
     use std::sync::Arc;
     use account::create_account;
+    use crate::MorphOperation;
 
     #[test]
-    fn test_merge_account_state() {
+    fn test_merge_account_meta() {
         let dir = TempDir::new("_test_merge_account_state").unwrap();
         let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families()).unwrap());
         let account_meta_storage = AccountMetadataStorage::new(db);
@@ -249,37 +319,64 @@ mod test {
         account_meta_storage.put(alice.address, AccountRoots(vec![[2; 32]])).unwrap();
         account_meta_storage.put(alice.address, AccountRoots(vec![[3; 32]])).unwrap();
 
-        println!("{:?}", account_meta_storage.get(&alice.address).unwrap())
+        assert_eq!(account_meta_storage.get(&alice.address).unwrap().unwrap().0, vec![[1_u8; 32], [2_u8; 32], [3_u8; 32]])
+    }
+
+    #[test]
+    fn test_history() {
+        let alice = create_account();
+        let dir = TempDir::new("_test_merge_account_state").unwrap();
+        let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families()).unwrap());
+        let history_storage = HistoryStorage::new(db);
+        history_storage.append([1; 32], MorphOperation::UpdateNonce {
+            account: alice.address,
+            nonce: 1,
+            tx_hash: [0; 32],
+        }).unwrap();
+        history_storage.append([2; 32], MorphOperation::UpdateNonce {
+            account: alice.address,
+            nonce: 2,
+            tx_hash: [0; 32],
+        }).unwrap();
+        history_storage.append([3; 32], MorphOperation::UpdateNonce {
+            account: alice.address,
+            nonce: 3,
+            tx_hash: [0; 32],
+        }).unwrap();
+        println!("{:?}", history_storage.root_hash().unwrap())
+    }
+
+    #[test]
+    fn test_multi_thread_history() {
+        let alice = create_account();
+        let dir = TempDir::new("_test_merge_account_state").unwrap();
+        let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families()).unwrap());
+        let history_storage = Arc::new(HistoryStorage::new(db.clone()));
+        let history_sequence = Arc::new(HistorySequenceStorage::new(db));
+        let mut handles = Vec::new();
+        for i in 1..=30 {
+            let history_storage = history_storage.clone();
+            let history_sequence = history_sequence.clone();
+            let handle = std::thread::spawn(move || {
+                let seq = history_storage.root_seq().unwrap();
+                history_sequence.put(seq + 1, [i as u8; 32]).unwrap();
+                let his = history_storage.append([i as u8; 32], MorphOperation::UpdateNonce {
+                    account: alice.address,
+                    nonce: i,
+                    tx_hash: [i as u8; 32],
+                }).unwrap();
+                //history_sequence.put(his.seq, his.root).unwrap();
+            });
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            handle.join();
+        }
+
+        for (seq, root) in history_sequence.iter().unwrap() {
+            println!("SEQ {} ROOT {:?}", seq.unwrap(), root.unwrap());
+        }
+        println!("{:?}", history_storage.root_hash().unwrap())
     }
 }
-// pub type HistorySequenceStorageKV = dyn KV<HistorySequenceStorage> + Send + Sync;
-//
-// impl Schema for HistorySequenceStorage {
-//     type Key = u128;
-//     type Value = Hash;
-//
-//     fn column() -> &'static str {
-//         "history_sequence"
-//     }
-// }
-//
-// #[derive(Clone)]
-// pub struct HistorySequenceStorage {
-//     kv: Arc<HistorySequenceStorageKV>,
-// }
-//
-// impl HistorySequenceStorage {
-//
-//     pub fn put(&self,key : u128, value : Hash) -> Result<()>{
-//         if self.kv.contains(&key)? {
-//             warn!(sequence : key, "already present");
-//             return Err(MorphError::SequenceAlreadyPresent(key).into());
-//         }
-//         self.kv.put(key, value)
-//     }
-//
-//     pub fn get(&self,key : &u128) -> Result<Option<Hash>>{
-//         self.kv.get(key)
-//     }
-//
-// }

@@ -16,6 +16,7 @@ pub trait KV<Entry>
 {
     fn get(&self, key: &Entry::Key) -> Result<Option<Entry::Value>>;
     fn put(&self, key: Entry::Key, value: Entry::Value) -> Result<()>;
+    fn batch(&self, batch: Vec<(Entry::Key, Entry::Value)>) -> Result<()>;
     fn merge(&self, key: Entry::Key, value: Entry::Value) -> Result<()>;
     fn contains(&self, key: &Entry::Key) -> Result<bool>;
     fn iter(&self) -> Result<SchemaIterator<Entry>>;
@@ -57,6 +58,15 @@ impl<S: Schema> KV<S> for DB {
         let key = key.encode()?;
         let value = value.encode()?;
         self.put_cf_opt(cf, key, value, &default_write_opts()).map_err(|e| e.into())
+    }
+
+    fn batch(&self, batch: Vec<(S::Key, S::Value)>) -> Result<()> {
+        let cf = self.cf_handle(S::column()).ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
+        let mut write_batch = rocksdb::WriteBatch::default();
+        for (k, v) in batch {
+            write_batch.put_cf(cf, k.encode()?, v.encode()?);
+        }
+        self.write_opt(write_batch, &default_write_opts()).map_err(|e| e.into())
     }
 
     fn merge(&self, key: S::Key, value: S::Value) -> Result<()> {
