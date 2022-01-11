@@ -25,3 +25,4 @@ rocksdb = "0.17.0"
 num_cpus = "1.13.1"
 [dev-dependencies]
 tempdir = "0.3.7"
+fs_extra = "1.2.0"

@@ -32,3 +32,11 @@ pub trait StateDB: Send + Sync {
     fn account_nonce(&self, address: &H160) -> u64;
     fn account_state(&self, address: &H160) -> AccountState;
 }
+
+pub trait Saturating {
+    fn saturating_add(self, rhs: Self) -> Self;
+
+    fn saturating_sub(self, rhs: Self) -> Self;
+
+    fn saturating_mul(self, rhs: Self) -> Self;
+}

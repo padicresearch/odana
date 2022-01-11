@@ -1,59 +1,59 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Result, Error};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
-use account::get_address_from_pub_key;
-use codec::{Codec, Decoder, Encoder};
-use codec::impl_codec;
-use primitive_types::H160;
-use storage::{KVEntry, KVStore};
-use traits::StateDB;
-use types::{BlockHash, TxHash};
-use types::account::AccountState;
-use types::tx::{Transaction, TransactionKind};
-
 use crate::error::MorphError;
 use crate::logdb::{HistoryLog, LogData};
-use crate::snapshot::MorphSnapshot;
+//use crate::snapshot::MorphSnapshot;
+use crate::store::{
+    column_families, default_db_opts, AccountMetadataStorage, AccountStateStorage,
+    HistorySequenceStorage, HistoryStorage,
+};
+use account::get_address_from_pub_key;
+use codec::impl_codec;
+use codec::{Codec, Decoder, Encoder};
+use primitive_types::{H160, H256};
+use storage::{KVEntry, KVStore};
+use traits::StateDB;
+use types::account::AccountState;
+use types::tx::{Transaction, TransactionKind};
+use types::Hash;
+use types::{BlockHash, TxHash};
+use rocksdb::checkpoint::Checkpoint;
+use std::option::Option::Some;
+use crate::snapshot::MorphIntermediate;
+use crate::kv::{Schema};
+use rocksdb::ColumnFamily;
 
 mod error;
+mod kv;
 mod logdb;
 mod snapshot;
-mod kv;
 mod store;
-
-type Hash = [u8; 32];
 
 const GENESIS_ROOT: [u8; 32] = [0; 32];
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum ProofElement {
-    Operation { op: MorphOperation, index: u64 },
-    History { index: u64 },
+pub struct ProofItem {
+    op: MorphOperation,
+    parent_root: Hash,
+    root: Hash,
 }
-
 pub type MorphStorageKV = dyn KVStore<Morph> + Send + Sync;
-
 
 #[derive(Clone)]
 pub struct Morph {
-    kv: Arc<MorphStorageKV>,
-    history_log: Arc<HistoryLog>,
+    db: Arc<rocksdb::DB>,
+    history_storage: Arc<HistoryStorage>,
+    account_state_storage: Arc<AccountStateStorage>,
+    account_meta_storage: Arc<AccountMetadataStorage>,
 }
 
-impl KVEntry for Morph {
-    type Key = H160;
-    type Value = AccountState;
-
-    fn column() -> &'static str {
-        "state"
-    }
-}
 
 impl StateDB for Morph {
     fn account_nonce(&self, address: &H160) -> u64 {
@@ -75,33 +75,37 @@ impl StateDB for Morph {
 }
 
 impl Morph {
-    pub fn new(kv: Arc<MorphStorageKV>, history_log: Arc<HistoryLog>) -> Result<Self> {
-        let mut morph = Self { kv, history_log };
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let db = Arc::new(rocksdb::DB::open_cf_descriptors(
+            &default_db_opts(),
+            path,
+            column_families(),
+        )?);
+        let morph = Self {
+            db: db.clone(),
+            history_storage: Arc::new(HistoryStorage::new(db.clone())),
+            account_state_storage: Arc::new(AccountStateStorage::new(db.clone())),
+            account_meta_storage: Arc::new(AccountMetadataStorage::new(db.clone())),
+        };
         Ok(morph)
     }
 
-    pub fn apply_transaction(&mut self, transaction: Transaction) -> Result<()> {
+    pub fn apply_transaction(&self, transaction: Transaction) -> Result<()> {
         //TODO: verify transaction (probably)
         for action in get_operations(&transaction) {
             let mut new_account_state = self.apply_action(&action)?;
             let mut sha3 = tiny_keccak::Sha3::v256();
-            let current_root = match self.history_log.last_history() {
-                None => {
-                    if self.history_log.len() > 0 {
-                        return Err(MorphError::ValidationFailedRootNotValid.into());
-                    }
-                    GENESIS_ROOT
-                }
-                Some(root) => root,
-            };
+            let current_root = self.history_storage.root_hash()?;
             sha3.update(&current_root);
             sha3.update(&action.encode()?);
             sha3.update(&new_account_state.encode()?);
             let mut new_root = [0; 32];
             sha3.finalize(&mut new_root);
-            self.history_log
-                .append(LogData::new(action.clone(), new_root));
-            self.kv.put(action.get_address(), new_account_state)?;
+
+            let sender = action.get_address();
+            let history_value = self.history_storage.append(new_root, action)?;
+            self.account_meta_storage.put(sender, history_value.root)?;
+            self.account_state_storage.put(sender, new_account_state)?;
         }
         Ok(())
     }
@@ -112,24 +116,24 @@ impl Morph {
         Ok(())
     }
 
-    fn apply_action(&mut self, action: &MorphOperation) -> Result<AccountState> {
+    fn apply_action(&self, action: &MorphOperation) -> Result<AccountState> {
         match action {
             MorphOperation::DebitBalance {
                 account, amount, ..
             } => {
-                let mut account_state = self.kv.get(account)?.ok_or(MorphError::AccountNotFound)?;
+                let mut account_state = self.get_account_state(account)?.ok_or(MorphError::AccountNotFound)?;
                 account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
                 Ok(account_state)
             }
             MorphOperation::CreditBalance {
                 account, amount, ..
             } => {
-                let mut account_state = self.kv.get(account)?.unwrap_or_default();
+                let mut account_state = self.get_account_state(account)?.unwrap_or_default();
                 account_state.free_balance = account_state.free_balance.saturating_add(*amount);
                 Ok(account_state)
             }
             MorphOperation::UpdateNonce { account, nonce, .. } => {
-                let mut account_state = self.kv.get(account)?.unwrap_or_default();
+                let mut account_state = self.get_account_state(account)?.unwrap_or_default();
                 if *nonce <= account_state.nonce {
                     return Err(MorphError::NonceIsLessThanCurrent.into());
                 }
@@ -140,128 +144,134 @@ impl Morph {
     }
 
     fn get_account_state(&self, address: &H160) -> Result<Option<AccountState>> {
-        self.kv.get(address)
+        self.account_state_storage.get(address)
     }
 
-    fn proof(&self, address: H160) -> Result<Vec<ProofElement>> {
-        let mut proof = Vec::new();
-        for res in self.history_log.iter_operations()? {
-            let (idx, op) = res?;
-            let account = op.get_address();
-            if account == address {
-                proof.push(ProofElement::Operation {
-                    op: op.clone(),
-                    index: idx as u64,
-                })
+    fn get_account_state_with_proof(
+        &self,
+        address: &H160,
+        full_walk: bool,
+    ) -> Result<(Option<AccountState>, Vec<ProofItem>)> {
+        Ok((
+            self.account_state_storage.get(address)?,
+            if full_walk {
+                self.account_state_full_proof(address.clone())?
             } else {
-                proof.push(ProofElement::History { index: idx as u64 });
-            }
+                self.account_state_partial_proof(address.clone())?
+            },
+        ))
+    }
+
+    fn account_state_full_proof(&self, address: H160) -> Result<Vec<ProofItem>> {
+        let mut proof = Vec::new();
+        for his in self.history_storage.address_history(address)? {
+            proof.push(ProofItem {
+                op: his.operation,
+                parent_root: his.parent_root,
+                root: his.root,
+            });
         }
         Ok(proof)
     }
 
-    pub fn create_snapshot(&self) -> Result<MorphSnapshot> {
-        MorphSnapshot::new(self)
-    }
-
-    pub fn commit_snapshot(&self, snapshot: MorphSnapshot) -> Result<()> {
-        Ok(())
-    }
-
-    fn compact_proof(&self, address: H160) -> Result<Vec<ProofElement>> {
+    fn account_state_partial_proof(&self, address: H160) -> Result<Vec<ProofItem>> {
         let mut proof = Vec::new();
-        for res in self.history_log.iter_operations()? {
-            let (idx, op) = res?;
-            let op_address = op.get_address();
-            if op_address == address {
-                proof.push(ProofElement::Operation {
-                    op: op.clone(),
-                    index: idx as u64,
-                })
-            } else {
-                if let Some(ProofElement::History { .. }) = proof.last() {
-                    let d = proof.len() - 1;
-                    std::mem::swap(
-                        proof
-                            .get_mut(d)
-                            .ok_or(anyhow::anyhow!("poof index not found"))?,
-                        &mut ProofElement::History { index: idx as u64 },
-                    )
-                    //proof.push();
-                } else {
-                    proof.push(ProofElement::History { index: idx as u64 });
-                }
-            }
+        let roots = match self.account_meta_storage.get(&address)? {
+            None => return Ok(proof),
+            Some(roots) => self.history_storage.multi_get(roots)?,
+        };
+        let mut roots_iter = roots.iter();
+        while let Some(Some(his)) = roots_iter.next() {
+            proof.push(ProofItem {
+                op: his.operation.clone(),
+                parent_root: his.parent_root,
+                root: his.root,
+            });
         }
         Ok(proof)
     }
 
-    // pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {}
-    //
-    // pub fn recover<P: AsRef<Path>>(&self, path: P) -> Result<Self> {}
+    pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {
+        let checkpoint = Checkpoint::new(&self.db)?;
+        checkpoint.create_checkpoint(path.as_ref())?;
+        Ok(Self::new(path.as_ref())?)
+    }
 
+    pub fn intermediate(&self) -> Result<MorphIntermediate> {
+        let cfs = vec![AccountStateStorage::column(), HistoryStorage::column()];
+        let cfs: Result<BTreeMap<_, _>, _> = cfs.iter().map(|name| {
+            self.db.cf_handle(*name).ok_or(MorphError::ColumnFamilyMissing(name)).map(|cf| {
+                (*name, cf)
+            })
+        }).collect();
+        let snapshot = self.db.snapshot();
+        Ok(MorphIntermediate::new(cfs?, snapshot))
+    }
     pub fn root_hash(&self) -> Option<Hash> {
-        self.history_log.last_history()
-    }
-}
-
-// fn hash_op(prev_hash : &Hash, op : &MorphOperation) -> Hash {
-//
-// }
-
-pub fn validate_account_state(
-    proof: &Vec<ProofElement>,
-    morph: &Morph,
-) -> Result<(AccountState, u64), MorphError> {
-    let mut account_state: AccountState = AccountState::default();
-    let mut history: Vec<[u8; 32]> = vec![];
-    let mut last_valid_seq = 0;
-    for el in proof {
-        match el {
-            ProofElement::Operation { op, index: seq } => {
-                match op {
-                    MorphOperation::DebitBalance { amount, .. } => {
-                        account_state.free_balance =
-                            account_state.free_balance.saturating_sub(*amount);
-                    }
-                    MorphOperation::CreditBalance { amount, .. } => {
-                        account_state.free_balance =
-                            account_state.free_balance.saturating_add(*amount);
-                    }
-                    MorphOperation::UpdateNonce { nonce, .. } => {
-                        account_state.nonce = *nonce;
-                    }
-                }
-                let prev_root = history.last().unwrap_or(&GENESIS_ROOT);
-                let mut sha3 = tiny_keccak::Sha3::v256();
-                sha3.update(prev_root);
-                sha3.update(&op.encode()?);
-                sha3.update(&account_state.encode()?);
-                let mut new_root = [0; 32];
-                sha3.finalize(&mut new_root);
-                let valid_history_hash = morph
-                    .history_log
-                    .get_root_at(*seq)?
-                    .ok_or((MorphError::ValidationFailedHistoryNotFound))?;
-                if new_root != valid_history_hash {
-                    return Err(MorphError::ValidationFailedRootNotValid);
-                }
-                history.push(new_root);
-                last_valid_seq = *seq
+        match self.history_storage.root_hash() {
+            Ok(root) => {
+                Some(root)
             }
-            ProofElement::History { index: seq } => {
-                history.push(
-                    morph
-                        .history_log
-                        .get_root_at(*seq)?
-                        .ok_or(MorphError::ValidationFailedHistoryNotFound)?,
-                );
+            Err(_) => {
+                None
             }
         }
     }
-
-    Ok((account_state, last_valid_seq))
 }
+
+// pub fn validate_account_state(
+//     proof: &Vec<ProofElement>,
+//     morph: &Morph,
+// ) -> Result<(AccountState, u64), MorphError> {
+//     let mut account_state: AccountState = AccountState::default();
+//     let mut history: Vec<[u8; 32]> = vec![];
+//     let mut last_valid_seq = 0;
+//     for el in proof {
+//         match el {
+//             ProofElement::Operation { op, index: seq } => {
+//                 match op {
+//                     MorphOperation::DebitBalance { amount, .. } => {
+//                         account_state.free_balance =
+//                             account_state.free_balance.saturating_sub(*amount);
+//                     }
+//                     MorphOperation::CreditBalance { amount, .. } => {
+//                         account_state.free_balance =
+//                             account_state.free_balance.saturating_add(*amount);
+//                     }
+//                     MorphOperation::UpdateNonce { nonce, .. } => {
+//                         account_state.nonce = *nonce;
+//                     }
+//                 }
+//                 let prev_root = history.last().unwrap_or(&GENESIS_ROOT);
+//                 let mut sha3 = tiny_keccak::Sha3::v256();
+//                 sha3.update(prev_root);
+//                 sha3.update(&op.encode()?);
+//                 sha3.update(&account_state.encode()?);
+//                 let mut new_root = [0; 32];
+//                 sha3.finalize(&mut new_root);
+//                 let valid_history_hash = morph
+//                     .history_log
+//                     .get_root_at(*seq)?
+//                     .ok_or((MorphError::ValidationFailedHistoryNotFound))?;
+//                 if new_root != valid_history_hash {
+//                     return Err(MorphError::ValidationFailedRootNotValid);
+//                 }
+//                 history.push(new_root);
+//                 last_valid_seq = *seq
+//             }
+//             ProofElement::History { index: seq } => {
+//                 history.push(
+//                     morph
+//                         .history_log
+//                         .get_root_at(*seq)?
+//                         .ok_or(MorphError::ValidationFailedHistoryNotFound)?,
+//                 );
+//             }
+//         }
+//     }
+//
+//     Ok((account_state, last_valid_seq))
+// }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum MorphOperation {
@@ -348,19 +358,13 @@ mod tests {
     use transaction::make_sign_transaction;
 
     use super::*;
+    use std::time::Instant;
 
     #[test]
     fn test_morph() {
-        let tmp_dir = TempDir::new("maindb").unwrap();
-        let database = Arc::new(SledDB::new(tmp_dir.path()).unwrap());
-        let tmp_dir = TempDir::new("history").unwrap();
-        let commit_log = Arc::new(RwLock::new(
-            CommitLog::new(LogOptions::new(tmp_dir.path())).unwrap(),
-        ));
-        let mut morph = Morph::new(
-            database.clone(),
-            Arc::new(HistoryLog::new(commit_log, database).unwrap()),
-        )
+        let base = std::env::var("TEST_DIR").unwrap();
+        fs_extra::dir::remove(format!("{}/state", base)).unwrap();
+        let mut morph = Morph::new(format!("{}/state", base))
             .unwrap();
         let alice = create_account();
         let bob = create_account();
@@ -377,14 +381,14 @@ mod tests {
                 },
             )
                 .unwrap(),
-        );
-        for i in 0..1000 {
-            let amount = i as u128 * 10;
+        ).unwrap();
+        for i in 0..100 {
+            let amount = 100;
             assert!(morph
                 .apply_transaction(
                     make_sign_transaction(
                         &alice,
-                        i + 2000,
+                        i + 1,
                         TransactionKind::Transfer {
                             from: alice.pub_key,
                             to: bob.pub_key,
@@ -395,22 +399,48 @@ mod tests {
                         .unwrap()
                 )
                 .is_ok());
-            if i % 100 == 0 {
-                assert_eq!(
-                    validate_account_state(&morph.compact_proof(alice.address).unwrap(), &morph)
-                        .unwrap()
-                        .0,
-                    morph.get_account_state(&alice.address).unwrap().unwrap()
-                );
-                assert_eq!(
-                    validate_account_state(&morph.compact_proof(bob.address).unwrap(), &morph)
-                        .unwrap()
-                        .0,
-                    morph.get_account_state(&bob.address).unwrap().unwrap()
-                );
-            }
         }
 
-        //assert!()
+        let checkpoint_1 = morph.checkpoint(format!("{}/state/{}", base, hex::encode(&[1_u8; 32]))).unwrap();
+        let mut intermediate = morph.intermediate().unwrap();
+        for i in 0..100 {
+            let amount = 100;
+            assert!(checkpoint_1
+                .apply_transaction(
+                    make_sign_transaction(
+                        &alice,
+                        i + 1000,
+                        TransactionKind::Transfer {
+                            from: alice.pub_key,
+                            to: bob.pub_key,
+                            amount,
+                            fee: (amount as f64 * 0.01) as u128,
+                        },
+                    )
+                        .unwrap()
+                )
+                .is_ok());
+        }
+        for i in 0..100 {
+            let amount = 100;
+            assert!(intermediate
+                .apply_transaction(
+                    &make_sign_transaction(
+                        &alice,
+                        i + 1000,
+                        TransactionKind::Transfer {
+                            from: alice.pub_key,
+                            to: bob.pub_key,
+                            amount,
+                            fee: (amount as f64 * 0.01) as u128,
+                        },
+                    )
+                        .unwrap()
+                )
+                .is_ok());
+        }
+
+        assert_eq!(checkpoint_1.account_state(&alice.address), intermediate.account_state(&alice.address));
+        assert_eq!(checkpoint_1.root_hash().unwrap(), intermediate.root());
     }
 }

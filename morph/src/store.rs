@@ -8,10 +8,13 @@ use crate::{MorphOperation, GENESIS_ROOT};
 use anyhow::Result;
 use crate::error::MorphError;
 use tracing::{warn, Value};
-use primitive_types::H160;
+use primitive_types::{H160, H256};
 use types::account::AccountState;
 use rocksdb::{ColumnFamilyDescriptor, BlockBasedOptions, MergeOperands};
 use rocksdb::Options;
+use std::option::Option::Some;
+use std::collections::VecDeque;
+use std::fmt::{Display, Formatter};
 
 pub fn default_db_opts() -> Options {
     let mut opts = Options::default();
@@ -58,14 +61,25 @@ pub enum HistoryIKey {
     Lookup(Hash),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct HistoryIValue {
-    operation: MorphOperation,
-    root: Hash,
-    parent_root: Hash,
-    seq: u128,
+    pub operation: MorphOperation,
+    pub root: Hash,
+    pub parent_root: Hash,
+    pub seq: u128,
 }
 
+
+impl std::fmt::Debug for HistoryIValue {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        fmt.debug_struct("HistoryIValue")
+            .field("operation", &self.operation)
+            .field("root", &H256::from(self.root))
+            .field("parent_root", &H256::from(self.parent_root))
+            .field("seq", &self.seq)
+            .finish()
+    }
+}
 impl_codec!(HistoryIKey);
 impl_codec!(HistoryIValue);
 
@@ -111,17 +125,54 @@ impl HistoryStorage {
         Ok(value)
     }
 
-    pub fn get(&self, key: &HistoryIKey) -> Result<Option<HistoryIValue>> {
-        self.kv.get(key)
+    pub fn get(&self, key: Hash) -> Result<Option<HistoryIValue>> {
+        self.kv.get(&HistoryIKey::Lookup(key))
     }
 
-    pub fn root(&self) -> Result<Option<HistoryIValue>> {
-        self.kv.get(&HistoryIKey::Root)
+    pub fn root_history(&self) -> Result<VecDeque<HistoryIValue>> {
+        let mut root = self.root()?.ok_or(anyhow::anyhow!("root not present"))?;
+        let mut out = VecDeque::with_capacity(root.seq as usize);
+        out.push_front(root.clone());
+        while let Some(history) = self.kv.get(&HistoryIKey::Lookup(root.parent_root))? {
+            out.push_front(history.clone());
+            root = history;
+            if root.root == GENESIS_ROOT {
+                break
+            }
+        }
+        Ok(out)
+    }
+
+    pub fn address_history(&self, address: H160) -> Result<VecDeque<HistoryIValue>> {
+        let mut root = self.root()?.ok_or(anyhow::anyhow!("root not present"))?;
+        let mut out = VecDeque::with_capacity(root.seq as usize);
+        if root.operation.get_address() == address {
+            out.push_front(root.clone());
+        }
+        while let Some(history) = self.kv.get(&HistoryIKey::Lookup(root.parent_root))? {
+            root = history;
+            if root.operation.get_address() == address {
+                out.push_front(root.clone());
+            }
+            if root.root == GENESIS_ROOT {
+                break
+            }
+        }
+        Ok(out)
     }
 
     pub fn root_hash(&self) -> Result<Hash> {
         let root = self.kv.get(&HistoryIKey::Root)?.map(|history| history.root);
         Ok(root.unwrap_or(GENESIS_ROOT))
+    }
+
+    pub fn multi_get(&self, key: Vec<Hash>) -> Result<Vec<Option<HistoryIValue>>> {
+        let keys: Vec<_> = key.into_iter().map(|key| HistoryIKey::Lookup(key)).collect();
+        self.kv.multi_get(keys)
+    }
+
+    pub fn root(&self) -> Result<Option<HistoryIValue>> {
+        self.kv.get(&HistoryIKey::Root)
     }
     pub fn root_seq(&self) -> Result<u128> {
         let root = self.kv.get(&HistoryIKey::Root)?.map(|history| history.seq);
@@ -238,16 +289,17 @@ impl AccountMetadataStorage {
             kv
         }
     }
-    pub fn put(&self, key: H160, value: AccountRoots) -> Result<()> {
-        self.kv.merge(key, value)
+    pub fn put(&self, key: H160, value: [u8; 32]) -> Result<()> {
+        self.kv.merge(key, AccountRoots(vec![value]))
     }
 
-    pub fn get(&self, key: &H160) -> Result<Option<AccountRoots>> {
-        self.kv.get(key)
+    pub fn get(&self, key: &H160) -> Result<Option<Vec<Hash>>> {
+        let roots = self.kv.get(key)?.map(|r| r.0);
+        Ok(roots)
     }
 }
 
-fn column_families() -> Vec<ColumnFamilyDescriptor> {
+pub(crate) fn column_families() -> Vec<ColumnFamilyDescriptor> {
     vec![
         HistoryStorage::descriptor(),
         AccountStateStorage::descriptor(),
@@ -315,11 +367,11 @@ mod test {
         let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families()).unwrap());
         let account_meta_storage = AccountMetadataStorage::new(db);
         let alice = create_account();
-        account_meta_storage.put(alice.address, AccountRoots(vec![[1; 32]])).unwrap();
-        account_meta_storage.put(alice.address, AccountRoots(vec![[2; 32]])).unwrap();
-        account_meta_storage.put(alice.address, AccountRoots(vec![[3; 32]])).unwrap();
+        account_meta_storage.put(alice.address, [1; 32]).unwrap();
+        account_meta_storage.put(alice.address, [2; 32]).unwrap();
+        account_meta_storage.put(alice.address, [3; 32]).unwrap();
 
-        assert_eq!(account_meta_storage.get(&alice.address).unwrap().unwrap().0, vec![[1_u8; 32], [2_u8; 32], [3_u8; 32]])
+        assert_eq!(account_meta_storage.get(&alice.address).unwrap().unwrap(), vec![[1_u8; 32], [2_u8; 32], [3_u8; 32]])
     }
 
     #[test]
@@ -349,34 +401,47 @@ mod test {
     #[test]
     fn test_multi_thread_history() {
         let alice = create_account();
+        let bob = create_account();
         let dir = TempDir::new("_test_merge_account_state").unwrap();
         let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families()).unwrap());
         let history_storage = Arc::new(HistoryStorage::new(db.clone()));
-        let history_sequence = Arc::new(HistorySequenceStorage::new(db));
-        let mut handles = Vec::new();
-        for i in 1..=30 {
-            let history_storage = history_storage.clone();
-            let history_sequence = history_sequence.clone();
-            let handle = std::thread::spawn(move || {
-                let seq = history_storage.root_seq().unwrap();
-                history_sequence.put(seq + 1, [i as u8; 32]).unwrap();
+        let history_sequence = Arc::new(HistorySequenceStorage::new(db.clone()));
+        let account_metadata = Arc::new(AccountMetadataStorage::new(db));
+
+        for i in 0..=30 {
+            if i % 2 == 0 {
+                let his = history_storage.append([i as u8; 32], MorphOperation::UpdateNonce {
+                    account: bob.address,
+                    nonce: i + 1,
+                    tx_hash: [i as u8; 32],
+                }).unwrap();
+                history_sequence.put(his.seq, his.root).unwrap();
+                account_metadata.put(bob.address, his.root).unwrap();
+            } else {
                 let his = history_storage.append([i as u8; 32], MorphOperation::UpdateNonce {
                     account: alice.address,
                     nonce: i,
                     tx_hash: [i as u8; 32],
                 }).unwrap();
-                //history_sequence.put(his.seq, his.root).unwrap();
-            });
-            handles.push(handle);
+                history_sequence.put(his.seq, his.root).unwrap();
+                account_metadata.put(alice.address, his.root).unwrap();
+            }
+        }
+        let mut history_sequence_iter = history_sequence.iter().unwrap();
+        let iter = history_storage.root_history().unwrap();
+        let mut history_storage_iter = iter.iter().map(|his| his.root);
+        while let (Some((_, Ok(seq_his))), Some(his)) = (history_sequence_iter.next(), history_storage_iter.next()) {
+            assert_eq!(seq_his, his)
         }
 
-        for handle in handles {
-            handle.join();
+        let alice_roots_c = account_metadata.get(&alice.address).unwrap().unwrap();
+        let mut alice_roots_c_iter = alice_roots_c.iter();
+        let alice_roots = history_storage.address_history(alice.address).unwrap();
+        let mut alice_roots_iter = alice_roots.iter().map(|his| his.root);
+        while let (Some(lhs), Some(rhs)) = (alice_roots_c_iter.next(), alice_roots_iter.next()) {
+            assert_eq!(*lhs, rhs)
         }
 
-        for (seq, root) in history_sequence.iter().unwrap() {
-            println!("SEQ {} ROOT {:?}", seq.unwrap(), root.unwrap());
-        }
-        println!("{:?}", history_storage.root_hash().unwrap())
+        println!("ALICE[{}] {:?}", alice.address, history_storage.address_history(alice.address));
     }
 }

@@ -1,13 +1,14 @@
+use derive_getters::Getters;
+use serde::{Deserialize, Serialize};
+use serde_big_array::big_array;
+
+use codec::{Decoder, Encoder};
+use codec::impl_codec;
+
 pub mod account;
 pub mod block;
 pub mod events;
 pub mod tx;
-
-use codec::{Decoder, Encoder};
-use derive_getters::Getters;
-use serde::{Deserialize, Serialize};
-use serde_big_array::big_array;
-use codec::impl_codec;
 
 pub type Hash = [u8; 32];
 pub type BlockHash = [u8; 32];

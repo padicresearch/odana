@@ -31,10 +31,6 @@ COMMIT;
 "#;
 
 /// Inserts an new transaction into the index
-const PROMOTE_TX_TEMPLATE: &str =
-    "UPDATE txpool SET is_pending = true WHERE id == {} AND is_pending == false;";
-
-/// Inserts an new transaction into the index
 const PROMOTE_TX_STMT: &str =
     "UPDATE txpool SET is_pending = true WHERE id == ?1 AND is_pending == false;";
 

@@ -1,7 +1,9 @@
 use codec::{Codec, Encoder, Decoder};
 use anyhow::Result;
-use rocksdb::{DB, ColumnFamilyDescriptor};
+use rocksdb::{DB, ColumnFamilyDescriptor, SnapshotWithThreadMode, Snapshot, ColumnFamily};
 use crate::error::MorphError;
+use std::sync::Arc;
+use std::collections::BTreeMap;
 
 pub trait Schema {
     type Key: Codec + Clone;
@@ -15,6 +17,7 @@ pub trait KV<Entry>
         Entry: Schema,
 {
     fn get(&self, key: &Entry::Key) -> Result<Option<Entry::Value>>;
+    fn multi_get(&self, key: Vec<Entry::Key>) -> Result<Vec<Option<Entry::Value>>>;
     fn put(&self, key: Entry::Key, value: Entry::Value) -> Result<()>;
     fn batch(&self, batch: Vec<(Entry::Key, Entry::Value)>) -> Result<()>;
     fn merge(&self, key: Entry::Key, value: Entry::Value) -> Result<()>;
@@ -52,6 +55,27 @@ impl<S: Schema> KV<S> for DB {
             }
         }
     }
+
+    fn multi_get(&self, key: Vec<S::Key>) -> Result<Vec<Option<S::Value>>> {
+        let cf = self.cf_handle(S::column()).ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
+        let keys: Result<Vec<_>> = key.iter().map(|k| k.encode().map(|key| (cf, key))).collect();
+        let mut results = Vec::with_capacity(key.len());
+        for res in self.multi_get_cf(keys?) {
+            let value = res?;
+            let value = match value {
+                None => {
+                    None
+                }
+                Some(value) => {
+                    Some(S::Value::decode(&value)?)
+                }
+            };
+
+            results.push(value)
+        }
+        Ok(results)
+    }
+
 
     fn put(&self, key: S::Key, value: S::Value) -> Result<()> {
         let cf = self.cf_handle(S::column()).ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
@@ -91,3 +115,68 @@ impl<S: Schema> KV<S> for DB {
         })))
     }
 }
+
+// pub struct Snap<'a> {
+//     cfs: BTreeMap<&'static str, Option<&'a ColumnFamily>>,
+//     snapshot: Snapshot<'a>
+// }
+//
+// impl<'a> Snap<'a> {
+//     pub fn new(cfs : BTreeMap<&'static str, Option<&'a ColumnFamily>>, snapshot: Snapshot<'a>) -> Self {
+//         Self {
+//             cfs,
+//             snapshot
+//         }
+//     }
+// }
+//
+// impl<'a, S: Schema> KV<S> for Snap<'a> {
+//     fn get(&self, key: &S::Key) -> Result<Option<S::Value>> {
+//         let cf = self.cfs.get(S::column()).ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
+//         let cf = cf.ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
+//         let key = key.encode()?;
+//         let value = self.snapshot.get_cf(cf, key)?;
+//         match value {
+//             None => {
+//                 Ok(None)
+//             }
+//             Some(value) => {
+//                 Ok(Some(S::Value::decode(&value)?))
+//             }
+//         }
+//     }
+//
+//     fn multi_get(&self, key: Vec<S::Key>) -> Result<Vec<Option<S::Value>>> {
+//         unimplemented!()
+//     }
+//
+//
+//     fn put(&self, key: S::Key, value: S::Value) -> Result<()> {
+//         unimplemented!()
+//     }
+//
+//     fn batch(&self, batch: Vec<(S::Key, S::Value)>) -> Result<()> {
+//         unimplemented!()
+//     }
+//
+//     fn merge(&self, key: S::Key, value: S::Value) -> Result<()> {
+//         unimplemented!()
+//     }
+//
+//     fn contains(&self, key: &S::Key) -> Result<bool> {
+//         let cf = self.cfs.get(S::column()).ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
+//         let cf = cf.ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
+//         let key = key.encode()?;
+//         let val = self.snapshot.get_cf(cf, key)?;
+//         Ok(val.is_some())
+//     }
+//
+//     fn iter(&self) -> Result<SchemaIterator<S>> {
+//         let cf = self.cfs.get(S::column()).ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
+//         let cf = cf.ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
+//         let iter = self.snapshot.iterator_cf(cf, rocksdb::IteratorMode::Start);
+//         Ok(Box::new(iter.map(|(k, v)| {
+//             (S::Key::decode(&k), S::Value::decode(&v))
+//         })))
+//     }
+// }
