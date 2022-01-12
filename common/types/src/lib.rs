@@ -2,8 +2,8 @@ use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 use serde_big_array::big_array;
 
-use codec::{Decoder, Encoder};
 use codec::impl_codec;
+use codec::{Decoder, Encoder};
 
 pub mod account;
 pub mod block;

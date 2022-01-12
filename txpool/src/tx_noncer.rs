@@ -13,8 +13,8 @@ pub struct TxNoncer<State> {
 }
 
 impl<State> TxNoncer<State>
-    where
-        State: StateDB,
+where
+    State: StateDB,
 {
     pub fn new(state: State) -> Self {
         Self {

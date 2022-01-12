@@ -1,6 +1,6 @@
-use std::ops::{Add, Mul, Sub};
-use std::fmt::Formatter;
 use crate::MAX_SUPPLY_PRECOMPUTED;
+use std::fmt::Formatter;
+use std::ops::{Add, Mul, Sub};
 use traits::Saturating;
 
 pub const TUC_UNIT: u128 = 1_000_000_000;
@@ -15,9 +15,7 @@ pub struct Tuc {
 
 impl From<Chi> for Tuc {
     fn from(chi: Chi) -> Self {
-        Self {
-            chi
-        }
+        Self { chi }
     }
 }
 
@@ -39,7 +37,6 @@ impl AsRef<Chi> for Tuc {
         &self.chi
     }
 }
-
 
 impl Chi {
     const MAX: Chi = Chi(MAX_SUPPLY_PRECOMPUTED);
@@ -69,7 +66,6 @@ impl From<u16> for Chi {
         Self(n as u128)
     }
 }
-
 
 impl Into<u128> for Chi {
     fn into(self) -> u128 {
@@ -140,10 +136,9 @@ impl std::fmt::Display for Chi {
     }
 }
 
-
 #[cfg(test)]
 mod test {
-    use crate::coin::{Chi};
+    use crate::coin::Chi;
     use traits::Saturating;
 
     #[test]

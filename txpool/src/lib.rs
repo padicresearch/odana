@@ -6,22 +6,24 @@ mod txlist;
 #[cfg(test)]
 mod tests;
 
-use tracing::{debug, info};
 use crate::error::TxPoolError;
 use crate::tx_lookup::TxLookup;
 use crate::tx_noncer::TxNoncer;
 use anyhow::{Error, Result};
 use dashmap::{DashMap, ReadOnlyView};
 use primitive_types::H160;
+use proc_macro::error;
 use std::borrow::BorrowMut;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::ops::DerefMut;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use tracing::tracing_subscriber::fmt::writer::EitherWriter::B;
+use tracing::{debug, error, info, warn};
 use traits::{ChainState, StateDB};
 use transaction::validate_transaction;
+use types::block::{Block, BlockHeader};
 use types::tx::Transaction;
-use types::TxHash;
-use std::collections::{BTreeMap, BTreeSet};
-use types::block::BlockHeader;
+use types::{Hash, TxHash};
 
 type TxHashRef = Arc<TxHash>;
 type TransactionRef = Arc<Transaction>;
@@ -40,14 +42,15 @@ impl Default for TxPoolConfig {
     }
 }
 
+type Address = H160;
 pub struct TxPool<Chain, State> {
-    chain: Chain,
-    state: State,
+    chain: Arc<Chain>,
+    state: Arc<State>,
     pending_nonces: TxNoncer<State>,
     lookup: TxLookup,
     config: TxPoolConfig,
     head: BlockHeader,
-
+    accounts: BTreeSet<Address>,
 }
 
 pub type TxPoolIterator<'a> = Box<dyn 'a + Send + Iterator<Item=(TxHashRef, TransactionRef)>>;
@@ -57,14 +60,15 @@ impl<Chain, State> TxPool<Chain, State>
         Chain: ChainState,
         State: StateDB,
 {
-    pub fn new(config: TxPoolConfig, chain: Chain, state: State) -> Result<Self> {
+    pub fn new(config: TxPoolConfig, chain: Arc<Chain>, state: Arc<State>) -> Result<Self> {
         Ok(Self {
             chain,
             state: state.clone(),
             pending_nonces: TxNoncer::new(state),
             lookup: TxLookup::new()?,
             config,
-            head: chain.current_head()?
+            head: chain.current_head()?,
+            accounts: Default::default(),
         })
     }
 
@@ -72,8 +76,8 @@ impl<Chain, State> TxPool<Chain, State>
     pub fn new_lookup(
         lookup: TxLookup,
         config: TxPoolConfig,
-        chain: Chain,
-        state: State,
+        chain: Arc<Chain>,
+        state: Arc<State>,
     ) -> Result<Self> {
         Ok(Self {
             chain,
@@ -81,7 +85,8 @@ impl<Chain, State> TxPool<Chain, State>
             pending_nonces: TxNoncer::new(state),
             lookup,
             config,
-            head: chain.current_head()?
+            head: chain.current_head()?,
+            accounts: Default::default(),
         })
     }
 
@@ -160,31 +165,170 @@ impl<Chain, State> TxPool<Chain, State>
         self.lookup.locals()
     }
 
-    pub fn reset(&self, new_head: &BlockHeader) -> Result<()> {
-        if self.head.block_hash() != new_head.block_hash() {
-            let depth = ((self.head.level() as f64) - (new_head.level() as f64)).abs() as u64;
-            if depth > 64 {
-                info!(depth = depth, "Skipped deep transaction packing")
-            } else {
-                let rem = self.chain.get_block()
+    pub fn reset(&mut self, old_head: Option<BlockHeader>, new_head: BlockHeader) -> Result<()> {
+        let mut reinject = HashSet::new();
+        // reinject all dropped transactions
+        if let Some(old_head) = old_head {
+            if old_head.block_hash() != new_head.block_hash() {
+                let old_level = old_head.level();
+                let new_level = new_head.level();
+
+                let depth = ((old_level as f64) - (new_level as f64)).abs() as u64;
+                if depth > 64 {
+                    info!(depth = depth, "Skipped deep transaction packing")
+                } else {
+                    let mut discarded = HashSet::new();
+                    let mut included = HashSet::new();
+                    let mut rem = self.chain.get_block(old_head.block_hash())?;
+                    let mut add = self
+                        .chain
+                        .get_block(new_head.block_hash())?
+                        .ok_or(anyhow::anyhow!("new block not found"))?;
+                    if let Some(mut rem) = rem {
+                        while rem.level() > add.level() {
+                            discarded.extend(rem.transactions().into_iter());
+                            rem = match self.chain.get_block(rem.parent_hash())? {
+                                None => {
+                                    error!("Unrooted old chain seen by tx pool", block = ?old_head.level(), hash = ?old_head.block_hash());
+                                    return Ok(());
+                                }
+                                Some(rem) => rem,
+                            }
+                        }
+                        while add.level() > rem.level() {
+                            included.extend(add.transactions().into_iter());
+                            add = match self.chain.get_block(add.parent_hash())? {
+                                None => {
+                                    error!("Unrooted new chain seen by tx pool", block = ?old_head.level(), hash = ?old_head.block_hash());
+                                    return Ok(());
+                                }
+                                Some(rem) => rem,
+                            }
+                        }
+
+                        while add.level() != rem.level() {
+                            included.extend(&add.transactions().into_iter());
+                            add = match self.chain.get_block(add.parent_hash())? {
+                                None => {
+                                    error!("Unrooted new chain seen by tx pool", block = ?old_head.level(), hash = ?old_head.block_hash());
+                                    return Ok(());
+                                }
+                                Some(block) => block,
+                            };
+                            discarded.extend_from_slice(rem.transactions().into_iter());
+                            rem = match self.chain.get_block(rem.parent_hash())? {
+                                None => {
+                                    error!("Unrooted old chain seen by tx pool", block = ?old_head.level(), hash = ?old_head.block_hash());
+                                    return Ok(());
+                                }
+                                Some(block) => block,
+                            };
+                        }
+
+                        reinject = included.intersection(&discarded).collect();
+                    } else {
+                        if new_level >= old_level {
+                            warn!("Transaction pool reset with missing oldhead");
+                            return Ok(());
+                        }
+                        debug!("Skipping transaction reset caused by setHead", old = ?old_head.block_hash(), new = ?new_old.block_hash());
+                    }
+                }
             }
         }
-
-        todo!()
+        let statedb = self.chain.get_state_at(new_head.state_root())?;
+        self.state = statedb.clone();
+        self.pending_nonces = TxNoncer::new(statedb);
+        self.add_txs_locked(Box::new(reinject.iter()), false)?;
+        Ok(())
     }
 
+    fn add_txs_locked(
+        &mut self,
+        txs: Box<dyn Iterator<Item=Transaction>>,
+        local: bool,
+    ) -> Result<BTreeSet<Address>> {
+        let mut accounts = BTreeSet::new();
+        for tx in txs {
+            if !self.add(tx.clone(), local)? {
+                accounts.insert(tx.sender_address());
+            }
+        }
+        Ok(accounts)
+    }
+
+    fn add_txs(&mut self, txs: Vec<Transaction>, local: bool) -> Result<()> {
+        let accounts = self.add_txs_locked(
+            Box::new(
+                txs.into_iter()
+                    .filter(|tx| self.lookup.contains(&tx.hash())),
+            ),
+            local,
+        )?;
+        self.promote_executables(accounts);
+        Ok(())
+    }
 
     /// Takes transaction form queue and adds them to pending
-    fn package(&self) {
-        // Remove transactions with nonce lower than current account state
-        // Remove transactions that are too costly ( sender cannot fulfil transaction)
-        // Get all remaining transactions and promote them
+    pub fn package(&self) -> Result<BTreeSet<TransactionRef>> {
+        self.lookup.pending_flatten()
     }
 
-    fn promote_executables(&self) {}
+    pub fn get(&self, hash: &Hash) -> Option<TransactionRef> {
+        self.lookup.all().get(hash).map(|res| res.value().clone())
+    }
+
+    pub fn has(&self, hash: &Hash) -> bool {
+        self.lookup.all().contains_key(hash)
+    }
+    fn promote_executables(&self, accounts: BTreeSet<Address>) {
+        //let mut promoted = BTreeSet::new();
+        for address in accounts {
+            // Remove transactions with nonce lower than current account state
+            let forwards = self
+                .lookup
+                .forward(&address, self.state.account_nonce(&address))?;
+            for tx in forwards.iter() {
+                self.lookup.delete(tx)?;
+            }
+            // Remove transactions that are too costly ( sender cannot fulfil transaction)
+            let drops = self
+                .lookup
+                .unpayable(&address, self.state.account_state(&address).free_balance)?;
+            for tx in drops.iter() {
+                self.lookup.delete(tx)?;
+            }
+            // Get all remaining transactions and promote them
+            let readies = self.lookup.ready(&address, self.nonce(&address))?;
+            let readies_count = readies.len();
+            self.lookup
+                .promote(readies.iter().map(|tx| tx.hash()).collect())?;
+
+            for tx in readies.iter() {
+                self.pending_nonces.set(tx.sender_address(), tx.nonce() + 1);
+            }
+            info!("Promoted queued transactions", count = ?readies_count);
+        }
+    }
 
     pub fn nonce(&self, address: &H160) -> u64 {
         self.pending_nonces.get(address)
+    }
+
+    pub fn add_remote(&mut self, tx: Transaction) -> Result<()> {
+        self.add_txs(vec![tx], false)
+    }
+
+    pub fn add_remotes(&mut self, txs: Vec<Transaction>) -> Result<()> {
+        self.add_txs(txs, false)
+    }
+
+    pub fn add_local(&mut self, tx: Transaction) -> Result<()> {
+        self.add_txs(vec![tx], true)
+    }
+
+    pub fn add_locals(&mut self, txs: Vec<Transaction>) -> Result<()> {
+        self.add_txs(txs, true)
     }
 
     /// Remove transaction form pending and queue

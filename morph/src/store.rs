@@ -1,20 +1,20 @@
-use crate::kv::{KV, Schema};
-use std::sync::{Arc, Mutex};
-use serde::{Serialize, Deserialize};
-use types::Hash;
-use codec::{Encoder, Decoder};
-use codec::impl_codec;
+use crate::error::MorphError;
+use crate::kv::{Schema, KV};
 use crate::{MorphOperation, GENESIS_ROOT};
 use anyhow::Result;
-use crate::error::MorphError;
-use tracing::{warn, Value};
+use codec::impl_codec;
+use codec::{Decoder, Encoder};
 use primitive_types::{H160, H256};
-use types::account::AccountState;
-use rocksdb::{ColumnFamilyDescriptor, BlockBasedOptions, MergeOperands};
 use rocksdb::Options;
-use std::option::Option::Some;
+use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, MergeOperands};
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
+use std::option::Option::Some;
+use std::sync::{Arc, Mutex};
+use tracing::{warn, Value};
+use types::account::AccountState;
+use types::Hash;
 
 pub fn default_db_opts() -> Options {
     let mut opts = Options::default();
@@ -69,7 +69,6 @@ pub struct HistoryIValue {
     pub seq: u128,
 }
 
-
 impl std::fmt::Debug for HistoryIValue {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         fmt.debug_struct("HistoryIValue")
@@ -82,7 +81,6 @@ impl std::fmt::Debug for HistoryIValue {
 }
 impl_codec!(HistoryIKey);
 impl_codec!(HistoryIValue);
-
 
 impl Schema for HistoryStorage {
     type Key = HistoryIKey;
@@ -113,7 +111,10 @@ impl HistoryStorage {
     //TODO:  implement Rollback
     pub fn append(&self, key: Hash, value: MorphOperation) -> Result<HistoryIValue> {
         self.mu.lock().map_err(|e| anyhow::anyhow!("{}", e))?;
-        anyhow::ensure!(!self.kv.contains(&HistoryIKey::Lookup(key))?, "duplicate state root");
+        anyhow::ensure!(
+            !self.kv.contains(&HistoryIKey::Lookup(key))?,
+            "duplicate state root"
+        );
         let root_seq = self.root()?.map(|root| root.seq).unwrap_or_default();
         let value = HistoryIValue {
             operation: value,
@@ -121,7 +122,10 @@ impl HistoryStorage {
             parent_root: self.root_hash()?,
             seq: root_seq + 1,
         };
-        self.kv.batch(vec![(HistoryIKey::Lookup(key), value.clone()), (HistoryIKey::Root, value.clone())])?;
+        self.kv.batch(vec![
+            (HistoryIKey::Lookup(key), value.clone()),
+            (HistoryIKey::Root, value.clone()),
+        ])?;
         Ok(value)
     }
 
@@ -137,7 +141,7 @@ impl HistoryStorage {
             out.push_front(history.clone());
             root = history;
             if root.root == GENESIS_ROOT {
-                break
+                break;
             }
         }
         Ok(out)
@@ -155,7 +159,7 @@ impl HistoryStorage {
                 out.push_front(root.clone());
             }
             if root.root == GENESIS_ROOT {
-                break
+                break;
             }
         }
         Ok(out)
@@ -167,7 +171,10 @@ impl HistoryStorage {
     }
 
     pub fn multi_get(&self, key: Vec<Hash>) -> Result<Vec<Option<HistoryIValue>>> {
-        let keys: Vec<_> = key.into_iter().map(|key| HistoryIKey::Lookup(key)).collect();
+        let keys: Vec<_> = key
+            .into_iter()
+            .map(|key| HistoryIKey::Lookup(key))
+            .collect();
         self.kv.multi_get(keys)
     }
 
@@ -179,7 +186,6 @@ impl HistoryStorage {
         Ok(root.unwrap_or(0))
     }
 }
-
 
 pub type AccountStateStorageKV = dyn KV<AccountStateStorage> + Send + Sync;
 
@@ -203,9 +209,7 @@ pub struct AccountStateStorage {
 
 impl AccountStateStorage {
     pub fn new(kv: Arc<AccountStateStorageKV>) -> Self {
-        Self {
-            kv
-        }
+        Self { kv }
     }
     pub fn put(&self, key: H160, value: AccountState) -> Result<()> {
         self.kv.put(key, value)
@@ -217,7 +221,6 @@ impl AccountStateStorage {
 }
 
 pub type AccountMetadataStorageKV = dyn KV<AccountMetadataStorage> + Send + Sync;
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AccountRoots(Vec<Hash>);
@@ -232,7 +235,10 @@ impl Schema for AccountMetadataStorage {
 
     fn descriptor() -> ColumnFamilyDescriptor {
         let mut opts = default_table_options();
-        opts.set_merge_operator_associative("account_metadata_merge_operator", account_metadata_merge_operator);
+        opts.set_merge_operator_associative(
+            "account_metadata_merge_operator",
+            account_metadata_merge_operator,
+        );
         ColumnFamilyDescriptor::new(Self::column(), opts)
     }
 }
@@ -245,9 +251,7 @@ pub fn account_metadata_merge_operator(
     let mut result = existing_val.map(|v| v.to_vec());
     for op in operands {
         match result {
-            Some(ref mut val) => {
-                val.extend_from_slice(op)
-            }
+            Some(ref mut val) => val.extend_from_slice(op),
             None => result = Some(op.to_vec()),
         }
     }
@@ -277,7 +281,6 @@ impl Decoder for AccountRoots {
     }
 }
 
-
 #[derive(Clone)]
 pub struct AccountMetadataStorage {
     kv: Arc<AccountMetadataStorageKV>,
@@ -285,9 +288,7 @@ pub struct AccountMetadataStorage {
 
 impl AccountMetadataStorage {
     pub fn new(kv: Arc<AccountMetadataStorageKV>) -> Self {
-        Self {
-            kv
-        }
+        Self { kv }
     }
     pub fn put(&self, key: H160, value: [u8; 32]) -> Result<()> {
         self.kv.merge(key, AccountRoots(vec![value]))
@@ -304,7 +305,7 @@ pub(crate) fn column_families() -> Vec<ColumnFamilyDescriptor> {
         HistoryStorage::descriptor(),
         AccountStateStorage::descriptor(),
         AccountMetadataStorage::descriptor(),
-        HistorySequenceStorage::descriptor()
+        HistorySequenceStorage::descriptor(),
     ]
 }
 
@@ -332,9 +333,7 @@ pub struct HistorySequenceStorage {
 
 impl HistorySequenceStorage {
     pub fn new(kv: Arc<HistorySequenceStorageKV>) -> Self {
-        Self {
-            kv
-        }
+        Self { kv }
     }
     pub fn put(&self, key: u128, value: Hash) -> Result<()> {
         if self.kv.contains(&key)? {
@@ -355,46 +354,73 @@ impl HistorySequenceStorage {
 
 #[cfg(test)]
 mod test {
-    use tempdir::TempDir;
-    use crate::store::{default_db_opts, column_families, AccountMetadataStorage, AccountRoots, AccountStateStorage, HistoryStorage, HistoryIKey, HistoryIValue, HistorySequenceStorage};
-    use std::sync::Arc;
-    use account::create_account;
+    use crate::store::{
+        column_families, default_db_opts, AccountMetadataStorage, AccountRoots,
+        AccountStateStorage, HistoryIKey, HistoryIValue, HistorySequenceStorage, HistoryStorage,
+    };
     use crate::MorphOperation;
+    use account::create_account;
+    use std::sync::Arc;
+    use tempdir::TempDir;
 
     #[test]
     fn test_merge_account_meta() {
         let dir = TempDir::new("_test_merge_account_state").unwrap();
-        let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families()).unwrap());
+        let db = Arc::new(
+            rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families())
+                .unwrap(),
+        );
         let account_meta_storage = AccountMetadataStorage::new(db);
         let alice = create_account();
         account_meta_storage.put(alice.address, [1; 32]).unwrap();
         account_meta_storage.put(alice.address, [2; 32]).unwrap();
         account_meta_storage.put(alice.address, [3; 32]).unwrap();
 
-        assert_eq!(account_meta_storage.get(&alice.address).unwrap().unwrap(), vec![[1_u8; 32], [2_u8; 32], [3_u8; 32]])
+        assert_eq!(
+            account_meta_storage.get(&alice.address).unwrap().unwrap(),
+            vec![[1_u8; 32], [2_u8; 32], [3_u8; 32]]
+        )
     }
 
     #[test]
     fn test_history() {
         let alice = create_account();
         let dir = TempDir::new("_test_merge_account_state").unwrap();
-        let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families()).unwrap());
+        let db = Arc::new(
+            rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families())
+                .unwrap(),
+        );
         let history_storage = HistoryStorage::new(db);
-        history_storage.append([1; 32], MorphOperation::UpdateNonce {
-            account: alice.address,
-            nonce: 1,
-            tx_hash: [0; 32],
-        }).unwrap();
-        history_storage.append([2; 32], MorphOperation::UpdateNonce {
-            account: alice.address,
-            nonce: 2,
-            tx_hash: [0; 32],
-        }).unwrap();
-        history_storage.append([3; 32], MorphOperation::UpdateNonce {
-            account: alice.address,
-            nonce: 3,
-            tx_hash: [0; 32],
-        }).unwrap();
+        history_storage
+            .append(
+                [1; 32],
+                MorphOperation::UpdateNonce {
+                    account: alice.address,
+                    nonce: 1,
+                    tx_hash: [0; 32],
+                },
+            )
+            .unwrap();
+        history_storage
+            .append(
+                [2; 32],
+                MorphOperation::UpdateNonce {
+                    account: alice.address,
+                    nonce: 2,
+                    tx_hash: [0; 32],
+                },
+            )
+            .unwrap();
+        history_storage
+            .append(
+                [3; 32],
+                MorphOperation::UpdateNonce {
+                    account: alice.address,
+                    nonce: 3,
+                    tx_hash: [0; 32],
+                },
+            )
+            .unwrap();
         println!("{:?}", history_storage.root_hash().unwrap())
     }
 
@@ -403,26 +429,39 @@ mod test {
         let alice = create_account();
         let bob = create_account();
         let dir = TempDir::new("_test_merge_account_state").unwrap();
-        let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families()).unwrap());
+        let db = Arc::new(
+            rocksdb::DB::open_cf_descriptors(&default_db_opts(), dir.path(), column_families())
+                .unwrap(),
+        );
         let history_storage = Arc::new(HistoryStorage::new(db.clone()));
         let history_sequence = Arc::new(HistorySequenceStorage::new(db.clone()));
         let account_metadata = Arc::new(AccountMetadataStorage::new(db));
 
         for i in 0..=30 {
             if i % 2 == 0 {
-                let his = history_storage.append([i as u8; 32], MorphOperation::UpdateNonce {
-                    account: bob.address,
-                    nonce: i + 1,
-                    tx_hash: [i as u8; 32],
-                }).unwrap();
+                let his = history_storage
+                    .append(
+                        [i as u8; 32],
+                        MorphOperation::UpdateNonce {
+                            account: bob.address,
+                            nonce: i + 1,
+                            tx_hash: [i as u8; 32],
+                        },
+                    )
+                    .unwrap();
                 history_sequence.put(his.seq, his.root).unwrap();
                 account_metadata.put(bob.address, his.root).unwrap();
             } else {
-                let his = history_storage.append([i as u8; 32], MorphOperation::UpdateNonce {
-                    account: alice.address,
-                    nonce: i,
-                    tx_hash: [i as u8; 32],
-                }).unwrap();
+                let his = history_storage
+                    .append(
+                        [i as u8; 32],
+                        MorphOperation::UpdateNonce {
+                            account: alice.address,
+                            nonce: i,
+                            tx_hash: [i as u8; 32],
+                        },
+                    )
+                    .unwrap();
                 history_sequence.put(his.seq, his.root).unwrap();
                 account_metadata.put(alice.address, his.root).unwrap();
             }
@@ -430,7 +469,9 @@ mod test {
         let mut history_sequence_iter = history_sequence.iter().unwrap();
         let iter = history_storage.root_history().unwrap();
         let mut history_storage_iter = iter.iter().map(|his| his.root);
-        while let (Some((_, Ok(seq_his))), Some(his)) = (history_sequence_iter.next(), history_storage_iter.next()) {
+        while let (Some((_, Ok(seq_his))), Some(his)) =
+        (history_sequence_iter.next(), history_storage_iter.next())
+        {
             assert_eq!(seq_his, his)
         }
 
@@ -442,6 +483,10 @@ mod test {
             assert_eq!(*lhs, rhs)
         }
 
-        println!("ALICE[{}] {:?}", alice.address, history_storage.address_history(alice.address));
+        println!(
+            "ALICE[{}] {:?}",
+            alice.address,
+            history_storage.address_history(alice.address)
+        );
     }
 }

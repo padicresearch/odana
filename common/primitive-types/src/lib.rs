@@ -188,7 +188,6 @@ impl<'a> TryFrom<&'a U512> for U256 {
     }
 }
 
-
 /// Compact representation of `U256`
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Compact(u32);
@@ -241,9 +240,8 @@ impl Compact {
         };
 
         let is_negative = word != 0 && (self.0 & 0x00800000) != 0;
-        let is_overflow = (word != 0 && size > 34) ||
-            (word > 0xff && size > 33) ||
-            (word > 0xffff && size > 32);
+        let is_overflow =
+            (word != 0 && size > 34) || (word > 0xff && size > 33) || (word > 0xffff && size > 32);
 
         if is_negative || is_overflow {
             Err(result)
@@ -337,6 +335,9 @@ mod tests {
         assert!(compare_f64(Compact::new(0x1ef88f6f).to_f64(), 0.000016));
         assert!(compare_f64(Compact::new(0x1df88f6f).to_f64(), 0.004023));
         assert!(compare_f64(Compact::new(0x1cf88f6f).to_f64(), 1.029916));
-        assert!(compare_f64(Compact::new(0x12345678).to_f64(), 5913134931067755359633408.0));
+        assert!(compare_f64(
+            Compact::new(0x12345678).to_f64(),
+            5913134931067755359633408.0,
+        ));
     }
 }

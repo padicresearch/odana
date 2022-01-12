@@ -1,8 +1,8 @@
-use std::collections::{HashMap, BTreeMap};
-use std::path::Path;
+use std::collections::{BTreeMap, HashMap};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
@@ -10,6 +10,8 @@ use tiny_keccak::Hasher;
 use crate::error::MorphError;
 use crate::logdb::{HistoryLog, LogData};
 //use crate::snapshot::MorphSnapshot;
+use crate::kv::Schema;
+use crate::snapshot::MorphIntermediate;
 use crate::store::{
     column_families, default_db_opts, AccountMetadataStorage, AccountStateStorage,
     HistorySequenceStorage, HistoryStorage,
@@ -18,17 +20,15 @@ use account::get_address_from_pub_key;
 use codec::impl_codec;
 use codec::{Codec, Decoder, Encoder};
 use primitive_types::{H160, H256};
+use rocksdb::checkpoint::Checkpoint;
+use rocksdb::ColumnFamily;
+use std::option::Option::Some;
 use storage::{KVEntry, KVStore};
 use traits::StateDB;
 use types::account::AccountState;
 use types::tx::{Transaction, TransactionKind};
 use types::Hash;
 use types::{BlockHash, TxHash};
-use rocksdb::checkpoint::Checkpoint;
-use std::option::Option::Some;
-use crate::snapshot::MorphIntermediate;
-use crate::kv::{Schema};
-use rocksdb::ColumnFamily;
 
 mod error;
 mod kv;
@@ -53,7 +53,6 @@ pub struct Morph {
     account_state_storage: Arc<AccountStateStorage>,
     account_meta_storage: Arc<AccountMetadataStorage>,
 }
-
 
 impl StateDB for Morph {
     fn account_nonce(&self, address: &H160) -> u64 {
@@ -80,6 +79,22 @@ impl Morph {
             &default_db_opts(),
             path,
             column_families(),
+        )?);
+        let morph = Self {
+            db: db.clone(),
+            history_storage: Arc::new(HistoryStorage::new(db.clone())),
+            account_state_storage: Arc::new(AccountStateStorage::new(db.clone())),
+            account_meta_storage: Arc::new(AccountMetadataStorage::new(db.clone())),
+        };
+        Ok(morph)
+    }
+
+    pub fn open_read_only<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let db = Arc::new(rocksdb::DB::open_cf_for_read_only(
+            &default_db_opts(),
+            path,
+            column_families(),
+            false,
         )?);
         let morph = Self {
             db: db.clone(),
@@ -121,7 +136,9 @@ impl Morph {
             MorphOperation::DebitBalance {
                 account, amount, ..
             } => {
-                let mut account_state = self.get_account_state(account)?.ok_or(MorphError::AccountNotFound)?;
+                let mut account_state = self
+                    .get_account_state(account)?
+                    .ok_or(MorphError::AccountNotFound)?;
                 account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
                 Ok(account_state)
             }
@@ -199,79 +216,29 @@ impl Morph {
 
     pub fn intermediate(&self) -> Result<MorphIntermediate> {
         let cfs = vec![AccountStateStorage::column(), HistoryStorage::column()];
-        let cfs: Result<BTreeMap<_, _>, _> = cfs.iter().map(|name| {
-            self.db.cf_handle(*name).ok_or(MorphError::ColumnFamilyMissing(name)).map(|cf| {
-                (*name, cf)
+        let cfs: Result<BTreeMap<_, _>, _> = cfs
+            .iter()
+            .map(|name| {
+                self.db
+                    .cf_handle(*name)
+                    .ok_or(MorphError::ColumnFamilyMissing(name))
+                    .map(|cf| (*name, cf))
             })
-        }).collect();
+            .collect();
         let snapshot = self.db.snapshot();
-        Ok(MorphIntermediate::new(cfs?, snapshot))
+        Ok(MorphIntermediate::new(
+            self.history_storage.root_hash()?,
+            cfs?,
+            snapshot,
+        ))
     }
     pub fn root_hash(&self) -> Option<Hash> {
         match self.history_storage.root_hash() {
-            Ok(root) => {
-                Some(root)
-            }
-            Err(_) => {
-                None
-            }
+            Ok(root) => Some(root),
+            Err(_) => None,
         }
     }
 }
-
-// pub fn validate_account_state(
-//     proof: &Vec<ProofElement>,
-//     morph: &Morph,
-// ) -> Result<(AccountState, u64), MorphError> {
-//     let mut account_state: AccountState = AccountState::default();
-//     let mut history: Vec<[u8; 32]> = vec![];
-//     let mut last_valid_seq = 0;
-//     for el in proof {
-//         match el {
-//             ProofElement::Operation { op, index: seq } => {
-//                 match op {
-//                     MorphOperation::DebitBalance { amount, .. } => {
-//                         account_state.free_balance =
-//                             account_state.free_balance.saturating_sub(*amount);
-//                     }
-//                     MorphOperation::CreditBalance { amount, .. } => {
-//                         account_state.free_balance =
-//                             account_state.free_balance.saturating_add(*amount);
-//                     }
-//                     MorphOperation::UpdateNonce { nonce, .. } => {
-//                         account_state.nonce = *nonce;
-//                     }
-//                 }
-//                 let prev_root = history.last().unwrap_or(&GENESIS_ROOT);
-//                 let mut sha3 = tiny_keccak::Sha3::v256();
-//                 sha3.update(prev_root);
-//                 sha3.update(&op.encode()?);
-//                 sha3.update(&account_state.encode()?);
-//                 let mut new_root = [0; 32];
-//                 sha3.finalize(&mut new_root);
-//                 let valid_history_hash = morph
-//                     .history_log
-//                     .get_root_at(*seq)?
-//                     .ok_or((MorphError::ValidationFailedHistoryNotFound))?;
-//                 if new_root != valid_history_hash {
-//                     return Err(MorphError::ValidationFailedRootNotValid);
-//                 }
-//                 history.push(new_root);
-//                 last_valid_seq = *seq
-//             }
-//             ProofElement::History { index: seq } => {
-//                 history.push(
-//                     morph
-//                         .history_log
-//                         .get_root_at(*seq)?
-//                         .ok_or(MorphError::ValidationFailedHistoryNotFound)?,
-//                 );
-//             }
-//         }
-//     }
-//
-//     Ok((account_state, last_valid_seq))
-// }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum MorphOperation {
@@ -364,24 +331,25 @@ mod tests {
     fn test_morph() {
         let base = std::env::var("TEST_DIR").unwrap();
         fs_extra::dir::remove(format!("{}/state", base)).unwrap();
-        let mut morph = Morph::new(format!("{}/state", base))
-            .unwrap();
+        let mut morph = Morph::new(format!("{}/state", base)).unwrap();
         let alice = create_account();
         let bob = create_account();
         let jake = create_account();
 
-        morph.apply_transaction(
-            make_sign_transaction(
-                &alice,
-                1,
-                TransactionKind::Coinbase {
-                    miner: alice.pub_key,
-                    block_hash: bob.pub_key,
-                    amount: 10000000,
-                },
+        morph
+            .apply_transaction(
+                make_sign_transaction(
+                    &alice,
+                    1,
+                    TransactionKind::Coinbase {
+                        miner: alice.pub_key,
+                        block_hash: bob.pub_key,
+                        amount: 10000000,
+                    },
+                )
+                    .unwrap(),
             )
-                .unwrap(),
-        ).unwrap();
+            .unwrap();
         for i in 0..100 {
             let amount = 100;
             assert!(morph
@@ -401,7 +369,9 @@ mod tests {
                 .is_ok());
         }
 
-        let checkpoint_1 = morph.checkpoint(format!("{}/state/{}", base, hex::encode(&[1_u8; 32]))).unwrap();
+        let checkpoint_1 = morph
+            .checkpoint(format!("{}/state/{}", base, hex::encode(&[1_u8; 32])))
+            .unwrap();
         let mut intermediate = morph.intermediate().unwrap();
         for i in 0..100 {
             let amount = 100;
@@ -440,7 +410,10 @@ mod tests {
                 .is_ok());
         }
 
-        assert_eq!(checkpoint_1.account_state(&alice.address), intermediate.account_state(&alice.address));
+        assert_eq!(
+            checkpoint_1.account_state(&alice.address),
+            intermediate.account_state(&alice.address)
+        );
         assert_eq!(checkpoint_1.root_hash().unwrap(), intermediate.root());
     }
 }

@@ -11,15 +11,14 @@ use crate::sleddb::SledDB;
 
 pub mod error;
 pub mod memstore;
-pub mod sleddb;
 mod rocks;
+pub mod sleddb;
 
 pub trait KVEntry {
     type Key: Codec + Clone;
     type Value: Codec;
     fn column() -> &'static str;
 }
-
 
 pub enum PersistentStorage {
     InMemory(Arc<MemStore>),

@@ -1,9 +1,9 @@
 use anyhow::Result;
 use primitive_types::H160;
+use std::sync::Arc;
 use types::account::AccountState;
 use types::block::{Block, BlockHeader};
 use types::{BlockHash, PubKey, TxHash};
-use std::sync::Arc;
 // pub trait SudoAccount {
 //     fn is_sudo(&self, account: &AccountId) -> bool;
 //     fn sudo(&self) -> AccountId;
@@ -25,7 +25,7 @@ use std::sync::Arc;
 pub trait ChainState: Send + Sync {
     fn current_head(&self) -> Result<BlockHeader>;
     fn get_block(&self, block_hash: &types::Hash) -> Result<Option<Block>>;
-    fn get_state_at(&self, root: &types::Hash) -> Result<Box<dyn StateDB>>;
+    fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
 }
 
 pub trait StateDB: Send + Sync {

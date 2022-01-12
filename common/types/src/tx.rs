@@ -6,9 +6,9 @@ use codec::{Decoder, Encoder};
 use crypto::{RIPEMD160, SHA256};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-use tiny_keccak::Hasher;
 use std::cmp::Ordering;
-use std::hash::{Hash};
+use std::hash::Hash;
+use tiny_keccak::Hasher;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum TransactionKind {
@@ -100,6 +100,13 @@ impl Transaction {
     pub fn fees(&self) -> u128 {
         match &self.kind {
             TransactionKind::Transfer { fee, .. } => *fee,
+            TransactionKind::Coinbase { .. } => 0,
+        }
+    }
+
+    pub fn price(&self) -> u128 {
+        match &self.kind {
+            TransactionKind::Transfer { fee, amount, .. } => *fee + *amount,
             TransactionKind::Coinbase { .. } => 0,
         }
     }

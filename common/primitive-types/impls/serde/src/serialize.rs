@@ -157,8 +157,8 @@ where
 
 /// Serializes a slice of bytes.
 pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+where
+    S: Serializer,
 {
     let mut slice = vec![0u8; (bytes.len() + 1) * 2];
     serialize_raw(&mut slice, bytes, serializer)

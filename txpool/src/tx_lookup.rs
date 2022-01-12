@@ -36,11 +36,11 @@ const PROMOTE_TX_STMT: &str =
 
 /// Get an overlap tx [`:threshold` , `:address`]
 const READY_TX: &str =
-    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE nonce < :threshold AND address == :address AND is_pending == false;";
+    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE nonce < :threshold AND address == :address AND is_pending == false ORDER BY nonce;";
 
 /// Get transaction that cannot be paid tx [`:cost_limit` , `:address`]
 const UNPAYABLE_TX: &str =
-    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE fees > :cost_limit AND address == :address AND is_pending == false;";
+    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE address == :address AND is_pending == false;";
 /// Inserts an new transaction into the index
 const INSERT_TX: &str =
     "INSERT INTO txpool (id, fees, nonce, address, is_local) VALUES (:id,:fees,:nonce,:address,:is_local)";
@@ -170,6 +170,10 @@ impl TxLookup {
         Ok(tx_hashes)
     }
 
+    pub(crate) fn all(&self) -> Arc<DashMap<TxHashRef, TransactionRef>> {
+        self.txs.clone()
+    }
+
     fn conv_tx<'a>(
         &'a self,
         rows: Box<dyn 'a + Iterator<Item=rusqlite::Result<TxIndexRow, rusqlite::Error>>>,
@@ -291,7 +295,7 @@ impl TxLookup {
         Ok(())
     }
 
-    pub(crate) fn forward(&self, address: H160, current_nonce: u64) -> Result<Vec<TxHash>> {
+    pub(crate) fn forward(&self, address: &H160, current_nonce: u64) -> Result<Vec<TxHash>> {
         self.mu
             .lock()
             .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
@@ -306,22 +310,33 @@ impl TxLookup {
         TxLookup::conv_txhash(Box::new(rows))
     }
 
-    pub(crate) fn unpayable(&self, address: H160, cost_limit: u128) -> Result<Vec<TxHash>> {
+    pub(crate) fn unpayable(&self, address: &H160, cost_limit: u128) -> Result<Vec<TxHash>> {
         self.mu
             .lock()
             .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
         let mut stmt = self.conn.prepare(UNPAYABLE_TX)?;
         let mut rows = stmt.query_map(
             rusqlite::named_params! {
-                ":cost_limit" : cost_limit.to_be_bytes().to_vec(),
                 ":account" : address.as_bytes()
             },
             |row| TxIndexRow::from_row(row),
         )?;
-        TxLookup::conv_txhash(Box::new(rows))
+
+        let mut unpayable = Vec::new();
+
+        for tx in self.conv_tx(Box::new(rows)) {
+            let row = tx?;
+            let tx = row.tx;
+            let tx_hash = row.tx_hash.as_ref();
+            if tx.price() > cost_limit {
+                self.delete(tx_hash)?;
+                unpayable.push(*tx_hash);
+            }
+        }
+        Ok(unpayable)
     }
 
-    pub(crate) fn ready(&self, address: H160, current_nonce: u64) -> Result<Vec<TxHash>> {
+    pub(crate) fn ready(&self, address: &H160, current_nonce: u64) -> Result<Vec<TransactionRef>> {
         self.mu
             .lock()
             .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
@@ -333,7 +348,11 @@ impl TxLookup {
             },
             |row| TxIndexRow::from_row(row),
         )?;
-        TxLookup::conv_txhash(Box::new(rows))
+        let txs: Result<Vec<_>, _> = self
+            .conv_tx(Box::new(rows))
+            .map(|res| res.map(|res| res.tx))
+            .collect();
+        txs.map_err(|e| e.into())
     }
 
     pub(crate) fn reset(&self) -> Result<()> {
@@ -498,6 +517,21 @@ impl TxLookup {
             }
         }
 
+        Ok(pending)
+    }
+
+    pub(crate) fn pending_flatten(&self) -> Result<BTreeSet<TransactionRef>> {
+        self.mu
+            .lock()
+            .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
+        let mut pending = BTreeSet::new();
+        let mut stmt = self.conn.prepare(GET_PENDING)?;
+        let mut rows = stmt.query_map([], |row| TxIndexRow::from_row(row))?;
+        let txs = self.conv_tx(Box::new(rows));
+        for res in txs {
+            let res = res?;
+            pending.insert(res.tx)
+        }
         Ok(pending)
     }
 

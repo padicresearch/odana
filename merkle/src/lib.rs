@@ -47,8 +47,8 @@ impl Eq for Leave {}
 ///
 #[derive(Debug)]
 pub struct Merkle<H>
-    where
-        H: HashFunction,
+where
+    H: HashFunction,
 {
     root: Option<MerkleRoot>,
     pre_leaves_len: usize,

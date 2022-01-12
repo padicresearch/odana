@@ -6,15 +6,15 @@ use dashmap::DashMap;
 use primitive_types::H160;
 use rand::Rng;
 use std::collections::HashMap;
+use std::env;
 use std::iter::FromIterator;
 use std::sync::{Arc, RwLock};
 use traits::{ChainState, StateDB};
 use transaction::make_sign_transaction;
 use types::account::AccountState;
-use types::block::BlockHeader;
+use types::block::{Block, BlockHeader};
 use types::tx::TransactionKind;
-use types::PubKey;
-use std::env;
+use types::{Hash, PubKey};
 
 #[derive(Clone)]
 struct DummyStateDB {
@@ -95,6 +95,14 @@ impl ChainState for DummyChain {
         let blocks = self.chain.read().map_err(|_| anyhow::anyhow!("RW error"))?;
         Ok(blocks.last().map(|block| block.clone()))
     }
+
+    fn get_block(&self, block_hash: &Hash) -> Result<Option<Block>> {
+        todo!()
+    }
+
+    fn get_state_at(&self, root: &Hash) -> Result<Box<dyn StateDB>> {
+        todo!()
+    }
 }
 
 fn generate_blocks(n: usize) -> Vec<BlockHeader> {
@@ -130,7 +138,6 @@ fn generate_blocks(n: usize) -> Vec<BlockHeader> {
     blocks
 }
 
-
 #[test]
 fn test_txpool() {
     let alice = create_account();
@@ -143,7 +150,6 @@ fn test_txpool() {
     let chain = DummyChain::new(generate_blocks(10));
     let state = DummyStateDB::with_accounts(Box::new(accounts.into_iter()));
     let test_dir = env::var("TEST_DIR").unwrap();
-
 
     let txpool = TxPool::new_lookup(
         TxLookup::new_in_path(format!("{}{}", test_dir, "txpool.db")).unwrap(),
@@ -173,7 +179,8 @@ fn test_txpool() {
             amount: 1,
             fee: 100,
         },
-    ).unwrap();
+    )
+        .unwrap();
 
     let tx2_hash = tx2.hash();
 
@@ -181,7 +188,15 @@ fn test_txpool() {
     //txpool.add(, true).unwrap();
     txpool.add(tx1.clone(), true).unwrap();
     txpool.add(tx2.clone(), true).unwrap();
-    assert_eq!(tx2, **txpool.content_from(alice.address).unwrap().1.get(&tx2_hash).unwrap());
+    assert_eq!(
+        tx2,
+        **txpool
+            .content_from(alice.address)
+            .unwrap()
+            .1
+            .get(&tx2_hash)
+            .unwrap()
+    );
     println!("Stats: {:?}", txpool.stats())
     //println!("{:?}", txpool)
 }

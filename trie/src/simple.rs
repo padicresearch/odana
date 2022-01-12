@@ -16,10 +16,10 @@ where
 }
 
 impl<C, K, V> Default for SimpleTrie<C, K, V>
-    where
-        V: Sized + Clone,
-        K: Word<C>,
-        C: Symbol,
+where
+    V: Sized + Clone,
+    K: Word<C>,
+    C: Symbol,
 {
     fn default() -> Self {
         Self {
