@@ -33,10 +33,10 @@ where
 }
 
 impl<C, K, V> SimpleTrie<C, K, V>
-    where
-        V: Sized + Clone,
-        K: Word<C>,
-        C: Symbol,
+where
+    V: Sized + Clone,
+    K: Word<C>,
+    C: Symbol,
 {
     pub fn new() -> Self {
         Self::default()

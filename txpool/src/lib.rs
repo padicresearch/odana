@@ -42,7 +42,10 @@ impl Default for TxPoolConfig {
 }
 
 type Address = H160;
-pub struct TxPool<Chain> where Chain: ChainState {
+pub struct TxPool<Chain>
+    where
+        Chain: ChainState,
+{
     chain: Arc<Chain>,
     state: Arc<dyn StateDB>,
     pending_nonces: TxNoncer,
@@ -187,7 +190,11 @@ impl<Chain> TxPool<Chain>
                             discarded.extend(rem.transactions().into_iter().cloned());
                             rem = match self.chain.get_block(rem.parent_hash())? {
                                 None => {
-                                    error!(block = old_head.level(), hash =  hex::encode(old_head.block_hash()).as_str(), "Unrooted old chain seen by tx pool");
+                                    error!(
+                                        block = old_head.level(),
+                                        hash = hex::encode(old_head.block_hash()).as_str(),
+                                        "Unrooted old chain seen by tx pool"
+                                    );
                                     return Ok(());
                                 }
                                 Some(rem) => rem,
@@ -197,7 +204,11 @@ impl<Chain> TxPool<Chain>
                             included.extend(add.transactions().into_iter().cloned());
                             add = match self.chain.get_block(add.parent_hash())? {
                                 None => {
-                                    error!( block = old_head.level(), hash = hex::encode(old_head.block_hash()).as_str(),"Unrooted new chain seen by tx pool");
+                                    error!(
+                                        block = old_head.level(),
+                                        hash = hex::encode(old_head.block_hash()).as_str(),
+                                        "Unrooted new chain seen by tx pool"
+                                    );
                                     return Ok(());
                                 }
                                 Some(rem) => rem,
@@ -208,7 +219,11 @@ impl<Chain> TxPool<Chain>
                             included.extend(add.transactions().into_iter().cloned());
                             add = match self.chain.get_block(add.parent_hash())? {
                                 None => {
-                                    error!( block = old_head.level(), hash = hex::encode(old_head.block_hash()).as_str(), "Unrooted new chain seen by tx pool");
+                                    error!(
+                                        block = old_head.level(),
+                                        hash = hex::encode(old_head.block_hash()).as_str(),
+                                        "Unrooted new chain seen by tx pool"
+                                    );
                                     return Ok(());
                                 }
                                 Some(block) => block,
@@ -216,20 +231,32 @@ impl<Chain> TxPool<Chain>
                             discarded.extend(rem.transactions().into_iter().cloned());
                             rem = match self.chain.get_block(rem.parent_hash())? {
                                 None => {
-                                    error!(block = old_head.level(), hash = hex::encode(old_head.block_hash()).as_str(), "Unrooted old chain seen by tx pool");
+                                    error!(
+                                        block = old_head.level(),
+                                        hash = hex::encode(old_head.block_hash()).as_str(),
+                                        "Unrooted old chain seen by tx pool"
+                                    );
                                     return Ok(());
                                 }
                                 Some(block) => block,
                             };
                         }
 
-                        reinject = included.intersection(&discarded).into_iter().map(|tx| tx.clone().clone()).collect();
+                        reinject = included
+                            .intersection(&discarded)
+                            .into_iter()
+                            .map(|tx| tx.clone().clone())
+                            .collect();
                     } else {
                         if new_level >= old_level {
                             warn!("Transaction pool reset with missing oldhead");
                             return Ok(());
                         }
-                        debug!(old = hex::encode(old_head.block_hash()).as_str(), new = hex::encode(new_head.block_hash()).as_str(),"Skipping transaction reset caused by setHead");
+                        debug!(
+                            old = hex::encode(old_head.block_hash()).as_str(),
+                            new = hex::encode(new_head.block_hash()).as_str(),
+                            "Skipping transaction reset caused by setHead"
+                        );
                     }
                 }
             }

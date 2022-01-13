@@ -5,7 +5,7 @@ use anyhow::Result;
 use dashmap::DashMap;
 use primitive_types::H160;
 use rand::Rng;
-use std::collections::{HashMap, BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::env;
 use std::iter::FromIterator;
 use std::sync::{Arc, RwLock};
@@ -140,15 +140,7 @@ fn generate_blocks(n: usize) -> Vec<Block> {
         //let block_hash: [u8; 32] = rand::random();
         let block = if blocks.is_empty() {
             Block::new(
-                BlockTemplate::new(
-                    level as i32,
-                    level as u128,
-                    [0; 32],
-                    0,
-                    0,
-                    [0; 32],
-                    [0; 32],
-                )
+                BlockTemplate::new(level as i32, level as u128, [0; 32], 0, 0, [0; 32], [0; 32])
                     .unwrap(),
                 Vec::new(),
             )

@@ -47,10 +47,10 @@ where
 }
 
 impl<C, K, V> Trie<C, K, V> for CompactTrie<C, K, V>
-    where
-        V: Sized + Clone,
-        K: Word<C>,
-        C: Symbol,
+where
+    V: Sized + Clone,
+    K: Word<C>,
+    C: Symbol,
 {
     fn insert(&mut self, key: K, value: V) {
         let mut current_tree = self;

@@ -13,8 +13,8 @@ pub trait Schema {
 }
 
 pub trait KV<Entry>
-    where
-        Entry: Schema,
+where
+    Entry: Schema,
 {
     fn get(&self, key: &Entry::Key) -> Result<Option<Entry::Value>>;
     fn multi_get(&self, key: Vec<Entry::Key>) -> Result<Vec<Option<Entry::Value>>>;

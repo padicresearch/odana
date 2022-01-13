@@ -278,9 +278,12 @@ impl TxLookup {
             .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
         for tx in txs {
             let tx_id = hex::encode(tx);
-            let rows = self.conn.execute("UPDATE txpool SET is_pending = true WHERE id == :id;", rusqlite::named_params! {
-                ":id" :tx_id
-            })?;
+            let rows = self.conn.execute(
+                "UPDATE txpool SET is_pending = true WHERE id == :id;",
+                rusqlite::named_params! {
+                    ":id" :tx_id
+                },
+            )?;
             println!("{} transaction moved to pending", tx_id);
         }
         Ok(())

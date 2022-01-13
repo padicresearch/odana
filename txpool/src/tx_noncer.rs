@@ -12,8 +12,7 @@ pub struct TxNoncer {
     nonces: Arc<DashMap<H160, u64>>,
 }
 
-impl TxNoncer
-{
+impl TxNoncer {
     pub fn new(state: Arc<dyn StateDB>) -> Self {
         Self {
             fallback: state,

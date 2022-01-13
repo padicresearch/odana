@@ -168,8 +168,8 @@ where
 ///
 /// The representation will have all leading zeros trimmed.
 pub fn serialize_uint<S>(slice: &mut [u8], bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+where
+    S: Serializer,
 {
     let non_zero = bytes.iter().take_while(|b| **b == 0).count();
     let bytes = &bytes[non_zero..];
