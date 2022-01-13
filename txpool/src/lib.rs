@@ -12,7 +12,6 @@ use crate::tx_noncer::TxNoncer;
 use anyhow::{Error, Result};
 use dashmap::{DashMap, ReadOnlyView};
 use primitive_types::H160;
-use proc_macro::error;
 use std::borrow::BorrowMut;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::ops::DerefMut;
@@ -43,10 +42,10 @@ impl Default for TxPoolConfig {
 }
 
 type Address = H160;
-pub struct TxPool<Chain, State> {
+pub struct TxPool<Chain> where Chain: ChainState {
     chain: Arc<Chain>,
-    state: Arc<State>,
-    pending_nonces: TxNoncer<State>,
+    state: Arc<dyn StateDB>,
+    pending_nonces: TxNoncer,
     lookup: TxLookup,
     config: TxPoolConfig,
     head: BlockHeader,
@@ -55,14 +54,13 @@ pub struct TxPool<Chain, State> {
 
 pub type TxPoolIterator<'a> = Box<dyn 'a + Send + Iterator<Item=(TxHashRef, TransactionRef)>>;
 
-impl<Chain, State> TxPool<Chain, State>
+impl<Chain> TxPool<Chain>
     where
         Chain: ChainState,
-        State: StateDB,
 {
-    pub fn new(config: TxPoolConfig, chain: Arc<Chain>, state: Arc<State>) -> Result<Self> {
+    pub fn new(config: TxPoolConfig, chain: Arc<Chain>, state: Arc<dyn StateDB>) -> Result<Self> {
         Ok(Self {
-            chain,
+            chain: chain.clone(),
             state: state.clone(),
             pending_nonces: TxNoncer::new(state),
             lookup: TxLookup::new()?,
@@ -77,10 +75,10 @@ impl<Chain, State> TxPool<Chain, State>
         lookup: TxLookup,
         config: TxPoolConfig,
         chain: Arc<Chain>,
-        state: Arc<State>,
+        state: Arc<dyn StateDB>,
     ) -> Result<Self> {
         Ok(Self {
-            chain,
+            chain: chain.clone(),
             state: state.clone(),
             pending_nonces: TxNoncer::new(state),
             lookup,
@@ -170,8 +168,8 @@ impl<Chain, State> TxPool<Chain, State>
         // reinject all dropped transactions
         if let Some(old_head) = old_head {
             if old_head.block_hash() != new_head.block_hash() {
-                let old_level = old_head.level();
-                let new_level = new_head.level();
+                let old_level = *old_head.level();
+                let new_level = *new_head.level();
 
                 let depth = ((old_level as f64) - (new_level as f64)).abs() as u64;
                 if depth > 64 {
@@ -186,20 +184,20 @@ impl<Chain, State> TxPool<Chain, State>
                         .ok_or(anyhow::anyhow!("new block not found"))?;
                     if let Some(mut rem) = rem {
                         while rem.level() > add.level() {
-                            discarded.extend(rem.transactions().into_iter());
+                            discarded.extend(rem.transactions().into_iter().cloned());
                             rem = match self.chain.get_block(rem.parent_hash())? {
                                 None => {
-                                    error!("Unrooted old chain seen by tx pool", block = ?old_head.level(), hash = ?old_head.block_hash());
+                                    error!(block = old_head.level(), hash =  hex::encode(old_head.block_hash()).as_str(), "Unrooted old chain seen by tx pool");
                                     return Ok(());
                                 }
                                 Some(rem) => rem,
                             }
                         }
                         while add.level() > rem.level() {
-                            included.extend(add.transactions().into_iter());
+                            included.extend(add.transactions().into_iter().cloned());
                             add = match self.chain.get_block(add.parent_hash())? {
                                 None => {
-                                    error!("Unrooted new chain seen by tx pool", block = ?old_head.level(), hash = ?old_head.block_hash());
+                                    error!( block = old_head.level(), hash = hex::encode(old_head.block_hash()).as_str(),"Unrooted new chain seen by tx pool");
                                     return Ok(());
                                 }
                                 Some(rem) => rem,
@@ -207,31 +205,31 @@ impl<Chain, State> TxPool<Chain, State>
                         }
 
                         while add.level() != rem.level() {
-                            included.extend(&add.transactions().into_iter());
+                            included.extend(add.transactions().into_iter().cloned());
                             add = match self.chain.get_block(add.parent_hash())? {
                                 None => {
-                                    error!("Unrooted new chain seen by tx pool", block = ?old_head.level(), hash = ?old_head.block_hash());
+                                    error!( block = old_head.level(), hash = hex::encode(old_head.block_hash()).as_str(), "Unrooted new chain seen by tx pool");
                                     return Ok(());
                                 }
                                 Some(block) => block,
                             };
-                            discarded.extend_from_slice(rem.transactions().into_iter());
+                            discarded.extend(rem.transactions().into_iter().cloned());
                             rem = match self.chain.get_block(rem.parent_hash())? {
                                 None => {
-                                    error!("Unrooted old chain seen by tx pool", block = ?old_head.level(), hash = ?old_head.block_hash());
+                                    error!(block = old_head.level(), hash = hex::encode(old_head.block_hash()).as_str(), "Unrooted old chain seen by tx pool");
                                     return Ok(());
                                 }
                                 Some(block) => block,
                             };
                         }
 
-                        reinject = included.intersection(&discarded).collect();
+                        reinject = included.intersection(&discarded).into_iter().map(|tx| tx.clone().clone()).collect();
                     } else {
                         if new_level >= old_level {
                             warn!("Transaction pool reset with missing oldhead");
                             return Ok(());
                         }
-                        debug!("Skipping transaction reset caused by setHead", old = ?old_head.block_hash(), new = ?new_old.block_hash());
+                        debug!(old = hex::encode(old_head.block_hash()).as_str(), new = hex::encode(new_head.block_hash()).as_str(),"Skipping transaction reset caused by setHead");
                     }
                 }
             }
@@ -239,7 +237,7 @@ impl<Chain, State> TxPool<Chain, State>
         let statedb = self.chain.get_state_at(new_head.state_root())?;
         self.state = statedb.clone();
         self.pending_nonces = TxNoncer::new(statedb);
-        self.add_txs_locked(Box::new(reinject.iter()), false)?;
+        self.add_txs_locked(Box::new(reinject.into_iter()), false)?;
         Ok(())
     }
 
@@ -258,19 +256,19 @@ impl<Chain, State> TxPool<Chain, State>
     }
 
     fn add_txs(&mut self, txs: Vec<Transaction>, local: bool) -> Result<()> {
-        let accounts = self.add_txs_locked(
-            Box::new(
-                txs.into_iter()
-                    .filter(|tx| self.lookup.contains(&tx.hash())),
-            ),
-            local,
-        )?;
-        self.promote_executables(accounts);
+        let mut valid_txs = Vec::new();
+        for tx in txs {
+            if !self.lookup.contains(&tx.hash()) {
+                valid_txs.push(tx);
+            }
+        }
+        let accounts = self.add_txs_locked(Box::new(valid_txs.into_iter()), local)?;
+        self.promote_executables(accounts)?;
         Ok(())
     }
 
     /// Takes transaction form queue and adds them to pending
-    pub fn package(&self) -> Result<BTreeSet<TransactionRef>> {
+    pub fn package(&self) -> Result<Vec<TransactionRef>> {
         self.lookup.pending_flatten()
     }
 
@@ -281,7 +279,7 @@ impl<Chain, State> TxPool<Chain, State>
     pub fn has(&self, hash: &Hash) -> bool {
         self.lookup.all().contains_key(hash)
     }
-    fn promote_executables(&self, accounts: BTreeSet<Address>) {
+    fn promote_executables(&self, accounts: BTreeSet<Address>) -> Result<()> {
         //let mut promoted = BTreeSet::new();
         for address in accounts {
             // Remove transactions with nonce lower than current account state
@@ -307,8 +305,10 @@ impl<Chain, State> TxPool<Chain, State>
             for tx in readies.iter() {
                 self.pending_nonces.set(tx.sender_address(), tx.nonce() + 1);
             }
-            info!("Promoted queued transactions", count = ?readies_count);
+            info!(count = readies_count, "Promoted queued transactions");
         }
+
+        Ok(())
     }
 
     pub fn nonce(&self, address: &H160) -> u64 {
@@ -329,11 +329,5 @@ impl<Chain, State> TxPool<Chain, State>
 
     pub fn add_locals(&mut self, txs: Vec<Transaction>) -> Result<()> {
         self.add_txs(txs, true)
-    }
-
-    /// Remove transaction form pending and queue
-    /// This occurs when a new block
-    pub fn remove(&self, tx_hash: &TxHash) {
-        self.reorg()
     }
 }

@@ -36,14 +36,14 @@ const PROMOTE_TX_STMT: &str =
 
 /// Get an overlap tx [`:threshold` , `:address`]
 const READY_TX: &str =
-    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE nonce < :threshold AND address == :address AND is_pending == false ORDER BY nonce;";
+    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE nonce > :threshold AND address == :address AND is_pending == false ORDER BY nonce;";
 
 /// Get transaction that cannot be paid tx [`:cost_limit` , `:address`]
 const UNPAYABLE_TX: &str =
     "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE address == :address AND is_pending == false;";
 /// Inserts an new transaction into the index
 const INSERT_TX: &str =
-    "INSERT INTO txpool (id, fees, nonce, address, is_local) VALUES (:id,:fees,:nonce,:address,:is_local)";
+    "INSERT INTO txpool (id, fees, nonce, address, is_local, is_pending) VALUES (:id,:fees,:nonce,:address,:is_local, :is_pending)";
 
 /// Get all transaction belonging to an address which does not meet the threshold nonce params [`:address` , `:current_nonce`]
 const FORWARD_TX: &str =
@@ -64,7 +64,7 @@ const GET_OVERLAP_TX: &str =
     "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE nonce == :nonce AND address == :address LIMIT 1;";
 
 const GET_PENDING: &str =
-    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE is_pending == true ORDER BY nonce GROUP BY address;";
+    "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE is_pending == true GROUP BY address ORDER BY nonce;";
 
 const GET_QUEUE: &str =
     "SELECT id, fees, nonce, address, is_local,is_pending FROM txpool WHERE is_pending == false ORDER BY nonce GROUP BY address;";
@@ -132,6 +132,7 @@ impl TxIndexRow {
             (":fees", &self.fees),
             (":address", &self.address),
             (":is_local", &self.is_local),
+            (":is_pending", &self.is_pending),
         ]
     }
 
@@ -275,15 +276,14 @@ impl TxLookup {
         self.mu
             .lock()
             .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
-        let mut stmt = String::from("BEGIN;");
         for tx in txs {
-            stmt.push_str(&format!(
-                "UPDATE txpool SET is_pending = true WHERE id == {};",
-                hex::encode(tx)
-            ));
+            let tx_id = hex::encode(tx);
+            let rows = self.conn.execute("UPDATE txpool SET is_pending = true WHERE id == :id;", rusqlite::named_params! {
+                ":id" :tx_id
+            })?;
+            println!("{} transaction moved to pending", tx_id);
         }
-        stmt.push_str("COMMIT;");
-        self.conn.execute_batch(stmt.as_str()).map_err(|e| e.into())
+        Ok(())
     }
     pub(crate) fn delete(&self, tx_hash: &TxHash) -> Result<()> {
         self.mu
@@ -303,7 +303,7 @@ impl TxLookup {
         let mut rows = stmt.query_map(
             rusqlite::named_params! {
                 ":current_nonce" : current_nonce as i64,
-                ":account" : address.as_bytes()
+                ":address" : address.as_bytes()
             },
             |row| TxIndexRow::from_row(row),
         )?;
@@ -317,7 +317,7 @@ impl TxLookup {
         let mut stmt = self.conn.prepare(UNPAYABLE_TX)?;
         let mut rows = stmt.query_map(
             rusqlite::named_params! {
-                ":account" : address.as_bytes()
+                ":address" : address.as_bytes()
             },
             |row| TxIndexRow::from_row(row),
         )?;
@@ -343,8 +343,8 @@ impl TxLookup {
         let mut stmt = self.conn.prepare(READY_TX)?;
         let mut rows = stmt.query_map(
             rusqlite::named_params! {
-                ":current_nonce" : current_nonce as i64,
-                ":account" : address.as_bytes()
+                ":threshold" : current_nonce as i64,
+                ":address" : address.as_bytes()
             },
             |row| TxIndexRow::from_row(row),
         )?;
@@ -520,17 +520,18 @@ impl TxLookup {
         Ok(pending)
     }
 
-    pub(crate) fn pending_flatten(&self) -> Result<BTreeSet<TransactionRef>> {
+    pub(crate) fn pending_flatten(&self) -> Result<Vec<TransactionRef>> {
         self.mu
             .lock()
             .map_err(|e| TxPoolError::MutexGuardError(format!("{}", e)))?;
-        let mut pending = BTreeSet::new();
+        let mut pending = Vec::new();
         let mut stmt = self.conn.prepare(GET_PENDING)?;
         let mut rows = stmt.query_map([], |row| TxIndexRow::from_row(row))?;
         let txs = self.conv_tx(Box::new(rows));
         for res in txs {
             let res = res?;
-            pending.insert(res.tx)
+            println!("ADDED {} to package, Replaced", hex::encode(*res.tx_hash));
+            pending.push(res.tx);
         }
         Ok(pending)
     }

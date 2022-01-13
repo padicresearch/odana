@@ -44,13 +44,21 @@ impl Eq for Transaction {}
 
 impl Ord for Transaction {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.nonce.cmp(&other.nonce)
+        if self.origin.eq(other.origin()) {
+            self.nonce.cmp(&other.nonce)
+        } else {
+            self.hash().cmp(&other.hash())
+        }
     }
 }
 
 impl PartialOrd for Transaction {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.nonce.cmp(&other.nonce))
+        if self.origin.eq(other.origin()) {
+            Some(self.nonce.cmp(&other.nonce))
+        } else {
+            Some(self.hash().cmp(&other.hash()))
+        }
     }
 }
 

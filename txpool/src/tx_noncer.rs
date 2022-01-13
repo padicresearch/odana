@@ -7,16 +7,14 @@ use traits::StateDB;
 use types::PubKey;
 
 #[derive(Clone)]
-pub struct TxNoncer<State> {
-    fallback: State,
+pub struct TxNoncer {
+    fallback: Arc<dyn StateDB>,
     nonces: Arc<DashMap<H160, u64>>,
 }
 
-impl<State> TxNoncer<State>
-where
-    State: StateDB,
+impl TxNoncer
 {
-    pub fn new(state: State) -> Self {
+    pub fn new(state: Arc<dyn StateDB>) -> Self {
         Self {
             fallback: state,
             nonces: Arc::new(Default::default()),
