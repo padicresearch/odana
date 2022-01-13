@@ -1,20 +1,23 @@
-use crate::tx_lookup::TxLookup;
-use crate::{TxPool, TxPoolConfig};
-use account::create_account;
-use anyhow::Result;
-use dashmap::DashMap;
-use primitive_types::H160;
-use rand::Rng;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::env;
 use std::iter::FromIterator;
 use std::sync::{Arc, RwLock};
+
+use anyhow::Result;
+use dashmap::DashMap;
+use rand::Rng;
+
+use account::create_account;
+use primitive_types::H160;
 use traits::{ChainState, StateDB};
 use transaction::make_sign_transaction;
+use types::{Hash, PubKey};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader, BlockTemplate};
 use types::tx::TransactionKind;
-use types::{Hash, PubKey};
+
+use crate::{TxPool, TxPoolConfig};
+use crate::tx_lookup::TxLookup;
 
 #[derive(Clone)]
 struct DummyStateDB {
@@ -222,18 +225,8 @@ fn test_txpool() {
     let tx2_hash = tx2.hash();
 
     println!("{:}\n{:}", hex::encode(tx1.hash()), hex::encode(tx2.hash()));
-    //txpool.add(, true).unwrap();
     txpool.add_local(tx1.clone()).unwrap();
     txpool.add_local(tx2.clone()).unwrap();
-    // assert_eq!(
-    //     tx2,
-    //     **txpool
-    //         .content_from(alice.address)
-    //         .unwrap()
-    //         .1
-    //         .get(&tx2_hash)
-    //         .unwrap()
-    // );
     println!("Stats: {:?}", txpool.package().unwrap().len())
     //println!("{:?}", txpool)
 }
