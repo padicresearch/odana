@@ -8,6 +8,7 @@
 
 use alloc::{string::String, vec::Vec};
 use core::{fmt, result::Result};
+
 use serde::{de, Deserializer, Serializer};
 
 static CHARS: &[u8] = b"0123456789abcdef";
@@ -203,8 +204,8 @@ impl<'a> fmt::Display for ExpectedLen<'a> {
 /// Deserialize into vector of bytes.  This will allocate an O(n) intermediate
 /// string.
 pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
-    where
-        D: Deserializer<'de>,
+where
+    D: Deserializer<'de>,
 {
     struct Visitor;
 
@@ -233,8 +234,8 @@ pub fn deserialize_check_len<'a, 'de, D>(
     deserializer: D,
     len: ExpectedLen<'a>,
 ) -> Result<usize, D::Error>
-    where
-        D: Deserializer<'de>,
+where
+    D: Deserializer<'de>,
 {
     struct Visitor<'a> {
         len: ExpectedLen<'a>,
@@ -282,8 +283,9 @@ pub fn deserialize_check_len<'a, 'de, D>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_derive::{Deserialize, Serialize};
+
+    use super::*;
 
     #[derive(Serialize, Deserialize)]
     struct Bytes(#[serde(with = "super")] Vec<u8>);
@@ -310,15 +312,15 @@ mod tests {
         let a: Bytes = serde_json::from_str(
             "\"0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587\"",
         )
-            .unwrap();
+        .unwrap();
         let b: Bytes = serde_json::from_str(
             "\"0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b\"",
         )
-            .unwrap();
+        .unwrap();
         let c: Bytes = serde_json::from_str(
             "\"0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b4\"",
         )
-            .unwrap();
+        .unwrap();
 
         assert_eq!(a.0.len(), 31);
         assert_eq!(b.0.len(), 32);
@@ -347,15 +349,15 @@ mod tests {
         let a: Bytes = serde_json::from_str(
             "\"7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587\"",
         )
-            .unwrap();
+        .unwrap();
         let b: Bytes = serde_json::from_str(
             "\"7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b\"",
         )
-            .unwrap();
+        .unwrap();
         let c: Bytes = serde_json::from_str(
             "\"7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b4\"",
         )
-            .unwrap();
+        .unwrap();
 
         assert_eq!(a.0.len(), 31);
         assert_eq!(b.0.len(), 32);

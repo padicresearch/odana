@@ -25,7 +25,7 @@ struct DummyStateDB {
 }
 
 impl DummyStateDB {
-    fn with_accounts(iter: Box<dyn Iterator<Item=(H160, AccountState)>>) -> Self {
+    fn with_accounts(iter: Box<dyn Iterator<Item = (H160, AccountState)>>) -> Self {
         let mut accounts = DashMap::from_iter(iter);
         Self { accounts }
     }
@@ -158,7 +158,7 @@ fn generate_blocks(n: usize) -> Vec<Block> {
                     [0; 32],
                     [0; 32],
                 )
-                    .unwrap(),
+                .unwrap(),
                 Vec::new(),
             )
         };
@@ -189,7 +189,7 @@ fn test_txpool() {
         chain.clone(),
         state.clone(),
     )
-        .unwrap();
+    .unwrap();
 
     state.set_nonce(&alice.address, 2);
 
@@ -203,7 +203,7 @@ fn test_txpool() {
             fee: 10,
         },
     )
-        .unwrap();
+    .unwrap();
     let tx2 = make_sign_transaction(
         &bob,
         3,
@@ -214,7 +214,7 @@ fn test_txpool() {
             fee: 0,
         },
     )
-        .unwrap();
+    .unwrap();
 
     let mut txs = HashSet::new();
     txs.insert(tx1.clone());

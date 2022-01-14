@@ -7,8 +7,10 @@
 // except according to those terms.
 
 use core::{convert::TryInto, str::FromStr, u64::MAX};
+
 use crunchy::unroll;
-use uint::{construct_uint, overflowing, FromDecStrErr};
+
+use uint::{construct_uint, FromDecStrErr, overflowing};
 
 construct_uint! {
     pub struct U256(4);
@@ -539,7 +541,7 @@ fn uint256_mul_overflow() {
 fn uint256_mul_overflow_panic() {
     U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap()
         * U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-        .unwrap();
+            .unwrap();
 }
 
 #[test]
@@ -1214,6 +1216,7 @@ fn trailing_zeros() {
 #[cfg(feature = "quickcheck")]
 pub mod laws {
     use super::construct_uint;
+
     macro_rules! uint_laws {
 		($mod_name:ident, $uint_ty:ident) => {
 			mod $mod_name {

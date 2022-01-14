@@ -36,9 +36,23 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="new morph implementation">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="test txpool extensively">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/utxo.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/utxo.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/serialize.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/serialize.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/tests/fp_conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/tests/fp_conversion.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/benches/bigint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/benches/bigint.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/examples/modular.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/examples/modular.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/kv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/kv.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/logdb.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/logdb.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/store.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trie/src/simple.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/simple.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
@@ -347,7 +361,10 @@
       <workItem from="1641552170751" duration="46617000" />
       <workItem from="1641741811275" duration="57462000" />
       <workItem from="1641971241761" duration="9132000" />
-      <workItem from="1641993805431" duration="24373000" />
+      <workItem from="1641993805431" duration="30668000" />
+      <workItem from="1642064352872" duration="1913000" />
+      <workItem from="1642091260977" duration="13193000" />
+      <workItem from="1642186007441" duration="1817000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -650,7 +667,28 @@
       <option name="project" value="LOCAL" />
       <updated>1642010279569</updated>
     </task>
-    <option name="localTasksCounter" value="44" />
+    <task id="LOCAL-00044" summary="new morph implementation">
+      <created>1642054658252</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1642054658252</updated>
+    </task>
+    <task id="LOCAL-00045" summary="cargo fmt">
+      <created>1642054685288</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1642054685288</updated>
+    </task>
+    <task id="LOCAL-00046" summary="test txpool extensively">
+      <created>1642054794154</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1642054794154</updated>
+    </task>
+    <option name="localTasksCounter" value="47" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -669,7 +707,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="cargo clippy" />
     <MESSAGE value="clean up" />
     <MESSAGE value="simple trei implementation" />
     <MESSAGE value="implemented generic trie" />
@@ -690,12 +727,13 @@
     <MESSAGE value="add `impl_codec_primitives`" />
     <MESSAGE value="implementing txpool" />
     <MESSAGE value="use `address` instead of `pub_key`" />
-    <MESSAGE value="cargo fmt" />
     <MESSAGE value="use struct instead tuple" />
     <MESSAGE value="rename" />
     <MESSAGE value="new morph implementation" />
-    <option name="LAST_COMMIT_MESSAGE" value="new morph implementation" />
-    <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
+    <MESSAGE value="cargo fmt" />
+    <MESSAGE value="test txpool extensively" />
+    <option name="LAST_COMMIT_MESSAGE" value="test txpool extensively" />
+    <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

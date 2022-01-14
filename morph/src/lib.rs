@@ -1,34 +1,35 @@
 use std::collections::{BTreeMap, HashMap};
+use std::option::Option::Some;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Error, Result};
 use chrono::Utc;
+use rocksdb::checkpoint::Checkpoint;
+use rocksdb::ColumnFamily;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
-use crate::error::MorphError;
-use crate::logdb::{HistoryLog, LogData};
-//use crate::snapshot::MorphSnapshot;
-use crate::kv::Schema;
-use crate::snapshot::MorphIntermediate;
-use crate::store::{
-    column_families, default_db_opts, AccountMetadataStorage, AccountStateStorage,
-    HistorySequenceStorage, HistoryStorage,
-};
 use account::get_address_from_pub_key;
-use codec::impl_codec;
 use codec::{Codec, Decoder, Encoder};
+use codec::impl_codec;
 use primitive_types::{H160, H256};
-use rocksdb::checkpoint::Checkpoint;
-use rocksdb::ColumnFamily;
-use std::option::Option::Some;
 use storage::{KVEntry, KVStore};
 use traits::StateDB;
-use types::account::AccountState;
-use types::tx::{Transaction, TransactionKind};
-use types::Hash;
 use types::{BlockHash, TxHash};
+use types::account::AccountState;
+use types::Hash;
+use types::tx::{Transaction, TransactionKind};
+
+use crate::error::MorphError;
+//use crate::snapshot::MorphSnapshot;
+use crate::kv::Schema;
+use crate::logdb::{HistoryLog, LogData};
+use crate::snapshot::MorphIntermediate;
+use crate::store::{
+    AccountMetadataStorage, AccountStateStorage, column_families, default_db_opts,
+    HistorySequenceStorage, HistoryStorage,
+};
 
 mod error;
 mod kv;
@@ -315,6 +316,7 @@ pub trait MorphCheckPoint {
 #[cfg(test)]
 mod tests {
     use std::sync::RwLock;
+    use std::time::Instant;
 
     use commitlog::{CommitLog, LogOptions};
     use tempdir::TempDir;
@@ -325,7 +327,6 @@ mod tests {
     use transaction::make_sign_transaction;
 
     use super::*;
-    use std::time::Instant;
 
     #[test]
     fn test_morph() {
@@ -347,7 +348,7 @@ mod tests {
                         amount: 10000000,
                     },
                 )
-                    .unwrap(),
+                .unwrap(),
             )
             .unwrap();
         for i in 0..100 {
@@ -364,7 +365,7 @@ mod tests {
                             fee: (amount as f64 * 0.01) as u128,
                         },
                     )
-                        .unwrap()
+                    .unwrap()
                 )
                 .is_ok());
         }
@@ -387,7 +388,7 @@ mod tests {
                             fee: (amount as f64 * 0.01) as u128,
                         },
                     )
-                        .unwrap()
+                    .unwrap()
                 )
                 .is_ok());
         }
@@ -405,7 +406,7 @@ mod tests {
                             fee: (amount as f64 * 0.01) as u128,
                         },
                     )
-                        .unwrap()
+                    .unwrap()
                 )
                 .is_ok());
         }

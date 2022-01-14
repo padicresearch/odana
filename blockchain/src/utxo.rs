@@ -1,11 +1,14 @@
-use crate::errors::BlockChainError;
-use crate::transaction::{Tx, TxOut};
-use anyhow::Result;
-use codec::{Decoder, Encoder};
-use serde::{Deserialize, Serialize};
 use std::io::{Cursor, Read};
 use std::sync::Arc;
+
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+
+use codec::{Decoder, Encoder};
 use storage::{KVEntry, KVStore, PersistentStorage};
+
+use crate::errors::BlockChainError;
+use crate::transaction::{Tx, TxOut};
 
 pub type UTXOStorageKV = dyn KVStore<UTXO> + Send + Sync;
 
@@ -36,7 +39,7 @@ pub trait UTXOStore {
     fn contains(&self, index: u16, tx_hash: &[u8; 32]) -> Result<bool>;
     fn iter<'a>(
         &'a self,
-    ) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<CoinKey>, Result<CoinOut>)>>>;
+    ) -> Result<Box<dyn 'a + Send + Iterator<Item = (Result<CoinKey>, Result<CoinOut>)>>>;
 }
 
 impl UTXOStore for UTXO {
@@ -74,7 +77,7 @@ impl UTXOStore for UTXO {
 
     fn iter<'a>(
         &'a self,
-    ) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<CoinKey>, Result<CoinOut>)>>> {
+    ) -> Result<Box<dyn 'a + Send + Iterator<Item = (Result<CoinKey>, Result<CoinOut>)>>> {
         self.kv.iter()
     }
 }

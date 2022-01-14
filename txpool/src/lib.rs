@@ -1,3 +1,24 @@
+use std::borrow::BorrowMut;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::ops::DerefMut;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+
+use anyhow::{Error, Result};
+use dashmap::{DashMap, ReadOnlyView};
+
+use primitive_types::H160;
+use tracing::{debug, error, info, warn};
+use tracing::tracing_subscriber::fmt::writer::EitherWriter::B;
+use traits::{ChainState, StateDB};
+use transaction::validate_transaction;
+use types::{Hash, TxHash};
+use types::block::{Block, BlockHeader};
+use types::tx::Transaction;
+
+use crate::error::TxPoolError;
+use crate::tx_lookup::TxLookup;
+use crate::tx_noncer::TxNoncer;
+
 mod error;
 mod tx_lookup;
 mod tx_noncer;
@@ -5,24 +26,6 @@ mod txlist;
 
 #[cfg(test)]
 mod tests;
-
-use crate::error::TxPoolError;
-use crate::tx_lookup::TxLookup;
-use crate::tx_noncer::TxNoncer;
-use anyhow::{Error, Result};
-use dashmap::{DashMap, ReadOnlyView};
-use primitive_types::H160;
-use std::borrow::BorrowMut;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::ops::DerefMut;
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
-use tracing::tracing_subscriber::fmt::writer::EitherWriter::B;
-use tracing::{debug, error, info, warn};
-use traits::{ChainState, StateDB};
-use transaction::validate_transaction;
-use types::block::{Block, BlockHeader};
-use types::tx::Transaction;
-use types::{Hash, TxHash};
 
 type TxHashRef = Arc<TxHash>;
 type TransactionRef = Arc<Transaction>;
@@ -33,18 +36,23 @@ pub struct TxPoolConfig {
     transaction_limit: usize,
 }
 
+pub struct ResetRequest {
+    old_head : Option<BlockHeader>,
+    new_head : BlockHeader
+}
+
 impl Default for TxPoolConfig {
     fn default() -> Self {
         TxPoolConfig {
-            transaction_limit: 2048,
+            transaction_limit: 4048,
         }
     }
 }
 
 type Address = H160;
 pub struct TxPool<Chain>
-    where
-        Chain: ChainState,
+where
+    Chain: ChainState,
 {
     chain: Arc<Chain>,
     state: Arc<dyn StateDB>,
@@ -52,14 +60,14 @@ pub struct TxPool<Chain>
     lookup: TxLookup,
     config: TxPoolConfig,
     head: BlockHeader,
-    accounts: BTreeSet<Address>,
+    dirtyAccounts: BTreeSet<Address>,
 }
 
-pub type TxPoolIterator<'a> = Box<dyn 'a + Send + Iterator<Item=(TxHashRef, TransactionRef)>>;
+pub type TxPoolIterator<'a> = Box<dyn 'a + Send + Iterator<Item = (TxHashRef, TransactionRef)>>;
 
 impl<Chain> TxPool<Chain>
-    where
-        Chain: ChainState,
+where
+    Chain: ChainState,
 {
     pub fn new(config: TxPoolConfig, chain: Arc<Chain>, state: Arc<dyn StateDB>) -> Result<Self> {
         Ok(Self {
@@ -69,7 +77,7 @@ impl<Chain> TxPool<Chain>
             lookup: TxLookup::new()?,
             config,
             head: chain.current_head()?,
-            accounts: Default::default(),
+            dirtyAccounts: Default::default(),
         })
     }
 
@@ -87,7 +95,7 @@ impl<Chain> TxPool<Chain>
             lookup,
             config,
             head: chain.current_head()?,
-            accounts: Default::default(),
+            dirtyAccounts: Default::default(),
         })
     }
 
@@ -166,7 +174,7 @@ impl<Chain> TxPool<Chain>
         self.lookup.locals()
     }
 
-    pub fn reset(&mut self, old_head: Option<BlockHeader>, new_head: BlockHeader) -> Result<()> {
+    fn reset(&mut self, old_head: Option<BlockHeader>, new_head: BlockHeader) -> Result<()> {
         let mut reinject = HashSet::new();
         // reinject all dropped transactions
         if let Some(old_head) = old_head {
@@ -270,7 +278,7 @@ impl<Chain> TxPool<Chain>
 
     fn add_txs_locked(
         &mut self,
-        txs: Box<dyn Iterator<Item=Transaction>>,
+        txs: Box<dyn Iterator<Item = Transaction>>,
         local: bool,
     ) -> Result<BTreeSet<Address>> {
         let mut accounts = BTreeSet::new();
@@ -295,7 +303,13 @@ impl<Chain> TxPool<Chain>
     }
 
     /// Takes transaction form queue and adds them to pending
-    pub fn package(&self) -> Result<Vec<TransactionRef>> {
+    pub fn package(&mut self, reset : Option<ResetRequest>) -> Result<Vec<TransactionRef>> {
+        if let Some(req) = reset{
+            self.reset(req.old_head, req.new_head);
+            for address in self.dirtyAccounts {
+                self.lookup.forward(&address, self.pending_nonces.get(&address))
+            }
+        }
         self.lookup.pending_flatten()
     }
 
@@ -306,7 +320,7 @@ impl<Chain> TxPool<Chain>
     pub fn has(&self, hash: &Hash) -> bool {
         self.lookup.all().contains_key(hash)
     }
-    fn promote_executables(&self, accounts: BTreeSet<Address>) -> Result<()> {
+    fn promote_executables(mut self, accounts: BTreeSet<Address>) -> Result<()> {
         //let mut promoted = BTreeSet::new();
         for address in accounts {
             // Remove transactions with nonce lower than current account state
@@ -319,15 +333,19 @@ impl<Chain> TxPool<Chain>
             // Remove transactions that are too costly ( sender cannot fulfil transaction)
             let drops = self
                 .lookup
-                .unpayable(&address, self.state.account_state(&address).free_balance)?;
+                .unpayable(&address, self.state.account_state(&address).free_balance, false)?;
             for tx in drops.iter() {
-                self.lookup.delete(tx)?;
+                self.lookup.delete(&tx.hash())?;
             }
             // Get all remaining transactions and promote them
             let readies = self.lookup.ready(&address, self.nonce(&address))?;
             let readies_count = readies.len();
             self.lookup
                 .promote(readies.iter().map(|tx| tx.hash()).collect())?;
+
+            if readies_count > 0 {
+                self.dirtyAccounts.insert(address);
+            }
 
             for tx in readies.iter() {
                 self.pending_nonces.set(tx.sender_address(), tx.nonce() + 1);

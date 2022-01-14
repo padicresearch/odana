@@ -1,20 +1,23 @@
-use crate::error::MorphError;
-use crate::kv::{Schema, KV};
-use crate::{MorphOperation, GENESIS_ROOT};
-use anyhow::Result;
-use codec::impl_codec;
-use codec::{Decoder, Encoder};
-use primitive_types::{H160, H256};
-use rocksdb::Options;
-use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, MergeOperands};
-use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
 use std::option::Option::Some;
 use std::sync::{Arc, Mutex};
-use tracing::{warn, Value};
+
+use anyhow::Result;
+use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, MergeOperands};
+use rocksdb::Options;
+use serde::{Deserialize, Serialize};
+
+use codec::{Decoder, Encoder};
+use codec::impl_codec;
+use primitive_types::{H160, H256};
+use tracing::{Value, warn};
 use types::account::AccountState;
 use types::Hash;
+
+use crate::{GENESIS_ROOT, MorphOperation};
+use crate::error::MorphError;
+use crate::kv::{KV, Schema};
 
 pub fn default_db_opts() -> Options {
     let mut opts = Options::default();
@@ -310,7 +313,7 @@ pub(crate) fn column_families() -> Vec<ColumnFamilyDescriptor> {
 }
 
 pub type HistorySequenceIterator<'a> =
-Box<dyn 'a + Send + Iterator<Item=(Result<u128>, Result<Hash>)>>;
+    Box<dyn 'a + Send + Iterator<Item = (Result<u128>, Result<Hash>)>>;
 pub type HistorySequenceStorageKV = dyn KV<HistorySequenceStorage> + Send + Sync;
 
 impl Schema for HistorySequenceStorage {
@@ -354,14 +357,17 @@ impl HistorySequenceStorage {
 
 #[cfg(test)]
 mod test {
-    use crate::store::{
-        column_families, default_db_opts, AccountMetadataStorage, AccountRoots,
-        AccountStateStorage, HistoryIKey, HistoryIValue, HistorySequenceStorage, HistoryStorage,
-    };
-    use crate::MorphOperation;
-    use account::create_account;
     use std::sync::Arc;
+
     use tempdir::TempDir;
+
+    use account::create_account;
+
+    use crate::MorphOperation;
+    use crate::store::{
+        AccountMetadataStorage, AccountRoots, AccountStateStorage, column_families,
+        default_db_opts, HistoryIKey, HistoryIValue, HistorySequenceStorage, HistoryStorage,
+    };
 
     #[test]
     fn test_merge_account_meta() {
@@ -470,7 +476,7 @@ mod test {
         let iter = history_storage.root_history().unwrap();
         let mut history_storage_iter = iter.iter().map(|his| his.root);
         while let (Some((_, Ok(seq_his))), Some(his)) =
-        (history_sequence_iter.next(), history_storage_iter.next())
+            (history_sequence_iter.next(), history_storage_iter.next())
         {
             assert_eq!(seq_his, his)
         }

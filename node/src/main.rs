@@ -1,19 +1,21 @@
+use std::env;
+use std::sync::Arc;
+
 use anyhow::Error;
+
 use blockchain::block_storage::BlockStorage;
 use blockchain::blockchain::{
-    start_mining, BlockChain, BlockChainState, LocalMessage, StateAction,
+    BlockChain, BlockChainState, LocalMessage, start_mining, StateAction,
 };
 use blockchain::mempool::MemPool;
 use blockchain::p2p::{
-    start_p2p_server, BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage,
-    NodeIdentity, PeerMessage,
+    BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage, NodeIdentity,
+    PeerMessage, start_p2p_server,
 };
 use blockchain::utxo::UTXO;
-use std::env;
-use std::sync::Arc;
+use storage::{KVEntry, PersistentStorage};
 use storage::memstore::MemStore;
 use storage::sleddb::SledDB;
-use storage::{KVEntry, PersistentStorage};
 use types::block::Block;
 
 enum EventStream {
@@ -48,7 +50,7 @@ async fn main() -> anyhow::Result<()> {
         node_2_peer_receiver,
         peer_2_node_sender,
     )
-        .await?;
+    .await?;
 
     loop {
         let event = tokio::select! {

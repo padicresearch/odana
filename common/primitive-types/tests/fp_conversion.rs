@@ -23,9 +23,9 @@ fn convert_u256_to_f64() {
 
 #[test]
 #[allow(
-clippy::excessive_precision,
-clippy::float_cmp,
-clippy::unreadable_literal
+    clippy::excessive_precision,
+    clippy::float_cmp,
+    clippy::unreadable_literal
 )]
 #[cfg(feature = "std")]
 fn convert_u256_to_f64_precision_loss() {

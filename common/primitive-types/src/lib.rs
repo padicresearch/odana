@@ -1,3 +1,4 @@
+
 // Copyright 2020 Parity Technologies
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
@@ -11,19 +12,24 @@
 //! Those are uint types `U128`, `U256` and `U512`, and fixed hash types `H160`,
 //! `H256` and `H512`, with optional serde serialization, parity-scale-codec and
 //! rlp encoding.
-mod fp_conversion;
 use core::convert::TryFrom;
+
 use fixed_hash::{construct_fixed_hash, impl_fixed_hash_conversions};
 use impl_num_traits::impl_uint_num_traits;
 use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
 use uint::{construct_uint, uint_full_mul_reg};
+
+mod fp_conversion;
+
 /// Error type for conversion.
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     /// Overflow encountered.
     Overflow,
 }
 
+#[deny(clippy::reversed_empty_ranges)]
 construct_uint! {
     pub struct U128(2);
 }

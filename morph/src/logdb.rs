@@ -1,13 +1,16 @@
-use crate::error::MorphError;
-use crate::{Hash, MorphOperation};
-use anyhow::Result;
-use codec::impl_codec;
-use codec::{Decoder, Encoder};
-use commitlog::message::{MessageBuf, MessageSet};
-use commitlog::{CommitLog, ReadError, ReadLimit};
-use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock, RwLockReadGuard};
+
+use anyhow::Result;
+use commitlog::{CommitLog, ReadError, ReadLimit};
+use commitlog::message::{MessageBuf, MessageSet};
+use serde::{Deserialize, Serialize};
+
+use codec::{Decoder, Encoder};
+use codec::impl_codec;
 use storage::{KVEntry, KVStore};
+
+use crate::{Hash, MorphOperation};
+use crate::error::MorphError;
 
 pub type LogDatabaseKV = dyn KVStore<HistoryLog> + Send + Sync;
 
@@ -61,11 +64,11 @@ impl KVEntry for HistoryLog {
 }
 
 pub type OperationsIterator<'a> =
-Box<dyn 'a + Send + Iterator<Item=Result<(u64, MorphOperation)>>>;
+    Box<dyn 'a + Send + Iterator<Item = Result<(u64, MorphOperation)>>>;
 
-pub type HistoryRootIterator<'a> = Box<dyn 'a + Send + Iterator<Item=Result<(u64, Hash)>>>;
+pub type HistoryRootIterator<'a> = Box<dyn 'a + Send + Iterator<Item = Result<(u64, Hash)>>>;
 
-pub type HistoryLogIterator<'a> = Box<dyn 'a + Send + Iterator<Item=Result<LogData>>>;
+pub type HistoryLogIterator<'a> = Box<dyn 'a + Send + Iterator<Item = Result<LogData>>>;
 
 #[inline]
 fn fit_read_limit(limit: u64) -> ReadLimit {
@@ -234,20 +237,23 @@ impl HistoryLog {
 
 #[cfg(test)]
 mod tests {
-    use crate::logdb::{HistoryLog, LogData};
-    use crate::{get_operations, MorphOperation};
-    use account::create_account;
-    use chrono::Utc;
-    use codec::{Decoder, Encoder};
-    use commitlog::{CommitLog, LogOptions};
     use std::convert::TryInto;
     use std::sync::{Arc, RwLock};
-    use storage::memstore::MemStore;
-    use storage::KVEntry;
+
+    use chrono::Utc;
+    use commitlog::{CommitLog, LogOptions};
     use tempdir::TempDir;
     use tiny_keccak::Hasher;
+
+    use account::create_account;
+    use codec::{Decoder, Encoder};
+    use storage::KVEntry;
+    use storage::memstore::MemStore;
     use transaction::make_sign_transaction;
     use types::tx::TransactionKind;
+
+    use crate::{get_operations, MorphOperation};
+    use crate::logdb::{HistoryLog, LogData};
 
     fn sha3_hash(data: &[u8]) -> [u8; 32] {
         let mut out = [0; 32];
@@ -271,7 +277,7 @@ mod tests {
                 fee: 0,
             },
         )
-            .unwrap();
+        .unwrap();
         let opsz = get_operations(&t);
         //println!("{:?} ", opsz);
         ops.extend(opsz.into_iter());

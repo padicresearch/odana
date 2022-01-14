@@ -12,7 +12,13 @@
 //! rustup run cargo bench
 //! ```
 
+use std::str::FromStr;
+
 use criterion::{criterion_group, criterion_main};
+use criterion::{Bencher, black_box, Criterion, ParameterizedBenchmark};
+use num_bigint::BigUint;
+use rug::{Integer, integer::Order};
+
 use uint::{construct_uint, uint_full_mul_reg};
 
 construct_uint! {
@@ -29,11 +35,6 @@ impl U256 {
         U512(uint_full_mul_reg!(U256, 4, self, other))
     }
 }
-
-use criterion::{black_box, Bencher, Criterion, ParameterizedBenchmark};
-use num_bigint::BigUint;
-use rug::{integer::Order, Integer};
-use std::str::FromStr;
 
 criterion_group!(
     bigint,
@@ -169,7 +170,7 @@ fn u256_mul(c: &mut Criterion) {
                     U256::from_dec_str(
                         "21674844646682989462120101885968193938394323990565507610662749",
                     )
-                        .unwrap(),
+                    .unwrap(),
                     173,
                 ),
             ],
@@ -288,11 +289,11 @@ fn u256_rem(c: &mut Criterion) {
                     U256::from_str(
                         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
                     )
-                        .unwrap(),
+                    .unwrap(),
                     U256::from_str(
                         "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0",
                     )
-                        .unwrap(),
+                    .unwrap(),
                 ),
             ],
         ),
@@ -455,7 +456,7 @@ fn conversions(c: &mut Criterion) {
             |b, i| bench_convert_to_biguit(b, *i),
             vec![0, 42, u64::max_value()],
         )
-            .with_function("gmp", |b, i| bench_convert_to_gmp(b, *i)),
+        .with_function("gmp", |b, i| bench_convert_to_gmp(b, *i)),
     );
 }
 

@@ -1,8 +1,10 @@
-use dashmap::mapref::one::Ref;
-use dashmap::DashMap;
-use primitive_types::H160;
 use std::collections::hash_map::RandomState;
 use std::sync::Arc;
+
+use dashmap::DashMap;
+use dashmap::mapref::one::Ref;
+
+use primitive_types::H160;
 use traits::StateDB;
 use types::PubKey;
 
@@ -44,7 +46,7 @@ impl TxNoncer {
         *entry.value_mut() = nonce;
     }
 
-    pub fn set_all(&mut self, all: Box<dyn Iterator<Item=(H160, u64)>>) {
+    pub fn set_all(&mut self, all: Box<dyn Iterator<Item = (H160, u64)>>) {
         self.nonces.clear();
         for (k, v) in all {
             self.nonces.insert(k, v);

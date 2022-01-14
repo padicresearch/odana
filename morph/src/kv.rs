@@ -1,9 +1,12 @@
-use crate::error::MorphError;
-use anyhow::Result;
-use codec::{Codec, Decoder, Encoder};
-use rocksdb::{ColumnFamily, ColumnFamilyDescriptor, Snapshot, SnapshotWithThreadMode, DB};
 use std::collections::BTreeMap;
 use std::sync::Arc;
+
+use anyhow::Result;
+use rocksdb::{ColumnFamily, ColumnFamilyDescriptor, DB, Snapshot, SnapshotWithThreadMode};
+
+use codec::{Codec, Decoder, Encoder};
+
+use crate::error::MorphError;
 
 pub trait Schema {
     type Key: Codec + Clone;
@@ -26,7 +29,7 @@ where
 }
 
 pub type SchemaIterator<'a, Entry: Schema> =
-Box<dyn 'a + Send + Iterator<Item=(Result<Entry::Key>, Result<Entry::Value>)>>;
+    Box<dyn 'a + Send + Iterator<Item = (Result<Entry::Key>, Result<Entry::Value>)>>;
 
 pub fn default_write_opts() -> rocksdb::WriteOptions {
     let mut opts = rocksdb::WriteOptions::default();

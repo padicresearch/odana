@@ -1,5 +1,6 @@
-use crate::{Symbol, Trie, Word};
 use std::collections::BTreeMap;
+
+use crate::{Symbol, Trie, Word};
 
 #[derive(Debug, Clone)]
 pub struct SimpleTrie<C, K, V>
@@ -53,10 +54,10 @@ where
 }
 
 impl<C, K, V> Trie<C, K, V> for SimpleTrie<C, K, V>
-    where
-        V: Sized + Clone,
-        K: Word<C>,
-        C: Symbol,
+where
+    V: Sized + Clone,
+    K: Word<C>,
+    C: Symbol,
 {
     fn insert(&mut self, key: K, value: V) {
         let mut current_tree = self;

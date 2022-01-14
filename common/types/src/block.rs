@@ -1,12 +1,17 @@
-use super::*;
-use crate::tx::Transaction;
+use std::fmt::Formatter;
+use std::sync::{Arc, RwLock};
+
 use anyhow::Result;
-use codec::impl_codec;
-use codec::{Decoder, Encoder};
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
-use std::fmt::Formatter;
 use tiny_keccak::Hasher;
+
+use codec::{Decoder, Encoder};
+use codec::impl_codec;
+
+use crate::tx::Transaction;
+
+use super::*;
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
 pub struct BlockHeader {
@@ -108,7 +113,6 @@ impl BlockTemplate {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Getters)]
 pub struct Block {
-    hash: BlockHash,
     parent_hash: BlockHash,
     level: i32,
     time: u32,
@@ -118,6 +122,9 @@ pub struct Block {
     state_root: Hash,
     #[getter(skip)]
     transactions: Vec<Transaction>,
+    #[getter(skip)]
+    #[serde(skip)]
+    hash : Arc<RwLock<Option<TxHash>>>,
 }
 
 impl Block {
@@ -159,7 +166,6 @@ impl_codec!(Block);
 impl Block {
     pub fn new(template: BlockTemplate, transactions: Vec<Transaction>) -> Self {
         Self {
-            hash: template.block_hash(),
             parent_hash: template.parent_hash,
             level: template.level,
             time: template.time,
@@ -168,10 +174,11 @@ impl Block {
             merkle_root: template.merkle_root,
             state_root: template.state_root,
             transactions,
+            hash: Arc::new(Default::default())
         }
     }
 
-    pub fn calculate_hash(&self) -> [u8; 32] {
+    pub fn hash(&self) -> [u8; 32] {
         let mut block_hash = [0_u8; 32];
         let mut sha3 = tiny_keccak::Sha3::v256();
         sha3.update(&self.parent_hash);
@@ -187,7 +194,7 @@ impl Block {
     pub fn header(&self) -> BlockHeader {
         BlockHeader {
             parent_hash: self.parent_hash,
-            block_hash: self.hash,
+            block_hash: self.hash(),
             time: self.time,
             level: self.level,
             tx_count: self.tx_count,
