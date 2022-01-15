@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::fmt::Formatter;
 use std::sync::{Arc, PoisonError, RwLock, RwLockWriteGuard};
 
 use anyhow::Result;
@@ -8,12 +9,12 @@ use tiny_keccak::Hasher;
 use codec::{Decoder, Encoder};
 use codec::impl_codec;
 use crypto::{RIPEMD160, SHA256};
-use primitive_types::{H160, H256};
+use primitive_types::{H160, H256, H512, U256, U512};
 
 use crate::{BigArray, TxHash};
 use crate::{BlockHash, PubKey, Sig};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum TransactionKind {
     Transfer {
         from: PubKey,
@@ -28,7 +29,29 @@ pub enum TransactionKind {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+impl std::fmt::Debug for TransactionKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransactionKind::Transfer { from, to, amount, fee } => {
+                f.debug_struct("Transfer")
+                    .field("from", &H256::from(from))
+                    .field("to", &H256::from(to))
+                    .field("amount", &amount)
+                    .field("fee", fee)
+                    .finish()
+            }
+            TransactionKind::Coinbase { miner, amount, block_hash } => {
+                f.debug_struct("Coinbase")
+                    .field("miner", &H256::from(miner))
+                    .field("amount", &amount)
+                    .field("block_hash", &H256::from(block_hash))
+                    .finish()
+            }
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Transaction {
     #[serde(with = "BigArray")]
     sig: Sig,
@@ -41,6 +64,17 @@ pub struct Transaction {
     hash : Arc<RwLock<Option<TxHash>>>,
     #[serde(skip)]
     from : Arc<RwLock<Option<H160>>>
+}
+
+impl std::fmt::Debug for Transaction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Transaction")
+            .field("sig", &H512::from(self.sig))
+            .field("origin", &H256::from(self.origin))
+            .field("nonce", &self.nonce)
+            .field("kind", &self.kind)
+            .finish()
+    }
 }
 
 impl PartialEq for Transaction {

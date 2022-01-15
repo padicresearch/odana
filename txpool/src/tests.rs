@@ -1,23 +1,15 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
-use std::env;
 use std::iter::FromIterator;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use std::sync::RwLock;
 
 use anyhow::Result;
 use dashmap::DashMap;
-use rand::Rng;
 
-use account::create_account;
 use primitive_types::H160;
 use traits::{ChainState, StateDB};
-use transaction::make_sign_transaction;
-use types::{Hash, PubKey};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader, BlockTemplate};
-use types::tx::TransactionKind;
-
-use crate::{TxPool, TxPoolConfig};
-use crate::tx_lookup::TxLookup;
+use types::Hash;
 
 #[derive(Clone)]
 struct DummyStateDB {
@@ -77,7 +69,7 @@ impl DummyChain {
         let c: DashMap<_, _> = blocks
             .iter()
             .enumerate()
-            .map(|(height, block)| (*block.hash(), height))
+            .map(|(height, block)| (block.hash(), height))
             .collect();
 
         Self {
@@ -152,81 +144,17 @@ fn generate_blocks(n: usize) -> Vec<Block> {
                 BlockTemplate::new(
                     level as i32,
                     level as u128,
-                    *blocks[level - 1].hash(),
+                    blocks[level - 1].hash(),
                     0,
                     0,
                     [0; 32],
                     [0; 32],
                 )
-                .unwrap(),
+                    .unwrap(),
                 Vec::new(),
             )
         };
         blocks.push(block);
     }
     blocks
-}
-
-#[test]
-fn test_txpool() {
-    let alice = create_account();
-    let bob = create_account();
-
-    let accounts = vec![
-        (alice.address, AccountState::default()),
-        (bob.address, AccountState::default()),
-    ];
-
-    let chain = Arc::new(DummyChain::new(generate_blocks(10)));
-    let state = Arc::new(DummyStateDB::with_accounts(Box::new(accounts.into_iter())));
-    state.set_balance(&alice.address, 1000);
-    state.set_balance(&bob.address, 1000);
-    let test_dir = env::var("TEST_DIR").unwrap();
-
-    let mut txpool = TxPool::new_lookup(
-        TxLookup::new_in_path(format!("{}/{}", test_dir, "txpool.db")).unwrap(),
-        TxPoolConfig::default(),
-        chain.clone(),
-        state.clone(),
-    )
-    .unwrap();
-
-    state.set_nonce(&alice.address, 2);
-
-    let tx1 = make_sign_transaction(
-        &alice,
-        3,
-        TransactionKind::Transfer {
-            from: alice.pub_key,
-            to: bob.pub_key,
-            amount: 10,
-            fee: 10,
-        },
-    )
-    .unwrap();
-    let tx2 = make_sign_transaction(
-        &bob,
-        3,
-        TransactionKind::Transfer {
-            from: bob.pub_key,
-            to: alice.pub_key,
-            amount: 100,
-            fee: 0,
-        },
-    )
-    .unwrap();
-
-    let mut txs = HashSet::new();
-    txs.insert(tx1.clone());
-    txs.insert(tx2.clone());
-
-    assert_eq!(txs.len(), 2);
-
-    let tx2_hash = tx2.hash();
-
-    println!("{:}\n{:}", hex::encode(tx1.hash()), hex::encode(tx2.hash()));
-    txpool.add_local(tx1.clone()).unwrap();
-    txpool.add_local(tx2.clone()).unwrap();
-    println!("Stats: {:?}", txpool.package().unwrap().len())
-    //println!("{:?}", txpool)
 }
