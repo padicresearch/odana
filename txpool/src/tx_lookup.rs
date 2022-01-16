@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, RwLock};
-use std::sync::atomic::{AtomicI64, AtomicUsize};
+use std::sync::atomic::{AtomicI64, AtomicU64, AtomicUsize};
 
 use anyhow::Result;
 
@@ -8,10 +8,10 @@ use primitive_types::H160;
 use types::Hash;
 use types::tx::Transaction;
 
-use crate::TransactionRef;
+use crate::{num_slots, TransactionRef};
 
 pub struct AccountSet {
-    accounts : RwLock<BTreeSet<H160>>
+    accounts: RwLock<BTreeSet<H160>>,
 }
 
 impl AccountSet {
@@ -21,42 +21,41 @@ impl AccountSet {
         }
     }
 
-    pub(crate) fn contains(&self,address : &H160) -> Result<bool> {
-        let accounts = self.accounts.read().map_err(|e|anyhow::anyhow!("{}", e))?;
+    pub(crate) fn contains(&self, address: &H160) -> Result<bool> {
+        let accounts = self.accounts.read().map_err(|e| anyhow::anyhow!("{}", e))?;
         Ok(accounts.contains(address))
     }
 
-    pub(crate) fn is_empty(&self,address : &H160) -> Result<bool> {
-        let accounts = self.accounts.read().map_err(|e|anyhow::anyhow!("{}", e))?;
+    pub(crate) fn is_empty(&self, address: &H160) -> Result<bool> {
+        let accounts = self.accounts.read().map_err(|e| anyhow::anyhow!("{}", e))?;
         Ok(accounts.is_empty())
     }
 
-    pub(crate) fn contains_tx(&self, tx : &Transaction) -> Result<bool> {
+    pub(crate) fn contains_tx(&self, tx: &Transaction) -> Result<bool> {
         let address = tx.sender_address();
         self.contains(&address)
     }
 
-    pub(crate) fn add(&self,address : H160) -> Result<()> {
-        let mut accounts = self.accounts.write().map_err(|e|anyhow::anyhow!("{}", e))?;
+    pub(crate) fn add(&self, address: H160) -> Result<()> {
+        let mut accounts = self.accounts.write().map_err(|e| anyhow::anyhow!("{}", e))?;
         accounts.insert(address);
         Ok(())
     }
 
-    pub(crate) fn add_tx(&self,tx : TransactionRef) -> Result<()> {
-        let address =tx.sender_address();
+    pub(crate) fn add_tx(&self, tx: TransactionRef) -> Result<()> {
+        let address = tx.sender_address();
         self.add(address);
         Ok(())
     }
 
     pub(crate) fn flatten(&self) -> Result<Vec<H160>> {
-        let mut accounts = self.accounts.write().map_err(|e|anyhow::anyhow!("{}", e))?;
+        let mut accounts = self.accounts.write().map_err(|e| anyhow::anyhow!("{}", e))?;
         Ok(accounts.iter().map(|addrs| addrs.clone()).collect())
     }
-
 }
 
 pub struct TxLookup {
-    slots: AtomicI64,
+    slots: AtomicU64,
     locals: Arc<RwLock<BTreeMap<Hash, TransactionRef>>>,
     remotes: Arc<RwLock<BTreeMap<Hash, TransactionRef>>>,
 }
@@ -144,7 +143,7 @@ impl TxLookup {
     }
 
     pub fn add(&self, tx: TransactionRef, local: bool) -> Result<()> {
-        self.slots.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.slots.fetch_add(num_slots(&tx), std::sync::atomic::Ordering::Relaxed);
         if local {
             let mut locals = self.locals.write().map_err(|e| anyhow::anyhow!("{}", e))?;
             locals.insert(tx.hash(), tx);
@@ -155,23 +154,23 @@ impl TxLookup {
         Ok(())
     }
     pub fn remove(&self, hash: &Hash) -> Result<()> {
-
         let mut locals = self.locals.write().map_err(|e| anyhow::anyhow!("{}", e))?;
         let mut remotes = self.remotes.write().map_err(|e| anyhow::anyhow!("{}", e))?;
         let locals_deleted = locals.remove(hash);
         let remotes_deleted = locals.remove(hash);
 
-        if locals_deleted.is_none() && remotes_deleted.is_none() {
-            return Ok(())
+        if let Some(tx) = locals_deleted {
+            self.slots.fetch_sub(num_slots(&tx), std::sync::atomic::Ordering::Relaxed);
+        } else if let Some(tx) = remotes_deleted {
+            self.slots.fetch_sub(num_slots(&tx), std::sync::atomic::Ordering::Relaxed);
         }
-        self.slots.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
-        Ok(())
+        return Ok(());
     }
 
     pub fn remote_to_locals(&self, local_accounts: &AccountSet) -> Result<i32> {
         let remotes = self.remotes.clone();
         let mut remotes = remotes.read().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut migrated : i32 = 0;
+        let mut migrated: i32 = 0;
 
         for (hash, tx) in remotes.iter() {
             if local_accounts.contains_tx(tx)? {

@@ -1,9 +1,11 @@
+use std::time::Duration;
+
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 use serde_big_array::big_array;
 
-use codec::impl_codec;
 use codec::{Decoder, Encoder};
+use codec::impl_codec;
 
 pub mod account;
 pub mod block;
@@ -22,6 +24,28 @@ pub struct MempoolSnapsot {
     pub pending: Vec<TxHash>,
     pub valid: Vec<TxHash>,
 }
+
+#[derive(Debug,Serialize, Deserialize,Copy, Clone)]
+pub struct TxPoolConfig {
+    // Whether local transaction handling should be disabled
+    pub no_locals: bool,
+    // Minimum fee per price of transaction
+    pub price_ratio: f64,
+    // Minimum price bump percentage to replace an already existing transaction (nonce)
+    pub price_bump: u128,
+    // Number of executable transaction slots guaranteed per account
+    pub account_slots: usize,
+    // Maximum number of executable transaction slots for all accounts
+    pub global_slots: usize,
+    // Maximum number of non-executable transaction slots permitted per account
+    pub account_queue: usize,
+    // Maximum number of non-executable transaction slots for all accounts
+    pub global_queue: usize,
+    // Maximum amount of time non-executable transaction are queued
+    pub life_time: Duration,
+}
+
+
 impl_codec!(MempoolSnapsot);
 
 big_array! { BigArray; }

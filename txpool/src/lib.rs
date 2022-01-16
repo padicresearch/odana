@@ -11,8 +11,8 @@ use account::GOVERNANCE_ACCOUNTID;
 use primitive_types::H160;
 use tracing::{info, trace, warn};
 use traits::{ChainState, StateDB};
+use types::{TxHash, TxPoolConfig};
 use types::tx::{Transaction, TransactionKind};
-use types::TxHash;
 
 use crate::error::TxPoolError;
 use crate::tx_list::{TxList, TxPricedList};
@@ -39,27 +39,55 @@ pub(crate) fn num_slots(tx: &Transaction) -> u64 {
     return (tx.size() + TX_SLOT_SIZE - 1) / TX_SLOT_SIZE;
 }
 
-pub struct TxPoolConfig {
-    // Addresses that should be treated by default as local
-    locals: Vec<Address>,
-    // Whether local transaction handling should be disabled
-    no_locals: bool,
-    // Minimum fee per price of transaction
-    price_ratio: f64,
-    // Minimum price bump percentage to replace an already existing transaction (nonce)
-    price_bump: u128,
-    // Number of executable transaction slots guaranteed per account
-    account_slots: usize,
-    // Maximum number of executable transaction slots for all accounts
-    global_slots: usize,
-    // Maximum number of non-executable transaction slots permitted per account
-    account_queue: usize,
-    // Maximum number of non-executable transaction slots for all accounts
-    global_queue: usize,
-    // Maximum amount of time non-executable transaction are queued
-    life_time: Duration,
-}
+const DEFAULT_TX_POOL_CONFIG: TxPoolConfig = TxPoolConfig {
+    no_locals: false,
+    price_ratio: 0.01,
+    price_bump: 10,
+    account_slots: 16,
+    global_slots: 4096 + 1024,
+    account_queue: 64,
+    global_queue: 1024,
+    life_time: Duration::from_secs(3 * 3600)
+};
 
+fn sanitize(conf : &TxPoolConfig) -> TxPoolConfig {
+    let default = DEFAULT_TX_POOL_CONFIG;
+    let mut conf = *conf;
+    //Todo : Variable transaction fees
+    if conf.price_ratio != 0.01 {
+        warn!(target : TXPOOL_LOG_TARGET, provided = conf.price_ratio, updated = default.price_ratio, "Sanitizing invalid txpool price ratio");
+        conf.price_ratio = default.price_ratio
+    }
+    if conf.price_bump < 1 {
+        warn!(target : TXPOOL_LOG_TARGET, provided = ?conf.price_bump, updated = ?default.price_bump, "Sanitizing invalid txpool price bump");
+        conf.price_bump = default.price_bump
+    }
+    if conf.account_slots < 1 {
+        warn!(target : TXPOOL_LOG_TARGET, provided = ?conf.account_slots, updated = ?default.account_slots, "Sanitizing invalid txpool account slots");
+        conf.account_slots = default.account_slots
+    }
+    if conf.global_slots < 1 {
+        warn!(target : TXPOOL_LOG_TARGET, provided = ?conf.global_slots, updated = ?default.global_slots, "Sanitizing invalid txpool global slots");
+        conf.global_slots = default.global_slots
+    }
+
+    if conf.account_queue < 1 {
+        warn!(target : TXPOOL_LOG_TARGET, provided = ?conf.account_queue, updated = ?default.account_queue, "Sanitizing invalid txpool account queue");
+        conf.account_queue = default.account_queue
+    }
+
+    if conf.global_queue < 1 {
+        warn!(target : TXPOOL_LOG_TARGET, provided = ?conf.global_queue, updated = ?default.global_queue, "Sanitizing invalid txpool global queue");
+        conf.global_queue = default.global_queue
+    }
+
+    if conf.life_time < Duration::from_secs(1) {
+        warn!(target : TXPOOL_LOG_TARGET, provided = ?conf.life_time, updated = ?default.life_time, "Sanitizing invalid txpool life time");
+        conf.life_time = default.life_time
+    }
+
+    conf
+}
 
 pub struct TxPool<Chain> where Chain: ChainState {
     mu: RwLock<()>,
