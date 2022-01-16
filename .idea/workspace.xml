@@ -37,12 +37,25 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite txpool">
+      <change afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codec/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/codec/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/benches/bigint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/benches/bigint.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/kv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/kv.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/logdb.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/logdb.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/store.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/txlist.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/txlist.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/txlist.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -150,7 +163,7 @@
       <recent name="$PROJECT_DIR$/common" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test txlist::tests::test_txlist">
+  <component name="RunManager" selected="Cargo.Test tx_list::tests::test_txlist">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -185,22 +198,6 @@
     </configuration>
     <configuration name="Clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clippy" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test coin::test::tuc_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package consensus --lib coin::test::tuc_test -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -267,6 +264,22 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test tx_list::tests::test_txlist" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package txpool --lib tx_list::tests::test_txlist -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test txlist::tests::test_txlist" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package txpool --lib txlist::tests::test_txlist -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -305,18 +318,18 @@
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Test store::test::test_multi_thread_history" />
-      <item itemvalue="Cargo.Test coin::test::tuc_test" />
       <item itemvalue="Cargo.Test tests::test_morph" />
       <item itemvalue="Cargo.Test tests::test_txpool" />
       <item itemvalue="Cargo.Test txlist::tests::test_txlist" />
+      <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
         <item itemvalue="Cargo.Test txlist::tests::test_txlist" />
         <item itemvalue="Cargo.Test tests::test_txpool" />
         <item itemvalue="Cargo.Test tests::test_morph" />
         <item itemvalue="Cargo.Test store::test::test_multi_thread_history" />
-        <item itemvalue="Cargo.Test coin::test::tuc_test" />
       </list>
     </recent_temporary>
   </component>
@@ -378,7 +391,7 @@
       <workItem from="1641993805431" duration="30668000" />
       <workItem from="1642064352872" duration="1913000" />
       <workItem from="1642091260977" duration="13193000" />
-      <workItem from="1642186007441" duration="25344000" />
+      <workItem from="1642186007441" duration="50541000" />
     </task>
     <task id="LOCAL-00001" summary="merkle tree">
       <created>1607372272366</created>
@@ -709,7 +722,14 @@
       <option name="project" value="LOCAL" />
       <updated>1642192576671</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="rewrite txpool">
+      <created>1642273789525</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1642273789525</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

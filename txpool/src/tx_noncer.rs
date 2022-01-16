@@ -25,7 +25,7 @@ impl TxNoncer {
         *self
             .nonces
             .entry(*address)
-            .or_insert_with(|| self.fallback.account_nonce(address))
+            .or_insert_with(|| self.fallback.nonce(address))
             .value()
     }
 
@@ -37,7 +37,7 @@ impl TxNoncer {
         let mut entry = self
             .nonces
             .entry(address)
-            .or_insert_with(|| self.fallback.account_nonce(&address));
+            .or_insert_with(|| self.fallback.nonce(&address));
 
         if *entry.value() <= nonce {
             return;

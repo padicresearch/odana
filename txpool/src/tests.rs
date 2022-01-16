@@ -62,15 +62,19 @@ struct DummyChain {
     chain: Arc<RwLock<Vec<Block>>>,
     blocks: DashMap<[u8; 32], usize>,
     states: DashMap<[u8; 32], Arc<DummyStateDB>>,
+
 }
 
 impl DummyChain {
-    fn new(blocks: Vec<Block>) -> Self {
+    fn new(blocks: Vec<Block>, inital_state : Arc<DummyStateDB>) -> Self {
         let c: DashMap<_, _> = blocks
             .iter()
             .enumerate()
             .map(|(height, block)| (block.hash(), height))
             .collect();
+
+        let map = DashMap::new();
+        map.insert([0;32], inital_state);
 
         Self {
             chain: Arc::new(RwLock::new(blocks)),
@@ -80,12 +84,13 @@ impl DummyChain {
     }
 
     fn insert_state(&self, root: Hash, state: Arc<DummyStateDB>) {
-        self.states.insert(root, state);
+        self.states.insert(root, state.clone());
+        self.states.insert([0;32], state);
     }
 }
 
 impl StateDB for DummyStateDB {
-    fn account_nonce(&self, account_id: &H160) -> u64 {
+    fn nonce(&self, account_id: &H160) -> u64 {
         self.accounts
             .get(account_id)
             .map(|state| state.nonce as u64)
@@ -97,6 +102,10 @@ impl StateDB for DummyStateDB {
             .get(account_id)
             .map(|state| state.value().clone())
             .unwrap_or_default()
+    }
+
+    fn balance(&self, address: &H160) -> u128 {
+        self.account_state(address).free_balance
     }
 }
 
@@ -120,6 +129,15 @@ impl ChainState for DummyChain {
         let state = self
             .states
             .get(root)
+            .ok_or(anyhow::anyhow!("state not found"))?;
+        let state = state.value().clone();
+        Ok(state)
+    }
+
+    fn get_current_state(&self) -> Result<Arc<dyn StateDB>> {
+        let state = self
+            .states
+            .get(&[0;32])
             .ok_or(anyhow::anyhow!("state not found"))?;
         let state = state.value().clone();
         Ok(state)
@@ -150,7 +168,7 @@ fn generate_blocks(n: usize) -> Vec<Block> {
                     [0; 32],
                     [0; 32],
                 )
-                    .unwrap(),
+                .unwrap(),
                 Vec::new(),
             )
         };

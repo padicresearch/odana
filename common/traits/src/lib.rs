@@ -1,9 +1,12 @@
-use anyhow::Result;
-use primitive_types::H160;
 use std::sync::Arc;
+
+use anyhow::Result;
+
+use primitive_types::H160;
+use types::{BlockHash, PubKey, TxHash};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader};
-use types::{BlockHash, PubKey, TxHash};
+
 // pub trait SudoAccount {
 //     fn is_sudo(&self, account: &AccountId) -> bool;
 //     fn sudo(&self) -> AccountId;
@@ -26,11 +29,13 @@ pub trait ChainState: Send + Sync {
     fn current_head(&self) -> Result<BlockHeader>;
     fn get_block(&self, block_hash: &types::Hash) -> Result<Option<Block>>;
     fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
+    fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
 }
 
 pub trait StateDB: Send + Sync {
-    fn account_nonce(&self, address: &H160) -> u64;
+    fn nonce(&self, address: &H160) -> u64;
     fn account_state(&self, address: &H160) -> AccountState;
+    fn balance(&self, address: &H160) -> u128;
 }
 
 pub trait Saturating {

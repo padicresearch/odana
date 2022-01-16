@@ -32,21 +32,28 @@ pub enum TransactionKind {
 impl std::fmt::Debug for TransactionKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            TransactionKind::Transfer { from, to, amount, fee } => {
-                f.debug_struct("Transfer")
-                    .field("from", &H256::from(from))
-                    .field("to", &H256::from(to))
-                    .field("amount", &amount)
-                    .field("fee", fee)
-                    .finish()
-            }
-            TransactionKind::Coinbase { miner, amount, block_hash } => {
-                f.debug_struct("Coinbase")
-                    .field("miner", &H256::from(miner))
-                    .field("amount", &amount)
-                    .field("block_hash", &H256::from(block_hash))
-                    .finish()
-            }
+            TransactionKind::Transfer {
+                from,
+                to,
+                amount,
+                fee,
+            } => f
+                .debug_struct("Transfer")
+                .field("from", &H256::from(from))
+                .field("to", &H256::from(to))
+                .field("amount", &amount)
+                .field("fee", fee)
+                .finish(),
+            TransactionKind::Coinbase {
+                miner,
+                amount,
+                block_hash,
+            } => f
+                .debug_struct("Coinbase")
+                .field("miner", &H256::from(miner))
+                .field("amount", &amount)
+                .field("block_hash", &H256::from(block_hash))
+                .finish(),
         }
     }
 }
@@ -61,9 +68,9 @@ pub struct Transaction {
 
     //caches
     #[serde(skip)]
-    hash : Arc<RwLock<Option<TxHash>>>,
+    hash: Arc<RwLock<Option<TxHash>>>,
     #[serde(skip)]
-    from : Arc<RwLock<Option<H160>>>
+    from: Arc<RwLock<Option<H160>>>,
 }
 
 impl std::fmt::Debug for Transaction {
@@ -99,7 +106,7 @@ impl Transaction {
             nonce,
             kind,
             hash: Default::default(),
-            from: Default::default()
+            from: Default::default(),
         }
     }
 
@@ -109,14 +116,10 @@ impl Transaction {
 
     pub fn hash(&self) -> [u8; 32] {
         match self.hash.read() {
-            Ok(mut hash) => {
-                match *hash {
-                    None => {}
-                    Some(hash) => {
-                        return hash
-                    }
-                }
-            }
+            Ok(mut hash) => match *hash {
+                None => {}
+                Some(hash) => return hash,
+            },
             Err(_) => {}
         }
 
@@ -129,9 +132,7 @@ impl Transaction {
         sha3.finalize(&mut out);
 
         match self.hash.write() {
-            Ok(mut hash) => {
-                *hash = Some(out.clone())
-            }
+            Ok(mut hash) => *hash = Some(out.clone()),
             Err(_) => {}
         }
 
@@ -139,7 +140,7 @@ impl Transaction {
     }
 
     pub fn hash_256(&self) -> H256 {
-       H256::from(self.hash())
+        H256::from(self.hash())
     }
 
     pub fn signature(&self) -> &Sig {
@@ -153,22 +154,16 @@ impl Transaction {
     }
     pub fn sender_address(&self) -> H160 {
         match self.from.read() {
-            Ok(mut address) => {
-                match *address {
-                    None => {}
-                    Some(address) => {
-                        return address
-                    }
-                }
-            }
+            Ok(mut address) => match *address {
+                None => {}
+                Some(address) => return address,
+            },
             Err(_) => {}
         }
         let out = RIPEMD160::digest(&SHA256::digest(&self.origin));
 
         match self.from.write() {
-            Ok(mut address) => {
-                *address = Some(out.clone())
-            }
+            Ok(mut address) => *address = Some(out.clone()),
             Err(_) => {}
         }
 
@@ -196,6 +191,10 @@ impl Transaction {
         sha3.update(&self.kind.encode()?);
         sha3.finalize(&mut out);
         Ok(out)
+    }
+
+    pub fn size(&self) -> u64 {
+        self.encoded_size().unwrap_or_default()
     }
 }
 

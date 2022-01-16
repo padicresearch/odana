@@ -56,7 +56,7 @@ pub struct Morph {
 }
 
 impl StateDB for Morph {
-    fn account_nonce(&self, address: &H160) -> u64 {
+    fn nonce(&self, address: &H160) -> u64 {
         match self
             .get_account_state(address)
             .map(|account_state| account_state.map(|state| state.nonce as u64))

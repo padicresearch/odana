@@ -10,8 +10,18 @@ pub enum TxPoolError {
     GenericError(#[from] anyhow::Error),
     #[error("`{0}`")]
     SqliteError(#[from] rusqlite::Error),
-    #[error("`TransactionAlreadyKnown`")]
+    #[error("`Transaction is already known`")]
     TransactionAlreadyKnown,
+    #[error("`Transaction nonce too low`")]
+    NonceTooLow,
+    #[error("`Transaction fee too low`")]
+    FeeTooLow,
+    #[error("`bad origin")]
+    BadOrigin,
+    #[error("`insufficient funds for fee + amount`")]
+    InsufficientFunds,
+    #[error("`Explict coinbase transaction not allowed`")]
+    ExplictCoinbase,
     #[error("`transaction in index missing from primary`")]
     TransactionNotFoundInPrimary,
     #[error("`{0}`")]

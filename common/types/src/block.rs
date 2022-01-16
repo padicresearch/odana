@@ -124,7 +124,7 @@ pub struct Block {
     transactions: Vec<Transaction>,
     #[getter(skip)]
     #[serde(skip)]
-    hash : Arc<RwLock<Option<TxHash>>>,
+    hash: Arc<RwLock<Option<TxHash>>>,
 }
 
 impl Block {
@@ -174,7 +174,7 @@ impl Block {
             merkle_root: template.merkle_root,
             state_root: template.state_root,
             transactions,
-            hash: Arc::new(Default::default())
+            hash: Arc::new(Default::default()),
         }
     }
 

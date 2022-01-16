@@ -14,8 +14,8 @@
 
 use std::str::FromStr;
 
-use criterion::{criterion_group, criterion_main};
 use criterion::{Bencher, black_box, Criterion, ParameterizedBenchmark};
+use criterion::{criterion_group, criterion_main};
 use num_bigint::BigUint;
 use rug::{Integer, integer::Order};
 

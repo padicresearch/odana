@@ -1,12 +1,18 @@
-use anyhow::Result;
-use primitive_types::H160;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
+
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+
+use primitive_types::H160;
 
 pub trait Encoder: Sized + Serialize + DeserializeOwned {
     fn encode(&self) -> Result<Vec<u8>> {
         bincode::serialize(self).map_err(|e| e.into())
+    }
+
+    fn encoded_size(&self) -> Result<u64> {
+        bincode::serialized_size(self).map_err(|e| e.into())
     }
 }
 
@@ -49,6 +55,10 @@ macro_rules! impl_codec_primitives {
             fn encode(&self) -> Result<Vec<u8>> {
                 Ok(self.to_be_bytes().to_vec())
             }
+
+            fn encoded_size(&self) -> Result<u64> {
+                Ok(self.to_be_bytes().len() as u64)
+            }
         }
 
         impl Decoder for $type {
@@ -68,6 +78,9 @@ impl_codec_primitives!(u128 => u128::from_be_bytes);
 impl Encoder for H160 {
     fn encode(&self) -> Result<Vec<u8>> {
         Ok(self.as_bytes().to_vec())
+    }
+    fn encoded_size(&self) -> Result<u64> {
+        Ok(20)
     }
 }
 
