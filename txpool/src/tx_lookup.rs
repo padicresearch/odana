@@ -5,13 +5,23 @@ use std::sync::atomic::{AtomicI64, AtomicU64, AtomicUsize};
 use anyhow::Result;
 
 use primitive_types::H160;
+use tracing::stdlib::iter::FromIterator;
 use types::Hash;
 use types::tx::Transaction;
 
-use crate::{num_slots, TransactionRef};
+use crate::{Address, num_slots, TransactionRef, Transactions};
 
 pub struct AccountSet {
     accounts: RwLock<BTreeSet<H160>>,
+}
+
+impl From<Vec<Address>> for AccountSet {
+    fn from(addresses: Vec<Address>) -> Self {
+        let accounts = BTreeSet::from_iter(addresses.into_iter());
+        Self {
+            accounts: RwLock::new(accounts)
+        }
+    }
 }
 
 impl AccountSet {
@@ -32,7 +42,7 @@ impl AccountSet {
     }
 
     pub(crate) fn contains_tx(&self, tx: &Transaction) -> Result<bool> {
-        let address = tx.sender_address();
+        let address = tx.sender();
         self.contains(&address)
     }
 
@@ -43,7 +53,7 @@ impl AccountSet {
     }
 
     pub(crate) fn add_tx(&self, tx: TransactionRef) -> Result<()> {
-        let address = tx.sender_address();
+        let address = tx.sender();
         self.add(address);
         Ok(())
     }
@@ -167,10 +177,10 @@ impl TxLookup {
         return Ok(());
     }
 
-    pub fn remote_to_locals(&self, local_accounts: &AccountSet) -> Result<i32> {
+    pub fn remote_to_locals(&self, local_accounts: &AccountSet) -> Result<Transactions> {
         let remotes = self.remotes.clone();
         let mut remotes = remotes.read().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut migrated: i32 = 0;
+        let mut migrated: Vec<TransactionRef> = Vec::new();
 
         for (hash, tx) in remotes.iter() {
             if local_accounts.contains_tx(tx)? {
@@ -178,9 +188,13 @@ impl TxLookup {
                 let mut remotes = self.remotes.write().map_err(|e| anyhow::anyhow!("{}", e))?;
                 locals.insert(*hash, tx.clone());
                 remotes.remove(hash);
-                migrated += 1;
+                migrated .push(tx.clone())
             }
         }
         Ok(migrated)
+    }
+
+    pub fn slots(&self) -> u64 {
+        self.slots.load(std::sync::atomic::Ordering::Relaxed)
     }
 }

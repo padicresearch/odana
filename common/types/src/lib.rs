@@ -34,13 +34,13 @@ pub struct TxPoolConfig {
     // Minimum price bump percentage to replace an already existing transaction (nonce)
     pub price_bump: u128,
     // Number of executable transaction slots guaranteed per account
-    pub account_slots: usize,
+    pub account_slots: u64,
     // Maximum number of executable transaction slots for all accounts
-    pub global_slots: usize,
+    pub global_slots: u64,
     // Maximum number of non-executable transaction slots permitted per account
-    pub account_queue: usize,
+    pub account_queue: u64,
     // Maximum number of non-executable transaction slots for all accounts
-    pub global_queue: usize,
+    pub global_queue: u64,
     // Maximum amount of time non-executable transaction are queued
     pub life_time: Duration,
 }

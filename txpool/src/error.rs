@@ -24,6 +24,12 @@ pub enum TxPoolError {
     ExplictCoinbase,
     #[error("`transaction in index missing from primary`")]
     TransactionNotFoundInPrimary,
+    #[error("`transaction is underpriced`")]
+    Underpriced,
+    #[error("`transaction pool overflow`")]
+    TxPoolOverflow,
+    #[error("`replacement transaction underpriced`")]
+    ReplaceUnderpriced,
     #[error("`{0}`")]
     HexError(#[from] hex::FromHexError),
 }

@@ -9,25 +9,45 @@ use anyhow::Result;
 use types::tx::Transaction;
 use types::TxHash;
 
-use crate::{TransactionRef, TxHashRef};
+use crate::{TransactionRef, Transactions, TxHashRef};
 
 pub struct TxList {
+    strict : bool,
     txs: BTreeMap<Reverse<u64>, TransactionRef>,
 }
 
 pub type TransactionIterator<'a> = Box<dyn 'a + Send + Iterator<Item = TransactionRef>>;
 
 impl TxList {
-    pub fn new() -> Self {
+    pub fn new(strict : bool) -> Self {
         Self {
+            strict,
             txs: Default::default(),
         }
     }
-    pub fn put(&mut self, tx: TransactionRef) -> Option<TransactionRef>{self.txs.insert(std::cmp::Reverse(tx.nonce()), tx)
+    pub fn add(&mut self, tx: TransactionRef, price_bump: u128) -> (bool, Option<TransactionRef>){
+        let old = self.txs.get(&std::cmp::Reverse(tx.nonce())).map(|tx|tx.clone());
+        if let Some(old) =  &old {
+            let old_fees = old.fees();
+            let bump = ((tx.fees() as i128 - old_fees as i128) / tx.fees() as i128) * 100;
+            if old.fees().cmp(&tx.fees()).is_le() && bump < price_bump as i128 {
+                return (false, None)
+            }
+        }
+        self.txs.insert(std::cmp::Reverse(tx.nonce()), tx);
+        (true, old)
     }
 
-    pub fn remove(&mut self, tx: TransactionRef) ->Option<TransactionRef> {
-        self.txs.remove(&Reverse(tx.nonce()))
+    pub fn remove(&mut self, tx: TransactionRef) -> (bool, Transactions) {
+        let nonce = tx.nonce();
+        if self.txs.remove(&Reverse(nonce)).is_none() {
+            return (false, Vec::new())
+        }
+        if self.strict {
+            return (true, self.txs.drain_filter(|_,tx|{tx.nonce() > nonce}).collect())
+        }
+
+        (true, Vec::new())
     }
 
     pub fn forward(&mut self, threshold: u64) -> Vec<TransactionRef> {
@@ -66,6 +86,10 @@ impl TxList {
 
     pub fn len(&self) -> usize {
         self.txs.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.txs.is_empty()
     }
 
     pub fn flatten(&self) -> Vec<TransactionRef> {
@@ -181,7 +205,7 @@ impl TxPricedList {
         Ok(least_priced_tx.cmp(&PricedTransaction(tx)).is_ge())
     }
 
-    pub fn discard(&self, slots: usize) -> Result<Vec<TransactionRef>> {
+    pub fn discard(&self, slots: u64) -> Result<Vec<TransactionRef>> {
         let mut txs = self.txs.write().map_err(|e| anyhow::anyhow!("{}", e))?;
         if txs.len() <= slots {
             return Ok(Default::default());

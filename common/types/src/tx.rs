@@ -152,7 +152,7 @@ impl Transaction {
     pub fn nonce(&self) -> u64 {
         self.nonce
     }
-    pub fn sender_address(&self) -> H160 {
+    pub fn sender(&self) -> H160 {
         match self.from.read() {
             Ok(mut address) => match *address {
                 None => {}
@@ -169,6 +169,19 @@ impl Transaction {
 
         out
     }
+
+    pub fn to(&self) -> H160 {
+        let to = match self.kind {
+            TransactionKind::Transfer { to, .. } => {
+                to
+            }
+            TransactionKind::Coinbase { miner,.. } => {
+                miner
+            }
+        };
+        RIPEMD160::digest(&SHA256::digest(to))
+    }
+
     pub fn fees(&self) -> u128 {
         match &self.kind {
             TransactionKind::Transfer { fee, .. } => *fee,

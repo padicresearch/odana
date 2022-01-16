@@ -17,6 +17,7 @@ hex = "0.4.3"
 primitive-types = { path = "../common/primitive-types" }
 tracing = { path = "../common/tracing" }
 traits = { path = "../common/traits" }
+tokio = { version = "1", features = ["full"] }
 itertools = "0.10.3"
 [dev-dependencies]
 rand = "0.7"
