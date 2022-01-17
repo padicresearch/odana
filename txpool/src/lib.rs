@@ -55,7 +55,7 @@ const DEFAULT_TX_POOL_CONFIG: TxPoolConfig = TxPoolConfig {
     price_ratio: 0.01,
     price_bump: 10,
     account_slots: 16,
-    global_slots: 4096 + 1024,
+    global_slots: 4096,
     account_queue: 64,
     global_queue: 1024,
     life_time: Duration::from_secs(3 * 3600),
@@ -111,7 +111,7 @@ where
 {
     config: TxPoolConfig,
     locals: AccountSet,
-    chain: Chain,
+    chain: Arc<Chain>,
     current_state: Arc<dyn StateDB>,
     pending_nonce: TxNoncer,
     //local event emitter
@@ -119,7 +119,6 @@ where
 
     // repacker variables
     queued_events: HashMap<Address, TxSortedList>,
-    dirty_accounts: AccountSet,
     //end repacker
     pending: HashMap<Address, TxList>,
     queue: HashMap<Address, TxList>,
@@ -137,7 +136,7 @@ where
         conf: Option<&TxPoolConfig>,
         local_accounts: Option<Vec<Address>>,
         lmpsc: UnboundedSender<LocalEventMessage>,
-        chain: Chain,
+        chain: Arc<Chain>,
     ) -> Result<Self> {
         let conf = conf
             .map(|conf| sanitize(conf))
@@ -154,7 +153,6 @@ where
             pending_nonce: TxNoncer::new(current_state),
             lmpsc,
             queued_events: Default::default(),
-            dirty_accounts: AccountSet::new(),
             pending: Default::default(),
             queue: Default::default(),
             beats: Default::default(),
@@ -261,7 +259,14 @@ where
             _ => {}
         }
 
+        let num = num_slots(&tx);
+        let all_slots = self.all.slots();
         // If the transaction pool is full, discard underpriced transactions
+        println!(
+            "Slots {}, Global {}",
+            self.all.slots() + num_slots(&tx),
+            self.config.global_slots + self.config.global_queue
+        );
         if self.all.slots() + num_slots(&tx) > self.config.global_slots + self.config.global_queue {
             if !is_local && self.priced.underpriced(tx.clone())? {
                 trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding underpriced transaction");
@@ -295,17 +300,25 @@ where
         }
         let from = tx.sender();
         if let Some(list) = self.pending.get_mut(&from) {
-            let (inserted, old) = list.add(tx.clone(), self.config.price_bump);
-            anyhow::ensure!(inserted, TxPoolError::ReplaceUnderpriced);
-            if let Some(old) = old {
-                self.all.remove(&old.hash());
-                self.priced.remove(old);
-            }
+            if list.overlaps(tx.clone()) {
+                println!(
+                    "Inserting transaction in Address already exists [{}] {}",
+                    tx.nonce(),
+                    tx.hash_256()
+                );
+                let (inserted, old) = list.add(tx.clone(), self.config.price_bump);
+                anyhow::ensure!(inserted, TxPoolError::ReplaceUnderpriced);
+                if let Some(old) = old.clone() {
+                    self.all.remove(&old.hash());
+                    self.priced.remove(old);
+                }
 
-            self.all.add(tx.clone(), is_local);
-            self.priced.put(tx.clone(), is_local);
-            self.queue_event(tx.clone());
-            trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), from = ?from, to = ?tx.to(), "Pooled new executable transaction");
+                self.all.add(tx.clone(), is_local);
+                self.priced.put(tx.clone(), is_local);
+                self.queue_event(tx.clone());
+                trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), from = ?from, to = ?tx.to(), "Pooled new executable transaction");
+                return Ok(old.is_some());
+            }
         }
 
         let replaced = self.enqueue_tx(hash, tx.clone(), is_local, true)?;
@@ -422,15 +435,12 @@ where
         true
     }
 
-    fn add_txs(&mut self, tsx: Vec<Transaction>, local: bool) -> Vec<Option<Error>> {
+    fn add_txs(&mut self, tsx: Vec<Transaction>, local: bool) -> Vec<Error> {
         let mut news = Vec::new();
         let mut errors = Vec::with_capacity(tsx.len());
-        unsafe {
-            errors.set_len(tsx.len());
-        }
         for (i, tx) in tsx.into_iter().enumerate() {
             if self.all.contains(&tx.hash()) {
-                errors[i] = Some(TxPoolError::TransactionAlreadyKnown.into());
+                errors.push(TxPoolError::TransactionAlreadyKnown.into());
                 continue;
             }
             news.push(Rc::new(tx))
@@ -443,15 +453,11 @@ where
         let (dirty, new_errors) = self.add_txs_locked(news, local);
         let mut none_slot: usize = 0;
         for err in new_errors {
-            while errors[none_slot].is_some() {
-                none_slot += 1;
-            }
-
-            errors[none_slot] = Some(err);
+            errors.push(err);
         }
 
-        //repack transactions
-
+        self.repack(dirty, None);
+        self.queued_events = HashMap::new();
         return errors;
     }
 
@@ -760,7 +766,7 @@ where
             }
             trace!(target : TXPOOL_LOG_TARGET, count = ?drops.len(), "Removed unpayable queued transactions");
 
-            let readies = list.ready(self.pending_nonce.get(&addr));
+            let mut readies = list.ready(self.pending_nonce.get(&addr));
             let ready_count = &readies.len();
             for tx in readies {
                 let hash = tx.hash();
@@ -775,11 +781,15 @@ where
         promoted
     }
 
-    pub fn repack(&mut self, reset: Option<ResetRequest>) -> Result<()> {
+    pub fn repack(
+        &mut self,
+        dirty_accounts: AccountSet,
+        reset: Option<ResetRequest>,
+    ) -> Result<()> {
         let mut events = self.queued_events.clone();
         let mut promote_addrs = Vec::new();
-        if self.dirty_accounts.is_empty() && reset.is_none() {
-            promote_addrs = self.dirty_accounts.flatten();
+        if !dirty_accounts.is_empty() && reset.is_none() {
+            promote_addrs = dirty_accounts.flatten();
         }
 
         if let Some(reset) = &reset {
@@ -832,6 +842,21 @@ where
                 txs.into_iter().map(|tx| tx.deref().clone()).collect(),
             ))
             .map_err(|e| e.into())
+    }
+}
+
+impl<Chain> TxPool<Chain>
+    where
+        Chain: ChainState,
+{
+    pub fn add_local(&mut self, tx: Transaction) -> Result<()> {
+        let errors = self.add_txs(vec![tx], true);
+        println!("{:?}", errors);
+        if !errors.is_empty() {
+            Ok(())
+        } else {
+            Ok(())
+        }
     }
 }
 

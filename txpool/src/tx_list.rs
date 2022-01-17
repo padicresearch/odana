@@ -13,7 +13,7 @@ use crate::{TransactionRef, Transactions, TxHashRef};
 
 #[derive(Debug, Default, Clone)]
 pub struct TxSortedList {
-    txs: BTreeMap<Reverse<u64>, TransactionRef>,
+    txs: BTreeMap<u64, TransactionRef>,
 }
 
 impl TxSortedList {
@@ -23,33 +23,39 @@ impl TxSortedList {
         }
     }
     pub fn put(&mut self, tx: TransactionRef) {
-        self.txs.insert(std::cmp::Reverse(tx.nonce()), tx);
+        self.txs.insert(tx.nonce(), tx);
     }
 
     pub fn get(&mut self, nonce: u64) -> Option<&TransactionRef> {
-        self.txs.get(&std::cmp::Reverse(nonce))
+        self.txs.get(&nonce)
     }
 
     pub fn remove(&mut self, nonce: u64) -> bool {
-        self.txs.remove(&std::cmp::Reverse(nonce)).is_some()
+        self.txs.remove(&nonce).is_some()
     }
 
     pub fn filter<F>(&mut self, f: F) -> Transactions
-    where
-        F: FnMut(&Reverse<u64>, &mut TransactionRef) -> bool,
+        where
+            F: FnMut(&u64, &mut TransactionRef) -> bool,
     {
         self.txs.drain_filter(f).map(|(_, tx)| tx).collect()
     }
     pub fn forward(&mut self, threshold: u64) -> Vec<TransactionRef> {
-        let mut removed = self.txs.split_off(&Reverse(threshold - 1));
-        removed.iter().map(|tx| tx.1.clone()).collect()
+        //let first = self.txs.first_key_value().map(|(k,_)| *k).unwrap_or_default();
+        // if threshold < first {
+        //     return vec![]
+        // }
+        let mut remove: Vec<_> = self.txs.range(..threshold).map(|(k, v)| (*k, v.clone())).collect();
+        for (nonce, _) in remove.iter() {
+            self.txs.remove(nonce);
+        }
+        remove.iter().map(|(_, tx)| tx.clone()).collect()
     }
 
     pub fn ready(&mut self, start: u64) -> Vec<TransactionRef> {
-        let mut ready = self.txs.split_off(&Reverse(start));
-        std::mem::swap(&mut ready, &mut self.txs);
+        let mut ready: Vec<_> = self.txs.range(start..).map(|(k, v)| (*k, v.clone())).collect();
         self.txs.clear();
-        ready.iter().map(|tx| tx.1.clone()).collect()
+        ready.iter().map(|(_, tx)| tx.clone()).collect()
     }
 
     pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef> {
@@ -89,6 +95,9 @@ impl TxSortedList {
     pub fn flatten(&self) -> Vec<TransactionRef> {
         self.txs.iter().map(|(_, tx)| tx.clone()).collect()
     }
+    pub fn overlaps(&self, nonce: u64) -> bool {
+        self.txs.contains_key(&nonce)
+    }
 }
 
 #[derive(Debug)]
@@ -110,7 +119,7 @@ impl TxList {
         let old = self.txs.get(tx.nonce()).map(|tx| tx.clone());
         if let Some(old) = &old {
             let old_fees = old.fees();
-            let bump = ((tx.fees() as i128 - old_fees as i128) / tx.fees() as i128) * 100;
+            let bump = (((tx.fees() as i128 - old_fees as i128) * 100) / tx.fees() as i128);
             if old.fees().cmp(&tx.fees()).is_le() && bump < price_bump as i128 {
                 return (false, None);
             }
@@ -183,6 +192,9 @@ impl TxList {
 
     pub fn last_element(&self) -> Option<TransactionRef> {
         self.txs.last_element()
+    }
+    pub fn overlaps(&self, tx: TransactionRef) -> bool {
+        self.txs.overlaps(tx.nonce())
     }
 }
 
@@ -323,27 +335,8 @@ mod tests {
     use crate::TransactionRef;
     use crate::tx_list::{PricedTransaction, TxList, TxPricedList};
     use std::rc::Rc;
+    use crate::tests::make_tx;
 
-    fn make_tx(
-        from: &Account,
-        to: &Account,
-        nonce: u64,
-        amount: u128,
-        fee: u128,
-    ) -> TransactionRef {
-        let tx = make_sign_transaction(
-            from,
-            nonce,
-            TransactionKind::Transfer {
-                from: from.pub_key,
-                to: to.pub_key,
-                amount,
-                fee,
-            },
-        )
-        .unwrap();
-        Rc::new(tx)
-    }
 
     #[test]
     fn test_txlist() {

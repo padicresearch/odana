@@ -7,19 +7,70 @@ use dashmap::DashMap;
 
 use primitive_types::H160;
 use traits::{ChainState, StateDB};
-use types::account::AccountState;
+use types::account::{AccountState, Account};
 use types::block::{Block, BlockHeader, BlockTemplate};
 use types::Hash;
+use crate::{TxPool, TransactionRef, ResetRequest};
+use account::create_account;
+use transaction::make_sign_transaction;
+use types::tx::{TransactionKind, Transaction};
+use std::rc::Rc;
+use crate::tx_lookup::AccountSet;
 
 #[derive(Clone)]
 struct DummyStateDB {
     accounts: DashMap<H160, AccountState>,
 }
 
+pub fn make_tx(
+    from: &Account,
+    to: &Account,
+    nonce: u64,
+    amount: u128,
+    fee: u128,
+) -> TransactionRef {
+    let tx = make_sign_transaction(
+        from,
+        nonce,
+        TransactionKind::Transfer {
+            from: from.pub_key,
+            to: to.pub_key,
+            amount,
+            fee,
+        },
+    )
+        .unwrap();
+    Rc::new(tx)
+}
+
+fn make_tx_def(
+    from: &Account,
+    to: &Account,
+    nonce: u64,
+    amount: u128,
+    fee: u128,
+) -> Transaction {
+    let tx = make_sign_transaction(
+        from,
+        nonce,
+        TransactionKind::Transfer {
+            from: from.pub_key,
+            to: to.pub_key,
+            amount,
+            fee,
+        },
+    )
+        .unwrap();
+    tx
+}
+
 impl DummyStateDB {
-    fn with_accounts(iter: Box<dyn Iterator<Item = (H160, AccountState)>>) -> Self {
-        let mut accounts = DashMap::from_iter(iter);
-        Self { accounts }
+    fn with_accounts(accounts: Vec<(H160, AccountState)>) -> Self {
+        let mut map = DashMap::new();
+        for (addr, state) in accounts {
+            map.insert(addr, state);
+        }
+        Self { accounts: map }
     }
 
     pub fn set_account_state(
@@ -78,13 +129,19 @@ impl DummyChain {
         Self {
             chain: Arc::new(RwLock::new(blocks)),
             blocks: c,
-            states: Default::default(),
+            states: map,
         }
     }
 
     fn insert_state(&self, root: Hash, state: Arc<DummyStateDB>) {
         self.states.insert(root, state.clone());
         self.states.insert([0; 32], state);
+    }
+
+    fn add(&self, block: Block) {
+        let mut chain = self.chain.write().unwrap();
+        chain.push(block.clone());
+        self.blocks.insert(block.hash(), chain.len() - 1);
     }
 }
 
@@ -177,11 +234,89 @@ fn generate_blocks(n: usize) -> Vec<Block> {
                     [0; 32],
                     [0; 32],
                 )
-                .unwrap(),
+                    .unwrap(),
                 Vec::new(),
             )
         };
         blocks.push(block);
     }
     blocks
+}
+
+fn state_with_balance(amount: u128) -> AccountState {
+    let mut state = AccountState::default();
+    state.free_balance = amount;
+    state
+}
+
+#[tokio::test]
+async fn txpool_test() {
+    let alice = create_account();
+    let bob = create_account();
+    let state_db = Arc::new(DummyStateDB::with_accounts(vec![(alice.address, state_with_balance(1000))]));
+    let block_1 = Block::new(
+        BlockTemplate::new(
+            0 as i32,
+            0 as u128,
+            [0; 32],
+            [0; 32],
+            0,
+            0,
+            [0; 32],
+            [1; 32],
+        )
+            .unwrap(),
+        Vec::new(),
+    );
+    let chain = Arc::new(DummyChain::new(Vec::new(), state_db.clone()));
+    chain.insert_state([1; 32], state_db.clone());
+    chain.add(block_1);
+    let (sender, mut recv) = tokio::sync::mpsc::unbounded_channel();
+    let mut txpool = TxPool::new(None, None, sender, chain.clone()).unwrap();
+    txpool.add_txs(vec![
+        make_tx_def(&alice, &bob, 1, 100, 10),
+        make_tx_def(&alice, &bob, 2, 100, 10),
+        make_tx_def(&alice, &bob, 3, 100, 10),
+        make_tx_def(&alice, &bob, 4, 100, 10),
+    ], true);
+
+    let state_db_1 = Arc::new(DummyStateDB::with_accounts(vec![(alice.address, state_with_balance(1000))]));
+    state_db_1.increment_nonce(&alice.address, 5);
+
+
+    let block_2 = Block::new(
+        BlockTemplate::new(
+            1 as i32,
+            1 as u128,
+            [0; 32],
+            *chain.current_head().unwrap().block_hash(),
+            0,
+            0,
+            [0; 32],
+            [2; 32],
+        )
+            .unwrap(),
+        Vec::new(),
+    );
+
+
+    txpool.add_txs(vec![
+        make_tx_def(&alice, &bob, 5, 100, 10),
+        make_tx_def(&alice, &bob, 6, 100, 10),
+        make_tx_def(&alice, &bob, 7, 100, 10),
+    ], true);
+
+    let old_head = chain.current_head().unwrap();
+    let new_head = block_2.header();
+    chain.insert_state([2; 32], state_db_1);
+    chain.add(block_2);
+    txpool.repack(AccountSet::new(), Some(ResetRequest { old_head: Some(old_head), new_head })).unwrap();
+
+    // txpool.add_local(make_tx_def(&alice,&bob,1, 100, 10)).unwrap();
+    // state_db.set_nonce(&alice.address, 2);
+    // txpool.add_local(make_tx_def(&alice,&bob,txpool.nonce(&alice.address), 100, 100)).unwrap();
+    // txpool.add_local(make_tx_def(&alice,&bob,txpool.nonce(&alice.address), 100, 200)).unwrap();
+    // txpool.add_local(make_tx_def(&alice,&bob,3, 100, 250)).unwrap();
+    println!("{:#?}", txpool.nonce(&alice.address));
+    println!("{:#?}", txpool.pending);
 }
