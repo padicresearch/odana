@@ -13,7 +13,7 @@ use crate::tx::Transaction;
 
 use super::*;
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct BlockHeader {
     parent_hash: BlockHash,
     block_hash: BlockHash,
@@ -47,6 +47,32 @@ impl BlockHeader {
             nonce,
         }
     }
+
+    pub fn parent_hash(&self) -> &BlockHash {
+        &self.parent_hash
+    }
+    pub fn block_hash(&self) -> &BlockHash {
+        &self.block_hash
+    }
+    pub fn time(&self) -> &u32 {
+        &self.time
+    }
+    pub fn level(&self) -> &i32 {
+        &self.level
+    }
+    pub fn tx_count(&self) -> &u16 {
+        &self.tx_count
+    } pub fn merkle_root(&self) -> &MerkleHash {
+        &self.merkle_root
+    }
+    pub fn state_root(&self) -> &Hash {
+        &self.state_root
+    }
+
+    pub fn nonce(&self) -> &u128 {
+        &self.nonce
+    }
+
 }
 
 impl From<&BlockHeader> for BlockHeader {
@@ -70,6 +96,7 @@ pub struct BlockTemplate {
     time: u32,
     level: i32,
     tx_count: u16,
+    coinbase : Hash,
     merkle_root: MerkleHash,
     state_root: Hash,
     nonce: u128,
@@ -79,6 +106,7 @@ impl BlockTemplate {
     pub fn new(
         level: i32,
         nonce: u128,
+        coinbase : Hash,
         parent_hash: BlockHash,
         time: u32,
         tx_count: u16,
@@ -90,6 +118,7 @@ impl BlockTemplate {
             time,
             level,
             tx_count,
+            coinbase,
             merkle_root,
             state_root,
             nonce,
@@ -102,6 +131,7 @@ impl BlockTemplate {
         sha3.update(&self.parent_hash);
         sha3.update(&self.merkle_root);
         sha3.update(&self.state_root);
+        sha3.update(&self.coinbase);
         sha3.update(&self.nonce.to_be_bytes());
         sha3.update(&self.tx_count.to_be_bytes());
         sha3.update(&self.time.to_be_bytes());
@@ -111,18 +141,17 @@ impl BlockTemplate {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Getters)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Block {
-    parent_hash: BlockHash,
+    parent_hash: Hash,
     level: i32,
     time: u32,
     tx_count: u16,
     nonce: u128,
-    merkle_root: MerkleHash,
+    merkle_root: Hash,
+    coinbase : Hash,
     state_root: Hash,
-    #[getter(skip)]
     transactions: Vec<Transaction>,
-    #[getter(skip)]
     #[serde(skip)]
     hash: Arc<RwLock<Option<TxHash>>>,
 }
@@ -135,34 +164,6 @@ impl Block {
 
 impl_codec!(Block);
 
-// #[derive(Debug, Getters)]
-// pub struct BlockView {
-//     block_hash: String,
-//     prev_block_hash: String,
-//     time: u32,
-//     tx_count: u16,
-//     level: i32,
-//     nonce: u128,
-//     merkle_root: String,
-//     transactions: Vec<String>,
-// }
-//
-// impl std::fmt::Display for Block {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         let view = BlockView {
-//             block_hash: hex::encode(self.hash),
-//             prev_block_hash: hex::encode(self.prev_block_hash),
-//             time: self.time,
-//             tx_count: self.tx_count,
-//             level: self.level,
-//             nonce: self.nonce,
-//             merkle_root: hex::encode(self.merkle_root),
-//             transactions: self.transactions.iter().map(|tx| hex::encode(tx)).collect(),
-//         };
-//         write!(f, "{:#?}", view)
-//     }
-// }
-
 impl Block {
     pub fn new(template: BlockTemplate, transactions: Vec<Transaction>) -> Self {
         Self {
@@ -172,6 +173,7 @@ impl Block {
             tx_count: template.tx_count,
             nonce: template.nonce,
             merkle_root: template.merkle_root,
+            coinbase: template.coinbase,
             state_root: template.state_root,
             transactions,
             hash: Arc::new(Default::default()),
@@ -183,6 +185,8 @@ impl Block {
         let mut sha3 = tiny_keccak::Sha3::v256();
         sha3.update(&self.parent_hash);
         sha3.update(&self.merkle_root);
+        sha3.update(&self.state_root);
+        sha3.update(&self.coinbase);
         sha3.update(&self.nonce.to_be_bytes());
         sha3.update(&self.tx_count.to_be_bytes());
         sha3.update(&self.time.to_be_bytes());
@@ -202,5 +206,31 @@ impl Block {
             state_root: self.state_root,
             nonce: self.nonce,
         }
+    }
+
+    pub fn parent_hash(&self) -> &BlockHash {
+        &self.parent_hash
+    }
+    pub fn time(&self) -> &u32 {
+        &self.time
+    }
+    pub fn level(&self) -> &i32 {
+        &self.level
+    }
+    pub fn tx_count(&self) -> &u16 {
+        &self.tx_count
+    } pub fn merkle_root(&self) -> &MerkleHash {
+        &self.merkle_root
+    }
+    pub fn state_root(&self) -> &Hash {
+        &self.state_root
+    }
+
+    pub fn coinbase(&self) -> &Hash {
+        &self.coinbase
+    }
+
+    pub fn nonce(&self) -> &u128 {
+        &self.nonce
     }
 }

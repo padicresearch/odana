@@ -30,6 +30,8 @@ pub enum TxPoolError {
     TxPoolOverflow,
     #[error("`replacement transaction underpriced`")]
     ReplaceUnderpriced,
+    #[error("`missing block`")]
+    MissingBlock,
     #[error("`{0}`")]
     HexError(#[from] hex::FromHexError),
 }

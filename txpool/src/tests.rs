@@ -153,7 +153,7 @@ fn generate_blocks(n: usize) -> Vec<Block> {
         //let block_hash: [u8; 32] = rand::random();
         let block = if blocks.is_empty() {
             Block::new(
-                BlockTemplate::new(level as i32, level as u128, [0; 32], 0, 0, [0; 32], [0; 32])
+                BlockTemplate::new(level as i32, level as u128, [0;32], [0; 32], 0, 0, [0; 32], [0; 32])
                     .unwrap(),
                 Vec::new(),
             )
@@ -162,6 +162,7 @@ fn generate_blocks(n: usize) -> Vec<Block> {
                 BlockTemplate::new(
                     level as i32,
                     level as u128,
+                    [0;32],
                     blocks[level - 1].hash(),
                     0,
                     0,
