@@ -14,7 +14,6 @@ pub enum LocalEventMessage {
     MindedBlock(Block),
     BroadcastTx(Transaction),
     TxPoolPack(Vec<Transaction>),
-    TxPoolRunPack,
     StateChanged {
         current_head: BlockHeader,
         txpool: TxPoolSnapshot,

@@ -322,6 +322,7 @@ mod tests {
 
     use crate::TransactionRef;
     use crate::tx_list::{PricedTransaction, TxList, TxPricedList};
+    use std::rc::Rc;
 
     fn make_tx(
         from: &Account,
@@ -341,7 +342,7 @@ mod tests {
             },
         )
         .unwrap();
-        Arc::new(tx)
+        Rc::new(tx)
     }
 
     #[test]

@@ -25,6 +25,9 @@ use crate::tx_lookup::{AccountSet, TxLookup};
 use crate::tx_noncer::TxNoncer;
 use std::cmp::Ordering;
 use std::option::Option::Some;
+use std::rc::Rc;
+use tokio::sync::mpsc::UnboundedSender;
+use types::events::LocalEventMessage;
 
 mod error;
 mod prque;
@@ -34,7 +37,7 @@ mod tx_lookup;
 mod tx_noncer;
 
 type TxHashRef = Arc<TxHash>;
-type TransactionRef = Arc<Transaction>;
+type TransactionRef = Rc<Transaction>;
 type Transactions = Vec<TransactionRef>;
 type Address = H160;
 
@@ -111,6 +114,8 @@ where
     chain: Chain,
     current_state: Arc<dyn StateDB>,
     pending_nonce: TxNoncer,
+    //local event emitter
+    lmpsc: UnboundedSender<LocalEventMessage>,
 
     // repacker variables
     queued_events: HashMap<Address, TxSortedList>,
@@ -131,6 +136,7 @@ where
     pub fn new(
         conf: Option<&TxPoolConfig>,
         local_accounts: Option<Vec<Address>>,
+        lmpsc: UnboundedSender<LocalEventMessage>,
         chain: Chain,
     ) -> Result<Self> {
         let conf = conf
@@ -146,6 +152,7 @@ where
             chain,
             current_state: current_state.clone(),
             pending_nonce: TxNoncer::new(current_state),
+            lmpsc,
             queued_events: Default::default(),
             dirty_accounts: AccountSet::new(),
             pending: Default::default(),
@@ -426,7 +433,7 @@ where
                 errors[i] = Some(TxPoolError::TransactionAlreadyKnown.into());
                 continue;
             }
-            news.push(Arc::new(tx))
+            news.push(Rc::new(tx))
         }
 
         if news.is_empty() {
@@ -496,7 +503,7 @@ where
                             discarded.extend(
                                 rem.transactions()
                                     .iter()
-                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
+                                    .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
                             );
                             if let Some(block) = self.chain.get_block(rem.parent_hash())? {
                                 rem = block;
@@ -509,7 +516,7 @@ where
                             included.extend(
                                 add.transactions()
                                     .iter()
-                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
+                                    .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
                             );
                             if let Some(block) = self.chain.get_block(add.parent_hash())? {
                                 rem = block;
@@ -522,7 +529,7 @@ where
                             discarded.extend(
                                 rem.transactions()
                                     .iter()
-                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
+                                    .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
                             );
                             if let Some(block) = self.chain.get_block(rem.parent_hash())? {
                                 rem = block;
@@ -533,7 +540,7 @@ where
                             included.extend(
                                 add.transactions()
                                     .iter()
-                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
+                                    .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
                             );
                             if let Some(block) = self.chain.get_block(add.parent_hash())? {
                                 rem = block;
@@ -813,13 +820,18 @@ where
             for (_, set) in events {
                 txs.extend(set.flatten())
             }
-            self.send(txs);
+            self.send(txs)?;
         }
         Ok(())
     }
 
-    fn send(&self, txs: Vec<TransactionRef>) {
-        //Todo implement send it local event channel
+    fn send(&self, txs: Vec<TransactionRef>) -> Result<()> {
+        use std::ops::Deref;
+        self.lmpsc
+            .send(LocalEventMessage::TxPoolPack(
+                txs.into_iter().map(|tx| tx.deref().clone()).collect(),
+            ))
+            .map_err(|e| e.into())
     }
 }
 
