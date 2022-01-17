@@ -22,6 +22,7 @@ use crate::prque::PriorityQueue;
 use crate::tx_list::{NonceTransaction, TxList, TxPricedList, TxSortedList};
 use crate::tx_lookup::{AccountSet, TxLookup};
 use crate::tx_noncer::TxNoncer;
+use std::cmp::Ordering;
 
 mod error;
 mod prque;
@@ -590,7 +591,7 @@ where
         let mut spammers = PriorityQueue::new();
         for (addr, list) in self.pending.iter() {
             if !self.locals.contains(addr) && list.len() as u64 > self.config.account_slots {
-                spammers.push(addr.clone(), list.len() as i64);
+                spammers.push(*addr, list.len() as i64);
             }
         }
 
@@ -634,6 +635,50 @@ where
                 }
             }
         }
+    }
+
+    fn truncate_queue(&mut self) {
+        let mut queued = self.queue.iter().fold(0, |acc, (_, list)| list.len()) as u64;
+        if queued <= self.config.global_queue {
+            return;
+        }
+
+        let mut addresses = BTreeSet::new();
+        for (addr, _) in self.queue.iter() {
+            if !self.locals.contains(addr) {
+                addresses.insert(AddressByHeartbeat::new(*addr, *self.beats.get(addr).unwrap()));
+            }
+        }
+        let mut addresses : Vec<_> = addresses.iter().map(|beat| *beat).collect();
+        let mut drop = queued - self.config.global_queue;
+        while drop > 0 && addresses.len() > 0 {
+            let addr = addresses[addresses.len() - 1];
+            let list = match self.queue.get(&addr.address) {
+                None => {
+                    return
+                }
+                Some(list) => {
+                    list
+                }
+            };
+            addresses = addresses[..addresses.len() - 1].to_owned();
+            let size = list.len() as u64;
+            if size <= drop {
+                for tx in list.flatten() {
+                    self.remove_tx(tx.hash(), true);
+                }
+                drop -= size;
+                continue
+            }
+            let txs = list.flatten();
+            let mut i = txs.len();
+            while i >= 0 && drop > 0 {
+                self.remove_tx(txs[i].hash(), true);
+                drop -= 1;
+                i -= 1;
+            }
+        }
+
     }
 
     fn demote_unexecutable(&mut self) {
@@ -697,3 +742,37 @@ pub struct ResetRequest {
     old_head: Option<BlockHeader>,
     new_head: BlockHeader,
 }
+
+#[derive(Copy, Clone)]
+struct AddressByHeartbeat {
+    address : H160,
+    heartbeat : Instant
+}
+impl AddressByHeartbeat {
+    fn new(address : H160, heartbeat : Instant) -> Self {
+        Self{
+            address,
+            heartbeat
+        }
+    }
+}
+impl PartialOrd for AddressByHeartbeat {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.heartbeat.partial_cmp(&other.heartbeat)
+    }
+}
+
+impl PartialEq for AddressByHeartbeat {
+    fn eq(&self, other: &Self) -> bool {
+        self.address.eq(&other.address)
+    }
+}
+
+impl Eq for AddressByHeartbeat {}
+
+impl Ord for AddressByHeartbeat {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.heartbeat.cmp(&other.heartbeat)
+    }
+}
+
