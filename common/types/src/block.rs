@@ -62,7 +62,8 @@ impl BlockHeader {
     }
     pub fn tx_count(&self) -> &u16 {
         &self.tx_count
-    } pub fn merkle_root(&self) -> &MerkleHash {
+    }
+    pub fn merkle_root(&self) -> &MerkleHash {
         &self.merkle_root
     }
     pub fn state_root(&self) -> &Hash {
@@ -72,7 +73,6 @@ impl BlockHeader {
     pub fn nonce(&self) -> &u128 {
         &self.nonce
     }
-
 }
 
 impl From<&BlockHeader> for BlockHeader {
@@ -96,7 +96,7 @@ pub struct BlockTemplate {
     time: u32,
     level: i32,
     tx_count: u16,
-    coinbase : Hash,
+    coinbase: Hash,
     merkle_root: MerkleHash,
     state_root: Hash,
     nonce: u128,
@@ -106,7 +106,7 @@ impl BlockTemplate {
     pub fn new(
         level: i32,
         nonce: u128,
-        coinbase : Hash,
+        coinbase: Hash,
         parent_hash: BlockHash,
         time: u32,
         tx_count: u16,
@@ -149,7 +149,7 @@ pub struct Block {
     tx_count: u16,
     nonce: u128,
     merkle_root: Hash,
-    coinbase : Hash,
+    coinbase: Hash,
     state_root: Hash,
     transactions: Vec<Transaction>,
     #[serde(skip)]
@@ -219,7 +219,8 @@ impl Block {
     }
     pub fn tx_count(&self) -> &u16 {
         &self.tx_count
-    } pub fn merkle_root(&self) -> &MerkleHash {
+    }
+    pub fn merkle_root(&self) -> &MerkleHash {
         &self.merkle_root
     }
     pub fn state_root(&self) -> &Hash {

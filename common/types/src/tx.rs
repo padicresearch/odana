@@ -172,12 +172,8 @@ impl Transaction {
 
     pub fn to(&self) -> H160 {
         let to = match self.kind {
-            TransactionKind::Transfer { to, .. } => {
-                to
-            }
-            TransactionKind::Coinbase { miner,.. } => {
-                miner
-            }
+            TransactionKind::Transfer { to, .. } => to,
+            TransactionKind::Coinbase { miner, .. } => miner,
         };
         RIPEMD160::digest(&SHA256::digest(to))
     }

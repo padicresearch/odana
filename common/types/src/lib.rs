@@ -25,7 +25,7 @@ pub struct MempoolSnapsot {
     pub valid: Vec<TxHash>,
 }
 
-#[derive(Debug,Serialize, Deserialize,Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct TxPoolConfig {
     // Whether local transaction handling should be disabled
     pub no_locals: bool,
@@ -44,7 +44,6 @@ pub struct TxPoolConfig {
     // Maximum amount of time non-executable transaction are queued
     pub life_time: Duration,
 }
-
 
 impl_codec!(MempoolSnapsot);
 

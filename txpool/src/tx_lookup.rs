@@ -18,16 +18,14 @@ pub struct AccountSet {
 impl From<Vec<Address>> for AccountSet {
     fn from(addresses: Vec<Address>) -> Self {
         let accounts = BTreeSet::from_iter(addresses.into_iter());
-        Self {
-            accounts
-        }
+        Self { accounts }
     }
 }
 
 impl AccountSet {
     pub(crate) fn new() -> Self {
         Self {
-            accounts: Default::default()
+            accounts: Default::default(),
         }
     }
 
@@ -44,11 +42,11 @@ impl AccountSet {
         self.contains(&address)
     }
 
-    pub(crate) fn add(&mut self, address: H160){
+    pub(crate) fn add(&mut self, address: H160) {
         self.accounts.insert(address);
     }
 
-    pub(crate) fn add_tx(&mut self, tx: TransactionRef){
+    pub(crate) fn add_tx(&mut self, tx: TransactionRef) {
         let address = tx.sender();
         self.add(address);
     }
@@ -57,7 +55,7 @@ impl AccountSet {
         self.accounts.iter().map(|addrs| addrs.clone()).collect()
     }
 
-    pub(crate) fn merge(&mut self, other : &AccountSet){
+    pub(crate) fn merge(&mut self, other: &AccountSet) {
         self.accounts.extend(other.accounts.iter());
     }
 }
@@ -79,12 +77,7 @@ impl TxLookup {
 }
 
 impl TxLookup {
-    pub fn range(
-        &self,
-        f: fn(&Hash, &TransactionRef, bool) -> bool,
-        local: bool,
-        remote: bool,
-    ) {
+    pub fn range(&self, f: fn(&Hash, &TransactionRef, bool) -> bool, local: bool, remote: bool) {
         if local {
             for (key, value) in self.locals.iter() {
                 if !f(key, value, true) {
@@ -114,15 +107,11 @@ impl TxLookup {
     }
 
     pub fn get_local(&self, hash: &Hash) -> Option<TransactionRef> {
-        self.locals
-            .get(hash)
-            .map(|tx| tx.clone())
+        self.locals.get(hash).map(|tx| tx.clone())
     }
 
     pub fn get_remote(&self, hash: &Hash) -> Option<TransactionRef> {
-       self.remotes
-            .get(hash)
-            .map(|tx| tx.clone())
+        self.remotes.get(hash).map(|tx| tx.clone())
     }
 
     pub fn count(&self) -> usize {
@@ -132,11 +121,11 @@ impl TxLookup {
     pub fn local_count(&self) -> usize {
         self.locals.len()
     }
-    pub fn remote_count(&self) -> usize{
+    pub fn remote_count(&self) -> usize {
         self.remotes.len()
     }
 
-    pub fn add(&mut self, tx: TransactionRef, local: bool){
+    pub fn add(&mut self, tx: TransactionRef, local: bool) {
         self.slots += num_slots(&tx);
         if local {
             self.locals.insert(tx.hash(), tx);
@@ -157,13 +146,12 @@ impl TxLookup {
 
     pub fn remote_to_locals(&mut self, local_accounts: &AccountSet) -> Transactions {
         let mut migrated: Vec<TransactionRef> = Vec::new();
-        let remotes = self.remotes.clone().into_iter();
-        for (hash, tx) in remotes {
-            if local_accounts.contains_tx(&tx) {
-                self.remotes.remove(&hash);
-                self.locals.insert(hash, tx.clone());
-                migrated .push(tx.clone())
-            }
+        let filtered = self
+            .remotes
+            .drain_filter(|hash, tx| local_accounts.contains_tx(tx));
+        for (hash, tx) in filtered {
+            self.locals.insert(hash, tx.clone());
+            migrated.push(tx.clone())
         }
         migrated
     }

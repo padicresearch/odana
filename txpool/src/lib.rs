@@ -98,8 +98,8 @@ fn sanitize(conf: &TxPoolConfig) -> TxPoolConfig {
 }
 
 pub struct TxPool<Chain>
-    where
-        Chain: ChainState,
+where
+    Chain: ChainState,
 {
     config: TxPoolConfig,
     locals: AccountSet,
@@ -111,7 +111,6 @@ pub struct TxPool<Chain>
     queued_events: HashMap<Address, TxSortedList>,
     dirty_accounts: AccountSet,
     //end repacker
-
     pending: HashMap<Address, TxList>,
     queue: HashMap<Address, TxList>,
     beats: HashMap<Address, Instant>,
@@ -121,8 +120,8 @@ pub struct TxPool<Chain>
 }
 
 impl<Chain> TxPool<Chain>
-    where
-        Chain: ChainState,
+where
+    Chain: ChainState,
 {
     pub fn new(
         conf: Option<&TxPoolConfig>,
@@ -189,7 +188,7 @@ impl<Chain> TxPool<Chain>
 
     pub fn content_from(&self, address: &Address) -> (Transactions, Transactions) {
         let mut pending = Vec::new();
-        if let Some(list) = self.pending.get(address){
+        if let Some(list) = self.pending.get(address) {
             pending = list.flatten();
         }
         let mut queued = Vec::new();
@@ -256,13 +255,19 @@ impl<Chain> TxPool<Chain>
                 trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding underpriced transaction");
                 return Err(TxPoolError::Underpriced.into());
             }
-            let changes_since_repack = self.changes_since_repack.load(std::sync::atomic::Ordering::Relaxed);
-            anyhow::ensure!( changes_since_repack < (self.config.global_slots / 4) as i32, TxPoolError::TxPoolOverflow);
+            let changes_since_repack = self
+                .changes_since_repack
+                .load(std::sync::atomic::Ordering::Relaxed);
+            anyhow::ensure!(
+                changes_since_repack < (self.config.global_slots / 4) as i32,
+                TxPoolError::TxPoolOverflow
+            );
 
-            let drop = match self.priced.discard(self.all.slots() - (self.config.global_slots + self.config.global_queue) + num_slots(&tx)) {
-                Ok(drop) => {
-                    drop
-                }
+            let drop = match self.priced.discard(
+                self.all.slots() - (self.config.global_slots + self.config.global_queue)
+                    + num_slots(&tx),
+            ) {
+                Ok(drop) => drop,
                 Err(_) => {
                     if !is_local {
                         trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding overflown transaction");
@@ -273,7 +278,8 @@ impl<Chain> TxPool<Chain>
                 }
             };
 
-            self.changes_since_repack.fetch_add(drop.len() as i32, std::sync::atomic::Ordering::Relaxed);
+            self.changes_since_repack
+                .fetch_add(drop.len() as i32, std::sync::atomic::Ordering::Relaxed);
             for tx in drop {
                 trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding freshly underpriced transaction");
                 self.remove_tx(tx.hash(), false)?;
@@ -309,11 +315,20 @@ impl<Chain> TxPool<Chain>
 
     fn queue_event(&mut self, tx: TransactionRef) {
         let sender = tx.sender();
-        let mut events = self.queued_events.entry(sender).or_insert(Default::default());
+        let mut events = self
+            .queued_events
+            .entry(sender)
+            .or_insert(Default::default());
         events.put(tx);
     }
 
-    fn enqueue_tx(&mut self, hash: Hash, tx: TransactionRef, local: bool, add_all: bool) -> Result<bool> {
+    fn enqueue_tx(
+        &mut self,
+        hash: Hash,
+        tx: TransactionRef,
+        local: bool,
+        add_all: bool,
+    ) -> Result<bool> {
         let from = tx.sender();
         let queue = self.queue.entry(from).or_insert(TxList::new(false));
         let (inserted, old) = queue.add(tx.clone(), self.config.price_bump);
@@ -343,9 +358,7 @@ impl<Chain> TxPool<Chain>
             None => {
                 return Ok(());
             }
-            Some(tx) => {
-                tx
-            }
+            Some(tx) => tx,
         };
 
         self.all.remove(&hash);
@@ -398,7 +411,9 @@ impl<Chain> TxPool<Chain>
     fn add_txs(&mut self, tsx: Vec<Transaction>, local: bool) -> Vec<Option<Error>> {
         let mut news = Vec::new();
         let mut errors = Vec::with_capacity(tsx.len());
-        unsafe { errors.set_len(tsx.len()); }
+        unsafe {
+            errors.set_len(tsx.len());
+        }
         for (i, tx) in tsx.into_iter().enumerate() {
             if self.all.contains(&tx.hash()) {
                 errors[i] = Some(TxPoolError::TransactionAlreadyKnown.into());
@@ -426,7 +441,11 @@ impl<Chain> TxPool<Chain>
         return errors;
     }
 
-    fn add_txs_locked(&mut self, tsx: Vec<TransactionRef>, local: bool) -> (AccountSet, Vec<anyhow::Error>) {
+    fn add_txs_locked(
+        &mut self,
+        tsx: Vec<TransactionRef>,
+        local: bool,
+    ) -> (AccountSet, Vec<anyhow::Error>) {
         let mut dirty = AccountSet::new();
         let mut errors = Vec::with_capacity(tsx.len());
         for (i, tx) in tsx.into_iter().enumerate() {
@@ -462,50 +481,64 @@ impl<Chain> TxPool<Chain>
                             error!(target : TXPOOL_LOG_TARGET, new_head = ?H256::from(new_head.block_hash()), "Transaction pool reset with missing newhead");
                             return Err(TxPoolError::MissingBlock.into());
                         }
-                        Some(add) => {
-                            add
-                        }
+                        Some(add) => add,
                     };
 
-                    if let Some( mut rem) = rem {
+                    if let Some(mut rem) = rem {
                         while rem.level() > add.level() {
-                            discarded.extend(rem.transactions().iter().map(|tx|NonceTransaction(Arc::new(tx.clone()))));
-                            if let Some(block) = self.chain.get_block(rem.parent_hash())?{
+                            discarded.extend(
+                                rem.transactions()
+                                    .iter()
+                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
+                            );
+                            if let Some(block) = self.chain.get_block(rem.parent_hash())? {
                                 rem = block;
-                            }else {
+                            } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.block_hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
-                                return Ok(())
+                                return Ok(());
                             }
                         }
                         while add.level() > rem.level() {
-                            included.extend(add.transactions().iter().map(|tx|NonceTransaction(Arc::new(tx.clone()))));
-                            if let Some(block) = self.chain.get_block(add.parent_hash())?{
+                            included.extend(
+                                add.transactions()
+                                    .iter()
+                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
+                            );
+                            if let Some(block) = self.chain.get_block(add.parent_hash())? {
                                 rem = block;
-                            }else {
+                            } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.block_hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
-                                return Ok(())
+                                return Ok(());
                             }
                         }
                         while rem.hash() != add.hash() {
-                            discarded.extend(rem.transactions().iter().map(|tx|NonceTransaction(Arc::new(tx.clone()))));
-                            if let Some(block) = self.chain.get_block(rem.parent_hash())?{
+                            discarded.extend(
+                                rem.transactions()
+                                    .iter()
+                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
+                            );
+                            if let Some(block) = self.chain.get_block(rem.parent_hash())? {
                                 rem = block;
-                            }else {
+                            } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.block_hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
-                                return Ok(())
+                                return Ok(());
                             }
-                            included.extend(add.transactions().iter().map(|tx|NonceTransaction(Arc::new(tx.clone()))));
-                            if let Some(block) = self.chain.get_block(add.parent_hash())?{
+                            included.extend(
+                                add.transactions()
+                                    .iter()
+                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
+                            );
+                            if let Some(block) = self.chain.get_block(add.parent_hash())? {
                                 rem = block;
-                            }else {
+                            } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.block_hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
-                                return Ok(())
+                                return Ok(());
                             }
                         }
-                        reinject = discarded.intersection(&included).map(|tx|{
-                            tx.0.clone()
-                        }).collect();
-
+                        reinject = discarded
+                            .intersection(&included)
+                            .map(|tx| tx.0.clone())
+                            .collect();
                     } else {
                         if new_num > old_num {
                             warn!(target : TXPOOL_LOG_TARGET,
@@ -514,7 +547,7 @@ impl<Chain> TxPool<Chain>
                             new = ?H256::from(new_head.block_hash()),
                             new_level = ?new_num,
                             "Transaction pool reset with missing newhead");
-                            return Ok(())
+                            return Ok(());
                         }
                         debug!(target : TXPOOL_LOG_TARGET,
                             old = ?H256::from(old_head.block_hash()),
@@ -527,12 +560,10 @@ impl<Chain> TxPool<Chain>
             }
         }
         let state = match self.chain.get_state_at(new_head.state_root()) {
-            Ok(state) => {
-                state
-            }
+            Ok(state) => state,
             Err(e) => {
                 error!(target : TXPOOL_LOG_TARGET, error = ?e, "Failed to reset txpool state");
-                return  Err(e)
+                return Err(e);
             }
         };
         self.current_state = state.clone();

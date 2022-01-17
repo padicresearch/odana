@@ -37,12 +37,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite txpool">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -379,14 +373,7 @@
       <workItem from="1641993805431" duration="30668000" />
       <workItem from="1642064352872" duration="1913000" />
       <workItem from="1642091260977" duration="13193000" />
-      <workItem from="1642186007441" duration="91008000" />
-    </task>
-    <task id="LOCAL-00003" summary="checkpoint">
-      <created>1607377273657</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1607377273658</updated>
+      <workItem from="1642186007441" duration="91713000" />
     </task>
     <task id="LOCAL-00004" summary="checkpoint">
       <created>1607441282525</created>
@@ -724,7 +711,14 @@
       <option name="project" value="LOCAL" />
       <updated>1642365741642</updated>
     </task>
-    <option name="localTasksCounter" value="52" />
+    <task id="LOCAL-00052" summary="rewrite txpool">
+      <created>1642401675912</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1642401675912</updated>
+    </task>
+    <option name="localTasksCounter" value="53" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

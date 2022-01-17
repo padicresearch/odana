@@ -22,11 +22,11 @@ impl TxSortedList {
             txs: Default::default(),
         }
     }
-    pub fn put(&mut self, tx: TransactionRef){
+    pub fn put(&mut self, tx: TransactionRef) {
         self.txs.insert(std::cmp::Reverse(tx.nonce()), tx);
     }
 
-    pub fn get(&mut self, nonce: u64) -> Option<&TransactionRef>{
+    pub fn get(&mut self, nonce: u64) -> Option<&TransactionRef> {
         self.txs.get(&std::cmp::Reverse(nonce))
     }
 
@@ -34,7 +34,10 @@ impl TxSortedList {
         self.txs.remove(&std::cmp::Reverse(nonce)).is_some()
     }
 
-    pub fn filter<F>(&mut self, f: F) -> Transactions where F :  FnMut(&Reverse<u64>, &mut TransactionRef) -> bool{
+    pub fn filter<F>(&mut self, f: F) -> Transactions
+    where
+        F: FnMut(&Reverse<u64>, &mut TransactionRef) -> bool,
+    {
         self.txs.drain_filter(f).map(|(_, tx)| tx).collect()
     }
     pub fn forward(&mut self, threshold: u64) -> Vec<TransactionRef> {
@@ -49,7 +52,7 @@ impl TxSortedList {
         ready.iter().map(|tx| tx.1.clone()).collect()
     }
 
-    pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef>{
+    pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef> {
         if self.txs.len() <= threshold {
             return Default::default();
         }
@@ -84,32 +87,32 @@ impl TxSortedList {
     }
 
     pub fn flatten(&self) -> Vec<TransactionRef> {
-        self.txs.iter().map(|(_,tx)| tx.clone()).collect()
+        self.txs.iter().map(|(_, tx)| tx.clone()).collect()
     }
 }
 
 #[derive(Debug)]
 pub struct TxList {
-    strict : bool,
+    strict: bool,
     txs: TxSortedList,
 }
 
 pub type TransactionIterator<'a> = Box<dyn 'a + Send + Iterator<Item = TransactionRef>>;
 
 impl TxList {
-    pub fn new(strict : bool) -> Self {
+    pub fn new(strict: bool) -> Self {
         Self {
             strict,
             txs: Default::default(),
         }
     }
-    pub fn add(&mut self, tx: TransactionRef, price_bump: u128) -> (bool, Option<TransactionRef>){
-        let old = self.txs.get(tx.nonce()).map(|tx|tx.clone());
-        if let Some(old) =  &old {
+    pub fn add(&mut self, tx: TransactionRef, price_bump: u128) -> (bool, Option<TransactionRef>) {
+        let old = self.txs.get(tx.nonce()).map(|tx| tx.clone());
+        if let Some(old) = &old {
             let old_fees = old.fees();
             let bump = ((tx.fees() as i128 - old_fees as i128) / tx.fees() as i128) * 100;
             if old.fees().cmp(&tx.fees()).is_le() && bump < price_bump as i128 {
-                return (false, None)
+                return (false, None);
             }
         }
         self.txs.put(tx);
@@ -119,10 +122,10 @@ impl TxList {
     pub fn remove(&mut self, tx: TransactionRef) -> (bool, Transactions) {
         let nonce = tx.nonce();
         if self.txs.remove(nonce) {
-            return (false, Vec::new())
+            return (false, Vec::new());
         }
         if self.strict {
-            return (true, self.txs.filter(|_,tx|{tx.nonce() > nonce}))
+            return (true, self.txs.filter(|_, tx| tx.nonce() > nonce));
         }
 
         (true, Vec::new())
@@ -136,7 +139,7 @@ impl TxList {
         self.txs.ready(start)
     }
 
-    pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef>{
+    pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef> {
         self.txs.cap(threshold)
     }
 
@@ -339,18 +342,12 @@ mod tests {
         // assert_eq!(list.txs.write().unwrap().range(..3).count(), 0);
 
         let mut priced_list = TxPricedList::new();
-        priced_list
-            .put(make_tx(&alice, &bob, 1, 40, 4), false);
-        priced_list
-            .put(make_tx(&alice, &bob, 2, 20, 2), false);
-        priced_list
-            .put(make_tx(&alice, &bob, 3, 30, 3), false);
-        priced_list
-            .put(make_tx(&alice, &bob, 4, 40, 4), false);
-        priced_list
-            .put(make_tx(&bob, &alice, 8, 100, 10), false);
-        priced_list
-            .put(make_tx(&bob, &alice, 9, 100, 10), false);
+        priced_list.put(make_tx(&alice, &bob, 1, 40, 4), false);
+        priced_list.put(make_tx(&alice, &bob, 2, 20, 2), false);
+        priced_list.put(make_tx(&alice, &bob, 3, 30, 3), false);
+        priced_list.put(make_tx(&alice, &bob, 4, 40, 4), false);
+        priced_list.put(make_tx(&bob, &alice, 8, 100, 10), false);
+        priced_list.put(make_tx(&bob, &alice, 9, 100, 10), false);
 
         // println!("{:#?}", priced_list);
         // println!("-------------------------------------------------------------------------------------------------------");

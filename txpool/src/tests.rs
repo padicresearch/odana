@@ -62,11 +62,10 @@ struct DummyChain {
     chain: Arc<RwLock<Vec<Block>>>,
     blocks: DashMap<[u8; 32], usize>,
     states: DashMap<[u8; 32], Arc<DummyStateDB>>,
-
 }
 
 impl DummyChain {
-    fn new(blocks: Vec<Block>, inital_state : Arc<DummyStateDB>) -> Self {
+    fn new(blocks: Vec<Block>, inital_state: Arc<DummyStateDB>) -> Self {
         let c: DashMap<_, _> = blocks
             .iter()
             .enumerate()
@@ -74,7 +73,7 @@ impl DummyChain {
             .collect();
 
         let map = DashMap::new();
-        map.insert([0;32], inital_state);
+        map.insert([0; 32], inital_state);
 
         Self {
             chain: Arc::new(RwLock::new(blocks)),
@@ -85,7 +84,7 @@ impl DummyChain {
 
     fn insert_state(&self, root: Hash, state: Arc<DummyStateDB>) {
         self.states.insert(root, state.clone());
-        self.states.insert([0;32], state);
+        self.states.insert([0; 32], state);
     }
 }
 
@@ -137,7 +136,7 @@ impl ChainState for DummyChain {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>> {
         let state = self
             .states
-            .get(&[0;32])
+            .get(&[0; 32])
             .ok_or(anyhow::anyhow!("state not found"))?;
         let state = state.value().clone();
         Ok(state)
@@ -153,8 +152,17 @@ fn generate_blocks(n: usize) -> Vec<Block> {
         //let block_hash: [u8; 32] = rand::random();
         let block = if blocks.is_empty() {
             Block::new(
-                BlockTemplate::new(level as i32, level as u128, [0;32], [0; 32], 0, 0, [0; 32], [0; 32])
-                    .unwrap(),
+                BlockTemplate::new(
+                    level as i32,
+                    level as u128,
+                    [0; 32],
+                    [0; 32],
+                    0,
+                    0,
+                    [0; 32],
+                    [0; 32],
+                )
+                .unwrap(),
                 Vec::new(),
             )
         } else {
@@ -162,7 +170,7 @@ fn generate_blocks(n: usize) -> Vec<Block> {
                 BlockTemplate::new(
                     level as i32,
                     level as u128,
-                    [0;32],
+                    [0; 32],
                     blocks[level - 1].hash(),
                     0,
                     0,
