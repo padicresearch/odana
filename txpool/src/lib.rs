@@ -18,6 +18,7 @@ use types::block::{Block, BlockHeader};
 use types::tx::{Transaction, TransactionKind};
 
 use crate::error::TxPoolError;
+use crate::prque::PriorityQueue;
 use crate::tx_list::{NonceTransaction, TxList, TxPricedList, TxSortedList};
 use crate::tx_lookup::{AccountSet, TxLookup};
 use crate::tx_noncer::TxNoncer;
@@ -27,6 +28,7 @@ mod tests;
 mod tx_list;
 mod tx_lookup;
 mod tx_noncer;
+mod prque;
 
 type TxHashRef = Arc<TxHash>;
 type TransactionRef = Arc<Transaction>;
@@ -98,8 +100,8 @@ fn sanitize(conf: &TxPoolConfig) -> TxPoolConfig {
 }
 
 pub struct TxPool<Chain>
-where
-    Chain: ChainState,
+    where
+        Chain: ChainState,
 {
     config: TxPoolConfig,
     locals: AccountSet,
@@ -120,8 +122,8 @@ where
 }
 
 impl<Chain> TxPool<Chain>
-where
-    Chain: ChainState,
+    where
+        Chain: ChainState,
 {
     pub fn new(
         conf: Option<&TxPoolConfig>,
@@ -579,18 +581,78 @@ where
         Ok(())
     }
 
+    fn truncate_pending(&mut self) {
+        let mut pending = self.pending.iter().fold(0, |acc, (_, list)| list.len()) as u64;
+        if pending <= self.config.global_slots {
+            return
+        }
+
+        let mut spammers = PriorityQueue::new();
+        for (addr, list) in self.pending.iter() {
+            if !self.locals.contains(addr) && list.len() as u64 > self.config.account_slots {
+                spammers.push(addr.clone(), list.len() as i64);
+            }
+        }
+
+        let mut offenders = Vec::new();
+        while pending > self.config.global_slots && !spammers.is_empty() {
+            let offender = if let Some((offender,_)) = spammers.pop() {
+                offender
+            }else {
+                return
+            };
+            offenders.push(offender);
+            if offenders.len() > 1 {
+                let threshold = if let Some(list) = self.pending.get(&offender) {
+                    list.len()
+                }else {
+                    0
+                };
+
+                let next = if let Some(list) = self.pending.get(&offenders[offenders.len() - 2]) {
+                    list.len()
+                }else {
+                    0
+                };
+
+                while pending > self.config.global_slots && next > threshold {
+                    for i in 0..(offenders.len() - 1) {
+                        let list = match self.pending.get_mut(&offenders[i]) {
+                            None => {
+                                return
+                            }
+                            Some(list) => {
+                               list
+                            }
+                        };
+                        let caps = list.cap(list.len() - 1);
+                        for tx in caps {
+                            let hash = tx.hash();
+                            self.all.remove(&hash);
+                            self.pending_nonce.set_if_lower(offenders[i].clone(), tx.nonce());
+                            trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Removed fairness-exceeding pending transaction");
+                        }
+                        pending -= 1;
+                    }
+                }
+
+            }
+        }
+    }
+
     fn demote_unexecutable(&mut self) {
         let mut stale_addrs = Vec::new();
         let mut enqueue = Vec::new();
+
         for (addr, list) in self.pending.iter_mut() {
             let nonce = self.current_state.nonce(addr);
-            let olds =  list.forward(nonce);
-            for tx in olds  {
+            let olds = list.forward(nonce);
+            for tx in olds {
                 let hash = tx.hash();
                 self.all.remove(&hash);
                 trace!(target : TXPOOL_LOG_TARGET, hash = ?H256::from(hash), "Removed old pending transaction");
             }
-            if let Some((drops, invlaids)) = list.filter(self.current_state.balance(addr)){
+            if let Some((drops, invlaids)) = list.filter(self.current_state.balance(addr)) {
                 for tx in drops {
                     let hash = tx.hash();
                     trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Removed unpayable pending transaction");
@@ -609,14 +671,13 @@ where
                     enqueue.push(tx)
                 }
             }
-
         }
         for tx in enqueue {
             let hash = tx.hash();
-            self.enqueue_tx(hash, tx , false, false);
+            self.enqueue_tx(hash, tx, false, false);
         }
 
-        for (addr, list) in self.pending.iter_mut() {
+        for (addr, list) in self.pending.iter() {
             if list.is_empty() {
                 stale_addrs.push(*addr)
             }
