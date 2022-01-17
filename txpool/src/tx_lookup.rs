@@ -1,7 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
-use std::sync::{Arc, RwLock};
-use std::sync::atomic::{AtomicI64, AtomicU64, AtomicUsize};
 
 use anyhow::Result;
 

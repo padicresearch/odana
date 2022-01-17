@@ -395,18 +395,24 @@ where
         Ok(())
     }
 
-    // fn promote_tx(&mut self, addr: H160, hash: Hash, tx: TransactionRef) -> Result<bool> {
-    //     let mut list = self.pending.entry(addr).or_insert(TxList::new(true));
-    //     let (inserted, old) = list.add(tx, self.config.price_bump);
-    //     if !inserted {
-    //         self.all.add(tx.clone(), local)?;
-    //         self.priced.put(tx.clone(), local)?;
-    //         return Ok(false);
-    //     }
-    //     self.pending_nonce.set(addr, tx.nonce() + 1);
-    //     self.beats.insert(addr, Instant::now());
-    //     Ok(true)
-    // }
+    fn promote_tx(&mut self, addr: H160, hash: Hash, tx: TransactionRef) -> bool {
+        let nonce = tx.nonce();
+        let mut list = self.pending.entry(addr).or_insert(TxList::new(true));
+        let (inserted, old) = list.add(tx.clone(), self.config.price_bump);
+        if !inserted {
+            // If not inserted an older transaction was better so remove the new transaction completely
+            self.all.remove(&hash);
+            self.priced.remove(tx);
+            return false;
+        }
+        if let Some(old) = old {
+            self.all.remove(&old.hash());
+            self.priced.remove(old);
+        }
+        self.pending_nonce.set(addr, nonce + 1);
+        self.beats.insert(addr, Instant::now());
+        true
+    }
 
     fn add_txs(&mut self, tsx: Vec<Transaction>, local: bool) -> Vec<Option<Error>> {
         let mut news = Vec::new();
@@ -571,6 +577,54 @@ where
         debug!(target : TXPOOL_LOG_TARGET, count = ?reinject.len(), "Reinjecting stale transactions");
         self.add_txs_locked(reinject, false);
         Ok(())
+    }
+
+    fn demote_unexecutable(&mut self) {
+        let mut stale_addrs = Vec::new();
+        let mut enqueue = Vec::new();
+        for (addr, list) in self.pending.iter_mut() {
+            let nonce = self.current_state.nonce(addr);
+            let olds =  list.forward(nonce);
+            for tx in olds  {
+                let hash = tx.hash();
+                self.all.remove(&hash);
+                trace!(target : TXPOOL_LOG_TARGET, hash = ?H256::from(hash), "Removed old pending transaction");
+            }
+            if let Some((drops, invlaids)) = list.filter(self.current_state.balance(addr)){
+                for tx in drops {
+                    let hash = tx.hash();
+                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Removed unpayable pending transaction");
+                    self.all.remove(&hash);
+                }
+                for tx in invlaids {
+                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Demoting pending transaction");
+                    enqueue.push(tx)
+                }
+            }
+
+            if list.len() > 0 && list.txs.get(nonce).is_none() {
+                let gapped = list.cap(0);
+                for tx in gapped {
+                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Demoting invalidated transaction");
+                    enqueue.push(tx)
+                }
+            }
+
+        }
+        for tx in enqueue {
+            let hash = tx.hash();
+            self.enqueue_tx(hash, tx , false, false);
+        }
+
+        for (addr, list) in self.pending.iter_mut() {
+            if list.is_empty() {
+                stale_addrs.push(*addr)
+            }
+        }
+
+        for addr in stale_addrs {
+            self.pending.remove(&addr);
+        }
     }
 
     pub fn repack(&mut self, reset: Option<ResetRequest>) -> Result<()> {

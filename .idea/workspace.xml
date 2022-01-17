@@ -36,7 +36,10 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite txpool">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fmt">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -373,14 +376,7 @@
       <workItem from="1641993805431" duration="30668000" />
       <workItem from="1642064352872" duration="1913000" />
       <workItem from="1642091260977" duration="13193000" />
-      <workItem from="1642186007441" duration="91713000" />
-    </task>
-    <task id="LOCAL-00004" summary="checkpoint">
-      <created>1607441282525</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1607441282525</updated>
+      <workItem from="1642186007441" duration="97254000" />
     </task>
     <task id="LOCAL-00005" summary="Refactor merkle tree">
       <created>1620856719677</created>
@@ -718,7 +714,14 @@
       <option name="project" value="LOCAL" />
       <updated>1642401675912</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="cargo fmt">
+      <created>1642403478904</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1642403478904</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -759,10 +762,10 @@
     <MESSAGE value="use struct instead tuple" />
     <MESSAGE value="rename" />
     <MESSAGE value="new morph implementation" />
-    <MESSAGE value="cargo fmt" />
     <MESSAGE value="test txpool extensively" />
     <MESSAGE value="rewrite txpool" />
-    <option name="LAST_COMMIT_MESSAGE" value="rewrite txpool" />
+    <MESSAGE value="cargo fmt" />
+    <option name="LAST_COMMIT_MESSAGE" value="cargo fmt" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
