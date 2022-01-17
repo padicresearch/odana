@@ -125,7 +125,7 @@ impl TxList {
             return (false, Vec::new());
         }
         if self.strict {
-            return (true, self.txs.filter(|_,tx| tx.nonce() > nonce));
+            return (true, self.txs.filter(|_, tx| tx.nonce() > nonce));
         }
 
         (true, Vec::new())
@@ -135,14 +135,15 @@ impl TxList {
         self.txs.forward(threshold)
     }
 
-    pub fn filter(&mut self, price_limit: u128) -> Option<(Vec<TransactionRef>, Vec<TransactionRef>)> {
+    pub fn filter(
+        &mut self,
+        price_limit: u128,
+    ) -> Option<(Vec<TransactionRef>, Vec<TransactionRef>)> {
         if price_limit <= 0 {
-            return None
+            return None;
         }
 
-        let removed = self.txs.filter(|_,tx| {
-            tx.price() > price_limit
-        });
+        let removed = self.txs.filter(|_, tx| tx.price() > price_limit);
 
         let mut invalids = Vec::new();
 
@@ -154,11 +155,10 @@ impl TxList {
                     lowest = nonce;
                 }
             }
-            invalids = self.txs.filter(|_,tx| tx.nonce() > lowest);
+            invalids = self.txs.filter(|_, tx| tx.nonce() > lowest);
         }
 
         Some((removed, invalids))
-
     }
 
     pub fn ready(&mut self, start: u64) -> Vec<TransactionRef> {

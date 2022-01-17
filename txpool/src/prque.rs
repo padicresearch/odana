@@ -2,50 +2,66 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, BTreeSet};
 use std::hash::{Hash, Hasher};
 
-struct Element<Value> where Value: Eq {
+struct Element<Value>
+where
+    Value: Eq,
+{
     value: Value,
     priority: i64,
 }
 
-impl<Value> Element<Value> where Value: Eq {
+impl<Value> Element<Value>
+where
+    Value: Eq,
+{
     fn new(value: Value, priority: i64) -> Self {
-        Self {
-            value,
-            priority,
-        }
+        Self { value, priority }
     }
 }
 
-impl<Value> Ord for Element<Value> where Value: Eq {
+impl<Value> Ord for Element<Value>
+where
+    Value: Eq,
+{
     fn cmp(&self, other: &Self) -> Ordering {
         self.priority.cmp(&other.priority)
     }
 }
 
-
-impl<Value> PartialOrd for Element<Value> where Value: Eq {
+impl<Value> PartialOrd for Element<Value>
+where
+    Value: Eq,
+{
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.priority.partial_cmp(&other.priority)
     }
 }
 
-
 impl<Value> Eq for Element<Value> where Value: Eq {}
 
-impl<Value> PartialEq for Element<Value> where Value: Eq {
+impl<Value> PartialEq for Element<Value>
+where
+    Value: Eq,
+{
     fn eq(&self, other: &Self) -> bool {
         self.value.eq(&other.value)
     }
 }
 
-pub struct PriorityQueue<V> where V: Eq {
+pub struct PriorityQueue<V>
+where
+    V: Eq,
+{
     heap: BinaryHeap<Element<V>>,
 }
 
-impl<V> PriorityQueue<V> where V: Eq {
+impl<V> PriorityQueue<V>
+where
+    V: Eq,
+{
     pub fn new() -> Self {
         Self {
-            heap: Default::default()
+            heap: Default::default(),
         }
     }
     pub fn push(&mut self, value: V, priority: i64) {
@@ -65,7 +81,6 @@ impl<V> PriorityQueue<V> where V: Eq {
     pub fn is_empty(&self) -> bool {
         self.heap.is_empty()
     }
-
 }
 
 #[cfg(test)]

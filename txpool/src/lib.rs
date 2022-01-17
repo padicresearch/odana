@@ -24,11 +24,11 @@ use crate::tx_lookup::{AccountSet, TxLookup};
 use crate::tx_noncer::TxNoncer;
 
 mod error;
+mod prque;
 mod tests;
 mod tx_list;
 mod tx_lookup;
 mod tx_noncer;
-mod prque;
 
 type TxHashRef = Arc<TxHash>;
 type TransactionRef = Arc<Transaction>;
@@ -100,8 +100,8 @@ fn sanitize(conf: &TxPoolConfig) -> TxPoolConfig {
 }
 
 pub struct TxPool<Chain>
-    where
-        Chain: ChainState,
+where
+    Chain: ChainState,
 {
     config: TxPoolConfig,
     locals: AccountSet,
@@ -122,8 +122,8 @@ pub struct TxPool<Chain>
 }
 
 impl<Chain> TxPool<Chain>
-    where
-        Chain: ChainState,
+where
+    Chain: ChainState,
 {
     pub fn new(
         conf: Option<&TxPoolConfig>,
@@ -584,7 +584,7 @@ impl<Chain> TxPool<Chain>
     fn truncate_pending(&mut self) {
         let mut pending = self.pending.iter().fold(0, |acc, (_, list)| list.len()) as u64;
         if pending <= self.config.global_slots {
-            return
+            return;
         }
 
         let mut spammers = PriorityQueue::new();
@@ -596,46 +596,42 @@ impl<Chain> TxPool<Chain>
 
         let mut offenders = Vec::new();
         while pending > self.config.global_slots && !spammers.is_empty() {
-            let offender = if let Some((offender,_)) = spammers.pop() {
+            let offender = if let Some((offender, _)) = spammers.pop() {
                 offender
-            }else {
-                return
+            } else {
+                return;
             };
             offenders.push(offender);
             if offenders.len() > 1 {
                 let threshold = if let Some(list) = self.pending.get(&offender) {
                     list.len()
-                }else {
+                } else {
                     0
                 };
 
                 let next = if let Some(list) = self.pending.get(&offenders[offenders.len() - 2]) {
                     list.len()
-                }else {
+                } else {
                     0
                 };
 
                 while pending > self.config.global_slots && next > threshold {
                     for i in 0..(offenders.len() - 1) {
                         let list = match self.pending.get_mut(&offenders[i]) {
-                            None => {
-                                return
-                            }
-                            Some(list) => {
-                               list
-                            }
+                            None => return,
+                            Some(list) => list,
                         };
                         let caps = list.cap(list.len() - 1);
                         for tx in caps {
                             let hash = tx.hash();
                             self.all.remove(&hash);
-                            self.pending_nonce.set_if_lower(offenders[i].clone(), tx.nonce());
+                            self.pending_nonce
+                                .set_if_lower(offenders[i].clone(), tx.nonce());
                             trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Removed fairness-exceeding pending transaction");
                         }
                         pending -= 1;
                     }
                 }
-
             }
         }
     }
