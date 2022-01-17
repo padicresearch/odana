@@ -1,12 +1,13 @@
 use std::collections::hash_map::RandomState;
 use std::sync::Arc;
 
-use dashmap::DashMap;
+use dashmap::{DashMap};
 use dashmap::mapref::one::Ref;
-
+use std::collections::HashMap;
 use primitive_types::H160;
 use traits::StateDB;
 use types::PubKey;
+use crate::Address;
 
 #[derive(Clone)]
 pub struct TxNoncer {
@@ -46,10 +47,10 @@ impl TxNoncer {
         *entry.value_mut() = nonce;
     }
 
-    pub fn set_all(&mut self, all: Box<dyn Iterator<Item = (H160, u64)>>) {
+    pub fn set_all(&mut self, all: &HashMap<Address, u64>) {
         self.nonces.clear();
         for (k, v) in all {
-            self.nonces.insert(k, v);
+            self.nonces.insert(*k, *v);
         }
     }
 }

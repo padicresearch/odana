@@ -1,9 +1,10 @@
 #![feature(map_first_last)]
 #![feature(btree_drain_filter)]
+#![feature(hash_drain_filter)]
 
 use std::collections::{BTreeSet, HashMap};
-use std::sync::{Arc, RwLock};
 use std::sync::atomic::AtomicI32;
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use anyhow::{Error, Result};
@@ -13,9 +14,9 @@ use account::GOVERNANCE_ACCOUNTID;
 use primitive_types::{H160, H256};
 use tracing::{debug, error, info, trace, warn};
 use traits::{ChainState, StateDB};
-use types::{Hash, TxHash, TxPoolConfig};
 use types::block::{Block, BlockHeader};
 use types::tx::{Transaction, TransactionKind};
+use types::{Hash, TxHash, TxPoolConfig};
 
 use crate::error::TxPoolError;
 use crate::prque::PriorityQueue;
@@ -23,6 +24,7 @@ use crate::tx_list::{NonceTransaction, TxList, TxPricedList, TxSortedList};
 use crate::tx_lookup::{AccountSet, TxLookup};
 use crate::tx_noncer::TxNoncer;
 use std::cmp::Ordering;
+use std::option::Option::Some;
 
 mod error;
 mod prque;
@@ -119,7 +121,7 @@ where
     beats: HashMap<Address, Instant>,
     all: TxLookup,
     priced: TxPricedList,
-    changes_since_repack: AtomicI32,
+    changes_since_repack: i32,
 }
 
 impl<Chain> TxPool<Chain>
@@ -258,11 +260,8 @@ where
                 trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding underpriced transaction");
                 return Err(TxPoolError::Underpriced.into());
             }
-            let changes_since_repack = self
-                .changes_since_repack
-                .load(std::sync::atomic::Ordering::Relaxed);
             anyhow::ensure!(
-                changes_since_repack < (self.config.global_slots / 4) as i32,
+                self.changes_since_repack < (self.config.global_slots / 4) as i32,
                 TxPoolError::TxPoolOverflow
             );
 
@@ -281,8 +280,7 @@ where
                 }
             };
 
-            self.changes_since_repack
-                .fetch_add(drop.len() as i32, std::sync::atomic::Ordering::Relaxed);
+            self.changes_since_repack = drop.len() as i32;
             for tx in drop {
                 trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding freshly underpriced transaction");
                 self.remove_tx(tx.hash(), false)?;
@@ -646,20 +644,21 @@ where
         let mut addresses = BTreeSet::new();
         for (addr, _) in self.queue.iter() {
             if !self.locals.contains(addr) {
-                addresses.insert(AddressByHeartbeat::new(*addr, *self.beats.get(addr).unwrap()));
+                addresses.insert(AddressByHeartbeat::new(
+                    *addr,
+                    *self.beats.get(addr).unwrap(),
+                ));
             }
         }
-        let mut addresses : Vec<_> = addresses.iter().map(|beat| *beat).collect();
+        let mut addresses: Vec<_> = addresses.iter().map(|beat| *beat).collect();
         let mut drop = queued - self.config.global_queue;
         while drop > 0 && addresses.len() > 0 {
             let addr = addresses[addresses.len() - 1];
             let list = match self.queue.get(&addr.address) {
                 None => {
-                    return
+                    return;
                 }
-                Some(list) => {
-                    list
-                }
+                Some(list) => list,
             };
             addresses = addresses[..addresses.len() - 1].to_owned();
             let size = list.len() as u64;
@@ -668,7 +667,7 @@ where
                     self.remove_tx(tx.hash(), true);
                 }
                 drop -= size;
-                continue
+                continue;
             }
             let txs = list.flatten();
             let mut i = txs.len();
@@ -678,7 +677,6 @@ where
                 i -= 1;
             }
         }
-
     }
 
     fn demote_unexecutable(&mut self) {
@@ -729,12 +727,99 @@ where
         }
     }
 
+    fn promote_executable(&mut self, accounts: Vec<Address>) -> Vec<TransactionRef> {
+        let mut promoted = Vec::new();
+
+        for addr in accounts {
+            let list = match self.queue.get_mut(&addr) {
+                None => {
+                    continue;
+                }
+                Some(list) => list,
+            };
+
+            let forward = list.forward(self.current_state.nonce(&addr));
+            for tx in forward.iter() {
+                self.all.remove(&tx.hash());
+            }
+            trace!(target : TXPOOL_LOG_TARGET, count = ?forward.len(), "Removed old queued transactions");
+
+            let drops = list
+                .filter(self.current_state.balance(&addr))
+                .map(|(drops, _)| drops)
+                .unwrap_or_default();
+            for tx in drops.iter() {
+                self.all.remove(&tx.hash());
+            }
+            trace!(target : TXPOOL_LOG_TARGET, count = ?drops.len(), "Removed unpayable queued transactions");
+
+            let readies = list.ready(self.pending_nonce.get(&addr));
+            let ready_count = &readies.len();
+            for tx in readies {
+                let hash = tx.hash();
+                if self.promote_tx(addr, hash.clone(), tx.clone()) {
+                    promoted.push(tx)
+                }
+                self.all.remove(&hash);
+            }
+            trace!(target : TXPOOL_LOG_TARGET, count = ?ready_count, "Promoted queued transactions");
+        }
+
+        promoted
+    }
+
     pub fn repack(&mut self, reset: Option<ResetRequest>) -> Result<()> {
+        let mut events = self.queued_events.clone();
         let mut promote_addrs = Vec::new();
         if self.dirty_accounts.is_empty() && reset.is_none() {
             promote_addrs = self.dirty_accounts.flatten();
         }
-        todo!()
+
+        if let Some(reset) = &reset {
+            self.reset(reset.old_head, reset.new_head)?;
+            for (addr, list) in events.iter_mut() {
+                list.forward(self.pending_nonce.get(addr));
+            }
+            let _ = events.drain_filter(|_, tx| tx.is_empty());
+            promote_addrs = Vec::new();
+            for (addr, _) in self.queue.iter() {
+                promote_addrs.push(*addr)
+            }
+        }
+        let promoted = self.promote_executable(promote_addrs);
+
+        if reset.is_some() {
+            self.demote_unexecutable();
+            let mut nonces = HashMap::with_capacity(self.pending.len());
+            for (addr, list) in self.pending.iter_mut() {
+                if let Some(highest_pending) = list.last_element() {
+                    nonces.insert(*addr, highest_pending.nonce() + 1);
+                }
+                self.pending_nonce.set_all(&nonces);
+            }
+        }
+        self.truncate_pending();
+        self.truncate_queue();
+
+        self.changes_since_repack = 0;
+
+        for tx in promoted {
+            let mut sorted_map = events.entry(tx.sender()).or_insert(TxSortedList::new());
+            sorted_map.put(tx);
+        }
+
+        if !events.is_empty() {
+            let mut txs = Vec::new();
+            for (_, set) in events {
+                txs.extend(set.flatten())
+            }
+            self.send(txs);
+        }
+        Ok(())
+    }
+
+    fn send(&self, txs: Vec<TransactionRef>) {
+        //Todo implement send it local event channel
     }
 }
 
@@ -745,17 +830,16 @@ pub struct ResetRequest {
 
 #[derive(Copy, Clone)]
 struct AddressByHeartbeat {
-    address : H160,
-    heartbeat : Instant
+    address: H160,
+    heartbeat: Instant,
 }
+
 impl AddressByHeartbeat {
-    fn new(address : H160, heartbeat : Instant) -> Self {
-        Self{
-            address,
-            heartbeat
-        }
+    fn new(address: H160, heartbeat: Instant) -> Self {
+        Self { address, heartbeat }
     }
 }
+
 impl PartialOrd for AddressByHeartbeat {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.heartbeat.partial_cmp(&other.heartbeat)
@@ -775,4 +859,3 @@ impl Ord for AddressByHeartbeat {
         self.heartbeat.cmp(&other.heartbeat)
     }
 }
-

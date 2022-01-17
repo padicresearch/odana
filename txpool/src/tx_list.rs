@@ -11,7 +11,7 @@ use types::TxHash;
 
 use crate::{TransactionRef, Transactions, TxHashRef};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct TxSortedList {
     txs: BTreeMap<Reverse<u64>, TransactionRef>,
 }
