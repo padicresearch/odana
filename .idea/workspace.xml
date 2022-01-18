@@ -41,7 +41,6 @@
       <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -149,7 +148,7 @@
       <recent name="$PROJECT_DIR$/common" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::txpool_processing_speed_test">
+  <component name="RunManager" selected="Cargo.Test tx_list::tests::test_txlist">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -307,10 +306,10 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
         <item itemvalue="Cargo.Test tests::txpool_processing_speed_test" />
         <item itemvalue="Cargo.Test tests::txpool_test" />
         <item itemvalue="Cargo.Test prque::test::test_prque" />
-        <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
         <item itemvalue="Cargo.Test txlist::tests::test_txlist" />
       </list>
     </recent_temporary>
@@ -375,14 +374,7 @@
       <workItem from="1642064352872" duration="1913000" />
       <workItem from="1642091260977" duration="13193000" />
       <workItem from="1642186007441" duration="146553000" />
-      <workItem from="1642515673083" duration="1312000" />
-    </task>
-    <task id="LOCAL-00012" summary="implemented fixed word length trie tree">
-      <created>1621159564672</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1621159564672</updated>
+      <workItem from="1642515673083" duration="2473000" />
     </task>
     <task id="LOCAL-00013" summary="code improvement">
       <created>1621170318559</created>
@@ -720,7 +712,14 @@
       <option name="project" value="LOCAL" />
       <updated>1642454174438</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="implemented txpool">
+      <created>1642517004333</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1642517004333</updated>
+    </task>
+    <option name="localTasksCounter" value="62" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

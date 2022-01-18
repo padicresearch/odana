@@ -389,6 +389,6 @@ fn txpool_processing_speed_test() {
     //println!("Pending Count {} ", txpool.pending.get(&alice.address).unwrap().len() );
     println!("Slots Count {} ", txpool.all.slots());
     for (acc, list) in txpool.pending {
-        println!("{} {:?}", acc, list.flatten().last().unwrap().price())
+        println!("{} {:?}", acc, list.len())
     }
 }

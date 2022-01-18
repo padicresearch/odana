@@ -1,7 +1,6 @@
 #![feature(map_first_last)]
 #![feature(btree_drain_filter)]
 #![feature(hash_drain_filter)]
-#![feature(btree_drain_filter)]
 
 use std::collections::{BTreeSet, HashMap};
 use std::sync::atomic::AtomicI32;

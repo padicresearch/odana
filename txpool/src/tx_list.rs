@@ -55,7 +55,7 @@ impl TxSortedList {
         let mut remain = BTreeMap::new();
         let mut slots = threshold;
         while slots > 0 {
-            if let Some((tx_hash, tx)) = self.txs.pop_last() {
+            if let Some((tx_hash, tx)) = self.txs.pop_first() {
                 remain.insert(tx_hash, tx);
                 slots -= 1;
             } else {
@@ -334,30 +334,29 @@ mod tests {
         let bob = create_account();
         let mut list = TxList::new(true);
         list.add(make_tx(&alice, &bob, 1, 100, 0), 10);
-        list.add(make_tx(&alice, &bob, 2, 100, 0), 10);
-        list.add(make_tx(&alice, &bob, 3, 100, 0), 10);
-        list.add(make_tx(&alice, &bob, 5, 100, 0), 10);
-        list.add(make_tx(&alice, &bob, 6, 100, 0), 10);
-        list.add(make_tx(&alice, &bob, 7, 100, 0), 10);
-        list.add(make_tx(&alice, &bob, 8, 100, 0), 10);
-        list.add(make_tx(&alice, &bob, 9, 100, 0), 10);
+        list.add(make_tx(&alice, &bob, 2, 200, 0), 10);
+        list.add(make_tx(&alice, &bob, 3, 300, 0), 10);
+        list.add(make_tx(&alice, &bob, 5, 400, 0), 10);
+        list.add(make_tx(&alice, &bob, 6, 500, 0), 10);
+        list.add(make_tx(&alice, &bob, 7, 600, 0), 10);
+        list.add(make_tx(&alice, &bob, 8, 800, 0), 10);
+        list.add(make_tx(&alice, &bob, 9, 900, 0), 10);
 
-        let removed = list.forward(3);
-        let readies = list.ready(3);
-        println!("forward {:#?}", removed);
-        println!("ready {:#?}", readies);
+        //let removed = list.forward(3);
+        let cap = list.cap(4);
+        println!("cap {:#?}", cap);
         println!("remaining {:#?}", list.txs);
         // assert_eq!(removed.len(), 2);
         // assert_eq!(removed.range(3..).count(), 0);
         // assert_eq!(list.txs.write().unwrap().range(..3).count(), 0);
 
-        let mut priced_list = TxPricedList::new();
-        priced_list.put(make_tx(&alice, &bob, 1, 40, 4), false);
-        priced_list.put(make_tx(&alice, &bob, 2, 20, 2), false);
-        priced_list.put(make_tx(&alice, &bob, 3, 30, 3), false);
-        priced_list.put(make_tx(&alice, &bob, 4, 40, 4), false);
-        priced_list.put(make_tx(&bob, &alice, 8, 100, 10), false);
-        priced_list.put(make_tx(&bob, &alice, 9, 100, 10), false);
+        // let mut priced_list = TxPricedList::new();
+        // priced_list.put(make_tx(&alice, &bob, 1, 40, 4), false);
+        // priced_list.put(make_tx(&alice, &bob, 2, 20, 2), false);
+        // priced_list.put(make_tx(&alice, &bob, 3, 30, 3), false);
+        // priced_list.put(make_tx(&alice, &bob, 4, 40, 4), false);
+        // priced_list.put(make_tx(&bob, &alice, 8, 100, 10), false);
+        // priced_list.put(make_tx(&bob, &alice, 9, 100, 10), false);
 
         // println!("{:#?}", priced_list);
         // println!("-------------------------------------------------------------------------------------------------------");
