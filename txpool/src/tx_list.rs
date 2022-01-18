@@ -41,21 +41,11 @@ impl TxSortedList {
         self.txs.drain_filter(f).map(|(_, tx)| tx).collect()
     }
     pub fn forward(&mut self, threshold: u64) -> Vec<TransactionRef> {
-        //let first = self.txs.first_key_value().map(|(k,_)| *k).unwrap_or_default();
-        // if threshold < first {
-        //     return vec![]
-        // }
-        let mut remove: Vec<_> = self.txs.range(..threshold).map(|(k, v)| (*k, v.clone())).collect();
-        for (nonce, _) in remove.iter() {
-            self.txs.remove(nonce);
-        }
-        remove.iter().map(|(_, tx)| tx.clone()).collect()
+        self.txs.drain_filter(|nonce, _| *nonce < threshold).map(|(_, tx)| tx).collect()
     }
 
     pub fn ready(&mut self, start: u64) -> Vec<TransactionRef> {
-        let mut ready: Vec<_> = self.txs.range(start..).map(|(k, v)| (*k, v.clone())).collect();
-        self.txs.clear();
-        ready.iter().map(|(_, tx)| tx.clone()).collect()
+        self.txs.drain_filter(|nonce, _| *nonce >= start).map(|(_, tx)| tx).collect()
     }
 
     pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef> {
@@ -65,7 +55,7 @@ impl TxSortedList {
         let mut remain = BTreeMap::new();
         let mut slots = threshold;
         while slots > 0 {
-            if let Some((tx_hash, tx)) = self.txs.pop_first() {
+            if let Some((tx_hash, tx)) = self.txs.pop_last() {
                 remain.insert(tx_hash, tx);
                 slots -= 1;
             } else {
@@ -174,8 +164,8 @@ impl TxList {
         self.txs.ready(start)
     }
 
-    pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef> {
-        self.txs.cap(threshold)
+    pub fn cap(&mut self, threshold: u64) -> Vec<TransactionRef> {
+        self.txs.cap(threshold as usize)
     }
 
     pub fn len(&self) -> usize {

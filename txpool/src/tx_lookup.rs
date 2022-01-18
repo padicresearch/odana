@@ -124,7 +124,8 @@ impl TxLookup {
     }
 
     pub fn add(&mut self, tx: TransactionRef, local: bool) {
-        self.slots += num_slots(&tx);
+        let slot = num_slots(&tx);
+        self.slots += slot;
         if local {
             self.locals.insert(tx.hash(), tx);
         } else {

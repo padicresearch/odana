@@ -1,6 +1,7 @@
 #![feature(map_first_last)]
 #![feature(btree_drain_filter)]
 #![feature(hash_drain_filter)]
+#![feature(btree_drain_filter)]
 
 use std::collections::{BTreeSet, HashMap};
 use std::sync::atomic::AtomicI32;
@@ -261,12 +262,6 @@ where
 
         let num = num_slots(&tx);
         let all_slots = self.all.slots();
-        // If the transaction pool is full, discard underpriced transactions
-        println!(
-            "Slots {}, Global {}",
-            self.all.slots() + num_slots(&tx),
-            self.config.global_slots + self.config.global_queue
-        );
         if self.all.slots() + num_slots(&tx) > self.config.global_slots + self.config.global_queue {
             if !is_local && self.priced.underpriced(tx.clone())? {
                 trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding underpriced transaction");
@@ -301,11 +296,6 @@ where
         let from = tx.sender();
         if let Some(list) = self.pending.get_mut(&from) {
             if list.overlaps(tx.clone()) {
-                println!(
-                    "Inserting transaction in Address already exists [{}] {}",
-                    tx.nonce(),
-                    tx.hash_256()
-                );
                 let (inserted, old) = list.add(tx.clone(), self.config.price_bump);
                 anyhow::ensure!(inserted, TxPoolError::ReplaceUnderpriced);
                 if let Some(old) = old.clone() {
@@ -594,7 +584,7 @@ where
     }
 
     fn truncate_pending(&mut self) {
-        let mut pending = self.pending.iter().fold(0, |acc, (_, list)| list.len()) as u64;
+        let mut pending = self.pending.iter().fold(0, |acc, (_, list)| acc + list.len()) as u64;
         if pending <= self.config.global_slots {
             return;
         }
@@ -621,25 +611,43 @@ where
                     0
                 };
 
-                let next = if let Some(list) = self.pending.get(&offenders[offenders.len() - 2]) {
-                    list.len()
-                } else {
-                    0
-                };
-
-                while pending > self.config.global_slots && next > threshold {
+                while pending > self.config.global_slots && self.pending.get(&offenders[offenders.len() - 2]).map(|tx| tx.len()).unwrap_or_default() > threshold {
                     for i in 0..(offenders.len() - 1) {
                         let list = match self.pending.get_mut(&offenders[i]) {
                             None => return,
                             Some(list) => list,
                         };
-                        let caps = list.cap(list.len() - 1);
+                        let caps = list.cap(list.len().saturating_sub(1) as u64);
                         for tx in caps {
                             let hash = tx.hash();
+                            let nonce = tx.nonce();
+                            let hash_256 = tx.hash_256();
                             self.all.remove(&hash);
+                            self.priced.remove(tx);
                             self.pending_nonce
-                                .set_if_lower(offenders[i].clone(), tx.nonce());
-                            trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Removed fairness-exceeding pending transaction");
+                                .set_if_lower(offenders[i].clone(), nonce);
+                            trace!(target : TXPOOL_LOG_TARGET, hash = ?hash_256, "Removed fairness-exceeding pending transaction");
+                        }
+                        pending -= 1;
+                    }
+                }
+            }
+        }
+        // If still above threshold, reduce to limit or min allowance
+        if pending > self.config.global_slots && offenders.len() > 0 {
+            while pending > self.config.global_slots && self.pending.get(&offenders[offenders.len() - 1]).map(|tx| tx.len() as u64).unwrap_or_default() > self.config.account_slots {
+                for addr in offenders.iter() {
+                    if let Some(list) = self.pending.get_mut(&addr) {
+                        let caps = list.cap(list.len().saturating_sub(1) as u64);
+                        for tx in caps {
+                            let hash = tx.hash();
+                            let nonce = tx.nonce();
+                            let hash_256 = tx.hash_256();
+                            self.all.remove(&hash);
+                            self.priced.remove(tx);
+                            self.pending_nonce
+                                .set_if_lower(*addr, nonce);
+                            trace!(target : TXPOOL_LOG_TARGET, hash = ?hash_256, "Removed fairness-exceeding pending transaction");
                         }
                         pending -= 1;
                     }
@@ -743,7 +751,7 @@ where
     fn promote_executable(&mut self, accounts: Vec<Address>) -> Vec<TransactionRef> {
         let mut promoted = Vec::new();
 
-        for addr in accounts {
+        for addr in &accounts {
             let list = match self.queue.get_mut(&addr) {
                 None => {
                     continue;
@@ -770,12 +778,33 @@ where
             let ready_count = &readies.len();
             for tx in readies {
                 let hash = tx.hash();
-                if self.promote_tx(addr, hash.clone(), tx.clone()) {
+                if self.promote_tx(*addr, hash.clone(), tx.clone()) {
                     promoted.push(tx)
                 }
-                self.all.remove(&hash);
             }
             trace!(target : TXPOOL_LOG_TARGET, count = ?ready_count, "Promoted queued transactions");
+        }
+
+        for addr in &accounts {
+            let list = match self.queue.get_mut(&addr) {
+                None => {
+                    continue;
+                }
+                Some(list) => list,
+            };
+            if !self.locals.contains(&addr) {
+                let caps = list.cap(self.config.account_queue);
+                for tx in caps {
+                    let hash = tx.hash();
+                    self.all.remove(&hash);
+                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Removed cap-exceeding queued transaction");
+                }
+            }
+
+            if list.is_empty() {
+                self.queue.remove(addr);
+                self.beats.remove(addr);
+            }
         }
 
         promoted
@@ -851,7 +880,6 @@ impl<Chain> TxPool<Chain>
 {
     pub fn add_local(&mut self, tx: Transaction) -> Result<()> {
         let errors = self.add_txs(vec![tx], true);
-        println!("{:?}", errors);
         if !errors.is_empty() {
             Ok(())
         } else {

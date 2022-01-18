@@ -41,6 +41,7 @@
       <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -148,7 +149,7 @@
       <recent name="$PROJECT_DIR$/common" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::txpool_test">
+  <component name="RunManager" selected="Cargo.Test tests::txpool_processing_speed_test">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -213,8 +214,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::test_txpool" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package txpool --lib tests::test_txpool -- --exact" />
+    <configuration name="Test tests::txpool_processing_speed_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package txpool --lib tests::txpool_processing_speed_test -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -222,9 +223,7 @@
       <option name="emulateTerminal" value="false" />
       <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
-      <envs>
-        <env name="TEST_DIR" value="$PROJECT_DIR$/test" />
-      </envs>
+      <envs />
       <option name="isRedirectInput" value="false" />
       <option name="redirectInputPath" value="" />
       <method v="2">
@@ -300,19 +299,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test tests::test_txpool" />
       <item itemvalue="Cargo.Test txlist::tests::test_txlist" />
       <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
       <item itemvalue="Cargo.Test prque::test::test_prque" />
       <item itemvalue="Cargo.Test tests::txpool_test" />
+      <item itemvalue="Cargo.Test tests::txpool_processing_speed_test" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::txpool_processing_speed_test" />
         <item itemvalue="Cargo.Test tests::txpool_test" />
         <item itemvalue="Cargo.Test prque::test::test_prque" />
         <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
         <item itemvalue="Cargo.Test txlist::tests::test_txlist" />
-        <item itemvalue="Cargo.Test tests::test_txpool" />
       </list>
     </recent_temporary>
   </component>
@@ -375,14 +374,8 @@
       <workItem from="1641993805431" duration="30668000" />
       <workItem from="1642064352872" duration="1913000" />
       <workItem from="1642091260977" duration="13193000" />
-      <workItem from="1642186007441" duration="132960000" />
-    </task>
-    <task id="LOCAL-00011" summary="format">
-      <created>1621105793095</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1621105793095</updated>
+      <workItem from="1642186007441" duration="146553000" />
+      <workItem from="1642515673083" duration="1312000" />
     </task>
     <task id="LOCAL-00012" summary="implemented fixed word length trie tree">
       <created>1621159564672</created>
@@ -720,7 +713,14 @@
       <option name="project" value="LOCAL" />
       <updated>1642434965897</updated>
     </task>
-    <option name="localTasksCounter" value="60" />
+    <task id="LOCAL-00060" summary="implemented txpool">
+      <created>1642454174438</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1642454174438</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -766,37 +766,6 @@
     <MESSAGE value="implemented txpool" />
     <option name="LAST_COMMIT_MESSAGE" value="implemented txpool" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/txpool/src/lib.rs</url>
-          <line>506</line>
-          <option name="timeStamp" value="93" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/txpool/src/lib.rs</url>
-          <line>500</line>
-          <option name="timeStamp" value="94" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/txpool/src/lib.rs</url>
-          <line>491</line>
-          <option name="timeStamp" value="96" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/txpool/src/lib.rs</url>
-          <line>498</line>
-          <option name="timeStamp" value="97" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/txpool/src/lib.rs</url>
-          <line>497</line>
-          <option name="timeStamp" value="98" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

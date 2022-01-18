@@ -16,6 +16,7 @@ use transaction::make_sign_transaction;
 use types::tx::{TransactionKind, Transaction};
 use std::rc::Rc;
 use crate::tx_lookup::AccountSet;
+use std::time::{Instant, Duration};
 
 #[derive(Clone)]
 struct DummyStateDB {
@@ -281,7 +282,7 @@ async fn txpool_test() {
     ], true);
 
     let state_db_1 = Arc::new(DummyStateDB::with_accounts(vec![(alice.address, state_with_balance(1000))]));
-    state_db_1.increment_nonce(&alice.address, 5);
+    state_db_1.increment_nonce(&alice.address, 4);
 
 
     let block_2 = Block::new(
@@ -300,17 +301,17 @@ async fn txpool_test() {
     );
 
 
-    txpool.add_txs(vec![
-        make_tx_def(&alice, &bob, 5, 100, 10),
-        make_tx_def(&alice, &bob, 6, 100, 10),
-        make_tx_def(&alice, &bob, 7, 100, 10),
-    ], true);
-
     let old_head = chain.current_head().unwrap();
     let new_head = block_2.header();
     chain.insert_state([2; 32], state_db_1);
     chain.add(block_2);
     txpool.repack(AccountSet::new(), Some(ResetRequest { old_head: Some(old_head), new_head })).unwrap();
+
+    txpool.add_txs(vec![
+        make_tx_def(&alice, &bob, 5, 100, 10),
+        make_tx_def(&alice, &bob, 6, 100, 10),
+        make_tx_def(&alice, &bob, 7, 100, 10),
+    ], true);
 
     // txpool.add_local(make_tx_def(&alice,&bob,1, 100, 10)).unwrap();
     // state_db.set_nonce(&alice.address, 2);
@@ -319,4 +320,75 @@ async fn txpool_test() {
     // txpool.add_local(make_tx_def(&alice,&bob,3, 100, 250)).unwrap();
     println!("{:#?}", txpool.nonce(&alice.address));
     println!("{:#?}", txpool.pending);
+}
+
+#[test]
+fn txpool_processing_speed_test() {
+    let alice = create_account();
+    let bob = create_account();
+    let state_db = Arc::new(DummyStateDB::with_accounts(vec![(alice.address, state_with_balance(1000000000000))]));
+    let block_1 = Block::new(
+        BlockTemplate::new(
+            0 as i32,
+            0 as u128,
+            [0; 32],
+            [0; 32],
+            0,
+            0,
+            [0; 32],
+            [1; 32],
+        )
+            .unwrap(),
+        Vec::new(),
+    );
+    let chain = Arc::new(DummyChain::new(Vec::new(), state_db.clone()));
+    chain.insert_state([1; 32], state_db.clone());
+    chain.add(block_1);
+    let (sender, mut recv) = tokio::sync::mpsc::unbounded_channel();
+    let mut txpool = TxPool::new(None, None, sender, chain.clone()).unwrap();
+    let mut tcount = 0;
+    let mut total_duration = Duration::new(0, 0);
+    let mut min_latency = u128::MAX;
+    let mut max_latency = 0;
+
+    for _ in 1..1000 {
+        let user = create_account();
+        state_db.set_balance(&user.address, 100000000000);
+        for i in 1..24 {
+            let tx = make_tx_def(&user, &alice, txpool.nonce(&alice.address) + i, i as u128 * 100, i as u128 * 10);
+            let instant = Instant::now();
+            txpool.add_txs(vec![tx], false);
+            let duration = instant.elapsed();
+            if duration.as_millis() < min_latency {
+                min_latency = duration.as_millis();
+            }
+            if duration.as_millis() > max_latency {
+                max_latency = duration.as_millis();
+            }
+            total_duration += duration;
+            tcount += 1;
+        }
+    }
+
+    // for nonce in 500..2000 {
+    //     let tx = make_tx_def(&alice, &bob, nonce, 300, 100);
+    //     let instant = Instant::now();
+    //     txpool.add_local(tx).unwrap();
+    //     let duration = instant.elapsed();
+    //     if duration.as_millis() < min_latency {
+    //         min_latency = duration.as_millis();
+    //     }
+    //     if duration.as_millis() > max_latency {
+    //         max_latency = duration.as_millis();
+    //     }
+    //     total_duration += duration;
+    //     tcount += 1;
+    // }
+
+    println!("Speed {} tx/sec, min latency {} ms, max latency {} ms", tcount as f64 / total_duration.as_secs_f64(), min_latency, max_latency);
+    //println!("Pending Count {} ", txpool.pending.get(&alice.address).unwrap().len() );
+    println!("Slots Count {} ", txpool.all.slots());
+    for (acc, list) in txpool.pending {
+        println!("{} {:?}", acc, list.flatten().last().unwrap().price())
+    }
 }
