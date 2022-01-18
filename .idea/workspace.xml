@@ -37,13 +37,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implemented txpool">
-      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -380,21 +375,7 @@
       <workItem from="1642091260977" duration="13193000" />
       <workItem from="1642186007441" duration="146553000" />
       <workItem from="1642515673083" duration="5305000" />
-      <workItem from="1642527106604" duration="4804000" />
-    </task>
-    <task id="LOCAL-00014" summary="code improvement">
-      <created>1626287914701</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1626287914701</updated>
-    </task>
-    <task id="LOCAL-00015" summary="Blockchain">
-      <created>1628408317167</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1628408317167</updated>
+      <workItem from="1642527106604" duration="7843000" />
     </task>
     <task id="LOCAL-00016" summary="implementing utxo">
       <created>1638734880883</created>
@@ -725,7 +706,21 @@
       <option name="project" value="LOCAL" />
       <updated>1642518149937</updated>
     </task>
-    <option name="localTasksCounter" value="63" />
+    <task id="LOCAL-00063" summary="implemented txpool">
+      <created>1642536158389</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1642536158389</updated>
+    </task>
+    <task id="LOCAL-00064" summary="implemented txpool">
+      <created>1642536234089</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1642536234089</updated>
+    </task>
+    <option name="localTasksCounter" value="65" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -322,73 +322,158 @@ async fn txpool_test() {
     println!("{:#?}", txpool.pending);
 }
 
-#[test]
-fn txpool_processing_speed_test() {
-    let alice = create_account();
-    let bob = create_account();
-    let state_db = Arc::new(DummyStateDB::with_accounts(vec![(alice.address, state_with_balance(1000000000000))]));
-    let block_1 = Block::new(
-        BlockTemplate::new(
-            0 as i32,
-            0 as u128,
-            [0; 32],
-            [0; 32],
-            0,
-            0,
-            [0; 32],
-            [1; 32],
-        )
-            .unwrap(),
-        Vec::new(),
-    );
-    let chain = Arc::new(DummyChain::new(Vec::new(), state_db.clone()));
-    chain.insert_state([1; 32], state_db.clone());
-    chain.add(block_1);
-    let (sender, mut recv) = tokio::sync::mpsc::unbounded_channel();
-    let mut txpool = TxPool::new(None, None, sender, chain.clone()).unwrap();
-    let mut tcount = 0;
-    let mut total_duration = Duration::new(0, 0);
-    let mut min_latency = u128::MAX;
-    let mut max_latency = 0;
+// #[test]
+// fn txpool_processing_speed_test() {
+//     let alice = create_account();
+//     let bob = create_account();
+//     let state_db = Arc::new(DummyStateDB::with_accounts(vec![(alice.address, state_with_balance(1000000000000))]));
+//     let block_1 = Block::new(
+//         BlockTemplate::new(
+//             0 as i32,
+//             0 as u128,
+//             [0; 32],
+//             [0; 32],
+//             0,
+//             0,
+//             [0; 32],
+//             [1; 32],
+//         )
+//             .unwrap(),
+//         Vec::new(),
+//     );
+//     let chain = Arc::new(DummyChain::new(Vec::new(), state_db.clone()));
+//     chain.insert_state([1; 32], state_db.clone());
+//     chain.add(block_1);
+//     let (sender, mut recv) = tokio::sync::mpsc::unbounded_channel();
+//     let mut txpool = TxPool::new(None, None, sender, chain.clone()).unwrap();
+//     let mut tcount = 0;
+//     let mut total_duration = Duration::new(0, 0);
+//     let mut min_latency = u128::MAX;
+//     let mut max_latency = 0;
+//
+//     for _ in 1..1000 {
+//         let user = create_account();
+//         state_db.set_balance(&user.address, 100000000000);
+//         for i in 1..24 {
+//             let tx = make_tx_def(&user, &alice, txpool.nonce(&alice.address) + i, i as u128 * 100, i as u128 * 10);
+//             let instant = Instant::now();
+//             txpool.add_txs(vec![tx], false);
+//             let duration = instant.elapsed();
+//             if duration.as_millis() < min_latency {
+//                 min_latency = duration.as_millis();
+//             }
+//             if duration.as_millis() > max_latency {
+//                 max_latency = duration.as_millis();
+//             }
+//             total_duration += duration;
+//             tcount += 1;
+//         }
+//     }
+//
+//     // for nonce in 500..2000 {
+//     //     let tx = make_tx_def(&alice, &bob, nonce, 300, 100);
+//     //     let instant = Instant::now();
+//     //     txpool.add_local(tx).unwrap();
+//     //     let duration = instant.elapsed();
+//     //     if duration.as_millis() < min_latency {
+//     //         min_latency = duration.as_millis();
+//     //     }
+//     //     if duration.as_millis() > max_latency {
+//     //         max_latency = duration.as_millis();
+//     //     }
+//     //     total_duration += duration;
+//     //     tcount += 1;
+//     // }
+//
+//     println!("Speed {} tx/sec, min latency {} ms, max latency {} ms", tcount as f64 / total_duration.as_secs_f64(), min_latency, max_latency);
+//     //println!("Pending Count {} ", txpool.pending.get(&alice.address).unwrap().len() );
+//     println!("Slots Count {} ", txpool.all.slots());
+//     for (acc, list) in txpool.pending {
+//         println!("{} {:?}", acc, list.len())
+//     }
+// }
 
-    for _ in 1..1000 {
-        let user = create_account();
-        state_db.set_balance(&user.address, 100000000000);
-        for i in 1..24 {
-            let tx = make_tx_def(&user, &alice, txpool.nonce(&alice.address) + i, i as u128 * 100, i as u128 * 10);
-            let instant = Instant::now();
-            txpool.add_txs(vec![tx], false);
-            let duration = instant.elapsed();
-            if duration.as_millis() < min_latency {
-                min_latency = duration.as_millis();
-            }
-            if duration.as_millis() > max_latency {
-                max_latency = duration.as_millis();
-            }
-            total_duration += duration;
-            tcount += 1;
-        }
-    }
+//TODO add test from Ethereum TxPool Test
 
-    // for nonce in 500..2000 {
-    //     let tx = make_tx_def(&alice, &bob, nonce, 300, 100);
-    //     let instant = Instant::now();
-    //     txpool.add_local(tx).unwrap();
-    //     let duration = instant.elapsed();
-    //     if duration.as_millis() < min_latency {
-    //         min_latency = duration.as_millis();
-    //     }
-    //     if duration.as_millis() > max_latency {
-    //         max_latency = duration.as_millis();
-    //     }
-    //     total_duration += duration;
-    //     tcount += 1;
-    // }
+/// # Case1
+/// Tests that when the pool reaches its global transaction limit, underpriced
+/// transactions are gradually shifted out for more expensive ones and any gapped
+/// pending transactions are moved into the queue.
+///
+/// Note, local transactions are never allowed to be dropped.
 
-    println!("Speed {} tx/sec, min latency {} ms, max latency {} ms", tcount as f64 / total_duration.as_secs_f64(), min_latency, max_latency);
-    //println!("Pending Count {} ", txpool.pending.get(&alice.address).unwrap().len() );
-    println!("Slots Count {} ", txpool.all.slots());
-    for (acc, list) in txpool.pending {
-        println!("{} {:?}", acc, list.len())
-    }
-}
+
+/// # Case 2
+/// Tests that setting the transaction pool fee price to a higher value does not
+/// remove local transactions.
+
+/// # Case 3
+/// Tests that setting the transaction pool fee to a higher value correctly
+/// discards everything cheaper (legacy & dynamic fee) than that and moves any
+/// gapped transactions back from the pending pool to the queue.
+///
+/// Note, local transactions are never allowed to be dropped.
+
+/// # Case 4
+/// Tests that setting the transaction pool fee to a higher value correctly
+/// discards everything cheaper than that and moves any gapped transactions back
+/// from the pending pool to the queue.
+///
+/// Note, local transactions are never allowed to be dropped.
+
+/// # Case 5
+/// Tests that if the transaction count belonging to multiple accounts go above
+/// some hard threshold, if they are under the minimum guaranteed slot count then
+/// the transactions are still kept.
+
+/// # Case 6
+/// Tests that if transactions start being capped, transactions are also removed from 'all'
+
+/// # Case 7
+/// Test the limit on transaction size is enforced correctly.
+/// This test verifies every transaction having allowed size
+/// is added to the pool, and longer transactions are rejected.
+
+/// # Case 8
+/// Tests that if the transaction count belonging to multiple accounts go above
+/// some hard threshold, the higher transactions are dropped to prevent DOS
+/// attacks.
+
+/// # Case 9
+/// Tests that even if the transaction count belonging to a single account goes
+/// above some threshold, as long as the transactions are executable, they are
+/// accepted.
+
+/// # Case 10
+/// Tests that if an account remains idle for a prolonged amount of time, any
+/// non-executable transactions queued up are dropped to prevent wasting resources
+/// on shuffling them around.
+///
+/// This logic should not hold for local transactions, unless the local tracking
+/// mechanism is disabled.
+
+/// # Case 11
+/// Tests that if the transaction count belonging to multiple accounts go above
+/// some threshold, the higher transactions are dropped to prevent DOS attacks.
+///
+/// This logic should not hold for local transactions, unless the local tracking
+/// mechanism is disabled.
+
+/// # Case 12
+/// Tests that if the transaction count belonging to a single account goes above
+/// some threshold, the higher transactions are dropped to prevent DOS attacks.
+
+/// # Case 13
+/// Tests that if the transaction pool has both executable and non-executable
+/// transactions from an origin account, filling the nonce gap moves all queued
+/// ones into the pending pool.
+
+/// # Case 14
+/// Tests that if a transaction is dropped from the current pending pool (e.g. out
+/// of fund), all consecutive (still valid, but not executable) transactions are
+/// postponed back into the future queue to prevent broadcasting them.
+
+
+/// # Case 15
+/// Tests that if an account runs out of funds, any pending and queued transactions
+/// are dropped.
