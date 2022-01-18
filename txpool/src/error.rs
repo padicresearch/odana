@@ -6,6 +6,8 @@ pub enum TxPoolError {
     RWPoison,
     #[error("MutexGuard error {0}")]
     MutexGuardError(String),
+    #[error("MutexGuard error {0:#?}")]
+    CompositeErrors(Vec<String>),
     #[error("`{0}`")]
     GenericError(#[from] anyhow::Error),
     #[error("`{0}`")]

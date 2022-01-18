@@ -32,6 +32,8 @@
       <sourceFolder url="file://$MODULE_DIR$/consensus/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/txpool/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/event/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/merk/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/merk/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/common/target" />

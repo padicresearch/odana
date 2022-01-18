@@ -26,7 +26,7 @@ impl TxSortedList {
         self.txs.insert(tx.nonce(), tx);
     }
 
-    pub fn get(&mut self, nonce: u64) -> Option<&TransactionRef> {
+    pub fn get(&self, nonce: u64) -> Option<&TransactionRef> {
         self.txs.get(&nonce)
     }
 
@@ -86,6 +86,9 @@ impl TxSortedList {
         self.txs.iter().map(|(_, tx)| tx.clone()).collect()
     }
     pub fn overlaps(&self, nonce: u64) -> bool {
+        self.txs.contains_key(&nonce)
+    }
+    pub fn has(&self, nonce: u64) -> bool {
         self.txs.contains_key(&nonce)
     }
 }

@@ -14,6 +14,14 @@ use primitive_types::{H160, H256, H512, U256, U512};
 use crate::{BigArray, TxHash};
 use crate::{BlockHash, PubKey, Sig};
 
+#[derive(Debug, Clone)]
+pub enum TransactionStatus {
+    Confirmed,
+    Pending,
+    Queued,
+    NotFound,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub enum TransactionKind {
     Transfer {

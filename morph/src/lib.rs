@@ -36,6 +36,7 @@ mod kv;
 mod logdb;
 mod snapshot;
 mod store;
+mod state;
 
 const GENESIS_ROOT: [u8; 32] = [0; 32];
 
@@ -71,6 +72,10 @@ impl StateDB for Morph {
             Ok(Some(state)) => state,
             _ => AccountState::default(),
         }
+    }
+
+    fn balance(&self, address: &H160) -> u128 {
+        self.account_state(address).free_balance
     }
 }
 

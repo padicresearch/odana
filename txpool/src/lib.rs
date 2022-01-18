@@ -15,7 +15,7 @@ use primitive_types::{H160, H256};
 use tracing::{debug, error, info, trace, warn};
 use traits::{ChainState, StateDB};
 use types::block::{Block, BlockHeader};
-use types::tx::{Transaction, TransactionKind};
+use types::tx::{Transaction, TransactionKind, TransactionStatus};
 use types::{Hash, TxHash, TxPoolConfig};
 
 use crate::error::TxPoolError;
@@ -160,64 +160,6 @@ where
             priced: TxPricedList::new(),
             changes_since_repack: Default::default(),
         })
-    }
-
-    pub fn nonce(&self, address: &H160) -> u64 {
-        self.pending_nonce.get(address)
-    }
-
-    pub fn stats(&self) -> (usize, usize) {
-        let mut pending = 0;
-        for (_, list) in self.pending.iter() {
-            pending += list.len()
-        }
-        let mut queued = 0;
-        for (_, list) in self.queue.iter() {
-            queued += list.len()
-        }
-        (pending, queued)
-    }
-
-    pub fn content(
-        &self,
-    ) -> (
-        HashMap<Address, Transactions>,
-        HashMap<Address, Transactions>,
-    ) {
-        let mut pending = HashMap::new();
-        for (address, list) in self.pending.iter() {
-            pending.insert(*address, list.flatten());
-        }
-
-        let mut queued = HashMap::new();
-        for (address, list) in self.queue.iter() {
-            queued.insert(*address, list.flatten());
-        }
-        (pending, queued)
-    }
-
-    pub fn content_from(&self, address: &Address) -> (Transactions, Transactions) {
-        let mut pending = Vec::new();
-        if let Some(list) = self.pending.get(address) {
-            pending = list.flatten();
-        }
-        let mut queued = Vec::new();
-        if let Some(list) = self.queue.get(address) {
-            queued = list.flatten();
-        }
-        (pending, queued)
-    }
-
-    pub fn pending(&self) -> HashMap<Address, Transactions> {
-        let mut pending = HashMap::new();
-        for (address, list) in self.pending.iter() {
-            pending.insert(*address, list.flatten());
-        }
-        (pending)
-    }
-
-    pub fn locals(&self) -> Vec<Address> {
-        self.locals.flatten()
     }
 
     fn validate_tx(&self, tx: &Transaction, local: bool) -> Result<()> {
@@ -424,37 +366,39 @@ where
         true
     }
 
-    fn add_txs(&mut self, tsx: Vec<Transaction>, local: bool) -> Vec<Error> {
+    fn add_txs(&mut self, tsx: Vec<Transaction>, local: bool) -> Result<()> {
         let mut news = Vec::new();
         let mut errors = Vec::with_capacity(tsx.len());
         for (i, tx) in tsx.into_iter().enumerate() {
             if self.all.contains(&tx.hash()) {
-                errors.push(TxPoolError::TransactionAlreadyKnown.into());
+                errors.push(format!("{:?}", TxPoolError::TransactionAlreadyKnown));
                 continue;
             }
             news.push(Rc::new(tx))
         }
 
         if news.is_empty() {
-            return errors;
+            return Err(TxPoolError::CompositeErrors(errors).into());
         }
 
         let (dirty, new_errors) = self.add_txs_locked(news, local);
-        let mut none_slot: usize = 0;
         for err in new_errors {
             errors.push(err);
         }
-
-        self.repack(dirty, None);
+        self.repack(dirty, None)?;
         self.queued_events = HashMap::new();
-        return errors;
+
+        if !errors.is_empty() {
+            return Err(TxPoolError::CompositeErrors(errors).into());
+        }
+        return Ok(());
     }
 
     fn add_txs_locked(
         &mut self,
         tsx: Vec<TransactionRef>,
         local: bool,
-    ) -> (AccountSet, Vec<anyhow::Error>) {
+    ) -> (AccountSet, Vec<String>) {
         let mut dirty = AccountSet::new();
         let mut errors = Vec::with_capacity(tsx.len());
         for (i, tx) in tsx.into_iter().enumerate() {
@@ -465,7 +409,7 @@ where
                     }
                 }
                 Err(error) => {
-                    errors.insert(i, error);
+                    errors.insert(i, format!("{}", error));
                 }
             };
         }
@@ -583,7 +527,10 @@ where
     }
 
     fn truncate_pending(&mut self) {
-        let mut pending = self.pending.iter().fold(0, |acc, (_, list)| acc + list.len()) as u64;
+        let mut pending = self
+            .pending
+            .iter()
+            .fold(0, |acc, (_, list)| acc + list.len()) as u64;
         if pending <= self.config.global_slots {
             return;
         }
@@ -610,7 +557,14 @@ where
                     0
                 };
 
-                while pending > self.config.global_slots && self.pending.get(&offenders[offenders.len() - 2]).map(|tx| tx.len()).unwrap_or_default() > threshold {
+                while pending > self.config.global_slots
+                    && self
+                    .pending
+                    .get(&offenders[offenders.len() - 2])
+                    .map(|tx| tx.len())
+                    .unwrap_or_default()
+                    > threshold
+                {
                     for i in 0..(offenders.len() - 1) {
                         let list = match self.pending.get_mut(&offenders[i]) {
                             None => return,
@@ -623,8 +577,7 @@ where
                             let hash_256 = tx.hash_256();
                             self.all.remove(&hash);
                             self.priced.remove(tx);
-                            self.pending_nonce
-                                .set_if_lower(offenders[i].clone(), nonce);
+                            self.pending_nonce.set_if_lower(offenders[i].clone(), nonce);
                             trace!(target : TXPOOL_LOG_TARGET, hash = ?hash_256, "Removed fairness-exceeding pending transaction");
                         }
                         pending -= 1;
@@ -634,7 +587,14 @@ where
         }
         // If still above threshold, reduce to limit or min allowance
         if pending > self.config.global_slots && offenders.len() > 0 {
-            while pending > self.config.global_slots && self.pending.get(&offenders[offenders.len() - 1]).map(|tx| tx.len() as u64).unwrap_or_default() > self.config.account_slots {
+            while pending > self.config.global_slots
+                && self
+                .pending
+                .get(&offenders[offenders.len() - 1])
+                .map(|tx| tx.len() as u64)
+                .unwrap_or_default()
+                > self.config.account_slots
+            {
                 for addr in offenders.iter() {
                     if let Some(list) = self.pending.get_mut(&addr) {
                         let caps = list.cap(list.len().saturating_sub(1) as u64);
@@ -644,8 +604,7 @@ where
                             let hash_256 = tx.hash_256();
                             self.all.remove(&hash);
                             self.priced.remove(tx);
-                            self.pending_nonce
-                                .set_if_lower(*addr, nonce);
+                            self.pending_nonce.set_if_lower(*addr, nonce);
                             trace!(target : TXPOOL_LOG_TARGET, hash = ?hash_256, "Removed fairness-exceeding pending transaction");
                         }
                         pending -= 1;
@@ -873,17 +832,114 @@ where
     }
 }
 
+//Public functions
 impl<Chain> TxPool<Chain>
     where
         Chain: ChainState,
 {
     pub fn add_local(&mut self, tx: Transaction) -> Result<()> {
-        let errors = self.add_txs(vec![tx], true);
-        if !errors.is_empty() {
-            Ok(())
-        } else {
-            Ok(())
+        self.add_txs(vec![tx], true)
+    }
+
+    pub fn add_locals(&mut self, txs: Vec<Transaction>) -> Result<()> {
+        self.add_txs(txs, true)
+    }
+
+    pub fn add_remote(&mut self, tx: Transaction) -> Result<()> {
+        self.add_txs(vec![tx], false)
+    }
+
+    pub fn add_remotes(&mut self, txs: Vec<Transaction>) -> Result<()> {
+        self.add_txs(txs, false)
+    }
+
+    pub fn get(&self, hash: &Hash) -> Option<TransactionRef> {
+        self.all.get(hash)
+    }
+
+    pub fn has(&self, hash: &Hash) -> bool {
+        self.all.contains(hash)
+    }
+
+    pub fn status(self, txs: Vec<Hash>) -> Vec<TransactionStatus> {
+        let mut status = vec![TransactionStatus::NotFound, txs.len()];
+        for (i, hash) in txs.iter().enumerate() {
+            if let Some(tx) = self.get(hash) {
+                let sender = tx.sender();
+                if let Some(list) = self.pending.get(&sender) {
+                    status[i] = if list.txs.has(tx.nonce()) {
+                        TransactionStatus::Pending
+                    } else {
+                        TransactionStatus::NotFound
+                    }
+                } else if let Some(list) = self.queue.get(&sender) {
+                    status[i] = if list.txs.has(tx.nonce()) {
+                        TransactionStatus::Pending
+                    } else {
+                        TransactionStatus::NotFound
+                    }
+                }
+            }
         }
+        status
+    }
+
+    pub fn nonce(&self, address: &H160) -> u64 {
+        self.pending_nonce.get(address)
+    }
+
+    pub fn stats(&self) -> (usize, usize) {
+        let mut pending = 0;
+        for (_, list) in self.pending.iter() {
+            pending += list.len()
+        }
+        let mut queued = 0;
+        for (_, list) in self.queue.iter() {
+            queued += list.len()
+        }
+        (pending, queued)
+    }
+
+    pub fn content(
+        &self,
+    ) -> (
+        HashMap<Address, Transactions>,
+        HashMap<Address, Transactions>,
+    ) {
+        let mut pending = HashMap::new();
+        for (address, list) in self.pending.iter() {
+            pending.insert(*address, list.flatten());
+        }
+
+        let mut queued = HashMap::new();
+        for (address, list) in self.queue.iter() {
+            queued.insert(*address, list.flatten());
+        }
+        (pending, queued)
+    }
+
+    pub fn content_from(&self, address: &Address) -> (Transactions, Transactions) {
+        let mut pending = Vec::new();
+        if let Some(list) = self.pending.get(address) {
+            pending = list.flatten();
+        }
+        let mut queued = Vec::new();
+        if let Some(list) = self.queue.get(address) {
+            queued = list.flatten();
+        }
+        (pending, queued)
+    }
+
+    pub fn pending(&self) -> HashMap<Address, Transactions> {
+        let mut pending = HashMap::new();
+        for (address, list) in self.pending.iter() {
+            pending.insert(*address, list.flatten());
+        }
+        (pending)
+    }
+
+    pub fn locals(&self) -> Vec<Address> {
+        self.locals.flatten()
     }
 }
 
