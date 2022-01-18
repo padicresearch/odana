@@ -862,7 +862,7 @@ impl<Chain> TxPool<Chain>
     }
 
     pub fn status(self, txs: Vec<Hash>) -> Vec<TransactionStatus> {
-        let mut status = vec![TransactionStatus::NotFound, txs.len()];
+        let mut status = vec![TransactionStatus::NotFound; txs.len()];
         for (i, hash) in txs.iter().enumerate() {
             if let Some(tx) = self.get(hash) {
                 let sender = tx.sender();
