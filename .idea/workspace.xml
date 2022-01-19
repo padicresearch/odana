@@ -291,15 +291,15 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Build Test" />
-      <item itemvalue="Cargo.Test" />
+      <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test txlist::tests::test_txlist" />
-      <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
       <item itemvalue="Cargo.Test prque::test::test_prque" />
-      <item itemvalue="Cargo.Test tests::txpool_test" />
       <item itemvalue="Cargo.Test tests::txpool_processing_speed_test" />
+      <item itemvalue="Cargo.Test tests::txpool_test" />
+      <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
+      <item itemvalue="Cargo.Test txlist::tests::test_txlist" />
+      <item itemvalue="Cargo.Test" />
     </list>
     <recent_temporary>
       <list>
