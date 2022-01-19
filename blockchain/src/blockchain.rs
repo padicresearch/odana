@@ -227,7 +227,7 @@ impl BlockChainState {
                 return Ok(StateEffect::CurrentHeadChanged);
             }
             Some(current_head) => {
-                if current_head.block_hash() == new_block.prev_block_hash() {
+                if current_head.hash() == new_block.prev_block_hash() {
                     self.state.put(
                         CURRENT_HEAD_KEY.into(),
                         StateValue::CurrentHead(new_block.header()),

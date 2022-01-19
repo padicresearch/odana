@@ -6,7 +6,7 @@ use anyhow::Result;
 use dashmap::DashMap;
 
 use primitive_types::H160;
-use traits::{ChainState, StateDB};
+use traits::{Blockchain, StateDB};
 use types::account::{AccountState, Account};
 use types::block::{Block, BlockHeader, BlockTemplate};
 use types::Hash;
@@ -166,7 +166,7 @@ impl StateDB for DummyStateDB {
     }
 }
 
-impl ChainState for DummyChain {
+impl Blockchain for DummyChain {
     fn current_head(&self) -> Result<BlockHeader> {
         let blocks = self.chain.read().map_err(|_| anyhow::anyhow!("RW error"))?;
         Ok(blocks.last().map(|block| block.header()).unwrap())

@@ -36,7 +36,6 @@ mod kv;
 mod logdb;
 mod snapshot;
 mod store;
-mod state;
 
 const GENESIS_ROOT: [u8; 32] = [0; 32];
 

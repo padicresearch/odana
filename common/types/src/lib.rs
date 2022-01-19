@@ -6,6 +6,10 @@ use serde_big_array::big_array;
 
 use codec::{Decoder, Encoder};
 use codec::impl_codec;
+use primitive_types::H160;
+use crate::account::AccountState;
+use crate::block::BlockHeader;
+use std::sync::{Arc, RwLock};
 
 pub mod account;
 pub mod block;
@@ -13,6 +17,7 @@ pub mod events;
 pub mod tx;
 
 pub type Hash = [u8; 32];
+pub type Address = [u8; 20];
 pub type BlockHash = [u8; 32];
 pub type TxHash = [u8; 32];
 pub type MerkleHash = [u8; 32];
@@ -44,6 +49,29 @@ pub struct TxPoolConfig {
     // Maximum amount of time non-executable transaction are queued
     pub life_time: Duration,
 }
+
+pub fn cache_hash<F>(hash: &Arc<RwLock<Hash>>, f: F) -> Hash where F: Fn() -> Hash {
+    match hash.read() {
+        Ok(hash) => {
+            return *hash
+        },
+        Err(_) => {}
+    }
+    let out = f();
+    match hash.write() {
+        Ok(mut hash) => *hash = out,
+        Err(_) => {}
+    }
+    out
+}
+
+
+pub struct Genesis {
+    chain_id: u32,
+    accounts: Vec<(H160, AccountState)>,
+    block_header: BlockHeader,
+}
+
 
 impl_codec!(MempoolSnapsot);
 

@@ -6,5 +6,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.45"
+thiserror = "1.0.30"
 types = { path = "../common/types" }
 traits = { path = "../common/traits" }
+primitive-types = { path = "../common/primitive-types" }

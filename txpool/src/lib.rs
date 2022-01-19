@@ -13,7 +13,7 @@ use dashmap::DashMap;
 use account::GOVERNANCE_ACCOUNTID;
 use primitive_types::{H160, H256};
 use tracing::{debug, error, info, trace, warn};
-use traits::{ChainState, StateDB};
+use traits::{StateDB};
 use types::block::{Block, BlockHeader};
 use types::tx::{Transaction, TransactionKind, TransactionStatus};
 use types::{Hash, TxHash, TxPoolConfig};
@@ -28,6 +28,7 @@ use std::option::Option::Some;
 use std::rc::Rc;
 use tokio::sync::mpsc::UnboundedSender;
 use types::events::LocalEventMessage;
+use crate::traits::Blockchain;
 
 mod error;
 mod prque;
@@ -35,6 +36,7 @@ mod tests;
 mod tx_list;
 mod tx_lookup;
 mod tx_noncer;
+pub mod traits;
 
 type TxHashRef = Arc<TxHash>;
 type TransactionRef = Rc<Transaction>;
@@ -106,8 +108,8 @@ fn sanitize(conf: &TxPoolConfig) -> TxPoolConfig {
 }
 
 pub struct TxPool<Chain>
-where
-    Chain: ChainState,
+    where
+        Chain: Blockchain,
 {
     config: TxPoolConfig,
     locals: AccountSet,
@@ -129,8 +131,8 @@ where
 }
 
 impl<Chain> TxPool<Chain>
-where
-    Chain: ChainState,
+    where
+        Chain: Blockchain,
 {
     pub fn new(
         conf: Option<&TxPoolConfig>,
@@ -419,7 +421,7 @@ where
     fn reset(&mut self, old_head: Option<BlockHeader>, new_head: BlockHeader) -> Result<()> {
         let mut reinject = Vec::new();
         if let Some(old_head) = old_head {
-            if old_head.block_hash() != new_head.parent_hash() {
+            if old_head.hash() != new_head.parent_hash() {
                 let old_num = old_head.level();
                 let new_num = new_head.level();
                 let depth = (old_num - new_num).abs();
@@ -428,10 +430,10 @@ where
                 } else {
                     let mut discarded = BTreeSet::new();
                     let mut included = BTreeSet::new();
-                    let mut rem = self.chain.get_block(old_head.block_hash())?;
-                    let mut add = match self.chain.get_block(new_head.block_hash())? {
+                    let mut rem = self.chain.get_block(old_head.hash())?;
+                    let mut add = match self.chain.get_block(new_head.hash())? {
                         None => {
-                            error!(target : TXPOOL_LOG_TARGET, new_head = ?H256::from(new_head.block_hash()), "Transaction pool reset with missing newhead");
+                            error!(target : TXPOOL_LOG_TARGET, new_head = ?H256::from(new_head.hash()), "Transaction pool reset with missing newhead");
                             return Err(TxPoolError::MissingBlock.into());
                         }
                         Some(add) => add,
@@ -447,7 +449,7 @@ where
                             if let Some(block) = self.chain.get_block(rem.parent_hash())? {
                                 rem = block;
                             } else {
-                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.block_hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
+                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
                                 return Ok(());
                             }
                         }
@@ -460,7 +462,7 @@ where
                             if let Some(block) = self.chain.get_block(add.parent_hash())? {
                                 rem = block;
                             } else {
-                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.block_hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
+                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
                                 return Ok(());
                             }
                         }
@@ -473,7 +475,7 @@ where
                             if let Some(block) = self.chain.get_block(rem.parent_hash())? {
                                 rem = block;
                             } else {
-                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.block_hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
+                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
                                 return Ok(());
                             }
                             included.extend(
@@ -484,7 +486,7 @@ where
                             if let Some(block) = self.chain.get_block(add.parent_hash())? {
                                 rem = block;
                             } else {
-                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.block_hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
+                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
                                 return Ok(());
                             }
                         }
@@ -495,17 +497,17 @@ where
                     } else {
                         if new_num > old_num {
                             warn!(target : TXPOOL_LOG_TARGET,
-                            old = ?H256::from(old_head.block_hash()),
+                            old = ?H256::from(old_head.hash()),
                             old_level = ?old_num,
-                            new = ?H256::from(new_head.block_hash()),
+                            new = ?H256::from(new_head.hash()),
                             new_level = ?new_num,
                             "Transaction pool reset with missing newhead");
                             return Ok(());
                         }
                         debug!(target : TXPOOL_LOG_TARGET,
-                            old = ?H256::from(old_head.block_hash()),
+                            old = ?H256::from(old_head.hash()),
                             old_level = ?old_num,
-                            new = ?H256::from(new_head.block_hash()),
+                            new = ?H256::from(new_head.hash()),
                             new_level = ?new_num,
                             "Skipping transaction reset caused by setHead");
                     }
@@ -835,7 +837,7 @@ where
 //Public functions
 impl<Chain> TxPool<Chain>
     where
-        Chain: ChainState,
+        Chain: Blockchain,
 {
     pub fn add_local(&mut self, tx: Transaction) -> Result<()> {
         self.add_txs(vec![tx], true)

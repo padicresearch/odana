@@ -36,8 +36,19 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implemented txpool">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="add todos">
+      <change afterPath="$PROJECT_DIR$/consensus/src/error.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/txpool/src/traits.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/miner.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/miner.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -375,14 +386,7 @@
       <workItem from="1642091260977" duration="13193000" />
       <workItem from="1642186007441" duration="146553000" />
       <workItem from="1642515673083" duration="5305000" />
-      <workItem from="1642527106604" duration="7843000" />
-    </task>
-    <task id="LOCAL-00016" summary="implementing utxo">
-      <created>1638734880883</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1638734880883</updated>
+      <workItem from="1642527106604" duration="22934000" />
     </task>
     <task id="LOCAL-00017" summary="implementing utxo">
       <created>1638741705129</created>
@@ -720,7 +724,14 @@
       <option name="project" value="LOCAL" />
       <updated>1642536234089</updated>
     </task>
-    <option name="localTasksCounter" value="65" />
+    <task id="LOCAL-00065" summary="add todos">
+      <created>1642539779988</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1642539779988</updated>
+    </task>
+    <option name="localTasksCounter" value="66" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -739,7 +750,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="code improvement" />
     <MESSAGE value="Blockchain" />
     <MESSAGE value="implementing utxo" />
     <MESSAGE value="implementing mempool" />
@@ -764,7 +774,8 @@
     <MESSAGE value="cargo fmt" />
     <MESSAGE value="implemented truncate queue" />
     <MESSAGE value="implemented txpool" />
-    <option name="LAST_COMMIT_MESSAGE" value="implemented txpool" />
+    <MESSAGE value="add todos" />
+    <option name="LAST_COMMIT_MESSAGE" value="add todos" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

@@ -87,7 +87,7 @@ impl Miner {
             let template_block = BlockTemplate::new(
                 current_block.level() + 1,
                 nonce,
-                *current_block.block_hash(),
+                *current_block.hash(),
                 time,
                 txs.len() as u16,
                 *merkle_root,
@@ -184,7 +184,7 @@ mod test {
         let miner = Arc::new(Miner::new(mempool.clone(), utxo.clone(), local_mpsc.0));
         println!(
             "🔨 Genesis block:  {}",
-            hex::encode(current_block.block_hash())
+            hex::encode(current_block.hash())
         );
         for i in 0..1 {
             let timer = Instant::now();

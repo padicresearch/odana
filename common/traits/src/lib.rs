@@ -2,40 +2,17 @@ use std::sync::Arc;
 
 use anyhow::Result;
 
-use primitive_types::H160;
-use types::{BlockHash, PubKey, TxHash};
+use primitive_types::{H160, Compact};
+use types::{BlockHash, PubKey, TxHash, Hash, Genesis};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader};
-
-// pub trait SudoAccount {
-//     fn is_sudo(&self, account: &AccountId) -> bool;
-//     fn sudo(&self) -> AccountId;
-// }
-//
-// pub trait TreasuryAccount {
-//     fn treasury(&self) -> AccountId;
-// }
-//
-// pub trait Txs {
-//     fn get_transaction(&self, hash : &TxHash) -> Transaction;
-// }
-//
-//
-// pub trait Blocks {
-//     fn get_block(&self, hash : &BlockHash) -> Block;
-// }
-
-pub trait ChainState: Send + Sync {
-    fn current_head(&self) -> Result<BlockHeader>;
-    fn get_block(&self, block_hash: &types::Hash) -> Result<Option<Block>>;
-    fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
-    fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
-}
+use types::tx::Transaction;
 
 pub trait StateDB: Send + Sync {
     fn nonce(&self, address: &H160) -> u64;
     fn account_state(&self, address: &H160) -> AccountState;
     fn balance(&self, address: &H160) -> u128;
+    fn apply_transaction(&self, tx: &Transaction) -> Hash;
 }
 
 pub trait Saturating {
@@ -44,4 +21,26 @@ pub trait Saturating {
     fn saturating_sub(self, rhs: Self) -> Self;
 
     fn saturating_mul(self, rhs: Self) -> Self;
+}
+
+
+pub trait ChainHeadReader: Send + Sync {
+    fn current_header(&self) -> Result<Option<BlockHeader>>;
+    fn get_header(&self, hash: &Hash, level: i32) -> Result<Option<BlockHeader>>;
+    fn get_header_by_hash(&self, hash: &Hash) -> Result<Option<BlockHeader>>;
+    fn get_header_by_level(&self, level: i32) -> Result<Option<BlockHeader>>;
+}
+
+pub trait ChainReader: ChainHeadReader + Send + Sync {
+    fn get_block(&self, hash: &Hash, level: i32) -> Result<Option<Block>>;
+}
+
+
+pub trait Consensus: Send + Sync {
+    fn verify_header(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader) -> Result<()>;
+    fn prepare_header(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader) -> Result<BlockHeader>;
+    fn finalize(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader, state: Arc<dyn StateDB>, txs: Vec<Transaction>) -> Result<()>;
+    fn finalize_and_assemble(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader, state: Arc<dyn StateDB>, txs: Vec<Transaction>) -> Result<Option<Block>>;
+    fn calc_difficulty(&self, level: i32, parent: &BlockHeader) -> Compact;
+    fn is_genesis(&self, header: &BlockHeader) -> bool;
 }
