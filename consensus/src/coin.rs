@@ -1,7 +1,8 @@
-use crate::MAX_SUPPLY_PRECOMPUTED;
+use crate::{MAX_SUPPLY_PRECOMPUTED};
 use std::fmt::Formatter;
 use std::ops::{Add, Mul, Sub};
 use traits::Saturating;
+use crate::barossa::BarossaProtocol;
 
 pub const TUC_UNIT: u128 = 1_000_000_000;
 

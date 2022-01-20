@@ -1,70 +1,51 @@
-use types::{Hash, Genesis};
-use anyhow::Result;
-use types::block::{BlockHeader, Block};
-use traits::{StateDB, Consensus, ChainHeadReader};
-use std::sync::Arc;
-use types::tx::Transaction;
-use types::account::AccountState;
-use primitive_types::{H160, Compact};
 use crate::error::Error;
+use anyhow::Result;
+use primitive_types::{endian, Compact, H160, U256};
+use std::sync::Arc;
+use traits::{ChainHeadReader, Consensus, StateDB};
+use types::account::AccountState;
+use types::block::{Block, BlockHeader};
+use types::tx::Transaction;
+use types::{Genesis, Hash};
 
+pub const MAX_BLOCK_HEIGHT: u128 = 25_000_000;
+pub const INITIAL_REWARD: u128 = 10 * 1_000_000_000 /*TODO: Use TUC constant*/;
+pub const SPREAD: u128 = MAX_BLOCK_HEIGHT.pow(4) / INITIAL_REWARD;
+pub const PRECISION_CORRECTION: u128 = 5012475762;
+pub const MAX_SUPPLY_APPROX: u128 =
+    (INITIAL_REWARD * MAX_BLOCK_HEIGHT) - (MAX_BLOCK_HEIGHT.pow(5) / (5 * SPREAD));
+pub const MAX_SUPPLY_PRECOMPUTED: u128 = MAX_SUPPLY_APPROX + PRECISION_CORRECTION;
+
+#[inline]
+pub fn miner_reward(block_height: u128) -> u128 {
+    INITIAL_REWARD - block_height.pow(4) / SPREAD
+}
+
+mod barossa;
 pub mod coin;
 mod error;
 
+#[cfg(test)]
+mod tests {
+    use crate::barossa::{BarossaProtocol, Network};
+    use primitive_types::{H256, U256, Compact};
+    use traits::Consensus;
 
-pub struct BarossaProtocol {
-    genesis: Genesis,
-}
+    #[test]
+    fn print_target() {
+        let target_u256 = U256([
+            0x0000000000000000u64,
+            0x0000000000000000u64,
+            0x0000000000000000u64,
+            0x00000377ae000000u64,
+        ]);
+        //let MAX_BITS_MAINNET: U256 = "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff".parse().unwrap();
+        let mut out = [0; 32];
+        target_u256.to_big_endian(&mut out);
+        let protocol = BarossaProtocol::new(Network::Testnet, 503543726);
+        let mut h = [0; 32];
 
-impl BarossaProtocol {
-    const MAX_BLOCK_HEIGHT: u128 = 25_000_000;
-    const INITIAL_REWARD: u128 = 10 * 1_000_000_000 /*TODO: Use TUC constant*/;
-    const SPREAD: u128 = MAX_BLOCK_HEIGHT.pow(4) / INITIAL_REWARD;
-    const PRECISION_CORRECTION: u128 = 5012475762;
-    const MAX_SUPPLY_APPROX: u128 = (INITIAL_REWARD * MAX_BLOCK_HEIGHT) - (MAX_BLOCK_HEIGHT.pow(5) / (5 * SPREAD));
-    const MAX_SUPPLY_PRECOMPUTED: u128 = MAX_SUPPLY_APPROX + PRECISION_CORRECTION;
-
-    const NONCE: u128 = 0;
-    const DIFFICULTY: u32 = 3;
-
-    #[inline]
-    fn miner_reward(block_height: u128) -> u128 {
-        Self::INITIAL_REWARD - block_height.pow(4) / Self::SPREAD
-    }
-
-    #[inline]
-    fn total_supply_at_block(block_height: u128) -> u128 {
-        (Self::INITIAL_REWARD * block_height) - (block_height.pow(5) / (5 * Self::SPREAD))
-    }
-
-    fn verify_head(&self) -> Result<()> {}
-}
-
-impl Consensus for BarossaProtocol {
-    fn verify_header(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader) -> Result<()> {
-        let parent_header = chain.get_header(header.parent_hash(), header.level() - 1)?.ok_or(Error::ParentBlockNotFound)?;
-        if header.d() != Self::NONCE {}
-
-        todo!()
-    }
-
-    fn prepare_header(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader) -> Result<BlockHeader> {
-        todo!()
-    }
-
-    fn finalize(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader, state: Arc<dyn StateDB>, txs: Vec<Transaction>) -> Result<()> {
-        todo!()
-    }
-
-    fn finalize_and_assemble(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader, state: Arc<dyn StateDB>, txs: Vec<Transaction>) -> Result<Option<Block>> {
-        todo!()
-    }
-
-    fn calc_difficulty(&self, level: i32, parent: &BlockHeader) -> Compact {
-        todo!()
-    }
-
-    fn is_genesis(&self, header: &BlockHeader) -> bool {
-        todo!()
+        U256::from(protocol.max_difficulty().clone()).to_big_endian(&mut h);
+        println!("{:?}", hex::encode(h))
     }
 }

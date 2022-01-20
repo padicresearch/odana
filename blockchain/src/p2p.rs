@@ -272,20 +272,6 @@ async fn handle_swam_event<T>(
     event: SwarmEvent<OutEvent, T>,
     swarm: &mut Swarm<ChainNetworkBehavior>,
 ) {
-    /*match event {
-        SwarmEvent::Behaviour(_) => {}
-        SwarmEvent::ConnectionEstablished { .. } => {}
-        SwarmEvent::ConnectionClosed { .. } => {}
-        SwarmEvent::IncomingConnection { .. } => {}
-        SwarmEvent::IncomingConnectionError { .. } => {}
-        SwarmEvent::OutgoingConnectionError { .. } => {}
-        SwarmEvent::BannedPeer { .. } => {}
-        SwarmEvent::NewListenAddr { .. } => {}
-        SwarmEvent::ExpiredListenAddr { .. } => {}
-        SwarmEvent::ListenerClosed { .. } => {}
-        SwarmEvent::ListenerError { .. } => {}
-        SwarmEvent::Dialing(_) => {}
-    }*/
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
             println!("Listening on {:?}", address);
@@ -345,51 +331,7 @@ impl From<FloodsubEvent> for OutEvent {
         Self::Floodsub(v)
     }
 }
-
-/*impl NetworkBehaviourEventProcess<MdnsEvent> for ChainNetworkBehavior {
-    fn inject_event(&mut self, event: MdnsEvent) {
-        match event {
-            MdnsEvent::Discovered(discovered_nodes) => {
-                for (peer, addr) in discovered_nodes {
-                    self.floodsub.add_node_to_partial_view(peer);
-                    println!("ADD Peer {}", peer.to_string())
-                }
-            }
-            MdnsEvent::Expired(expired_nodes) => {
-                for (peer, addr) in expired_nodes {
-                    self.floodsub.remove_node_from_partial_view(&peer);
-                    println!("REMOVE Peer {}", peer.to_string())
-                }
-            }
-        }
-    }
-}*/
-
 enum P2PEvent {}
-
-/*impl NetworkBehaviourEventProcess<FloodsubEvent> for ChainNetworkBehavior {
-    fn inject_event(&mut self, event: FloodsubEvent) {
-        match event {
-            FloodsubEvent::Message(msg) => {
-                println!("Peer Message : {}", msg.data.len());
-                if let Ok(peer_message) = PeerMessage::decode(&msg.data) {
-                    self.p2p_to_node.send(peer_message);
-                    /*match peer_message {
-                        PeerMessage::BroadcastTransaction(msg) => {
-                            self.p2p_to_node.send()
-                        }
-                        PeerMessage::BroadcastBlock(msg) => {
-
-                        }
-                        _ => {}
-                    }*/
-                }
-            }
-            FloodsubEvent::Subscribed { .. } => {}
-            FloodsubEvent::Unsubscribed { .. } => {}
-        }
-    }
-}*/
 
 #[cfg(test)]
 mod tests {

@@ -19,6 +19,7 @@ use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
 use uint::{construct_uint, uint_full_mul_reg};
 
 mod fp_conversion;
+pub mod endian;
 
 /// Error type for conversion.
 

@@ -14,6 +14,8 @@ use crate::tx::Transaction;
 use super::*;
 use primitive_types::{Compact, U256, H256};
 use crypto::SHA256;
+use core::cmp;
+use std::io;
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct BlockHeader {
@@ -32,8 +34,12 @@ pub struct BlockHeader {
 impl BlockHeader {
     pub fn hash(&self) -> Hash {
         let mut block_hash = [0_u8; 32];
-        SHA256::digest(&self.encode());
+        SHA256::digest(&self.encode().unwrap());
         block_hash
+    }
+
+    pub fn difficulty(&self) -> Compact {
+        Compact::new(self.difficulty)
     }
 }
 
@@ -64,10 +70,56 @@ impl Block {
     }
 
     pub fn hash(&self) -> [u8; 32] {
-        cache_hash(&self.hash, self.header.hash)
+        cache_hash(&self.hash, || {
+            self.header.hash()
+        })
     }
 
     pub fn header(&self) -> &BlockHeader {
         &self.header
+    }
+}
+
+
+#[derive(Clone)]
+pub struct IndexedBlockHeader {
+    pub hash: H256,
+    pub raw: BlockHeader,
+}
+
+impl std::fmt::Debug for IndexedBlockHeader {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("IndexedBlockHeader")
+            .field("hash", &self.hash)
+            .field("raw", &self.raw)
+            .finish()
+    }
+}
+
+impl From<BlockHeader> for IndexedBlockHeader {
+    fn from(header: BlockHeader) -> Self {
+        Self::from_raw(header)
+    }
+}
+
+impl IndexedBlockHeader {
+    pub fn new(hash: H256, header: BlockHeader) -> Self {
+        IndexedBlockHeader {
+            hash,
+            raw: header,
+        }
+    }
+
+    /// Explicit conversion of the raw BlockHeader into IndexedBlockHeader.
+    ///
+    /// Hashes the contents of block header.
+    pub fn from_raw(header: BlockHeader) -> Self {
+        IndexedBlockHeader::new(H256::from(header.hash()), header)
+    }
+}
+
+impl cmp::PartialEq for IndexedBlockHeader {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
     }
 }
