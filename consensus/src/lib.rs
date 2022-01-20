@@ -24,28 +24,3 @@ pub fn miner_reward(block_height: u128) -> u128 {
 mod barossa;
 pub mod coin;
 mod error;
-
-#[cfg(test)]
-mod tests {
-    use crate::barossa::{BarossaProtocol, Network};
-    use primitive_types::{H256, U256, Compact};
-    use traits::Consensus;
-
-    #[test]
-    fn print_target() {
-        let target_u256 = U256([
-            0x0000000000000000u64,
-            0x0000000000000000u64,
-            0x0000000000000000u64,
-            0x00000377ae000000u64,
-        ]);
-        //let MAX_BITS_MAINNET: U256 = "00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff".parse().unwrap();
-        let mut out = [0; 32];
-        target_u256.to_big_endian(&mut out);
-        let protocol = BarossaProtocol::new(Network::Testnet, 503543726);
-        let mut h = [0; 32];
-
-        U256::from(protocol.max_difficulty().clone()).to_big_endian(&mut h);
-        println!("{:?}", hex::encode(h))
-    }
-}

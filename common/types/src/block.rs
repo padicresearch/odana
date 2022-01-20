@@ -33,13 +33,11 @@ pub struct BlockHeader {
 
 impl BlockHeader {
     pub fn hash(&self) -> Hash {
-        let mut block_hash = [0_u8; 32];
-        SHA256::digest(&self.encode().unwrap());
-        block_hash
+        SHA256::digest(&self.encode().unwrap()).into()
     }
 
     pub fn difficulty(&self) -> Compact {
-        Compact::new(self.difficulty)
+        Compact::from(self.difficulty)
     }
 }
 

@@ -36,17 +36,10 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="merge txpool">
-      <change afterPath="$PROJECT_DIR$/common/primitive-types/src/endian.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implementing barossa consensus">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/p2p.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/p2p.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/coin.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/coin.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -161,7 +154,7 @@
       <recent name="$PROJECT_DIR$/merkle/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::print_target">
+  <component name="RunManager" selected="Cargo.Test barossa::tests::test_consensus_protocol_adjusted_difficulty">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -210,8 +203,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test endian::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package primitive-types --lib endian::tests" />
+    <configuration name="Test barossa::tests::test_consensus_protocol" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package consensus --lib barossa::tests::test_consensus_protocol -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -226,8 +219,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::print_target" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package consensus --lib tests::print_target -- --exact" />
+    <configuration name="Test barossa::tests::test_consensus_protocol_adjusted_difficulty" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package consensus --lib barossa::tests::test_consensus_protocol_adjusted_difficulty -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -242,8 +235,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::txpool_processing_speed_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package txpool --lib tests::txpool_processing_speed_test -- --exact" />
+    <configuration name="Test lib::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package primitive-types --lib tests" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -258,8 +251,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::txpool_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package txpool --lib tests::txpool_test -- --exact" />
+    <configuration name="Test tests::test_compact_to_from_u256" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package primitive-types --lib tests::test_compact_to_from_u256 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -274,8 +267,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tx_list::tests::test_txlist" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package txpool --lib tx_list::tests::test_txlist -- --exact" />
+    <configuration name="Test tests::test_compact_to_u256" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package primitive-types --lib tests::test_compact_to_u256 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -311,19 +304,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
-      <item itemvalue="Cargo.Test tests::txpool_test" />
-      <item itemvalue="Cargo.Test tests::txpool_processing_speed_test" />
-      <item itemvalue="Cargo.Test tests::print_target" />
-      <item itemvalue="Cargo.Test endian::tests" />
+      <item itemvalue="Cargo.Test barossa::tests::test_consensus_protocol" />
+      <item itemvalue="Cargo.Test barossa::tests::test_consensus_protocol_adjusted_difficulty" />
+      <item itemvalue="Cargo.Test lib::tests" />
+      <item itemvalue="Cargo.Test tests::test_compact_to_u256" />
+      <item itemvalue="Cargo.Test tests::test_compact_to_from_u256" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test tests::print_target" />
-        <item itemvalue="Cargo.Test endian::tests" />
-        <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
-        <item itemvalue="Cargo.Test tests::txpool_processing_speed_test" />
-        <item itemvalue="Cargo.Test tests::txpool_test" />
+        <item itemvalue="Cargo.Test barossa::tests::test_consensus_protocol_adjusted_difficulty" />
+        <item itemvalue="Cargo.Test tests::test_compact_to_from_u256" />
+        <item itemvalue="Cargo.Test lib::tests" />
+        <item itemvalue="Cargo.Test tests::test_compact_to_u256" />
+        <item itemvalue="Cargo.Test barossa::tests::test_consensus_protocol" />
       </list>
     </recent_temporary>
   </component>
@@ -391,14 +384,8 @@
       <workItem from="1642527106604" duration="23249000" />
       <workItem from="1642594276504" duration="94000" />
       <workItem from="1642602482288" duration="15354000" />
-      <workItem from="1642660794228" duration="573000" />
-    </task>
-    <task id="LOCAL-00019" summary="implementing blockchain">
-      <created>1639963096146</created>
-      <option name="number" value="00019" />
-      <option name="presentableId" value="LOCAL-00019" />
-      <option name="project" value="LOCAL" />
-      <updated>1639963096146</updated>
+      <workItem from="1642660794228" duration="6654000" />
+      <workItem from="1642667625402" duration="1757000" />
     </task>
     <task id="LOCAL-00020" summary="implementing blockchain">
       <created>1640421977381</created>
@@ -736,7 +723,14 @@
       <option name="project" value="LOCAL" />
       <updated>1642582327314</updated>
     </task>
-    <option name="localTasksCounter" value="68" />
+    <task id="LOCAL-00068" summary="implementing barossa consensus">
+      <created>1642661385182</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1642661385182</updated>
+    </task>
+    <option name="localTasksCounter" value="69" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -767,7 +761,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="implementing mempool" />
     <MESSAGE value="implementing blockchain" />
     <MESSAGE value="implement account based blockchain" />
     <MESSAGE value="compile success" />
@@ -792,7 +785,8 @@
     <MESSAGE value="add todos" />
     <MESSAGE value="* clean up&#10;* consensus re-implementation" />
     <MESSAGE value="merge txpool" />
-    <option name="LAST_COMMIT_MESSAGE" value="merge txpool" />
+    <MESSAGE value="implementing barossa consensus" />
+    <option name="LAST_COMMIT_MESSAGE" value="implementing barossa consensus" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
