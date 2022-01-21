@@ -11,8 +11,9 @@ use codec::impl_codec;
 use crypto::{RIPEMD160, SHA256};
 use primitive_types::{H160, H256, H512, U256, U512};
 
-use crate::{BigArray, TxHash};
+use crate::{BigArray, TxHash, Address, Hash};
 use crate::{BlockHash, PubKey, Sig};
+use ed25519_dalek::{Signature, PublicKey};
 
 #[derive(Debug, Clone)]
 pub enum TransactionStatus {
@@ -25,16 +26,11 @@ pub enum TransactionStatus {
 #[derive(Serialize, Deserialize, Clone)]
 pub enum TransactionKind {
     Transfer {
-        from: PubKey,
-        to: PubKey,
+        from: Address,
+        to: Address,
         amount: u128,
         fee: u128,
-    },
-    Coinbase {
-        miner: PubKey,
-        amount: u128,
-        block_hash: BlockHash,
-    },
+    }
 }
 
 impl std::fmt::Debug for TransactionKind {
@@ -51,17 +47,7 @@ impl std::fmt::Debug for TransactionKind {
                 .field("to", &H256::from(to))
                 .field("amount", &amount)
                 .field("fee", fee)
-                .finish(),
-            TransactionKind::Coinbase {
-                miner,
-                amount,
-                block_hash,
-            } => f
-                .debug_struct("Coinbase")
-                .field("miner", &H256::from(miner))
-                .field("amount", &amount)
-                .field("block_hash", &H256::from(block_hash))
-                .finish(),
+                .finish()
         }
     }
 }
@@ -70,10 +56,8 @@ impl std::fmt::Debug for TransactionKind {
 pub struct Transaction {
     #[serde(with = "BigArray")]
     sig: Sig,
-    origin: PubKey,
     nonce: u64,
     kind: TransactionKind,
-
     //caches
     #[serde(skip)]
     hash: Arc<RwLock<Option<TxHash>>>,
@@ -85,7 +69,6 @@ impl std::fmt::Debug for Transaction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Transaction")
             .field("sig", &H512::from(self.sig))
-            .field("origin", &H256::from(self.origin))
             .field("nonce", &self.nonce)
             .field("kind", &self.kind)
             .finish()
@@ -107,10 +90,9 @@ impl std::hash::Hash for Transaction {
 }
 
 impl Transaction {
-    pub fn new(origin: PubKey, nonce: u64, sig: Sig, kind: TransactionKind) -> Self {
+    pub fn new(nonce: u64, sig: Sig, kind: TransactionKind) -> Self {
         Self {
             sig,
-            origin,
             nonce,
             kind,
             hash: Default::default(),
@@ -118,8 +100,10 @@ impl Transaction {
         }
     }
 
-    pub fn origin(&self) -> &PubKey {
-        &self.origin
+    pub fn origin(&self) -> &Hash {
+        let sig = Signature::new(self.sig);
+        PublicKey::
+            & self.origin
     }
 
     pub fn hash(&self) -> [u8; 32] {
@@ -181,22 +165,19 @@ impl Transaction {
     pub fn to(&self) -> H160 {
         let to = match self.kind {
             TransactionKind::Transfer { to, .. } => to,
-            TransactionKind::Coinbase { miner, .. } => miner,
         };
         RIPEMD160::digest(&SHA256::digest(to))
     }
 
     pub fn fees(&self) -> u128 {
         match &self.kind {
-            TransactionKind::Transfer { fee, .. } => *fee,
-            TransactionKind::Coinbase { .. } => 0,
+            TransactionKind::Transfer { fee, .. } => *fee
         }
     }
 
     pub fn price(&self) -> u128 {
         match &self.kind {
-            TransactionKind::Transfer { fee, amount, .. } => *fee + *amount,
-            TransactionKind::Coinbase { .. } => 0,
+            TransactionKind::Transfer { fee, amount, .. } => *fee + *amount
         }
     }
 

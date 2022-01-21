@@ -1,3 +1,6 @@
+mod ecdsa;
+mod error;
+
 use primitive_types::{H160, H256};
 use ripemd::{Digest, Ripemd160};
 use tiny_keccak::Hasher;

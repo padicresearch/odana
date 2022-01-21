@@ -171,9 +171,6 @@ impl<Chain> TxPool<Chain>
                     anyhow::bail!(TxPoolError::BadOrigin)
                 }
             }
-            TransactionKind::Coinbase { .. } => {
-                anyhow::bail!(TxPoolError::ExplictCoinbase);
-            }
         }
         let from = tx.sender();
         anyhow::ensure!(
