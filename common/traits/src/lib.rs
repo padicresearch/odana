@@ -3,10 +3,17 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use primitive_types::{H160, Compact, H256, U256};
-use types::{BlockHash, PubKey, TxHash, Hash, Genesis};
+use types::{Hash, Genesis};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::Transaction;
+
+pub trait Blockchain: Send + Sync {
+    fn current_head(&self) -> Result<BlockHeader>;
+    fn get_block(&self, block_hash: &types::Hash) -> Result<Option<Block>>;
+    fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
+    fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
+}
 
 pub trait StateDB: Send + Sync {
     fn nonce(&self, address: &H160) -> u64;
@@ -33,6 +40,7 @@ pub trait ChainHeadReader: Send + Sync {
 
 pub trait ChainReader: ChainHeadReader + Send + Sync {
     fn get_block(&self, hash: &Hash, level: i32) -> Result<Option<Block>>;
+    fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
 }
 
 

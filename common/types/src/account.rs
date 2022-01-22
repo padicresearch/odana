@@ -1,10 +1,11 @@
 use anyhow::Result;
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
-use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signer};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
+use crypto::ecdsa::{SecretKey, Signature, PublicKey};
+use crypto::{SHA256, RIPEMD160};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountState {
@@ -29,7 +30,6 @@ impl_codec!(AccountState);
 pub struct Account {
     pub address: H160,
     pub pri_key: [u8; 32],
-    pub pub_key: [u8; 32],
 }
 
 impl_codec!(Account);
@@ -49,17 +49,9 @@ impl Hash for Account {
 }
 
 impl Account {
-    pub fn address_encoded(&self) -> String {
-        format!("{}", self.address)
-    }
-
-    pub fn sign(&self, payload: &[u8]) -> Result<[u8; 64]> {
-        let key_pair = Keypair {
-            secret: SecretKey::from_bytes(&self.pri_key)?,
-            public: PublicKey::from_bytes(&self.pub_key)?,
-        };
-        let sig = key_pair.sign(payload);
-        Ok(sig.to_bytes())
+    pub fn sign(&self, payload: &[u8]) -> Result<Signature> {
+        let secrete = SecretKey::from_bytes(&self.pri_key)?;
+        secrete.sign(payload).map_err(|e| e.into())
     }
 }
 
@@ -67,4 +59,10 @@ impl Into<H160> for Account {
     fn into(self) -> H160 {
         self.address
     }
+}
+
+
+pub fn get_address_from_pub_key(pub_key: PublicKey) -> H160 {
+    let mut address = RIPEMD160::digest(SHA256::digest(&pub_key.to_bytes()).as_bytes());
+    address
 }

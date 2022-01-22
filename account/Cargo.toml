@@ -6,10 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ed25519-dalek = "1.0.1"
 rand = "0.8.4"
 rand_chacha = "0.3.1"
-tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
 rand_core = "0.6.3"
 anyhow = "1.0.45"
 storage = { path = "../storage" }
@@ -18,5 +16,4 @@ hex = "0.4.3"
 primitive-types = { path = "../common/primitive-types" }
 crypto = { path = "../crypto" }
 codec = { path = "../codec" }
-#types = { path = "../common/types" }
-k256 = { version = "0.10.2", features = ["ecdsa-core", "ecdsa", "keccak256"] }
+types = { path = "../common/types" }

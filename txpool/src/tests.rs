@@ -5,18 +5,18 @@ use std::sync::RwLock;
 use anyhow::Result;
 use dashmap::DashMap;
 
-use primitive_types::H160;
-use traits::{Blockchain, StateDB};
-use types::account::{AccountState, Account};
-use types::block::{Block, BlockHeader, BlockTemplate};
-use types::Hash;
-use crate::{TxPool, TransactionRef, ResetRequest};
-use account::create_account;
-use transaction::make_sign_transaction;
-use types::tx::{TransactionKind, Transaction};
-use std::rc::Rc;
 use crate::tx_lookup::AccountSet;
-use std::time::{Instant, Duration};
+use crate::{ResetRequest, TransactionRef, TxPool};
+use account::create_account;
+use primitive_types::{H160, H256};
+use std::rc::Rc;
+use std::time::{Duration, Instant};
+use traits::{Blockchain, StateDB};
+use transaction::make_sign_transaction;
+use types::account::{Account, AccountState};
+use types::block::{Block, BlockHeader};
+use types::tx::{Transaction, TransactionKind};
+use types::Hash;
 
 #[derive(Clone)]
 struct DummyStateDB {
@@ -34,8 +34,8 @@ pub fn make_tx(
         from,
         nonce,
         TransactionKind::Transfer {
-            from: from.pub_key,
-            to: to.pub_key,
+            from: from.address.to_fixed_bytes(),
+            to: to.address.to_fixed_bytes(),
             amount,
             fee,
         },
@@ -44,19 +44,13 @@ pub fn make_tx(
     Rc::new(tx)
 }
 
-fn make_tx_def(
-    from: &Account,
-    to: &Account,
-    nonce: u64,
-    amount: u128,
-    fee: u128,
-) -> Transaction {
+fn make_tx_def(from: &Account, to: &Account, nonce: u64, amount: u128, fee: u128) -> Transaction {
     let tx = make_sign_transaction(
         from,
         nonce,
         TransactionKind::Transfer {
-            from: from.pub_key,
-            to: to.pub_key,
+            from: from.address.to_fixed_bytes(),
+            to: to.address.to_fixed_bytes(),
             amount,
             fee,
         },
@@ -164,12 +158,16 @@ impl StateDB for DummyStateDB {
     fn balance(&self, address: &H160) -> u128 {
         self.account_state(address).free_balance
     }
+
+    fn apply_transaction(&self, tx: &Transaction) -> Hash {
+        todo!()
+    }
 }
 
 impl Blockchain for DummyChain {
     fn current_head(&self) -> Result<BlockHeader> {
         let blocks = self.chain.read().map_err(|_| anyhow::anyhow!("RW error"))?;
-        Ok(blocks.last().map(|block| block.header()).unwrap())
+        Ok(blocks.last().map(|block| block.header().clone()).unwrap())
     }
 
     fn get_block(&self, block_hash: &Hash) -> Result<Option<Block>> {
@@ -202,41 +200,19 @@ impl Blockchain for DummyChain {
 }
 
 fn generate_blocks(n: usize) -> Vec<Block> {
-    let mut rng = rand::thread_rng();
     let mut blocks: Vec<Block> = Vec::with_capacity(n);
     for level in 0..=n {
-        // let mut block_hash = [0u64; 2];
-        // rng.fill(&mut block_hash);
-        //let block_hash: [u8; 32] = rand::random();
         let block = if blocks.is_empty() {
-            Block::new(
-                BlockTemplate::new(
-                    level as i32,
-                    level as u128,
-                    [0; 32],
-                    [0; 32],
-                    0,
-                    0,
-                    [0; 32],
-                    [0; 32],
-                )
-                .unwrap(),
-                Vec::new(),
+            make_block(
+                level as i32,
+                [0; 32],
+                H256::from_low_u64_be(level as u64).to_fixed_bytes(),
             )
         } else {
-            Block::new(
-                BlockTemplate::new(
-                    level as i32,
-                    level as u128,
-                    [0; 32],
-                    blocks[level - 1].hash(),
-                    0,
-                    0,
-                    [0; 32],
-                    [0; 32],
-                )
-                    .unwrap(),
-                Vec::new(),
+            make_block(
+                level as i32,
+                blocks[level - 1].hash(),
+                H256::from_low_u64_be(level as u64).to_fixed_bytes(),
             )
         };
         blocks.push(block);
@@ -250,74 +226,76 @@ fn state_with_balance(amount: u128) -> AccountState {
     state
 }
 
+fn make_block(level: i32, parent_hash: Hash, state_root: Hash) -> Block {
+    Block::new(
+        BlockHeader {
+            parent_hash,
+            merkle_root: [0; 32],
+            state_root,
+            mix_nonce: [0; 32],
+            coinbase: [0; 20],
+            difficulty: 0,
+            chain_id: 0,
+            level,
+            time: 0,
+            nonce: 0,
+        },
+        Vec::new(),
+    )
+}
+
 #[tokio::test]
 async fn txpool_test() {
     let alice = create_account();
     let bob = create_account();
-    let state_db = Arc::new(DummyStateDB::with_accounts(vec![(alice.address, state_with_balance(1000))]));
-    let block_1 = Block::new(
-        BlockTemplate::new(
-            0 as i32,
-            0 as u128,
-            [0; 32],
-            [0; 32],
-            0,
-            0,
-            [0; 32],
-            [1; 32],
-        )
-            .unwrap(),
-        Vec::new(),
-    );
+    let state_db = Arc::new(DummyStateDB::with_accounts(vec![(
+        alice.address,
+        state_with_balance(1000),
+    )]));
     let chain = Arc::new(DummyChain::new(Vec::new(), state_db.clone()));
     chain.insert_state([1; 32], state_db.clone());
-    chain.add(block_1);
+    chain.add(make_block(0, [0; 32], [1; 32]));
     let (sender, mut recv) = tokio::sync::mpsc::unbounded_channel();
     let mut txpool = TxPool::new(None, None, sender, chain.clone()).unwrap();
-    txpool.add_txs(vec![
-        make_tx_def(&alice, &bob, 1, 100, 10),
-        make_tx_def(&alice, &bob, 2, 100, 10),
-        make_tx_def(&alice, &bob, 3, 100, 10),
-        make_tx_def(&alice, &bob, 4, 100, 10),
-    ], true);
+    txpool.add_txs(
+        vec![
+            make_tx_def(&alice, &bob, 1, 100, 10),
+            make_tx_def(&alice, &bob, 2, 100, 10),
+            make_tx_def(&alice, &bob, 3, 100, 10),
+            make_tx_def(&alice, &bob, 4, 100, 10),
+        ],
+        true,
+    ).unwrap();
 
-    let state_db_1 = Arc::new(DummyStateDB::with_accounts(vec![(alice.address, state_with_balance(1000))]));
+    let state_db_1 = Arc::new(DummyStateDB::with_accounts(vec![(
+        alice.address,
+        state_with_balance(1000),
+    )]));
     state_db_1.increment_nonce(&alice.address, 4);
 
-
-    let block_2 = Block::new(
-        BlockTemplate::new(
-            1 as i32,
-            1 as u128,
-            [0; 32],
-            *chain.current_head().unwrap().block_hash(),
-            0,
-            0,
-            [0; 32],
-            [2; 32],
-        )
-            .unwrap(),
-        Vec::new(),
-    );
-
-
+    let block_2 = make_block(1, chain.current_head().unwrap().hash(), [2; 32]);
     let old_head = chain.current_head().unwrap();
-    let new_head = block_2.header();
+    let new_head = block_2.header().clone();
     chain.insert_state([2; 32], state_db_1);
     chain.add(block_2);
-    txpool.repack(AccountSet::new(), Some(ResetRequest { old_head: Some(old_head), new_head })).unwrap();
+    txpool
+        .repack(
+            AccountSet::new(),
+            Some(ResetRequest {
+                old_head: Some(old_head),
+                new_head,
+            }),
+        )
+        .unwrap();
 
-    txpool.add_txs(vec![
-        make_tx_def(&alice, &bob, 5, 100, 10),
-        make_tx_def(&alice, &bob, 6, 100, 10),
-        make_tx_def(&alice, &bob, 7, 100, 10),
-    ], true);
-
-    // txpool.add_local(make_tx_def(&alice,&bob,1, 100, 10)).unwrap();
-    // state_db.set_nonce(&alice.address, 2);
-    // txpool.add_local(make_tx_def(&alice,&bob,txpool.nonce(&alice.address), 100, 100)).unwrap();
-    // txpool.add_local(make_tx_def(&alice,&bob,txpool.nonce(&alice.address), 100, 200)).unwrap();
-    // txpool.add_local(make_tx_def(&alice,&bob,3, 100, 250)).unwrap();
+    txpool.add_txs(
+        vec![
+            make_tx_def(&alice, &bob, 5, 100, 10),
+            make_tx_def(&alice, &bob, 6, 100, 10),
+            make_tx_def(&alice, &bob, 7, 100, 10),
+        ],
+        true,
+    ).unwrap();
     println!("{:#?}", txpool.nonce(&alice.address));
     println!("{:#?}", txpool.pending);
 }
@@ -402,7 +380,6 @@ async fn txpool_test() {
 ///
 /// Note, local transactions are never allowed to be dropped.
 
-
 /// # Case 2
 /// Tests that setting the transaction pool fee price to a higher value does not
 /// remove local transactions.
@@ -473,7 +450,8 @@ async fn txpool_test() {
 /// of fund), all consecutive (still valid, but not executable) transactions are
 /// postponed back into the future queue to prevent broadcasting them.
 
-
 /// # Case 15
 /// Tests that if an account runs out of funds, any pending and queued transactions
 /// are dropped.
+#[test]
+fn test() {}

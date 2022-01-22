@@ -17,13 +17,14 @@ use crypto::SHA256;
 use core::cmp;
 use std::io;
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
 pub struct BlockHeader {
     pub parent_hash: Hash,
     pub merkle_root: Hash,
     pub state_root: Hash,
     pub mix_nonce: Hash,
     pub coinbase: Address,
+    #[getter(skip)]
     pub difficulty: u32,
     pub chain_id: u32,
     pub level: i32,
@@ -46,7 +47,7 @@ pub struct Block {
     header: BlockHeader,
     transactions: Box<[Transaction]>,
     #[serde(skip)]
-    hash: Arc<RwLock<Hash>>,
+    hash: Arc<RwLock<Option<Hash>>>,
 }
 
 impl Block {
@@ -75,6 +76,12 @@ impl Block {
 
     pub fn header(&self) -> &BlockHeader {
         &self.header
+    }
+    pub fn level(&self) -> i32 {
+        self.header.level
+    }
+    pub fn parent_hash(&self) -> &Hash {
+        &self.header.parent_hash
     }
 }
 

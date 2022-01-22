@@ -10,14 +10,13 @@ use rocksdb::ColumnFamily;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
-use account::get_address_from_pub_key;
 use codec::{Codec, Decoder, Encoder};
 use codec::impl_codec;
 use primitive_types::{H160, H256};
 use storage::{KVEntry, KVStore};
 use traits::StateDB;
 use types::{BlockHash, TxHash};
-use types::account::AccountState;
+use types::account::{AccountState, get_address_from_pub_key};
 use types::Hash;
 use types::tx::{Transaction, TransactionKind};
 
@@ -75,6 +74,10 @@ impl StateDB for Morph {
 
     fn balance(&self, address: &H160) -> u128 {
         self.account_state(address).free_balance
+    }
+
+    fn apply_transaction(&self, tx: &Transaction) -> Hash {
+        todo!()
     }
 }
 
@@ -286,25 +289,18 @@ pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
             ..
         } => {
             ops.push(MorphOperation::DebitBalance {
-                account: get_address_from_pub_key(from),
+                account: H160::from(from),
                 amount: *amount + *fee,
                 tx_hash,
             });
             ops.push(MorphOperation::CreditBalance {
-                account: get_address_from_pub_key(to),
+                account: H160::from(to),
                 amount: *amount,
                 tx_hash,
             });
             ops.push(MorphOperation::UpdateNonce {
-                account: get_address_from_pub_key(from),
+                account: H160::from(from),
                 nonce: tx.nonce(),
-                tx_hash,
-            });
-        }
-        TransactionKind::Coinbase { amount, miner, .. } => {
-            ops.push(MorphOperation::CreditBalance {
-                account: get_address_from_pub_key(miner),
-                amount: *amount,
                 tx_hash,
             });
         }

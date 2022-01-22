@@ -13,10 +13,9 @@ use dashmap::DashMap;
 use account::GOVERNANCE_ACCOUNTID;
 use primitive_types::{H160, H256};
 use tracing::{debug, error, info, trace, warn};
-use traits::{StateDB};
 use types::block::{Block, BlockHeader};
 use types::tx::{Transaction, TransactionKind, TransactionStatus};
-use types::{Hash, TxHash, TxPoolConfig};
+use types::{Hash, TxPoolConfig};
 
 use crate::error::TxPoolError;
 use crate::prque::PriorityQueue;
@@ -28,7 +27,7 @@ use std::option::Option::Some;
 use std::rc::Rc;
 use tokio::sync::mpsc::UnboundedSender;
 use types::events::LocalEventMessage;
-use crate::traits::Blockchain;
+use traits::{StateDB, Blockchain};
 
 mod error;
 mod prque;
@@ -36,9 +35,8 @@ mod tests;
 mod tx_list;
 mod tx_lookup;
 mod tx_noncer;
-pub mod traits;
 
-type TxHashRef = Arc<TxHash>;
+type TxHashRef = Arc<Hash>;
 type TransactionRef = Rc<Transaction>;
 type Transactions = Vec<TransactionRef>;
 type Address = H160;
@@ -107,13 +105,11 @@ fn sanitize(conf: &TxPoolConfig) -> TxPoolConfig {
     conf
 }
 
-pub struct TxPool<Chain>
-    where
-        Chain: Blockchain,
+pub struct TxPool
 {
     config: TxPoolConfig,
     locals: AccountSet,
-    chain: Arc<Chain>,
+    chain: Arc<dyn Blockchain>,
     current_state: Arc<dyn StateDB>,
     pending_nonce: TxNoncer,
     //local event emitter
@@ -130,15 +126,13 @@ pub struct TxPool<Chain>
     changes_since_repack: i32,
 }
 
-impl<Chain> TxPool<Chain>
-    where
-        Chain: Blockchain,
+impl TxPool
 {
     pub fn new(
         conf: Option<&TxPoolConfig>,
         local_accounts: Option<Vec<Address>>,
         lmpsc: UnboundedSender<LocalEventMessage>,
-        chain: Arc<Chain>,
+        chain: Arc<dyn Blockchain>,
     ) -> Result<Self> {
         let conf = conf
             .map(|conf| sanitize(conf))
@@ -167,7 +161,7 @@ impl<Chain> TxPool<Chain>
     fn validate_tx(&self, tx: &Transaction, local: bool) -> Result<()> {
         match tx.kind() {
             TransactionKind::Transfer { from, .. } => {
-                if from != tx.origin() && tx.origin() != &GOVERNANCE_ACCOUNTID {
+                if from != tx.origin().as_fixed_bytes() {
                     anyhow::bail!(TxPoolError::BadOrigin)
                 }
             }
@@ -181,8 +175,7 @@ impl<Chain> TxPool<Chain>
             self.current_state.balance(&from) > tx.price(),
             TxPoolError::InsufficientFunds
         );
-
-        account::verify_signature(tx.origin(), tx.signature(), &tx.sig_hash()?)
+        Ok(())
     }
 
     fn add(&mut self, tx: TransactionRef, local: bool) -> Result<bool> {
@@ -418,17 +411,17 @@ impl<Chain> TxPool<Chain>
     fn reset(&mut self, old_head: Option<BlockHeader>, new_head: BlockHeader) -> Result<()> {
         let mut reinject = Vec::new();
         if let Some(old_head) = old_head {
-            if old_head.hash() != new_head.parent_hash() {
-                let old_num = old_head.level();
-                let new_num = new_head.level();
+            if old_head.hash() != new_head.parent_hash {
+                let old_num = old_head.level;
+                let new_num = new_head.level;
                 let depth = (old_num - new_num).abs();
                 if depth > 64 {
                     debug!(target : TXPOOL_LOG_TARGET, depth = ?depth, "Skipping deep transaction repack");
                 } else {
                     let mut discarded = BTreeSet::new();
                     let mut included = BTreeSet::new();
-                    let mut rem = self.chain.get_block(old_head.hash())?;
-                    let mut add = match self.chain.get_block(new_head.hash())? {
+                    let mut rem = self.chain.get_block(&old_head.hash())?;
+                    let mut add = match self.chain.get_block(&new_head.hash())? {
                         None => {
                             error!(target : TXPOOL_LOG_TARGET, new_head = ?H256::from(new_head.hash()), "Transaction pool reset with missing newhead");
                             return Err(TxPoolError::MissingBlock.into());
@@ -832,9 +825,7 @@ impl<Chain> TxPool<Chain>
 }
 
 //Public functions
-impl<Chain> TxPool<Chain>
-    where
-        Chain: Blockchain,
+impl TxPool
 {
     pub fn add_local(&mut self, tx: Transaction) -> Result<()> {
         self.add_txs(vec![tx], true)

@@ -1,12 +1,12 @@
 use crate::block::{Block, BlockHeader};
 use crate::tx::Transaction;
-use crate::{MempoolSnapsot, TxHash};
+use crate::{MempoolSnapsot, Hash};
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct TxPoolSnapshot {
-    pending: Vec<Arc<TxHash>>,
-    queue: Vec<Arc<TxHash>>,
+    pending: Vec<Arc<Hash>>,
+    queue: Vec<Arc<Hash>>,
 }
 
 #[derive(Clone, Debug)]

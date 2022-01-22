@@ -10,6 +10,7 @@ use primitive_types::H160;
 use crate::account::AccountState;
 use crate::block::BlockHeader;
 use std::sync::{Arc, RwLock};
+use hex::ToHex;
 
 pub mod account;
 pub mod block;
@@ -18,16 +19,10 @@ pub mod tx;
 
 pub type Hash = [u8; 32];
 pub type Address = [u8; 20];
-pub type BlockHash = [u8; 32];
-pub type TxHash = [u8; 32];
-pub type MerkleHash = [u8; 32];
-pub type Sig = [u8; 64];
-pub type PubKey = [u8; 32];
-
 #[derive(Serialize, Deserialize, Getters, Debug, Clone)]
 pub struct MempoolSnapsot {
-    pub pending: Vec<TxHash>,
-    pub valid: Vec<TxHash>,
+    pub pending: Vec<Hash>,
+    pub valid: Vec<Hash>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
@@ -50,16 +45,21 @@ pub struct TxPoolConfig {
     pub life_time: Duration,
 }
 
-pub fn cache_hash<F>(hash: &Arc<RwLock<Hash>>, f: F) -> Hash where F: Fn() -> Hash {
+pub fn cache_hash<F>(hash: &Arc<RwLock<Option<Hash>>>, f: F) -> Hash where F: Fn() -> Hash {
     match hash.read() {
         Ok(hash) => {
-            return *hash
+            match *hash {
+                Some(hash) => {
+                    return hash
+                },
+                None => {}
+            }
         },
         Err(_) => {}
     }
     let out = f();
     match hash.write() {
-        Ok(mut hash) => *hash = out,
+        Ok(mut hash) => *hash = Some(out),
         Err(_) => {}
     }
     out
@@ -75,4 +75,4 @@ pub struct Genesis {
 
 impl_codec!(MempoolSnapsot);
 
-big_array! { BigArray; }
+big_array! { BigArray; +33,65}

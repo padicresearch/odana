@@ -1,4 +1,4 @@
-mod ecdsa;
+pub mod ecdsa;
 mod error;
 
 use primitive_types::{H160, H256};

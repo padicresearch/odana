@@ -7,7 +7,6 @@ use std::sync::atomic::AtomicUsize;
 use anyhow::Result;
 
 use types::tx::Transaction;
-use types::TxHash;
 
 use crate::{TransactionRef, Transactions, TxHashRef};
 

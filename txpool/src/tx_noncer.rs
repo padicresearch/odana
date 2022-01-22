@@ -6,7 +6,6 @@ use dashmap::mapref::one::Ref;
 use std::collections::HashMap;
 use primitive_types::H160;
 use traits::StateDB;
-use types::PubKey;
 use crate::Address;
 
 #[derive(Clone)]
