@@ -1,14 +1,17 @@
-use crate::error::Error;
-use crate::miner_reward;
-use chrono::{Timelike, Utc};
-use primitive_types::{Compact, H256, U256};
+use core::cmp;
 use std::sync::Arc;
-use traits::{is_valid_proof_of_work, ChainHeadReader, Consensus, StateDB};
+
+use chrono::{Timelike, Utc};
+
+use primitive_types::{Compact, H256, U256};
+use traits::{ChainHeadReader, Consensus, is_valid_proof_of_work, StateDB};
+use types::{Genesis, Hash};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::Transaction;
-use types::{Genesis, Hash};
-use crate::constants::{TARGET_SPACING_SECONDS, DOUBLE_SPACING_SECONDS, RETARGETING_INTERVAL, BLOCK_MAX_FUTURE, TARGET_TIMESPAN_SECONDS, MIN_TIMESPAN, MAX_TIMESPAN};
-use core::cmp;
+
+use crate::constants::{BLOCK_MAX_FUTURE, DOUBLE_SPACING_SECONDS, MAX_TIMESPAN, MIN_TIMESPAN, RETARGETING_INTERVAL, TARGET_SPACING_SECONDS, TARGET_TIMESPAN_SECONDS};
+use crate::error::Error;
+use crate::miner_reward;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Network {
@@ -21,7 +24,13 @@ const TESTNET_MAX_DIFFICULTY: U256 = U256([
     0x0000000000000000u64,
     0x0000000000000000u64,
     0x0000000000000000u64,
-    0x00000377ae000000u64,
+    0x000fffffff000000u64,
+]);
+const UNITNET_MAX_DIFFICULTY: U256 = U256([
+    0x0000000000000000u64,
+    0x0000000000000000u64,
+    0x0000000000000000u64,
+    0x000fffffff000000u64,
 ]);
 const ALPHA_MAX_DIFFICULTY: U256 = U256([
     0x0000000000000000u64,
@@ -410,14 +419,17 @@ impl Consensus for BarossaProtocol {
 
 #[cfg(test)]
 mod tests {
-    use crate::barossa::{BarossaProtocol, Network};
-    use primitive_types::{Compact, H256, U256};
     use std::collections::HashMap;
     use std::sync::{Arc, RwLock};
+
+    use chrono::Utc;
+
+    use primitive_types::{Compact, H256, U256};
     use traits::{ChainHeadReader, Consensus};
     use types::block::{BlockHeader, IndexedBlockHeader};
     use types::Hash;
-    use chrono::Utc;
+
+    use crate::barossa::{BarossaProtocol, Network};
 
     #[derive(Default)]
     struct MemoryBlockHeaderReader {

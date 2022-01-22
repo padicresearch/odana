@@ -1,16 +1,22 @@
-use crate::worker::start_worker;
-use consensus::barossa::{BarossaProtocol, Network};
+use std::collections::hash_map::RandomState;
 use std::sync::{Arc, RwLock};
-use txpool::TxPool;
+use std::sync::atomic::AtomicI8;
+
+use anyhow::Result;
+use dashmap::DashMap;
+use dashmap::mapref::one::Ref;
+use tempdir::TempDir;
+
+use consensus::barossa::{BarossaProtocol, Network};
 use morph::Morph;
+use primitive_types::H256;
+use tracing::{Level, tracing_subscriber};
+use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
+use txpool::TxPool;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::Hash;
-use tempdir::TempDir;
-use traits::{Blockchain, StateDB, ChainHeadReader, Consensus};
-use anyhow::Result;
-use primitive_types::H256;
-use dashmap::DashMap;
-use std::sync::atomic::AtomicI8;
+
+use crate::worker::start_worker;
 
 mod worker;
 
@@ -58,11 +64,18 @@ impl Blockchain for DummyChain {
     }
 
     fn get_block(&self, block_hash: &Hash) -> Result<Option<Block>> {
+        //println!("\n\n\nRequest {:?},\nBlocks {:?}", block_hash, self.blocks);
         let blocks = self.chain.read().map_err(|_| anyhow::anyhow!("RW error"))?;
-        let res = self
+        let res = match self
             .blocks
-            .get(block_hash)
-            .ok_or(anyhow::anyhow!("block not found"))?;
+            .get(block_hash) {
+            None => {
+                return Ok(None)
+            }
+            Some(block) => {
+                block
+            }
+        };
         let block_level = res.value().clone();
         Ok(blocks.get(block_level).cloned())
     }
@@ -125,6 +138,7 @@ impl ChainHeadReader for DummyChain {
 
 
 fn main() {
+    tracing_subscriber::fmt().with_max_level(Level::TRACE).init();
     let (s, r) = tokio::sync::mpsc::unbounded_channel();
     let miner = account::create_account();
     let consensus = Arc::new(BarossaProtocol::new(Network::Testnet));

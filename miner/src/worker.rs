@@ -1,18 +1,21 @@
+use std::ops::Deref;
+use std::rc::Rc;
+use std::sync::{Arc, RwLock};
+use std::sync::atomic::AtomicI8;
+
 use anyhow::Result;
 use chrono::Utc;
+
 use merkle::Merkle;
 use morph::Morph;
-use primitive_types::{U256, H256, H160};
-use std::rc::Rc;
-use std::sync::atomic::AtomicI8;
-use std::sync::{Arc, RwLock};
+use primitive_types::{H160, H256, U256};
+use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus};
 use txpool::TxPool;
-use types::block::{BlockHeader, IndexedBlockHeader, Block};
-use types::tx::Transaction;
 use types::{Address, Hash};
-use tracing::{trace, info, debug, warn, error};
-use std::ops::Deref;
+use types::block::{Block, BlockHeader, IndexedBlockHeader};
+use types::tx::Transaction;
+
 use crate::DummyChain;
 
 pub fn start_worker(
@@ -25,8 +28,7 @@ pub fn start_worker(
     interrupt: Arc<AtomicI8>,
 ) -> Result<()> {
     loop {
-        println!("Starting miner Coinbase {}", coinbase);
-        let (mut block_template, txs) = make_block_template(
+        let (mut block_template, txs) = make_block(
             coinbase.to_fixed_bytes(),
             consensus.clone(),
             txpool.clone(),
@@ -43,10 +45,13 @@ pub fn start_worker(
                 block_template.nonce = 0
             }
             block_template.nonce += 1;
-            if consensus.verify_header(chain.clone(), &block_template).is_ok() {
+            if consensus
+                .verify_header(chain.clone(), &block_template)
+                .is_ok()
+            {
                 let hash = block_template.hash();
                 let level = block_template.level;
-                println!("🔨 mined potential block number {} hash {:?}", level, hex::encode(hash));
+                info!(level = level, hash = ?hex::encode(hash), parent_hash = ?hex::encode(block_template.parent_hash), "🔨 mined potential block");
                 dummy.add(Block::new(block_template, txs));
                 break;
             }
@@ -54,7 +59,7 @@ pub fn start_worker(
     }
 }
 
-fn make_block_template(
+fn make_block(
     coinbase: Address,
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
@@ -76,17 +81,17 @@ fn make_block_template(
         tsx.extend(list.iter().map(|tx_ref| tx_ref.deref().clone()));
     }
     let merkle_root = match merkle.finalize() {
-        None => {
-            [0; 32]
-        }
-        Some(root) => {
-            *root
-        }
+        None => [0; 32],
+        Some(root) => *root,
     };
     let state_root = state.root();
     let parent_header = match chain.current_header()? {
-        None => consensus.get_genesis_header(),
-        Some(header) => header.raw,
+        None => {
+            consensus.get_genesis_header()
+        }
+        Some(header) => {
+            header.raw
+        }
     };
     let mut mix_nonce = [0; 32];
     U256::one().to_big_endian(&mut mix_nonce);
@@ -103,7 +108,6 @@ fn make_block_template(
         time,
         nonce: 0,
     };
-
     consensus.prepare_header(chain, &mut header)?;
     Ok((header, tsx))
 }

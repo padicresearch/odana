@@ -36,22 +36,11 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implement miner">
-      <change afterPath="$PROJECT_DIR$/consensus/src/constants.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/miner/src/main.rs" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="fix proof of work">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/miner/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/morph/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/src/kv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/kv.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/src/snapshot.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/snapshot.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -147,7 +136,7 @@
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="nodejs_package_manager_path" value="npm" />
     <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
-    <property name="settings.editor.selected.configurable" value="language.rust.rustfmt" />
+    <property name="settings.editor.selected.configurable" value="Errors" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -416,14 +405,7 @@
       <workItem from="1642667625402" duration="6885000" />
       <workItem from="1642694134111" duration="2183000" />
       <workItem from="1642711159809" duration="40932000" />
-      <workItem from="1642832117627" duration="29965000" />
-    </task>
-    <task id="LOCAL-00023" summary="compile success">
-      <created>1641003583558</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
-      <option name="project" value="LOCAL" />
-      <updated>1641003583558</updated>
+      <workItem from="1642832117627" duration="35883000" />
     </task>
     <task id="LOCAL-00024" summary="implement persistent history log">
       <created>1641057897742</created>
@@ -761,7 +743,14 @@
       <option name="project" value="LOCAL" />
       <updated>1642838977994</updated>
     </task>
-    <option name="localTasksCounter" value="72" />
+    <task id="LOCAL-00072" summary="fix proof of work">
+      <created>1642867169899</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1642867169899</updated>
+    </task>
+    <option name="localTasksCounter" value="73" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -792,7 +781,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="compile success" />
     <MESSAGE value="implement persistent history log" />
     <MESSAGE value="fix commit log read error" />
     <MESSAGE value="fix history log database tests" />
@@ -817,7 +805,8 @@
     <MESSAGE value="implementing barossa consensus" />
     <MESSAGE value="* update to 2021&#10;* ecdsa KeyPair" />
     <MESSAGE value="implement miner" />
-    <option name="LAST_COMMIT_MESSAGE" value="implement miner" />
+    <MESSAGE value="fix proof of work" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix proof of work" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
