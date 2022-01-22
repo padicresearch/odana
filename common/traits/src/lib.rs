@@ -19,7 +19,8 @@ pub trait StateDB: Send + Sync {
     fn nonce(&self, address: &H160) -> u64;
     fn account_state(&self, address: &H160) -> AccountState;
     fn balance(&self, address: &H160) -> u128;
-    fn apply_transaction(&self, tx: &Transaction) -> Hash;
+    fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
+    fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
 }
 
 pub trait Saturating {
@@ -45,31 +46,14 @@ pub trait ChainReader: ChainHeadReader + Send + Sync {
 
 
 pub trait Consensus: Send + Sync {
-    const BLOCK_MAX_FUTURE: i64;
-    const COINBASE_MATURITY: u32;
-    // 2 hours
-    const MIN_COINBASE_SIZE: usize;
-    const MAX_COINBASE_SIZE: usize;
-
-    const RETARGETING_FACTOR: u32;
-    const TARGET_SPACING_SECONDS: u32;
-    const DOUBLE_SPACING_SECONDS: u32;
-    const TARGET_TIMESPAN_SECONDS: u32;
-
-    // The upper and lower bounds for retargeting timespan
-    const MIN_TIMESPAN: u32 = Self::TARGET_TIMESPAN_SECONDS / Self::RETARGETING_FACTOR;
-    const MAX_TIMESPAN: u32 = Self::TARGET_TIMESPAN_SECONDS * Self::RETARGETING_FACTOR;
-
-    // Target number of blocks, 2 weaks, 2016
-    const RETARGETING_INTERVAL: u32 = Self::TARGET_TIMESPAN_SECONDS / Self::TARGET_SPACING_SECONDS;
-
     fn verify_header(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader) -> Result<()>;
-    fn prepare_header(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader) -> Result<BlockHeader>;
+    fn prepare_header(&self, chain: Arc<dyn ChainHeadReader>, header: &mut BlockHeader) -> Result<()>;
     fn finalize(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader, state: Arc<dyn StateDB>, txs: Vec<Transaction>) -> Result<()>;
     fn finalize_and_assemble(&self, chain: Arc<dyn ChainHeadReader>, header: &BlockHeader, state: Arc<dyn StateDB>, txs: Vec<Transaction>) -> Result<Option<Block>>;
     fn work_required(&self, chain: Arc<dyn ChainHeadReader>, parent: &Hash, time: u32) -> Result<Compact>;
     fn is_genesis(&self, header: &BlockHeader) -> bool;
     fn miner_reward(&self, block_level: i32) -> u128;
+    fn get_genesis_header(&self) -> BlockHeader;
 }
 
 pub fn is_valid_proof_of_work(max_work_bits: Compact, bits: Compact, hash: &H256) -> bool {
@@ -82,9 +66,6 @@ pub fn is_valid_proof_of_work(max_work_bits: Compact, bits: Compact, hash: &H256
         Ok(target) => target,
         _err => return false,
     };
-
-    let mut raw_hash = *hash.as_fixed_bytes();
-    raw_hash.reverse();
-    let value = U256::from(&raw_hash);
+    let value = U256::from(hash.as_fixed_bytes());
     target <= maximum && value <= target
 }

@@ -1,12 +1,14 @@
 use crate::error::Error;
 use crate::miner_reward;
-use chrono::Timelike;
+use chrono::{Timelike, Utc};
 use primitive_types::{Compact, H256, U256};
 use std::sync::Arc;
 use traits::{is_valid_proof_of_work, ChainHeadReader, Consensus, StateDB};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::Transaction;
 use types::{Genesis, Hash};
+use crate::constants::{TARGET_SPACING_SECONDS, DOUBLE_SPACING_SECONDS, RETARGETING_INTERVAL, BLOCK_MAX_FUTURE, TARGET_TIMESPAN_SECONDS, MIN_TIMESPAN, MAX_TIMESPAN};
+use core::cmp;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Network {
@@ -53,7 +55,7 @@ impl Network {
 }
 
 pub struct BarossaProtocol {
-    network: Network,
+    network: Network
 }
 
 impl BarossaProtocol {
@@ -63,10 +65,112 @@ impl BarossaProtocol {
 }
 
 impl BarossaProtocol {
+    const CHAIN_ID: u32 = 101;
+
+
+    /// Returns work required for given header
+    pub fn work_required(&self, parent_hash: H256, time: u32, height: u32, chain: Arc<dyn ChainHeadReader>) -> Compact {
+        let max_bits = self.network.max_difficulty_compact();
+        if height == 0 {
+            return max_bits;
+        }
+
+        let parent_header = chain.get_header_by_hash(parent_hash.as_fixed_bytes()).unwrap().expect("self.height != 0; qed");
+
+        // match consensus.fork {
+        //     ConsensusFork::BitcoinCash(ref fork) if height >= fork.height =>
+        //         return work_required_bitcoin_cash(parent_header, time, height, store, consensus, fork, max_bits),
+        //     _ => (),
+        // }
+
+        if self.is_retarget_height(height) {
+            return self.work_required_retarget(parent_header, height, chain, max_bits);
+        }
+
+        if self.network == Network::Testnet {
+            return self.work_required_testnet(parent_hash, time, height, chain)
+        }
+
+        parent_header.raw.difficulty()
+    }
+
+    pub fn is_retarget_height(&self, height: u32) -> bool {
+        height % RETARGETING_INTERVAL == 0
+    }
+
+    fn range_constrain(&self, value: i64, min: i64, max: i64) -> i64 {
+        cmp::min(cmp::max(value, min), max)
+    }
+
+    pub fn retarget_timespan(&self, retarget_timestamp: u32, last_timestamp: u32) -> u32 {
+        // subtract unsigned 32 bit numbers in signed 64 bit space in
+        // order to prevent underflow before applying the range constraint.
+        let timespan = last_timestamp as i64 - retarget_timestamp as i64;
+        self.range_constrain(timespan, MIN_TIMESPAN as i64, MAX_TIMESPAN as i64) as u32
+    }
+
+    /// Algorithm used for retargeting work every 2 weeks
+    pub fn work_required_retarget(&self, parent_header: IndexedBlockHeader, height: u32, chain: Arc<dyn ChainHeadReader>, max_work_bits: Compact) -> Compact {
+        let retarget_ref = (height - RETARGETING_INTERVAL) as i32;
+        let retarget_header = chain.get_header_by_level(retarget_ref).unwrap().expect("self.height != 0 && self.height % RETARGETING_INTERVAL == 0; qed");
+
+        // timestamp of block(height - RETARGETING_INTERVAL)
+        let retarget_timestamp = retarget_header.raw.time;
+        // timestamp of parent block
+        let last_timestamp = parent_header.raw.time;
+        // bits of last block
+        let last_bits = parent_header.raw.difficulty();
+
+        let mut retarget: U256 = last_bits.into();
+        let maximum: U256 = max_work_bits.into();
+
+        retarget = retarget * U256::from(self.retarget_timespan(retarget_timestamp, last_timestamp));
+        retarget = retarget / U256::from(TARGET_TIMESPAN_SECONDS);
+
+        if retarget > maximum {
+            max_work_bits
+        } else {
+            retarget.into()
+        }
+    }
+
+    pub fn work_required_testnet(&self, parent_hash: H256, time: u32, height: u32, chain: Arc<dyn ChainHeadReader>) -> Compact {
+        assert!(height != 0, "cannot calculate required work for genesis block");
+
+        let mut bits = Vec::new();
+        let mut block_ref: Hash = parent_hash.into();
+
+        let parent_header = chain.get_header_by_hash(&block_ref).unwrap().expect("height != 0; qed");
+        let max_time_gap = parent_header.raw.time + DOUBLE_SPACING_SECONDS;
+        let max_bits = self.network.max_difficulty_compact().into();
+        if time > max_time_gap {
+            return max_bits;
+        }
+
+        // TODO: optimize it, so it does not make 2016!!! redundant queries each time
+        for _ in 0..RETARGETING_INTERVAL {
+            let previous_header = match chain.get_header_by_hash(&block_ref).unwrap() {
+                Some(h) => h,
+                None => { break; }
+            };
+            bits.push(previous_header.raw.difficulty());
+            block_ref = previous_header.raw.parent_hash;
+        }
+
+        for (index, bit) in bits.into_iter().enumerate() {
+            if bit != max_bits || self.is_retarget_height(height - index as u32 - 1) {
+                return bit;
+            }
+        }
+
+        max_bits
+    }
+
+
     /// Copy from https://github.com/mambisi/parity-bitcoin/blob/bf58a0d80ec196b99c9cf46b623b0a779af020f2/verification/src/work_bch.rs#L62
     /// Algorithm to adjust difficulty after each block. Implementation is based on Bitcoin ABC commit:
     /// https://github.com/Bitcoin-ABC/bitcoin-abc/commit/be51cf295c239ff6395a0aa67a3e13906aca9cb2
-    fn calc_required_difficulty(
+    fn work_required_bitcoin_cash_adjusted(
         &self,
         parent_header: IndexedBlockHeader,
         time: u32,
@@ -80,7 +184,7 @@ impl BarossaProtocol {
             mut header2: IndexedBlockHeader,
             chain: Arc<dyn ChainHeadReader>,
         ) -> IndexedBlockHeader {
-            let reason = "header.level >= RETARGETNG_INTERVAL; RETARGETING_INTERVAL > 2; qed";
+            let reason = "header.level >= RETARGETNG_INTERVAL; retargeting_interval > 2; qed";
             let mut header1 = chain
                 .get_header_by_hash(&header2.raw.parent_hash)
                 .unwrap()
@@ -145,17 +249,17 @@ impl BarossaProtocol {
             // we can deduce how much work we expect to be produced in the targeted time
             // between blocks.
             let mut work = compute_work_between_blocks(first_header.hash, &last_header, chain);
-            let c: U256 = U256::from(BarossaProtocol::TARGET_SPACING_SECONDS);
+            let c: U256 = U256::from(TARGET_SPACING_SECONDS);
             work = work * c;
 
             // In order to avoid difficulty cliffs, we bound the amplitude of the
             // adjustement we are going to do.
             debug_assert!(last_header.raw.time > first_header.raw.time);
             let mut actual_timespan = last_header.raw.time - first_header.raw.time;
-            if actual_timespan > 288 * BarossaProtocol::TARGET_SPACING_SECONDS {
-                actual_timespan = 288 * BarossaProtocol::TARGET_SPACING_SECONDS;
-            } else if actual_timespan < 72 * BarossaProtocol::TARGET_SPACING_SECONDS {
-                actual_timespan = 72 * BarossaProtocol::TARGET_SPACING_SECONDS;
+            if actual_timespan > 288 * TARGET_SPACING_SECONDS {
+                actual_timespan = 288 * TARGET_SPACING_SECONDS;
+            } else if actual_timespan < 72 * TARGET_SPACING_SECONDS {
+                actual_timespan = 72 * TARGET_SPACING_SECONDS;
             }
 
             let work = work / U256::from(actual_timespan);
@@ -174,7 +278,7 @@ impl BarossaProtocol {
         // mining of a min-difficulty block.
         let max_bits: Compact = Compact::from_u256(self.network.max_difficulty());
         if self.network == Network::Testnet {
-            let max_time_gap = parent_header.raw.time + BarossaProtocol::DOUBLE_SPACING_SECONDS;
+            let max_time_gap = parent_header.raw.time + DOUBLE_SPACING_SECONDS;
             if time > max_time_gap {
                 return max_bits.into();
             }
@@ -182,7 +286,7 @@ impl BarossaProtocol {
 
         // Compute the difficulty based on the full adjustement interval.
         let last_level = level - 1;
-        debug_assert!(last_level >= Self::RETARGETING_INTERVAL);
+        debug_assert!(last_level >= RETARGETING_INTERVAL);
 
         // Get the last suitable block of the difficulty interval.
         let last_header = suitable_block(parent_header, chain.clone());
@@ -192,7 +296,7 @@ impl BarossaProtocol {
         let first_header = chain
             .get_header_by_level(first_level as i32)
             .unwrap()
-            .expect("last_level >= RETARGETING_INTERVAL; RETARGETING_INTERVAL - 144 > 0; qed");
+            .expect("last_level >= retargeting_interval; retargeting_interval - 144 > 0; qed");
         let first_header = suitable_block(first_header, chain.clone());
 
         // Compute the target based on time and work done during the interval.
@@ -207,15 +311,6 @@ impl BarossaProtocol {
 }
 
 impl Consensus for BarossaProtocol {
-    const BLOCK_MAX_FUTURE: i64 = 2 * 60 * 60;
-    const COINBASE_MATURITY: u32 = 100;
-    const MIN_COINBASE_SIZE: usize = 2;
-    const MAX_COINBASE_SIZE: usize = 100;
-    const RETARGETING_FACTOR: u32 = 4;
-    const TARGET_SPACING_SECONDS: u32 = 10 * 60;
-    const DOUBLE_SPACING_SECONDS: u32 = 2 * Self::TARGET_SPACING_SECONDS;
-    const TARGET_TIMESPAN_SECONDS: u32 = 2 * 7 * 24 * 60 * 60;
-
     fn verify_header(
         &self,
         chain: Arc<dyn ChainHeadReader>,
@@ -227,7 +322,7 @@ impl Consensus for BarossaProtocol {
             .ok_or(Error::ParentBlockNotFound)?;
         // Check timestamp
         anyhow::ensure!(
-            (header.time as i64) < Self::BLOCK_MAX_FUTURE + current_time,
+            (header.time as i64) < BLOCK_MAX_FUTURE + current_time,
             "future block timestamp"
         );
         anyhow::ensure!(
@@ -244,9 +339,16 @@ impl Consensus for BarossaProtocol {
     fn prepare_header(
         &self,
         chain: Arc<dyn ChainHeadReader>,
-        header: &BlockHeader,
-    ) -> anyhow::Result<BlockHeader> {
-        todo!()
+        header: &mut BlockHeader,
+    ) -> anyhow::Result<()> {
+        let parent = chain
+            .get_header(&header.parent_hash, header.level - 1)?
+            .ok_or(Error::ParentBlockNotFound)?;
+        header.chain_id = Self::CHAIN_ID;
+        header.difficulty = self
+            .work_required(parent.hash, Utc::now().timestamp() as u32, (header.level + 1) as u32, chain)
+            .into();
+        Ok(())
     }
 
     fn finalize(
@@ -279,7 +381,7 @@ impl Consensus for BarossaProtocol {
             .get_header_by_hash(&parent)?
             .ok_or(Error::ParentBlockNotFound)?;
         let level = parent_header.raw.level as u32;
-        Ok(self.calc_required_difficulty(parent_header, time, level + 1, chain))
+        Ok(self.work_required(parent_header.hash, time, level + 1, chain))
     }
 
     fn is_genesis(&self, header: &BlockHeader) -> bool {
@@ -289,6 +391,21 @@ impl Consensus for BarossaProtocol {
     fn miner_reward(&self, block_level: i32) -> u128 {
         miner_reward(block_level as u128)
     }
+
+    fn get_genesis_header(&self) -> BlockHeader {
+        BlockHeader {
+            parent_hash: [0; 32],
+            merkle_root: [0; 32],
+            state_root: [0; 32],
+            mix_nonce: [0; 32],
+            coinbase: [0; 20],
+            difficulty: self.network.max_difficulty_compact().into(),
+            chain_id: Self::CHAIN_ID,
+            level: 0,
+            time: 0,
+            nonce: 0,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -296,10 +413,11 @@ mod tests {
     use crate::barossa::{BarossaProtocol, Network};
     use primitive_types::{Compact, H256, U256};
     use std::collections::HashMap;
+    use std::sync::{Arc, RwLock};
     use traits::{ChainHeadReader, Consensus};
     use types::block::{BlockHeader, IndexedBlockHeader};
     use types::Hash;
-    use std::sync::{Arc, RwLock};
+    use chrono::Utc;
 
     #[derive(Default)]
     struct MemoryBlockHeaderReader {
@@ -334,12 +452,10 @@ mod tests {
 
         fn get_header_by_hash(&self, hash: &Hash) -> anyhow::Result<Option<IndexedBlockHeader>> {
             let by_hash = self.by_hash.read().unwrap();
-            Ok(by_hash
-                .get(&H256::from(hash))
-                .map(|h| {
-                    let by_height = self.by_height.read().unwrap();
-                    by_height[*h].clone()
-                }))
+            Ok(by_hash.get(&H256::from(hash)).map(|h| {
+                let by_height = self.by_height.read().unwrap();
+                by_height[*h].clone()
+            }))
         }
 
         fn get_header_by_level(&self, level: i32) -> anyhow::Result<Option<IndexedBlockHeader>> {
@@ -356,7 +472,6 @@ mod tests {
     #[test]
     fn test_consensus_protocol_adjusted_difficulty() {
         let barossa = BarossaProtocol::new(Network::Mainnet);
-
 
         let limit_bits = barossa.network.max_difficulty();
         let initial_bits = limit_bits >> 4;
@@ -379,7 +494,10 @@ mod tests {
 
         // Pile up some blocks every 10 mins to establish some history.
         for height in 1..2050 {
-            let mut header = header_provider.get_header_by_level((height - 1).into()).unwrap().unwrap();
+            let mut header = header_provider
+                .get_header_by_level((height - 1).into())
+                .unwrap()
+                .unwrap();
             header.raw.parent_hash = header.hash.into();
             header.raw.time = header.raw.time + 600;
             header.raw.level = height;
@@ -387,38 +505,64 @@ mod tests {
         }
 
         // Difficulty stays the same as long as we produce a block every 10 mins.
-        let header = header_provider.get_header_by_level(2049.into()).unwrap().unwrap();
-        let current_bits = barossa.work_required(header_provider.clone(), header.hash.as_fixed_bytes(),
-                                                 0).unwrap();
+        let header = header_provider
+            .get_header_by_level(2049.into())
+            .unwrap()
+            .unwrap();
+        let current_bits = barossa
+            .work_required(header.hash, Utc::now().timestamp() as u32, (header.raw.level + 1) as u32, header_provider.clone());
         for height in 2050..2060 {
-            let mut header = header_provider.get_header_by_level((height - 1)).unwrap().unwrap();
+            let mut header = header_provider
+                .get_header_by_level((height - 1))
+                .unwrap()
+                .unwrap();
             header.raw.parent_hash = header.hash.into();
             header.raw.time = header.raw.time + 600;
             header.raw.difficulty = current_bits.into();
             header.raw.level = header.raw.level + 1;
             header_provider.insert(header.raw);
-            let parent = header_provider.get_header_by_level(height.into()).unwrap().unwrap();
-            let calculated_bits = barossa.calc_required_difficulty(parent, 0, height as u32 + 1, header_provider.clone());
+            let parent = header_provider
+                .get_header_by_level(height.into())
+                .unwrap()
+                .unwrap();
+            let calculated_bits = barossa.work_required_bitcoin_cash_adjusted(
+                parent,
+                0,
+                height as u32 + 1,
+                header_provider.clone(),
+            );
             debug_assert_eq!(calculated_bits, current_bits);
         }
 
         // Make sure we skip over blocks that are out of wack. To do so, we produce
         // a block that is far in the future
-        let mut header = header_provider.get_header_by_level(2059.into()).unwrap().unwrap();
+        let mut header = header_provider
+            .get_header_by_level(2059.into())
+            .unwrap()
+            .unwrap();
         header.raw.parent_hash = header.hash.into();
         header.raw.time = header.raw.time + 6000;
         header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
-        let calculated_bits = barossa.calc_required_difficulty(header, 0, 2061, header_provider.clone());
+        let calculated_bits =
+            barossa.work_required_bitcoin_cash_adjusted(header, 0, 2061, header_provider.clone());
         debug_assert_eq!(calculated_bits, current_bits);
 
         // .. and then produce a block with the expected timestamp.
-        let mut header = header_provider.get_header_by_level(2060.into()).unwrap().unwrap();
+        let mut header = header_provider
+            .get_header_by_level(2060.into())
+            .unwrap()
+            .unwrap();
         header.raw.parent_hash = header.hash.into();
         header.raw.time = header.raw.time + 2 * 600 - 6000;
         header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
-        let calculated_bits = barossa.calc_required_difficulty(header_provider.get_header_by_level(2060).unwrap().unwrap(), 0, 2061, header_provider.clone());
+        let calculated_bits = barossa.work_required_bitcoin_cash_adjusted(
+            header_provider.get_header_by_level(2060).unwrap().unwrap(),
+            0,
+            2061,
+            header_provider.clone(),
+        );
         debug_assert_eq!(calculated_bits, current_bits);
 
         // // The system should continue unaffected by the block with a bogous timestamps.

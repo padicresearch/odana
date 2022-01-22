@@ -15,7 +15,6 @@ use codec::impl_codec;
 use primitive_types::{H160, H256};
 use storage::{KVEntry, KVStore};
 use traits::StateDB;
-use types::{BlockHash, TxHash};
 use types::account::{AccountState, get_address_from_pub_key};
 use types::Hash;
 use types::tx::{Transaction, TransactionKind};
@@ -76,8 +75,24 @@ impl StateDB for Morph {
         self.account_state(address).free_balance
     }
 
-    fn apply_transaction(&self, tx: &Transaction) -> Hash {
-        todo!()
+    fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
+        let action = MorphOperation::CreditBalance {
+            account: *address,
+            amount,
+            tx_hash: [0; 32],
+        };
+        self.apply_operation(action)?;
+        Ok(self.root_hash().unwrap())
+    }
+
+    fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
+        let action = MorphOperation::DebitBalance {
+            account: *address,
+            amount,
+            tx_hash: [0; 32],
+        };
+        self.apply_operation(action)?;
+        Ok(self.root_hash().unwrap())
     }
 }
 
@@ -97,45 +112,35 @@ impl Morph {
         Ok(morph)
     }
 
-    pub fn open_read_only<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let db = Arc::new(rocksdb::DB::open_cf_for_read_only(
-            &default_db_opts(),
-            path,
-            column_families(),
-            false,
-        )?);
-        let morph = Self {
-            db: db.clone(),
-            history_storage: Arc::new(HistoryStorage::new(db.clone())),
-            account_state_storage: Arc::new(AccountStateStorage::new(db.clone())),
-            account_meta_storage: Arc::new(AccountMetadataStorage::new(db.clone())),
-        };
-        Ok(morph)
-    }
 
     pub fn apply_transaction(&self, transaction: Transaction) -> Result<()> {
         //TODO: verify transaction (probably)
         for action in get_operations(&transaction) {
-            let mut new_account_state = self.apply_action(&action)?;
-            let mut sha3 = tiny_keccak::Sha3::v256();
-            let current_root = self.history_storage.root_hash()?;
-            sha3.update(&current_root);
-            sha3.update(&action.encode()?);
-            sha3.update(&new_account_state.encode()?);
-            let mut new_root = [0; 32];
-            sha3.finalize(&mut new_root);
-
-            let sender = action.get_address();
-            let history_value = self.history_storage.append(new_root, action)?;
-            self.account_meta_storage.put(sender, history_value.root)?;
-            self.account_state_storage.put(sender, new_account_state)?;
+            self.apply_operation(action);
         }
+        Ok(())
+    }
+
+    fn apply_operation(&self, action: MorphOperation) -> Result<()> {
+        let new_account_state = self.apply_action(&action)?;
+        let mut sha3 = tiny_keccak::Sha3::v256();
+        let current_root = self.history_storage.root_hash()?;
+        sha3.update(&current_root);
+        sha3.update(&action.encode()?);
+        sha3.update(&new_account_state.encode()?);
+        let mut new_root = [0; 32];
+        sha3.finalize(&mut new_root);
+
+        let sender = action.get_address();
+        let history_value = self.history_storage.append(new_root, action)?;
+        self.account_meta_storage.put(sender, history_value.root)?;
+        self.account_state_storage.put(sender, new_account_state)?;
         Ok(())
     }
 
     //fn commit(&self, new_root : )
 
-    pub fn check_transaction(&mut self, transaction: &Transaction) -> Result<()> {
+    pub fn check_transaction(&self, transaction: &Transaction) -> Result<()> {
         Ok(())
     }
 

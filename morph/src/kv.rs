@@ -48,7 +48,7 @@ impl<S: Schema> KV<S> for DB {
             .cf_handle(S::column())
             .ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
         let key = key.encode()?;
-        let value = self.get_cf(cf, key)?;
+        let value = self.get_cf(&cf, key)?;
         match value {
             None => Ok(None),
             Some(value) => Ok(Some(S::Value::decode(&value)?)),
@@ -61,7 +61,7 @@ impl<S: Schema> KV<S> for DB {
             .ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
         let keys: Result<Vec<_>> = key
             .iter()
-            .map(|k| k.encode().map(|key| (cf, key)))
+            .map(|k| k.encode().map(|key| (&cf, key)))
             .collect();
         let mut results = Vec::with_capacity(key.len());
         for res in self.multi_get_cf(keys?) {
@@ -82,7 +82,7 @@ impl<S: Schema> KV<S> for DB {
             .ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
         let key = key.encode()?;
         let value = value.encode()?;
-        self.put_cf_opt(cf, key, value, &default_write_opts())
+        self.put_cf_opt(&cf, key, value, &default_write_opts())
             .map_err(|e| e.into())
     }
 
@@ -92,7 +92,7 @@ impl<S: Schema> KV<S> for DB {
             .ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
         let mut write_batch = rocksdb::WriteBatch::default();
         for (k, v) in batch {
-            write_batch.put_cf(cf, k.encode()?, v.encode()?);
+            write_batch.put_cf(&cf, k.encode()?, v.encode()?);
         }
         self.write_opt(write_batch, &default_write_opts())
             .map_err(|e| e.into())
@@ -104,7 +104,7 @@ impl<S: Schema> KV<S> for DB {
             .ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
         let key = key.encode()?;
         let value = value.encode()?;
-        self.merge_cf_opt(cf, key, value, &default_write_opts())
+        self.merge_cf_opt(&cf, key, value, &default_write_opts())
             .map_err(|e| e.into())
     }
 
@@ -113,7 +113,7 @@ impl<S: Schema> KV<S> for DB {
             .cf_handle(S::column())
             .ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
         let key = key.encode()?;
-        let val = self.get_pinned_cf(cf, key)?;
+        let val = self.get_pinned_cf(&cf, key)?;
         Ok(val.is_some())
     }
 
@@ -121,7 +121,7 @@ impl<S: Schema> KV<S> for DB {
         let cf = self
             .cf_handle(S::column())
             .ok_or(MorphError::ColumnFamilyMissing(S::column()))?;
-        let iter = self.iterator_cf(cf, rocksdb::IteratorMode::Start);
+        let iter = self.iterator_cf(&cf, rocksdb::IteratorMode::Start);
         Ok(Box::new(
             iter.map(|(k, v)| (S::Key::decode(&k), S::Value::decode(&v))),
         ))

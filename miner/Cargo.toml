@@ -10,3 +10,14 @@ traits = { path = "../common/traits" }
 types = { path = "../common/types" }
 primitive-types = { path = "../common/primitive-types" }
 txpool = { path = "../txpool" }
+morph = { path = "../morph" }
+anyhow = "1"
+merkle = { path = "../merkle" }
+chrono = "0.4"
+tracing = { path = "../common/tracing" }
+consensus = { path = "../consensus" }
+account = { path = "../account" }
+tempdir = "0.3.7"
+tokio = { version = "1", features = ["full"] }
+dashmap = "5.0.0"
+hex = "0.4.3"

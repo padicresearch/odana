@@ -36,33 +36,22 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="* update to 2021&#10;* ecdsa KeyPair">
-      <change afterPath="$PROJECT_DIR$/miner/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/miner/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implement miner">
+      <change afterPath="$PROJECT_DIR$/consensus/src/constants.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/miner/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/account/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/account/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/amount.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/balances.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_manager.rs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/account.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/miner/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/morph/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/kv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/kv.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/transaction/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/snapshot.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/snapshot.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/traits.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -176,7 +165,7 @@
       <recent name="$PROJECT_DIR$/merkle/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::txpool_test">
+  <component name="RunManager" selected="Cargo.Run miner">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -241,8 +230,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test ecdsa::test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package crypto --lib ecdsa::test" />
+    <configuration name="Run miner" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="run --package miner --bin miner" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -257,8 +246,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test ecdsa::test_pair" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package crypto --lib ecdsa::test_pair -- --exact" />
+    <configuration name="Test barossa::tests::test_consensus_protocol_adjusted_difficulty" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package consensus --lib barossa::tests::test_consensus_protocol_adjusted_difficulty -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -343,19 +332,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test ecdsa::test_pair" />
-      <item itemvalue="Cargo.Test ecdsa::test" />
       <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
       <item itemvalue="Cargo.Test tests::txpool_test" />
       <item itemvalue="Cargo.Test tests::test_morph" />
+      <item itemvalue="Cargo.Run miner" />
+      <item itemvalue="Cargo.Test barossa::tests::test_consensus_protocol_adjusted_difficulty" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Run miner" />
+        <item itemvalue="Cargo.Test barossa::tests::test_consensus_protocol_adjusted_difficulty" />
         <item itemvalue="Cargo.Test tests::txpool_test" />
         <item itemvalue="Cargo.Test tests::test_morph" />
         <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
-        <item itemvalue="Cargo.Test ecdsa::test" />
-        <item itemvalue="Cargo.Test ecdsa::test_pair" />
       </list>
     </recent_temporary>
   </component>
@@ -427,14 +416,7 @@
       <workItem from="1642667625402" duration="6885000" />
       <workItem from="1642694134111" duration="2183000" />
       <workItem from="1642711159809" duration="40932000" />
-      <workItem from="1642832117627" duration="4894000" />
-    </task>
-    <task id="LOCAL-00022" summary="implement account based blockchain">
-      <created>1640863293944</created>
-      <option name="number" value="00022" />
-      <option name="presentableId" value="LOCAL-00022" />
-      <option name="project" value="LOCAL" />
-      <updated>1640863293944</updated>
+      <workItem from="1642832117627" duration="29965000" />
     </task>
     <task id="LOCAL-00023" summary="compile success">
       <created>1641003583558</created>
@@ -772,7 +754,14 @@
       <option name="project" value="LOCAL" />
       <updated>1642750678676</updated>
     </task>
-    <option name="localTasksCounter" value="71" />
+    <task id="LOCAL-00071" summary="implement miner">
+      <created>1642838977993</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1642838977994</updated>
+    </task>
+    <option name="localTasksCounter" value="72" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -803,7 +792,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="implement account based blockchain" />
     <MESSAGE value="compile success" />
     <MESSAGE value="implement persistent history log" />
     <MESSAGE value="fix commit log read error" />
@@ -828,7 +816,8 @@
     <MESSAGE value="merge txpool" />
     <MESSAGE value="implementing barossa consensus" />
     <MESSAGE value="* update to 2021&#10;* ecdsa KeyPair" />
-    <option name="LAST_COMMIT_MESSAGE" value="* update to 2021&#10;* ecdsa KeyPair" />
+    <MESSAGE value="implement miner" />
+    <option name="LAST_COMMIT_MESSAGE" value="implement miner" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

@@ -127,6 +127,18 @@ impl PartialEq for Transaction {
 
 impl Eq for Transaction {}
 
+impl PartialOrd for Transaction {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.hash().partial_cmp(&other.hash())
+    }
+}
+
+impl Ord for Transaction {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.hash().cmp(&other.hash())
+    }
+}
+
 impl std::hash::Hash for Transaction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         state.write(&self.hash())

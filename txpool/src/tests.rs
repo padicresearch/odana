@@ -159,7 +159,11 @@ impl StateDB for DummyStateDB {
         self.account_state(address).free_balance
     }
 
-    fn apply_transaction(&self, tx: &Transaction) -> Hash {
+    fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
+        todo!()
+    }
+
+    fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
         todo!()
     }
 }

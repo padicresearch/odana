@@ -1,12 +1,15 @@
 use crate::error::Error;
 use anyhow::Result;
-use primitive_types::{endian, Compact, H160, U256};
+use primitive_types::{endian, Compact, H160, U256, H256};
 use std::sync::Arc;
 use traits::{ChainHeadReader, Consensus, StateDB};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader};
 use types::tx::Transaction;
 use types::{Genesis, Hash};
+use crate::constants::RETARGETING_INTERVAL;
+use core::cmp;
+use crate::barossa::Network;
 
 pub const MAX_BLOCK_HEIGHT: u128 = 25_000_000;
 pub const INITIAL_REWARD: u128 = 10 * 1_000_000_000 /*TODO: Use TUC constant*/;
@@ -21,6 +24,8 @@ pub fn miner_reward(block_height: u128) -> u128 {
     INITIAL_REWARD - block_height.pow(4) / SPREAD
 }
 
-mod barossa;
+pub mod barossa;
 pub mod coin;
-mod error;
+pub mod error;
+mod constants;
+
