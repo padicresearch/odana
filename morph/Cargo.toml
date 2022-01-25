@@ -15,14 +15,17 @@ types = {path = "../common/types"}
 traits = {path = "../common/traits"}
 account = {path = "../account"}
 codec = {path = "../codec"}
+crypto = {path = "../crypto"}
 chrono = "0.4.19"
 hex = "0.4.3"
 commitlog = "0.2"
 primitive-types = { path = "../common/primitive-types" }
 tracing = { path = "../common/tracing" }
 transaction = { path = "../transaction" }
-rocksdb = { version = "0.17.0", features = ["multi-threaded-cf"] }
+merk = {git = "https://github.com/mambisi/merk.git", branch = "develop"}
+rocksdb = { version = "0.17.0"}
 num_cpus = "1.13.1"
-[dev-dependencies]
 tempdir = "0.3.7"
+rand = "0.8.4"
+[dev-dependencies]
 fs_extra = "1.2.0"

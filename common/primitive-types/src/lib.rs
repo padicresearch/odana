@@ -18,8 +18,8 @@ use impl_num_traits::impl_uint_num_traits;
 use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
 use uint::{construct_uint, uint_full_mul_reg};
 
-mod fp_conversion;
 pub mod endian;
+mod fp_conversion;
 
 /// Error type for conversion.
 
@@ -74,6 +74,12 @@ impl U128 {
     #[inline(always)]
     pub fn full_mul(self, other: U128) -> U256 {
         U256(uint_full_mul_reg!(U128, 2, self, other))
+    }
+    #[inline(always)]
+    pub fn to_be_bytes(self) -> [u8; 16] {
+        let mut out = [0_u8; 16];
+        self.to_big_endian(&mut out);
+        out
     }
 }
 

@@ -1,4 +1,6 @@
+use core::cmp;
 use std::fmt::Formatter;
+use std::io;
 use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
@@ -8,16 +10,14 @@ use tiny_keccak::Hasher;
 
 use codec::{Decoder, Encoder};
 use codec::impl_codec;
+use crypto::SHA256;
+use primitive_types::{Compact, H256, U128, U256};
 
 use crate::tx::Transaction;
 
 use super::*;
-use primitive_types::{Compact, U256, H256};
-use crypto::SHA256;
-use core::cmp;
-use std::io;
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
+#[derive(Serialize, Deserialize, Copy, Clone, Getters)]
 pub struct BlockHeader {
     pub parent_hash: Hash,
     pub merkle_root: Hash,
@@ -32,6 +32,20 @@ pub struct BlockHeader {
     pub nonce: u128,
 }
 
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
+pub struct BlockHeaderHexFormat {
+    pub parent_hash: H256,
+    pub merkle_root: H256,
+    pub state_root: H256,
+    pub mix_nonce: U256,
+    pub coinbase: H160,
+    pub difficulty: U128,
+    pub chain_id: U128,
+    pub level: U128,
+    pub time: U128,
+    pub nonce: U128,
+}
+
 impl BlockHeader {
     pub fn hash(&self) -> Hash {
         SHA256::digest(&self.encode().unwrap()).into()
@@ -40,8 +54,28 @@ impl BlockHeader {
     pub fn difficulty(&self) -> Compact {
         Compact::from(self.difficulty)
     }
+
+    pub fn to_hex_format(&self) -> BlockHeaderHexFormat {
+        BlockHeaderHexFormat {
+            parent_hash: H256::from(self.parent_hash),
+            merkle_root: H256::from(self.merkle_root),
+            state_root: H256::from(self.state_root),
+            mix_nonce: U256::from(self.mix_nonce),
+            coinbase: H160::from(self.coinbase),
+            difficulty: self.difficulty.into(),
+            chain_id: self.difficulty.into(),
+            level: self.difficulty.into(),
+            time: self.difficulty.into(),
+            nonce: self.difficulty.into(),
+        }
+    }
 }
 
+impl std::fmt::Debug for BlockHeader {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.to_hex_format().fmt(f)
+    }
+}
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Block {
     header: BlockHeader,
@@ -68,10 +102,8 @@ impl Block {
         }
     }
 
-    pub fn hash(&self) -> [u8; 32] {
-        cache_hash(&self.hash, || {
-            self.header.hash()
-        })
+    pub fn hash(&self) -> Hash {
+        cache_hash(&self.hash, || self.header.hash())
     }
 
     pub fn header(&self) -> &BlockHeader {
@@ -84,7 +116,6 @@ impl Block {
         &self.header.parent_hash
     }
 }
-
 
 #[derive(Clone)]
 pub struct IndexedBlockHeader {
@@ -109,10 +140,7 @@ impl From<BlockHeader> for IndexedBlockHeader {
 
 impl IndexedBlockHeader {
     pub fn new(hash: H256, header: BlockHeader) -> Self {
-        IndexedBlockHeader {
-            hash,
-            raw: header,
-        }
+        IndexedBlockHeader { hash, raw: header }
     }
 
     /// Explicit conversion of the raw BlockHeader into IndexedBlockHeader.

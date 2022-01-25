@@ -1,8 +1,10 @@
-use crate::{MAX_SUPPLY_PRECOMPUTED};
 use std::fmt::Formatter;
 use std::ops::{Add, Mul, Sub};
+
 use traits::Saturating;
+
 use crate::barossa::BarossaProtocol;
+use crate::MAX_SUPPLY_PRECOMPUTED;
 
 pub const TUC_UNIT: u128 = 1_000_000_000;
 
@@ -139,8 +141,9 @@ impl std::fmt::Display for Chi {
 
 #[cfg(test)]
 mod test {
-    use crate::coin::Chi;
     use traits::Saturating;
+
+    use crate::coin::Chi;
 
     #[test]
     fn tuc_test() {

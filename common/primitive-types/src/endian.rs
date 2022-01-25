@@ -5,11 +5,11 @@ macro_rules! define_slice_to_be {
             assert_eq!(slice.len(), ::core::mem::size_of::<$type>());
             let mut res = 0;
             for i in 0..::core::mem::size_of::<$type>() {
-                res |= (slice[i] as $type) << (::core::mem::size_of::<$type>() - i - 1)*8;
+                res |= (slice[i] as $type) << (::core::mem::size_of::<$type>() - i - 1) * 8;
             }
             res
         }
-    }
+    };
 }
 macro_rules! define_slice_to_le {
     ($name: ident, $type: ty) => {
@@ -18,11 +18,11 @@ macro_rules! define_slice_to_le {
             assert_eq!(slice.len(), ::core::mem::size_of::<$type>());
             let mut res = 0;
             for i in 0..::core::mem::size_of::<$type>() {
-                res |= (slice[i] as $type) << i*8;
+                res |= (slice[i] as $type) << i * 8;
             }
             res
         }
-    }
+    };
 }
 macro_rules! define_be_to_array {
     ($name: ident, $type: ty, $byte_len: expr) => {
@@ -31,11 +31,11 @@ macro_rules! define_be_to_array {
             debug_assert_eq!(::core::mem::size_of::<$type>(), $byte_len); // size_of isn't a constfn in 1.22
             let mut res = [0; $byte_len];
             for i in 0..$byte_len {
-                res[i] = ((val >> ($byte_len - i - 1)*8) & 0xff) as u8;
+                res[i] = ((val >> ($byte_len - i - 1) * 8) & 0xff) as u8;
             }
             res
         }
-    }
+    };
 }
 macro_rules! define_le_to_array {
     ($name: ident, $type: ty, $byte_len: expr) => {
@@ -44,11 +44,11 @@ macro_rules! define_le_to_array {
             debug_assert_eq!(::core::mem::size_of::<$type>(), $byte_len); // size_of isn't a constfn in 1.22
             let mut res = [0; $byte_len];
             for i in 0..$byte_len {
-                res[i] = ((val >> i*8) & 0xff) as u8;
+                res[i] = ((val >> i * 8) & 0xff) as u8;
             }
             res
         }
-    }
+    };
 }
 
 define_slice_to_be!(slice_to_u32_be, u32);
@@ -97,11 +97,14 @@ macro_rules! define_chunk_slice_to_int {
         #[inline]
         pub fn $name(inp: &[u8], outp: &mut [$type]) {
             assert_eq!(inp.len(), outp.len() * ::core::mem::size_of::<$type>());
-            for (outp_val, data_bytes) in outp.iter_mut().zip(inp.chunks(::core::mem::size_of::<$type>())) {
+            for (outp_val, data_bytes) in outp
+                .iter_mut()
+                .zip(inp.chunks(::core::mem::size_of::<$type>()))
+            {
                 *outp_val = $converter(data_bytes);
             }
         }
-    }
+    };
 }
 define_chunk_slice_to_int!(bytes_to_u64_slice_le, u64, slice_to_u64_le);
 
@@ -112,20 +115,32 @@ mod tests {
     #[test]
     fn endianness_test() {
         assert_eq!(slice_to_u32_be(&[0xde, 0xad, 0xbe, 0xef]), 0xdeadbeef);
-        assert_eq!(slice_to_u64_be(&[0xde, 0xad, 0xbe, 0xef, 0x1b, 0xad, 0xca, 0xfe]), 0xdeadbeef1badcafe);
+        assert_eq!(
+            slice_to_u64_be(&[0xde, 0xad, 0xbe, 0xef, 0x1b, 0xad, 0xca, 0xfe]),
+            0xdeadbeef1badcafe
+        );
         assert_eq!(u32_to_array_be(0xdeadbeef), [0xde, 0xad, 0xbe, 0xef]);
 
         assert_eq!(slice_to_u16_le(&[0xad, 0xde]), 0xdead);
         assert_eq!(slice_to_u32_le(&[0xef, 0xbe, 0xad, 0xde]), 0xdeadbeef);
-        assert_eq!(slice_to_u64_le(&[0xef, 0xbe, 0xad, 0xde, 0xfe, 0xca, 0xad, 0x1b]), 0x1badcafedeadbeef);
+        assert_eq!(
+            slice_to_u64_le(&[0xef, 0xbe, 0xad, 0xde, 0xfe, 0xca, 0xad, 0x1b]),
+            0x1badcafedeadbeef
+        );
         assert_eq!(u16_to_array_le(0xdead), [0xad, 0xde]);
         assert_eq!(u32_to_array_le(0xdeadbeef), [0xef, 0xbe, 0xad, 0xde]);
-        assert_eq!(u64_to_array_le(0x1badcafedeadbeef), [0xef, 0xbe, 0xad, 0xde, 0xfe, 0xca, 0xad, 0x1b]);
+        assert_eq!(
+            u64_to_array_le(0x1badcafedeadbeef),
+            [0xef, 0xbe, 0xad, 0xde, 0xfe, 0xca, 0xad, 0x1b]
+        );
     }
 
     #[test]
     fn endian_chunk_test() {
-        let inp = [0xef, 0xbe, 0xad, 0xde, 0xfe, 0xca, 0xad, 0x1b, 0xfe, 0xca, 0xad, 0x1b, 0xce, 0xfa, 0x01, 0x02];
+        let inp = [
+            0xef, 0xbe, 0xad, 0xde, 0xfe, 0xca, 0xad, 0x1b, 0xfe, 0xca, 0xad, 0x1b, 0xce, 0xfa,
+            0x01, 0x02,
+        ];
         let mut out = [0; 2];
         bytes_to_u64_slice_le(&inp, &mut out);
         assert_eq!(out, [0x1badcafedeadbeef, 0x0201face1badcafe]);

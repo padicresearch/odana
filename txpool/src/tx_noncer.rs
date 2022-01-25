@@ -1,11 +1,13 @@
 use std::collections::hash_map::RandomState;
+use std::collections::HashMap;
 use std::sync::Arc;
 
-use dashmap::{DashMap};
+use dashmap::DashMap;
 use dashmap::mapref::one::Ref;
-use std::collections::HashMap;
+
 use primitive_types::H160;
 use traits::StateDB;
+
 use crate::Address;
 
 #[derive(Clone)]

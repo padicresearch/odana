@@ -1,22 +1,25 @@
+use std::collections::hash_map::RandomState;
 use std::iter::FromIterator;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::RwLock;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use dashmap::DashMap;
+use dashmap::mapref::one::Ref;
 
-use crate::tx_lookup::AccountSet;
-use crate::{ResetRequest, TransactionRef, TxPool};
 use account::create_account;
 use primitive_types::{H160, H256};
-use std::rc::Rc;
-use std::time::{Duration, Instant};
-use traits::{Blockchain, StateDB};
+use traits::{Blockchain, ChainHeadReader, ChainReader, StateDB};
 use transaction::make_sign_transaction;
 use types::account::{Account, AccountState};
-use types::block::{Block, BlockHeader};
-use types::tx::{Transaction, TransactionKind};
+use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::Hash;
+use types::tx::{Transaction, TransactionKind};
+
+use crate::{ResetRequest, TransactionRef, TxPool};
+use crate::tx_lookup::AccountSet;
 
 #[derive(Clone)]
 struct DummyStateDB {
@@ -40,7 +43,7 @@ pub fn make_tx(
             fee,
         },
     )
-        .unwrap();
+    .unwrap();
     Rc::new(tx)
 }
 
@@ -55,7 +58,7 @@ fn make_tx_def(from: &Account, to: &Account, nonce: u64, amount: u128, fee: u128
             fee,
         },
     )
-        .unwrap();
+    .unwrap();
     tx
 }
 
@@ -169,30 +172,6 @@ impl StateDB for DummyStateDB {
 }
 
 impl Blockchain for DummyChain {
-    fn current_head(&self) -> Result<BlockHeader> {
-        let blocks = self.chain.read().map_err(|_| anyhow::anyhow!("RW error"))?;
-        Ok(blocks.last().map(|block| block.header().clone()).unwrap())
-    }
-
-    fn get_block(&self, block_hash: &Hash) -> Result<Option<Block>> {
-        let blocks = self.chain.read().map_err(|_| anyhow::anyhow!("RW error"))?;
-        let res = self
-            .blocks
-            .get(block_hash)
-            .ok_or(anyhow::anyhow!("block not found"))?;
-        let block_level = res.value().clone();
-        Ok(blocks.get(block_level).cloned())
-    }
-
-    fn get_state_at(&self, root: &Hash) -> Result<Arc<dyn StateDB>> {
-        let state = self
-            .states
-            .get(root)
-            .ok_or(anyhow::anyhow!("state not found"))?;
-        let state = state.value().clone();
-        Ok(state)
-    }
-
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>> {
         let state = self
             .states
@@ -200,6 +179,71 @@ impl Blockchain for DummyChain {
             .ok_or(anyhow::anyhow!("state not found"))?;
         let state = state.value().clone();
         Ok(state)
+    }
+}
+
+impl ChainReader for DummyChain {
+    fn get_block(&self, hash: &Hash, level: i32) -> Result<Option<Block>> {
+        let index = match self.blocks.get(hash) {
+            None => return Ok(None),
+            Some(block) => *block.value(),
+        };
+        let chain = self.chain.read().map_err(|e| anyhow::anyhow!("RW error"))?;
+        let block = chain.get(index).cloned();
+        Ok(block)
+    }
+
+    fn get_block_by_hash(&self, hash: &Hash) -> Result<Option<Block>> {
+        let index = match self.blocks.get(hash) {
+            None => return Ok(None),
+            Some(block) => *block.value(),
+        };
+        let chain = self.chain.read().map_err(|e| anyhow::anyhow!("RW error"))?;
+        let block = chain.get(index).cloned();
+        Ok(block)
+    }
+
+    fn get_state_at(&self, root: &Hash) -> Result<Arc<dyn StateDB>> {
+        let d = self
+            .states
+            .get(root)
+            .ok_or(anyhow::anyhow!("no state found"))
+            .map(|r| r.value().clone())?;
+        Ok(d)
+    }
+}
+
+impl ChainHeadReader for DummyChain {
+    fn current_header(&self) -> Result<Option<IndexedBlockHeader>> {
+        let chain = self.chain.read().map_err(|e| anyhow::anyhow!("RW error"))?;
+        let block = chain.last().cloned().map(|b| b.header().clone().into());
+        Ok(block)
+    }
+
+    fn get_header(&self, hash: &Hash, level: i32) -> Result<Option<IndexedBlockHeader>> {
+        let index = match self.blocks.get(hash) {
+            None => return Ok(None),
+            Some(block) => *block.value(),
+        };
+        let chain = self.chain.read().map_err(|e| anyhow::anyhow!("RW error"))?;
+        let block = chain.get(index).cloned();
+        Ok(block.map(|b| b.header().clone().into()))
+    }
+
+    fn get_header_by_hash(&self, hash: &Hash) -> Result<Option<IndexedBlockHeader>> {
+        let index = match self.blocks.get(hash) {
+            None => return Ok(None),
+            Some(block) => *block.value(),
+        };
+        let chain = self.chain.read().map_err(|e| anyhow::anyhow!("RW error"))?;
+        let block = chain.get(index).cloned();
+        Ok(block.map(|b| b.header().clone().into()))
+    }
+
+    fn get_header_by_level(&self, level: i32) -> Result<Option<IndexedBlockHeader>> {
+        let chain = self.chain.read().map_err(|e| anyhow::anyhow!("RW error"))?;
+        let block = chain.get(level as usize).map(|bloc| bloc.header().clone());
+        Ok(block.map(|header| header.into()))
     }
 }
 
@@ -261,15 +305,17 @@ async fn txpool_test() {
     chain.add(make_block(0, [0; 32], [1; 32]));
     let (sender, mut recv) = tokio::sync::mpsc::unbounded_channel();
     let mut txpool = TxPool::new(None, None, sender, chain.clone()).unwrap();
-    txpool.add_txs(
-        vec![
-            make_tx_def(&alice, &bob, 1, 100, 10),
-            make_tx_def(&alice, &bob, 2, 100, 10),
-            make_tx_def(&alice, &bob, 3, 100, 10),
-            make_tx_def(&alice, &bob, 4, 100, 10),
-        ],
-        true,
-    ).unwrap();
+    txpool
+        .add_txs(
+            vec![
+                make_tx_def(&alice, &bob, 1, 100, 10),
+                make_tx_def(&alice, &bob, 2, 100, 10),
+                make_tx_def(&alice, &bob, 3, 100, 10),
+                make_tx_def(&alice, &bob, 4, 100, 10),
+            ],
+            true,
+        )
+        .unwrap();
 
     let state_db_1 = Arc::new(DummyStateDB::with_accounts(vec![(
         alice.address,
@@ -277,8 +323,17 @@ async fn txpool_test() {
     )]));
     state_db_1.increment_nonce(&alice.address, 4);
 
-    let block_2 = make_block(1, chain.current_head().unwrap().hash(), [2; 32]);
-    let old_head = chain.current_head().unwrap();
+    let block_2 = make_block(
+        1,
+        chain
+            .current_header()
+            .unwrap()
+            .unwrap()
+            .hash
+            .to_fixed_bytes(),
+        [2; 32],
+    );
+    let old_head = chain.current_header().unwrap().unwrap().raw;
     let new_head = block_2.header().clone();
     chain.insert_state([2; 32], state_db_1);
     chain.add(block_2);
@@ -292,14 +347,16 @@ async fn txpool_test() {
         )
         .unwrap();
 
-    txpool.add_txs(
-        vec![
-            make_tx_def(&alice, &bob, 5, 100, 10),
-            make_tx_def(&alice, &bob, 6, 100, 10),
-            make_tx_def(&alice, &bob, 7, 100, 10),
-        ],
-        true,
-    ).unwrap();
+    txpool
+        .add_txs(
+            vec![
+                make_tx_def(&alice, &bob, 5, 100, 10),
+                make_tx_def(&alice, &bob, 6, 100, 10),
+                make_tx_def(&alice, &bob, 7, 100, 10),
+            ],
+            true,
+        )
+        .unwrap();
     println!("{:#?}", txpool.nonce(&alice.address));
     println!("{:#?}", txpool.pending);
 }

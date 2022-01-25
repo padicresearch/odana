@@ -1,23 +1,26 @@
-use crate::transaction::Tx;
 use anyhow::{Error, Result};
-use codec::impl_codec;
-use codec::{Codec, Decoder, Encoder};
 use hex::ToHex;
+use libp2p::{Multiaddr, PeerId, Swarm, Transport};
 use libp2p::core::either::EitherError;
 use libp2p::core::transport::upgrade::Version;
 use libp2p::floodsub::{Floodsub, FloodsubEvent};
 use libp2p::futures::StreamExt;
 use libp2p::identity::Keypair;
 use libp2p::mdns::{Mdns, MdnsEvent};
+use libp2p::NetworkBehaviour;
 use libp2p::noise::{AuthenticKeypair, NoiseConfig, X25519Spec};
+use libp2p::request_response::RequestResponse;
 use libp2p::swarm::{NetworkBehaviourEventProcess, SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
-use libp2p::NetworkBehaviour;
-use libp2p::{Multiaddr, PeerId, Swarm, Transport};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use types::block::{Block, BlockHeader};
+
+use codec::{Codec, Decoder, Encoder};
+use codec::impl_codec;
 use types::{BlockHash, MempoolSnapsot, TxHash};
+use types::block::{Block, BlockHeader};
+
+use crate::transaction::Tx;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CurrentHeadMessage {

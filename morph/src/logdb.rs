@@ -271,8 +271,8 @@ mod tests {
             &alice,
             Utc::now().timestamp_nanos() as u64,
             TransactionKind::Transfer {
-                from: alice.pub_key,
-                to: bob.pub_key,
+                from: alice.address.to_fixed_bytes(),
+                to: bob.address.to_fixed_bytes(),
                 amount: 10,
                 fee: 0,
             },

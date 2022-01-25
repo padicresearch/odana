@@ -1,15 +1,16 @@
-use crate::error::Error;
-use crate::error::Error::InternalError;
-use k256::ecdsa::signature::DigestSigner;
-use k256::ecdsa::signature::Signature as Sig;
-use k256::ecdsa::signature::{Signer, Verifier};
 use k256::ecdsa::{SigningKey, VerifyingKey};
-use rand_chacha::rand_core::SeedableRng;
-use rand_chacha::ChaCha20Rng;
-use rand_core::{CryptoRng, RngCore};
+use k256::ecdsa::signature::{Signer, Verifier};
+use k256::ecdsa::signature::DigestSigner;
 use k256::ecdsa::signature::DigestVerifier;
+use k256::ecdsa::signature::Signature as Sig;
+use rand_chacha::ChaCha20Rng;
+use rand_chacha::rand_core::SeedableRng;
+use rand_core::{CryptoRng, RngCore};
 use sha2::Digest;
 use sha2::Sha256;
+
+use crate::error::Error;
+use crate::error::Error::InternalError;
 
 pub const SECRET_KEY_LENGTH: usize = 32;
 pub const PUBLIC_KEY_LENGTH: usize = 33;
@@ -24,8 +25,8 @@ pub struct Keypair {
 
 impl Keypair {
     pub fn generate<T>(csprng: &mut T) -> Self
-        where
-            T: CryptoRng + RngCore,
+    where
+        T: CryptoRng + RngCore,
     {
         let secret = SecretKey::generate(csprng);
         let public = secret.public();
@@ -40,8 +41,8 @@ pub struct SecretKey {
 
 impl SecretKey {
     pub fn generate<T>(csprng: &mut T) -> SecretKey
-        where
-            T: CryptoRng + RngCore,
+    where
+        T: CryptoRng + RngCore,
     {
         Self {
             inner: SigningKey::random(csprng),
@@ -98,7 +99,9 @@ impl PublicKey {
     pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<(), Error> {
         let mut prehash = sha2::Sha256::default();
         prehash.update(msg);
-        self.inner.verify_digest(prehash, &sig.inner).map_err(|e| e.into())
+        self.inner
+            .verify_digest(prehash, &sig.inner)
+            .map_err(|e| e.into())
     }
 }
 
@@ -145,8 +148,13 @@ impl Signature {
         Ok(PublicKey { inner: pk })
     }
 
-    pub fn rsv(&self) -> (&[u8], &[u8], &u8) {
-        (&self.inner.as_bytes()[..32], &self.inner.as_bytes()[32..64], &self.inner.as_bytes()[64])
+    pub fn rsv(&self) -> ([u8; 32], [u8; 32], u8) {
+        let mut r = [0_u8; 32];
+        r.copy_from_slice(&self.inner.as_bytes()[..32]);
+        let mut s = [0_u8; 32];
+        s.copy_from_slice(&self.inner.as_bytes()[32..64]);
+        let v = self.inner.as_bytes()[64];
+        (r, s, v)
     }
 }
 

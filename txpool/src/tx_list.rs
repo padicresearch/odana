@@ -34,17 +34,23 @@ impl TxSortedList {
     }
 
     pub fn filter<F>(&mut self, f: F) -> Transactions
-        where
-            F: FnMut(&u64, &mut TransactionRef) -> bool,
+    where
+        F: FnMut(&u64, &mut TransactionRef) -> bool,
     {
         self.txs.drain_filter(f).map(|(_, tx)| tx).collect()
     }
     pub fn forward(&mut self, threshold: u64) -> Vec<TransactionRef> {
-        self.txs.drain_filter(|nonce, _| *nonce < threshold).map(|(_, tx)| tx).collect()
+        self.txs
+            .drain_filter(|nonce, _| *nonce < threshold)
+            .map(|(_, tx)| tx)
+            .collect()
     }
 
     pub fn ready(&mut self, start: u64) -> Vec<TransactionRef> {
-        self.txs.drain_filter(|nonce, _| *nonce >= start).map(|(_, tx)| tx).collect()
+        self.txs
+            .drain_filter(|nonce, _| *nonce >= start)
+            .map(|(_, tx)| tx)
+            .collect()
     }
 
     pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef> {
@@ -317,6 +323,7 @@ impl TxPricedList {
 #[cfg(test)]
 mod tests {
     use std::collections::{BinaryHeap, BTreeSet};
+    use std::rc::Rc;
     use std::sync::Arc;
 
     use account::create_account;
@@ -324,11 +331,9 @@ mod tests {
     use types::account::Account;
     use types::tx::{Transaction, TransactionKind};
 
+    use crate::tests::make_tx;
     use crate::TransactionRef;
     use crate::tx_list::{PricedTransaction, TxList, TxPricedList};
-    use std::rc::Rc;
-    use crate::tests::make_tx;
-
 
     #[test]
     fn test_txlist() {

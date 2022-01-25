@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
-use std::sync::atomic::AtomicI8;
+use std::sync::atomic::{AtomicI8, Ordering};
 
 use anyhow::Result;
 use chrono::Utc;
@@ -9,17 +9,20 @@ use chrono::Utc;
 use merkle::Merkle;
 use morph::Morph;
 use primitive_types::{H160, H256, U256};
-use tracing::{debug, error, info, trace, warn};
+use tracing::{info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus};
 use txpool::TxPool;
-use types::{Address, Hash};
-use types::block::{Block, BlockHeader, IndexedBlockHeader};
+use types::Address;
+use types::block::{Block, BlockHeader};
 use types::tx::Transaction;
 
 use crate::DummyChain;
 
+pub const SHUTDOWN: i8 = -1;
+pub const RESET: i8 = 0;
+pub const PAUSE: i8 = 1;
+pub const START: i8 = 2;
 pub fn start_worker(
-    dummy: Arc<DummyChain>,
     coinbase: H160,
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
@@ -28,6 +31,13 @@ pub fn start_worker(
     interrupt: Arc<AtomicI8>,
 ) -> Result<()> {
     loop {
+        let i = interrupt.load(Ordering::Release);
+        if i == SHUTDOWN {
+            warn!("mine worker shutdown");
+            return Ok(());
+        } else if i == PAUSE {
+            continue;
+        }
         let (mut block_template, txs) = make_block(
             coinbase.to_fixed_bytes(),
             consensus.clone(),
@@ -37,6 +47,14 @@ pub fn start_worker(
         )?;
 
         loop {
+            let i = interrupt.load(Ordering::Release);
+            if i == SHUTDOWN {
+                break;
+            } else if i == PAUSE {
+                break;
+            } else if i == RESET {
+                break;
+            }
             if U256::from(block_template.nonce) + U256::one() > U256::from(u128::MAX) {
                 let nonce = U256::from(block_template.nonce) + U256::one();
                 let mut mix_nonce = [0_u8; 32];
@@ -51,7 +69,7 @@ pub fn start_worker(
             {
                 let hash = block_template.hash();
                 let level = block_template.level;
-                info!(level = level, hash = ?hex::encode(hash), parent_hash = ?hex::encode(block_template.parent_hash), "🔨 mined potential block");
+                info!(level = level, hash = ?hex::encode(hash), parent_hash = ?format!("{}", H256::from(block_template.parent_hash)), "🔨 mined potential block Diff[{}]", block_template.difficulty);
                 dummy.add(Block::new(block_template, txs));
                 break;
             }
@@ -86,12 +104,8 @@ fn make_block(
     };
     let state_root = state.root();
     let parent_header = match chain.current_header()? {
-        None => {
-            consensus.get_genesis_header()
-        }
-        Some(header) => {
-            header.raw
-        }
+        None => consensus.get_genesis_header(),
+        Some(header) => header.raw,
     };
     let mut mix_nonce = [0; 32];
     U256::one().to_big_endian(&mut mix_nonce);

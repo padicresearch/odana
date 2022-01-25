@@ -1,11 +1,13 @@
-use anyhow::Result;
-use codec::impl_codec;
-use codec::{Decoder, Encoder};
-use primitive_types::H160;
-use serde::{Deserialize, Serialize};
 use std::hash::Hash;
-use crypto::ecdsa::{SecretKey, Signature, PublicKey};
-use crypto::{SHA256, RIPEMD160};
+
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+
+use codec::{Decoder, Encoder};
+use codec::impl_codec;
+use crypto::{RIPEMD160, SHA256};
+use crypto::ecdsa::{PublicKey, SecretKey, Signature};
+use primitive_types::H160;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountState {
@@ -60,7 +62,6 @@ impl Into<H160> for Account {
         self.address
     }
 }
-
 
 pub fn get_address_from_pub_key(pub_key: PublicKey) -> H160 {
     let mut address = RIPEMD160::digest(SHA256::digest(&pub_key.to_bytes()).as_bytes());

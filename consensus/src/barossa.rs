@@ -9,7 +9,10 @@ use types::{Genesis, Hash};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::Transaction;
 
-use crate::constants::{BLOCK_MAX_FUTURE, DOUBLE_SPACING_SECONDS, MAX_TIMESPAN, MIN_TIMESPAN, RETARGETING_INTERVAL, TARGET_SPACING_SECONDS, TARGET_TIMESPAN_SECONDS};
+use crate::constants::{
+    BLOCK_MAX_FUTURE, DOUBLE_SPACING_SECONDS, MAX_TIMESPAN, MIN_TIMESPAN, RETARGETING_INTERVAL,
+    TARGET_SPACING_SECONDS, TARGET_TIMESPAN_SECONDS,
+};
 use crate::error::Error;
 use crate::miner_reward;
 
@@ -30,7 +33,7 @@ const UNITNET_MAX_DIFFICULTY: U256 = U256([
     0x0000000000000000u64,
     0x0000000000000000u64,
     0x0000000000000000u64,
-    0x000fffffff000000u64,
+    0x0000ffffff000000u64,
 ]);
 const ALPHA_MAX_DIFFICULTY: U256 = U256([
     0x0000000000000000u64,
@@ -64,7 +67,7 @@ impl Network {
 }
 
 pub struct BarossaProtocol {
-    network: Network
+    network: Network,
 }
 
 impl BarossaProtocol {
@@ -76,15 +79,23 @@ impl BarossaProtocol {
 impl BarossaProtocol {
     const CHAIN_ID: u32 = 101;
 
-
     /// Returns work required for given header
-    pub fn work_required(&self, parent_hash: H256, time: u32, height: u32, chain: Arc<dyn ChainHeadReader>) -> Compact {
+    pub fn work_required(
+        &self,
+        parent_hash: H256,
+        time: u32,
+        height: u32,
+        chain: Arc<dyn ChainHeadReader>,
+    ) -> Compact {
         let max_bits = self.network.max_difficulty_compact();
         if height == 0 {
             return max_bits;
         }
 
-        let parent_header = chain.get_header_by_hash(parent_hash.as_fixed_bytes()).unwrap().expect("self.height != 0; qed");
+        let parent_header = chain
+            .get_header_by_hash(parent_hash.as_fixed_bytes())
+            .unwrap()
+            .expect("self.height != 0; qed");
 
         // match consensus.fork {
         //     ConsensusFork::BitcoinCash(ref fork) if height >= fork.height =>
@@ -97,7 +108,7 @@ impl BarossaProtocol {
         }
 
         if self.network == Network::Testnet {
-            return self.work_required_testnet(parent_hash, time, height, chain)
+            return self.work_required_testnet(parent_hash, time, height, chain);
         }
 
         parent_header.raw.difficulty()
@@ -119,9 +130,18 @@ impl BarossaProtocol {
     }
 
     /// Algorithm used for retargeting work every 2 weeks
-    pub fn work_required_retarget(&self, parent_header: IndexedBlockHeader, height: u32, chain: Arc<dyn ChainHeadReader>, max_work_bits: Compact) -> Compact {
+    pub fn work_required_retarget(
+        &self,
+        parent_header: IndexedBlockHeader,
+        height: u32,
+        chain: Arc<dyn ChainHeadReader>,
+        max_work_bits: Compact,
+    ) -> Compact {
         let retarget_ref = (height - RETARGETING_INTERVAL) as i32;
-        let retarget_header = chain.get_header_by_level(retarget_ref).unwrap().expect("self.height != 0 && self.height % RETARGETING_INTERVAL == 0; qed");
+        let retarget_header = chain
+            .get_header_by_level(retarget_ref)
+            .unwrap()
+            .expect("self.height != 0 && self.height % RETARGETING_INTERVAL == 0; qed");
 
         // timestamp of block(height - RETARGETING_INTERVAL)
         let retarget_timestamp = retarget_header.raw.time;
@@ -133,23 +153,46 @@ impl BarossaProtocol {
         let mut retarget: U256 = last_bits.into();
         let maximum: U256 = max_work_bits.into();
 
-        retarget = retarget * U256::from(self.retarget_timespan(retarget_timestamp, last_timestamp));
+        retarget =
+            retarget * U256::from(self.retarget_timespan(retarget_timestamp, last_timestamp));
         retarget = retarget / U256::from(TARGET_TIMESPAN_SECONDS);
 
         if retarget > maximum {
+            let mut debug = [0; 32];
+            let max_bit: U256 = max_work_bits.into();
+            max_bit.to_big_endian(&mut debug);
+            println!("Retarget Max{:?}", H256::from(debug));
+            let mut debug = [0; 32];
+            retarget.to_big_endian(&mut debug);
+            println!("Retarget {:?}", H256::from(debug));
             max_work_bits
         } else {
+            let mut debug = [0; 32];
+            retarget.to_big_endian(&mut debug);
+            println!("Retarget {:?}", H256::from(debug));
             retarget.into()
         }
     }
 
-    pub fn work_required_testnet(&self, parent_hash: H256, time: u32, height: u32, chain: Arc<dyn ChainHeadReader>) -> Compact {
-        assert!(height != 0, "cannot calculate required work for genesis block");
+    pub fn work_required_testnet(
+        &self,
+        parent_hash: H256,
+        time: u32,
+        height: u32,
+        chain: Arc<dyn ChainHeadReader>,
+    ) -> Compact {
+        assert!(
+            height != 0,
+            "cannot calculate required work for genesis block"
+        );
 
         let mut bits = Vec::new();
         let mut block_ref: Hash = parent_hash.into();
 
-        let parent_header = chain.get_header_by_hash(&block_ref).unwrap().expect("height != 0; qed");
+        let parent_header = chain
+            .get_header_by_hash(&block_ref)
+            .unwrap()
+            .expect("height != 0; qed");
         let max_time_gap = parent_header.raw.time + DOUBLE_SPACING_SECONDS;
         let max_bits = self.network.max_difficulty_compact().into();
         if time > max_time_gap {
@@ -160,7 +203,9 @@ impl BarossaProtocol {
         for _ in 0..RETARGETING_INTERVAL {
             let previous_header = match chain.get_header_by_hash(&block_ref).unwrap() {
                 Some(h) => h,
-                None => { break; }
+                None => {
+                    break;
+                }
             };
             bits.push(previous_header.raw.difficulty());
             block_ref = previous_header.raw.parent_hash;
@@ -174,7 +219,6 @@ impl BarossaProtocol {
 
         max_bits
     }
-
 
     /// Copy from https://github.com/mambisi/parity-bitcoin/blob/bf58a0d80ec196b99c9cf46b623b0a779af020f2/verification/src/work_bch.rs#L62
     /// Algorithm to adjust difficulty after each block. Implementation is based on Bitcoin ABC commit:
@@ -355,7 +399,12 @@ impl Consensus for BarossaProtocol {
             .ok_or(Error::ParentBlockNotFound)?;
         header.chain_id = Self::CHAIN_ID;
         header.difficulty = self
-            .work_required(parent.hash, Utc::now().timestamp() as u32, (header.level + 1) as u32, chain)
+            .work_required(
+                parent.hash,
+                Utc::now().timestamp() as u32,
+                (header.level + 1) as u32,
+                chain,
+            )
             .into();
         Ok(())
     }
@@ -521,8 +570,12 @@ mod tests {
             .get_header_by_level(2049.into())
             .unwrap()
             .unwrap();
-        let current_bits = barossa
-            .work_required(header.hash, Utc::now().timestamp() as u32, (header.raw.level + 1) as u32, header_provider.clone());
+        let current_bits = barossa.work_required(
+            header.hash,
+            Utc::now().timestamp() as u32,
+            (header.raw.level + 1) as u32,
+            header_provider.clone(),
+        );
         for height in 2050..2060 {
             let mut header = header_provider
                 .get_header_by_level((height - 1))

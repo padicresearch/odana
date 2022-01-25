@@ -42,4 +42,6 @@ pub enum MorphError {
     CodecErrorDecoding,
     #[error("CodecErrorEncoding")]
     CodecErrorEncoding,
+    #[error("InsufficientFunds")]
+    InsufficientFunds,
 }

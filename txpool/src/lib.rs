@@ -2,32 +2,32 @@
 #![feature(btree_drain_filter)]
 #![feature(hash_drain_filter)]
 
+use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashMap};
-use std::sync::atomic::AtomicI32;
+use std::option::Option::Some;
+use std::rc::Rc;
 use std::sync::{Arc, RwLock};
+use std::sync::atomic::AtomicI32;
 use std::time::{Duration, Instant};
 
 use anyhow::{Error, Result};
 use dashmap::DashMap;
+use tokio::sync::mpsc::UnboundedSender;
 
 use account::GOVERNANCE_ACCOUNTID;
 use primitive_types::{H160, H256};
 use tracing::{debug, error, info, trace, warn};
-use types::block::{Block, BlockHeader};
-use types::tx::{Transaction, TransactionKind, TransactionStatus};
+use traits::{Blockchain, StateDB};
 use types::{Hash, TxPoolConfig};
+use types::block::{Block, BlockHeader};
+use types::events::LocalEventMessage;
+use types::tx::{Transaction, TransactionKind, TransactionStatus};
 
 use crate::error::TxPoolError;
 use crate::prque::PriorityQueue;
 use crate::tx_list::{NonceTransaction, TxList, TxPricedList, TxSortedList};
 use crate::tx_lookup::{AccountSet, TxLookup};
 use crate::tx_noncer::TxNoncer;
-use std::cmp::Ordering;
-use std::option::Option::Some;
-use std::rc::Rc;
-use tokio::sync::mpsc::UnboundedSender;
-use types::events::LocalEventMessage;
-use traits::{StateDB, Blockchain};
 
 mod error;
 mod prque;
@@ -105,8 +105,7 @@ fn sanitize(conf: &TxPoolConfig) -> TxPoolConfig {
     conf
 }
 
-pub struct TxPool
-{
+pub struct TxPool {
     config: TxPoolConfig,
     locals: AccountSet,
     chain: Arc<dyn Blockchain>,
@@ -126,8 +125,7 @@ pub struct TxPool
     changes_since_repack: i32,
 }
 
-impl TxPool
-{
+impl TxPool {
     pub fn new(
         conf: Option<&TxPoolConfig>,
         local_accounts: Option<Vec<Address>>,
@@ -420,8 +418,8 @@ impl TxPool
                 } else {
                     let mut discarded = BTreeSet::new();
                     let mut included = BTreeSet::new();
-                    let mut rem = self.chain.get_block(&old_head.hash())?;
-                    let mut add = match self.chain.get_block(&new_head.hash())? {
+                    let mut rem = self.chain.get_block(&old_head.hash(), old_head.level)?;
+                    let mut add = match self.chain.get_block(&new_head.hash(), new_head.level)? {
                         None => {
                             error!(target : TXPOOL_LOG_TARGET, new_head = ?H256::from(new_head.hash()), "Transaction pool reset with missing newhead");
                             return Err(TxPoolError::MissingBlock.into());
@@ -436,7 +434,7 @@ impl TxPool
                                     .iter()
                                     .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block(rem.parent_hash())? {
+                            if let Some(block) = self.chain.get_block_by_hash(rem.parent_hash())? {
                                 rem = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
@@ -449,7 +447,7 @@ impl TxPool
                                     .iter()
                                     .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block(add.parent_hash())? {
+                            if let Some(block) = self.chain.get_block_by_hash(add.parent_hash())? {
                                 rem = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
@@ -462,7 +460,7 @@ impl TxPool
                                     .iter()
                                     .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block(rem.parent_hash())? {
+                            if let Some(block) = self.chain.get_block_by_hash(rem.parent_hash())? {
                                 rem = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
@@ -473,7 +471,7 @@ impl TxPool
                                     .iter()
                                     .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block(add.parent_hash())? {
+                            if let Some(block) = self.chain.get_block_by_hash(add.parent_hash())? {
                                 rem = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
@@ -551,11 +549,11 @@ impl TxPool
 
                 while pending > self.config.global_slots
                     && self
-                    .pending
-                    .get(&offenders[offenders.len() - 2])
-                    .map(|tx| tx.len())
-                    .unwrap_or_default()
-                    > threshold
+                        .pending
+                        .get(&offenders[offenders.len() - 2])
+                        .map(|tx| tx.len())
+                        .unwrap_or_default()
+                        > threshold
                 {
                     for i in 0..(offenders.len() - 1) {
                         let list = match self.pending.get_mut(&offenders[i]) {
@@ -581,11 +579,11 @@ impl TxPool
         if pending > self.config.global_slots && offenders.len() > 0 {
             while pending > self.config.global_slots
                 && self
-                .pending
-                .get(&offenders[offenders.len() - 1])
-                .map(|tx| tx.len() as u64)
-                .unwrap_or_default()
-                > self.config.account_slots
+                    .pending
+                    .get(&offenders[offenders.len() - 1])
+                    .map(|tx| tx.len() as u64)
+                    .unwrap_or_default()
+                    > self.config.account_slots
             {
                 for addr in offenders.iter() {
                     if let Some(list) = self.pending.get_mut(&addr) {
@@ -825,8 +823,7 @@ impl TxPool
 }
 
 //Public functions
-impl TxPool
-{
+impl TxPool {
     pub fn add_local(&mut self, tx: Transaction) -> Result<()> {
         self.add_txs(vec![tx], true)
     }

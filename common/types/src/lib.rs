@@ -1,16 +1,17 @@
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use derive_getters::Getters;
+use hex::ToHex;
 use serde::{Deserialize, Serialize};
 use serde_big_array::big_array;
 
 use codec::{Decoder, Encoder};
 use codec::impl_codec;
-use primitive_types::H160;
+use primitive_types::{H160, H256};
+
 use crate::account::AccountState;
 use crate::block::BlockHeader;
-use std::sync::{Arc, RwLock};
-use hex::ToHex;
 
 pub mod account;
 pub mod block;
@@ -45,15 +46,14 @@ pub struct TxPoolConfig {
     pub life_time: Duration,
 }
 
-pub fn cache_hash<F>(hash: &Arc<RwLock<Option<Hash>>>, f: F) -> Hash where F: Fn() -> Hash {
+pub fn cache_hash<F>(hash: &Arc<RwLock<Option<Hash>>>, f: F) -> Hash
+where
+    F: Fn() -> Hash,
+{
     match hash.read() {
-        Ok(hash) => {
-            match *hash {
-                Some(hash) => {
-                    return hash
-                },
-                None => {}
-            }
+        Ok(hash) => match *hash {
+            Some(hash) => return hash,
+            None => {}
         },
         Err(_) => {}
     }
@@ -65,13 +65,11 @@ pub fn cache_hash<F>(hash: &Arc<RwLock<Option<Hash>>>, f: F) -> Hash where F: Fn
     out
 }
 
-
 pub struct Genesis {
     chain_id: u32,
     accounts: Vec<(H160, AccountState)>,
     block_header: BlockHeader,
 }
-
 
 impl_codec!(MempoolSnapsot);
 

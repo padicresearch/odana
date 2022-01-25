@@ -6,13 +6,13 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
-use codec::impl_codec;
 use codec::{Decoder, Encoder};
+use codec::impl_codec;
 use crypto::{RIPEMD160, SHA256};
-use primitive_types::{H160, H256, H512, U256, U512};
-
-use crate::{cache_hash, Address, BigArray, Hash};
 use crypto::ecdsa::{PublicKey, Signature};
+use primitive_types::{H160, H256, H512, U128, U256, U512};
+
+use crate::{Address, BigArray, cache_hash, Hash};
 use crate::account::get_address_from_pub_key;
 
 #[derive(Serialize, Deserialize)]
@@ -98,21 +98,24 @@ impl std::fmt::Debug for TransactionKind {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Transaction {
-    #[serde(with = "BigArray")]
-    sig: [u8; 65],
     nonce: u64,
     kind: TransactionKind,
+    r: [u8; 32],
+    s: [u8; 32],
+    v: u8,
     //caches
     #[serde(skip)]
     hash: Arc<RwLock<Option<Hash>>>,
     #[serde(skip)]
-    from: Arc<RwLock<Option<H160>>>,
+    from: Arc<RwLock<Option<Address>>>,
 }
 
 impl std::fmt::Debug for Transaction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Transaction")
-            .field("sig", &hex::encode(self.sig))
+            .field("r", &self.r)
+            .field("s", &self.s)
+            .field("v", &self.v)
             .field("nonce", &self.nonce)
             .field("kind", &self.kind)
             .finish()
@@ -146,28 +149,33 @@ impl std::hash::Hash for Transaction {
 }
 
 impl Transaction {
-    pub fn new(nonce: u64, sig: [u8; 65], kind: TransactionKind) -> Self {
+    pub fn new(nonce: u64, signature: Signature, kind: TransactionKind) -> Self {
+        let (r, s, v) = signature.rsv();
         Self {
-            sig,
             nonce,
             kind,
+            r,
+            s,
+            v,
             hash: Default::default(),
             from: Default::default(),
         }
     }
 
     pub fn hash(&self) -> [u8; 32] {
-        cache_hash(&self.hash, || {
+        let hash = cache_hash(&self.hash, || {
             SHA256::digest(self.encode().unwrap()).to_fixed_bytes()
-        })
+        });
+        hash
     }
 
     pub fn hash_256(&self) -> H256 {
         H256::from(self.hash())
     }
 
-    pub fn signature(&self) -> &[u8; 65] {
-        &self.sig
+    pub fn signature(&self) -> [u8; 65] {
+        let sig = Signature::from_rsv((&self.r, &self.s, &self.v)).unwrap();
+        sig.to_bytes()
     }
     pub fn kind(&self) -> &TransactionKind {
         &self.kind
@@ -187,23 +195,21 @@ impl Transaction {
     }
 
     pub fn origin(&self) -> H160 {
-        Signature::from_bytes(&self.sig)
+        Signature::from_rsv((&self.r, &self.s, &self.v))
             .map_err(|e| anyhow::anyhow!(e))
             .and_then(|signature| {
                 self.sig_hash().and_then(|sig_hash| {
                     signature
                         .recover_public_key(&sig_hash)
                         .map_err(|e| anyhow::anyhow!(e))
-                        .and_then(|pub_key| {
-                            Ok(get_address_from_pub_key(pub_key))
-                        })
+                        .and_then(|pub_key| Ok(get_address_from_pub_key(pub_key)))
                 })
             })
             .unwrap_or_default()
     }
 
     pub fn raw_origin(&self) -> Result<PublicKey> {
-        let signature = Signature::from_bytes(&self.sig)?;
+        let signature = Signature::from_rsv((&self.r, &self.s, &self.v))?;
         let pub_key = signature.recover_public_key(&self.sig_hash()?)?;
         Ok(pub_key)
     }
@@ -233,7 +239,7 @@ impl Transaction {
                 nonce: self.nonce,
                 kind: self.kind.clone(),
             }
-                .encode()?,
+            .encode()?,
         );
         Ok(out.to_fixed_bytes())
     }
@@ -248,20 +254,46 @@ impl_codec!(TransactionKind);
 
 #[cfg(test)]
 mod test {
-    use crate::tx::{TransactionData, TransactionKind};
-    use codec::Encoder;
+    use serde::{Deserialize, Serialize};
+
+    use primitive_types::{Compact, H160, U128};
 
     #[test]
     fn test_message_pack_serialization() {
-        let data = TransactionData {
-            nonce: 10_u64,
-            kind: TransactionKind::Transfer {
-                from: [1; 20],
-                to: [3; 20],
-                amount: 10000000,
-                fee: 10000,
-            },
+        #[derive(Serialize, Deserialize, Clone)]
+        pub struct Transfer {
+            from: H160,
+            to: H160,
+            amount: U128,
+            fee: U128,
+            diff: U128,
+        }
+
+        #[derive(Serialize, Deserialize, Clone)]
+        pub struct TransferAlt {
+            from: [u8; 20],
+            to: [u8; 20],
+            amount: u128,
+            fee: u128,
+            diff: u128,
+        }
+
+        let tx = Transfer {
+            from: Default::default(),
+            to: Default::default(),
+            amount: 1233.into(),
+            fee: 123.into(),
+            diff: 10.into(),
         };
-        println!("data {:?}", data.encode());
+
+        let tx_alt = TransferAlt {
+            from: [1; 20],
+            to: [2; 20],
+            amount: 1233,
+            fee: 123,
+            diff: 10,
+        };
+        println!("{}", bincode::serialized_size(&tx).unwrap());
+        println!("{}", bincode::serialized_size(&tx_alt).unwrap());
     }
 }
