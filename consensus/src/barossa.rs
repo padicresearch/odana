@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use chrono::{Timelike, Utc};
 
-use primitive_types::{Compact, H256, U256};
+use primitive_types::{Compact, H128, H160, H256, U256};
 use traits::{ChainHeadReader, Consensus, is_valid_proof_of_work, StateDB};
 use types::{Genesis, Hash};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
@@ -27,7 +27,7 @@ const TESTNET_MAX_DIFFICULTY: U256 = U256([
     0x0000000000000000u64,
     0x0000000000000000u64,
     0x0000000000000000u64,
-    0x000fffffff000000u64,
+    0x00000377ae000000u64,
 ]);
 const UNITNET_MAX_DIFFICULTY: U256 = U256([
     0x0000000000000000u64,
@@ -412,21 +412,26 @@ impl Consensus for BarossaProtocol {
     fn finalize(
         &self,
         chain: Arc<dyn ChainHeadReader>,
-        header: &BlockHeader,
+        header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
         txs: Vec<Transaction>,
     ) -> anyhow::Result<()> {
-        todo!()
+        state.apply_txs(txs.clone())?;
+        header.state_root = state.credit_balance(&H160::from(header.coinbase), self.miner_reward(header.level))?;
+        self.verify_header(chain, header);
+        Ok(())
     }
 
     fn finalize_and_assemble(
         &self,
         chain: Arc<dyn ChainHeadReader>,
-        header: &BlockHeader,
+        header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
         txs: Vec<Transaction>,
     ) -> anyhow::Result<Option<Block>> {
-        todo!()
+        self.finalize(chain, header, state, txs.clone())?;
+        let block = Block::new(header.clone(), txs);
+        Ok(Some(block))
     }
 
     fn work_required(

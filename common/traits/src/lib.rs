@@ -18,6 +18,8 @@ pub trait StateDB: Send + Sync {
     fn balance(&self, address: &H160) -> u128;
     fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
     fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
+    fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
+    fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash>;
 }
 
 pub trait StateIntermediate {}
@@ -53,14 +55,14 @@ pub trait Consensus: Send + Sync {
     fn finalize(
         &self,
         chain: Arc<dyn ChainHeadReader>,
-        header: &BlockHeader,
+        header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
         txs: Vec<Transaction>,
     ) -> Result<()>;
     fn finalize_and_assemble(
         &self,
         chain: Arc<dyn ChainHeadReader>,
-        header: &BlockHeader,
+        header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
         txs: Vec<Transaction>,
     ) -> Result<Option<Block>>;

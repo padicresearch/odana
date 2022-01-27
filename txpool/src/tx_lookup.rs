@@ -21,7 +21,7 @@ impl From<Vec<Address>> for AccountSet {
 }
 
 impl AccountSet {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             accounts: Default::default(),
         }

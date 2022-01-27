@@ -33,11 +33,11 @@ mod error;
 mod prque;
 mod tests;
 mod tx_list;
-mod tx_lookup;
-mod tx_noncer;
+pub mod tx_lookup;
+pub mod tx_noncer;
 
 type TxHashRef = Arc<Hash>;
-type TransactionRef = Rc<Transaction>;
+type TransactionRef = Arc<Transaction>;
 type Transactions = Vec<TransactionRef>;
 type Address = H160;
 
@@ -364,7 +364,7 @@ impl TxPool {
                 errors.push(format!("{:?}", TxPoolError::TransactionAlreadyKnown));
                 continue;
             }
-            news.push(Rc::new(tx))
+            news.push(Arc::new(tx))
         }
 
         if news.is_empty() {
@@ -432,7 +432,7 @@ impl TxPool {
                             discarded.extend(
                                 rem.transactions()
                                     .iter()
-                                    .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
+                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
                             if let Some(block) = self.chain.get_block_by_hash(rem.parent_hash())? {
                                 rem = block;
@@ -445,7 +445,7 @@ impl TxPool {
                             included.extend(
                                 add.transactions()
                                     .iter()
-                                    .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
+                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
                             if let Some(block) = self.chain.get_block_by_hash(add.parent_hash())? {
                                 rem = block;
@@ -458,7 +458,7 @@ impl TxPool {
                             discarded.extend(
                                 rem.transactions()
                                     .iter()
-                                    .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
+                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
                             if let Some(block) = self.chain.get_block_by_hash(rem.parent_hash())? {
                                 rem = block;
@@ -469,7 +469,7 @@ impl TxPool {
                             included.extend(
                                 add.transactions()
                                     .iter()
-                                    .map(|tx| NonceTransaction(Rc::new(tx.clone()))),
+                                    .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
                             if let Some(block) = self.chain.get_block_by_hash(add.parent_hash())? {
                                 rem = block;
@@ -933,6 +933,15 @@ impl TxPool {
 pub struct ResetRequest {
     old_head: Option<BlockHeader>,
     new_head: BlockHeader,
+}
+
+impl ResetRequest {
+    pub fn new(old: Option<BlockHeader>, new: BlockHeader) -> Self {
+        Self {
+            old_head: old,
+            new_head: new,
+        }
+    }
 }
 
 #[derive(Copy, Clone)]

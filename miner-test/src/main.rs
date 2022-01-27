@@ -1,19 +1,21 @@
 use std::collections::hash_map::RandomState;
 use std::sync::{Arc, RwLock};
-use std::sync::atomic::AtomicI8;
+use std::sync::atomic::{AtomicBool, AtomicI8};
 
 use anyhow::Result;
-use consensus::barossa::{BarossaProtocol, Network};
 use dashmap::DashMap;
-use dashmap::mapref::one::Ref;
+use tempdir::TempDir;
+
+use consensus::barossa::{BarossaProtocol, Network};
 use miner::worker::start_worker;
 use morph::Morph;
 use primitive_types::H256;
-use tempdir::TempDir;
 use tracing::{Level, tracing_subscriber};
 use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
-use txpool::TxPool;
+use txpool::{ResetRequest, TxPool};
+use txpool::tx_lookup::AccountSet;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
+use types::events::LocalEventMessage;
 use types::Hash;
 
 #[derive(Clone)]
@@ -129,7 +131,8 @@ impl ChainHeadReader for DummyChain {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!(
         "Retarget Interval {}",
         consensus::constants::RETARGETING_INTERVAL
@@ -150,15 +153,49 @@ fn main() {
     let txpool = Arc::new(RwLock::new(
         TxPool::new(None, None, s, chain.clone()).unwrap(),
     ));
-    let interrupt = Arc::new(AtomicI8::new(0));
-    start_worker(
-        chain.clone(),
-        miner.address,
-        consensus,
-        txpool,
-        morph,
-        chain,
-        interrupt,
-    );
-    println!("{:#?}", miner)
+    let interrupt = Arc::new(AtomicI8::new(2));
+
+    let (sender, mut reciever) = tokio::sync::mpsc::unbounded_channel();
+
+    let chain_1 = chain.clone();
+    let txpool_1 = txpool.clone();
+    let morph_1 = morph.clone();
+    let interrupt_1 = interrupt.clone();
+
+    let chain_2 = chain.clone();
+    let txpool_2 = txpool.clone();
+
+
+    tokio::spawn(async move {
+        start_worker(
+            miner.address.clone(),
+            sender,
+            consensus,
+            txpool_1,
+            morph_1,
+            chain_1,
+            interrupt_1,
+        );
+    });
+    loop {
+        if let Some(message) = reciever.recv().await {
+            match message {
+                LocalEventMessage::MindedBlock(block) => {
+                    chain_2.add(block.clone());
+                    chain_2.insert_state(block.header().state_root, morph.clone());
+                    let current_head = chain_2.current_header().unwrap().map(|head| {
+                        head.raw
+                    });
+                    let new_head = block.header();
+
+                    let mut txpool = txpool_2.write().unwrap();
+                    let reset = ResetRequest::new(current_head, new_head.clone());
+                    txpool.repack(AccountSet::new(), Some(reset)).unwrap();
+                }
+                LocalEventMessage::BroadcastTx(_) => {}
+                LocalEventMessage::TxPoolPack(_) => {}
+                LocalEventMessage::StateChanged { .. } => {}
+            }
+        }
+    }
 }

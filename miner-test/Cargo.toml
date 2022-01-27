@@ -6,3 +6,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+traits = { path = "../common/traits" }
+types = { path = "../common/types" }
+primitive-types = { path = "../common/primitive-types" }
+txpool = { path = "../txpool" }
+morph = { path = "../morph" }
+miner = { path = "../miner" }
+consensus = { path = "../consensus" }
+anyhow = "1"
+dashmap = "5.0.0"
+tempdir = "0.3.7"
+tokio = { version = "1", features = ["full"] }
+tracing = { path = "../common/tracing" }
+account = { path = "../account" }

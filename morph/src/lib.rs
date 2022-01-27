@@ -10,6 +10,7 @@ use std::time::SystemTime;
 use anyhow::{Error, Result};
 use chrono::Utc;
 use merk::{Merk, Op};
+use merk::proofs::Query;
 use merk::test_utils::TempMerk;
 use rand::RngCore;
 use rocksdb::checkpoint::Checkpoint;
@@ -30,10 +31,8 @@ use types::Hash;
 use types::tx::{Transaction, TransactionKind};
 
 use crate::error::MorphError;
-//use crate::snapshot::MorphSnapshot;
 use crate::kv::Schema;
 use crate::logdb::{HistoryLog, LogData};
-//use crate::snapshot::MorphIntermediate;
 use crate::store::{
     AccountMetadataStorage, AccountStateStorage, column_families, default_db_opts,
     HistorySequenceStorage, HistoryStorage,
@@ -48,11 +47,11 @@ mod store;
 const GENESIS_ROOT: [u8; 32] = [0; 32];
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ProofItem {
-    op: MorphOperation,
-    parent_root: Hash,
+pub struct ReadProof {
+    proof: Vec<u8>,
     root: Hash,
 }
+
 pub type MorphStorageKV = dyn KVStore<Morph> + Send + Sync;
 
 #[derive(Clone)]
@@ -112,6 +111,15 @@ impl StateDB for Morph {
         };
         self.apply_operation(action)?;
         Ok(self.root_hash().unwrap())
+    }
+
+    fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
+        Ok(Arc::new(self.intermediate()?))
+    }
+
+    fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
+        self.apply_txs(txs)?;
+        self.root_hash()
     }
 }
 
@@ -239,49 +247,25 @@ impl Morph {
         }
     }
 
-    // fn get_account_state_with_proof(
-    //     &self,
-    //     address: &H160,
-    //     full_walk: bool,
-    // ) -> Result<(Option<AccountState>, Vec<ProofItem>)> {
-    //     Ok((
-    //         self.account_state_storage.get(address)?,
-    //         if full_walk {
-    //             self.account_state_full_proof(address.clone())?
-    //         } else {
-    //             self.account_state_partial_proof(address.clone())?
-    //         },
-    //     ))
-    // }
-    //
-    // fn account_state_full_proof(&self, address: H160) -> Result<Vec<ProofItem>> {
-    //     let mut proof = Vec::new();
-    //     for his in self.history_storage.address_history(address)? {
-    //         proof.push(ProofItem {
-    //             op: his.operation,
-    //             parent_root: his.parent_root,
-    //             root: his.root,
-    //         });
-    //     }
-    //     Ok(proof)
-    // }
-    //
-    // fn account_state_partial_proof(&self, address: H160) -> Result<Vec<ProofItem>> {
-    //     let mut proof = Vec::new();
-    //     let roots = match self.account_meta_storage.get(&address)? {
-    //         None => return Ok(proof),
-    //         Some(roots) => self.history_storage.multi_get(roots)?,
-    //     };
-    //     let mut roots_iter = roots.iter();
-    //     while let Some(Some(his)) = roots_iter.next() {
-    //         proof.push(ProofItem {
-    //             op: his.operation.clone(),
-    //             parent_root: his.parent_root,
-    //             root: his.root,
-    //         });
-    //     }
-    //     Ok(proof)
-    // }
+    fn get_account_state_with_proof(
+        &self,
+        address: &H160,
+    ) -> Result<(Option<AccountState>, ReadProof)> {
+        let db = self.db.read().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut query = Query::new();
+        query.insert_key(address.encode()?);
+        let account_state = match db.get(&address.encode()?)? {
+            None => None,
+            Some(value) => Some(AccountState::decode(&value)?),
+        };
+
+        let root = db.root_hash();
+        let proof = db.prove(query)?;
+        Ok((account_state, ReadProof {
+            proof,
+            root,
+        }))
+    }
 
     pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {
         let db = self.db.read().map_err(|e| anyhow::anyhow!("{}", e))?;
@@ -305,24 +289,6 @@ impl Morph {
         })
     }
 
-    // pub fn intermediate(&self) -> Result<MorphIntermediate> {
-    //     let cfs = vec![AccountStateStorage::column(), HistoryStorage::column()];
-    //     let cfs: Result<BTreeMap<_, _>, _> = cfs
-    //         .iter()
-    //         .map(|name| {
-    //             self.db
-    //                 .cf_handle(*name)
-    //                 .ok_or(MorphError::ColumnFamilyMissing(name))
-    //                 .map(|cf| (*name, cf))
-    //         })
-    //         .collect();
-    //     let snapshot = self.db.snapshot();
-    //     Ok(MorphIntermediate::new(
-    //         self.history_storage.root_hash()?,
-    //         cfs?,
-    //         snapshot,
-    //     ))
-    // }
     pub fn root_hash(&self) -> Result<Hash> {
         let db = self.db.read().map_err(|e| anyhow::anyhow!("{}", e))?;
         Ok(db.root_hash())
@@ -396,15 +362,9 @@ pub trait MorphCheckPoint {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::RwLock;
-    use std::time::Instant;
-
-    use commitlog::{CommitLog, LogOptions};
     use tempdir::TempDir;
 
     use account::create_account;
-    use storage::memstore::MemStore;
-    use storage::sleddb::SledDB;
     use transaction::make_sign_transaction;
 
     use super::*;
@@ -438,9 +398,7 @@ mod tests {
         println!("Alice: {:#?}", morph.account_state(&alice.address));
         println!("Bob: {:#?}", morph.account_state(&bob.address));
         let s2 = path.into_path().join("s2");
-        let checkpoint_1 = morph
-            .checkpoint(s2.as_path())
-            .unwrap();
+        let checkpoint_1 = morph.checkpoint(s2.as_path()).unwrap();
         let mut intermediate = morph.intermediate().unwrap();
         for i in 0..100 {
             let amount = 100;
@@ -461,19 +419,17 @@ mod tests {
         for i in 0..100 {
             let amount = 100;
             assert!(intermediate
-                .apply_txs(
-                    vec![make_sign_transaction(
-                        &alice,
-                        i + 1000,
-                        TransactionKind::Transfer {
-                            from: alice.address.to_fixed_bytes(),
-                            to:  bob.address.to_fixed_bytes(),
-                            amount,
-                            fee: (amount as f64 * 0.01) as u128,
-                        },
-                    )
-                        .unwrap()]
+                .apply_txs(vec![make_sign_transaction(
+                    &alice,
+                    i + 1000,
+                    TransactionKind::Transfer {
+                        from: alice.address.to_fixed_bytes(),
+                        to: bob.address.to_fixed_bytes(),
+                        amount,
+                        fee: (amount as f64 * 0.01) as u128,
+                    },
                 )
+                    .unwrap()])
                 .is_ok());
         }
 
@@ -481,6 +437,9 @@ mod tests {
             checkpoint_1.account_state(&alice.address),
             intermediate.account_state(&alice.address)
         );
-       assert_eq!(checkpoint_1.root_hash().unwrap(), intermediate.root_hash().unwrap());
+        assert_eq!(
+            checkpoint_1.root_hash().unwrap(),
+            intermediate.root_hash().unwrap()
+        );
     }
 }

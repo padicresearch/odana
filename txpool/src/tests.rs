@@ -44,7 +44,7 @@ pub fn make_tx(
         },
     )
     .unwrap();
-    Rc::new(tx)
+    Arc::new(tx)
 }
 
 fn make_tx_def(from: &Account, to: &Account, nonce: u64, amount: u128, fee: u128) -> Transaction {
@@ -167,6 +167,14 @@ impl StateDB for DummyStateDB {
     }
 
     fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
+        todo!()
+    }
+
+    fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
+        todo!()
+    }
+
+    fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
         todo!()
     }
 }
