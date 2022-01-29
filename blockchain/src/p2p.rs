@@ -7,6 +7,7 @@ use libp2p::floodsub::{Floodsub, FloodsubEvent};
 use libp2p::futures::StreamExt;
 use libp2p::identity::Keypair;
 use libp2p::mdns::{Mdns, MdnsEvent};
+use libp2p::multiaddr::Protocol;
 use libp2p::NetworkBehaviour;
 use libp2p::noise::{AuthenticKeypair, NoiseConfig, X25519Spec};
 use libp2p::request_response::RequestResponse;
@@ -239,7 +240,11 @@ pub async fn start_p2p_server(
     println!("Peer Arg {:?}", peer_arg);
     if let Some(to_dial) = peer_arg {
         let addr: Multiaddr = to_dial.parse()?;
-        swarm.dial(addr)?;
+        let peer_id = match addr.iter().last() {
+            Some(Protocol::P2p(hash)) => PeerId::from_multihash(hash).expect("Valid hash."),
+            _ => anyhow::bail!("Expect peer multiaddr to contain peer ID."),
+        };
+        swarm.dial(addr.with(Protocol::P2p(peer_id.into())))?;
         println!("Dialed {:?}", to_dial)
     }
     Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
@@ -277,7 +282,7 @@ async fn handle_swam_event<T>(
 ) {
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
-            println!("Listening on {:?}", address);
+            println!("Listening on {:?}/{:?}", address, swarm.local_peer_id());
         }
         SwarmEvent::Behaviour(OutEvent::Floodsub(FloodsubEvent::Message(message))) => {
             info!("new flood message {:?}", message);
