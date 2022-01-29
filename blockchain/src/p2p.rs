@@ -17,6 +17,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use codec::{Codec, Decoder, Encoder};
 use codec::impl_codec;
+use tracing::info;
 use types::block::{Block, BlockHeader};
 use types::Hash;
 use types::tx::Transaction;
@@ -27,12 +28,8 @@ pub struct CurrentHeadMessage {
 }
 
 impl CurrentHeadMessage {
-    pub fn new(
-        block_header: BlockHeader,
-    ) -> Self {
-        Self {
-            block_header,
-        }
+    pub fn new(block_header: BlockHeader) -> Self {
+        Self { block_header }
     }
 }
 
@@ -274,11 +271,13 @@ async fn handle_swam_event<T>(
             println!("Listening on {:?}", address);
         }
         SwarmEvent::Behaviour(OutEvent::Floodsub(FloodsubEvent::Message(message))) => {
+            info!("new flood message {:?}", message);
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 swarm.behaviour_mut().p2p_to_node.send(peer_message);
             }
         }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Discovered(list))) => {
+            info!("new peer discovered {:?}", list);
             for (peer, _) in list {
                 swarm
                     .behaviour_mut()
