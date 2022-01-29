@@ -202,11 +202,13 @@ async fn config_network(
         .into_authentic(&node_identity.identity_keys())
         .expect("cannot create auth keys");
 
-    let transport = TokioTcpConfig::new()
-        .upgrade(Version::V1)
-        .authenticate(NoiseConfig::xx(auth_keys).into_authenticated())
-        .multiplex(libp2p::mplex::MplexConfig::new())
-        .boxed();
+    // let transport = TokioTcpConfig::new()
+    //     .upgrade(Version::V1)
+    //     .authenticate(NoiseConfig::xx(auth_keys).into_authenticated())
+    //     .multiplex(libp2p::mplex::MplexConfig::new())
+    //     .boxed();
+
+    let transport = libp2p::development_transport(node_identity.identity_keys()).await?;
 
     let network_topic = libp2p::floodsub::Topic::new("testnet");
 
@@ -237,7 +239,9 @@ pub async fn start_p2p_server(
     peer_arg: Option<String>
 ) -> Result<()> {
     let mut swarm = config_network(node_identity, p2p_to_node).await?;
-    println!("Peer Arg {:?}", peer_arg);
+    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
+        .expect("Error connecting to p2p");
+
     if let Some(to_dial) = peer_arg {
         let addr: Multiaddr = to_dial.parse()?;
         let peer_id = match addr.iter().last() {
@@ -245,11 +249,12 @@ pub async fn start_p2p_server(
             _ => anyhow::bail!("Expect peer multiaddr to contain peer ID."),
         };
         swarm.dial(addr.with(Protocol::P2p(peer_id.into())))?;
+        swarm
+            .behaviour_mut()
+            .floodsub
+            .add_node_to_partial_view(peer_id);
         println!("Dialed {:?}", to_dial)
     }
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
-        .expect("Error connecting to p2p");
-
 
     tokio::task::spawn(async move {
         loop {
