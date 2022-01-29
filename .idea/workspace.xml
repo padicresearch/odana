@@ -36,7 +36,9 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="mvp: test p2p communication" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="mvp: test p2p communication">
+      <change beforePath="$PROJECT_DIR$/blockchain/src/p2p.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/p2p.rs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -413,14 +415,7 @@
       <workItem from="1643182527054" duration="4749000" />
       <workItem from="1643214218156" duration="2586000" />
       <workItem from="1643280946395" duration="40169000" />
-      <workItem from="1643436658026" duration="30294000" />
-    </task>
-    <task id="LOCAL-00044" summary="new morph implementation">
-      <created>1642054658252</created>
-      <option name="number" value="00044" />
-      <option name="presentableId" value="LOCAL-00044" />
-      <option name="project" value="LOCAL" />
-      <updated>1642054658252</updated>
+      <workItem from="1643436658026" duration="31120000" />
     </task>
     <task id="LOCAL-00045" summary="cargo fmt">
       <created>1642054685288</created>
@@ -758,7 +753,14 @@
       <option name="project" value="LOCAL" />
       <updated>1643474254994</updated>
     </task>
-    <option name="localTasksCounter" value="93" />
+    <task id="LOCAL-00093" summary="mvp: test p2p communication">
+      <created>1643474766069</created>
+      <option name="number" value="00093" />
+      <option name="presentableId" value="LOCAL-00093" />
+      <option name="project" value="LOCAL" />
+      <updated>1643474766069</updated>
+    </task>
+    <option name="localTasksCounter" value="94" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -291,7 +291,7 @@ async fn handle_swam_event<T>(
             println!("Listening on {}", address.with(Protocol::P2p(local_peer_id.into())));
         }
         SwarmEvent::Behaviour(OutEvent::Floodsub(FloodsubEvent::Message(message))) => {
-            info!("new flood message {:?}", message);
+            info!("Received Message from Peer {:?}", message);
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 swarm.behaviour_mut().p2p_to_node.send(peer_message);
             }
