@@ -251,6 +251,7 @@ pub async fn start_p2p_server(
 async fn handle_publish_message(msg: Option<PeerMessage>, swarm: &mut Swarm<ChainNetworkBehavior>) {
     if let Some(msg) = msg {
         if let Ok(encoded_msg) = msg.encode() {
+            info!("sending flood message {:?}", msg);
             let network_topic = libp2p::floodsub::Topic::new("testnet");
             swarm
                 .behaviour_mut()
