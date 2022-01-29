@@ -29,3 +29,4 @@ tempdir = "0.3.7"
 rand = "0.8.4"
 [dev-dependencies]
 fs_extra = "1.2.0"
+tempdir = "0.3.7"

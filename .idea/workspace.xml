@@ -36,18 +36,41 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="migrate morph to merk">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="add miner">
+      <change afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/bootstrap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/bootstrap.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/consensus.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/crypto.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/mempool.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/miner.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/nonce.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/p2p.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/p2p.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/transaction.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/utxo.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/codec/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/codec/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner-test/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/miner-test/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/miner-test/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner-test/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/miner/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/morph/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/logdb.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/storage/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/rocks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/rocks.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/sleddb.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/sleddb.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -166,7 +189,7 @@
       <recent name="$PROJECT_DIR$/merkle/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Run miner-test">
+  <component name="RunManager" selected="Cargo.Test test::test_backends">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -247,8 +270,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Run miner" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="run --package miner --bin miner" />
+    <configuration name="Test block::test::test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package types --lib block::test::test -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -263,8 +286,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test block::test::test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package types --lib block::test::test -- --exact" />
+    <configuration name="Test test::test_backends" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package storage --lib test::test_backends -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -333,19 +356,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Run miner" />
       <item itemvalue="Cargo.Test block::test::test" />
       <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
       <item itemvalue="Cargo.Test tests::test_morph" />
       <item itemvalue="Cargo.Run miner-test" />
+      <item itemvalue="Cargo.Test test::test_backends" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test test::test_backends" />
         <item itemvalue="Cargo.Run miner-test" />
         <item itemvalue="Cargo.Test tests::test_morph" />
         <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
         <item itemvalue="Cargo.Test block::test::test" />
-        <item itemvalue="Cargo.Run miner" />
       </list>
     </recent_temporary>
   </component>
@@ -424,14 +447,8 @@
       <workItem from="1643129357972" duration="3428000" />
       <workItem from="1643182527054" duration="4749000" />
       <workItem from="1643214218156" duration="2586000" />
-      <workItem from="1643280946395" duration="12936000" />
-    </task>
-    <task id="LOCAL-00026" summary="fix history log database tests">
-      <created>1641068541964</created>
-      <option name="number" value="00026" />
-      <option name="presentableId" value="LOCAL-00026" />
-      <option name="project" value="LOCAL" />
-      <updated>1641068541964</updated>
+      <workItem from="1643280946395" duration="40169000" />
+      <workItem from="1643436658026" duration="18618000" />
     </task>
     <task id="LOCAL-00027" summary="fix proof validation error">
       <created>1641102854419</created>
@@ -769,7 +786,14 @@
       <option name="project" value="LOCAL" />
       <updated>1643073645041</updated>
     </task>
-    <option name="localTasksCounter" value="75" />
+    <task id="LOCAL-00075" summary="add miner">
+      <created>1643311095545</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1643311095545</updated>
+    </task>
+    <option name="localTasksCounter" value="76" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -800,7 +824,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="fix commit log read error" />
     <MESSAGE value="fix history log database tests" />
     <MESSAGE value="fix proof validation error" />
     <MESSAGE value="update morph(account engine) tests" />
@@ -825,7 +848,8 @@
     <MESSAGE value="implement miner" />
     <MESSAGE value="fix proof of work" />
     <MESSAGE value="migrate morph to merk" />
-    <option name="LAST_COMMIT_MESSAGE" value="migrate morph to merk" />
+    <MESSAGE value="add miner" />
+    <option name="LAST_COMMIT_MESSAGE" value="add miner" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>

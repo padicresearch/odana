@@ -20,11 +20,19 @@ pub mod tx;
 
 pub type Hash = [u8; 32];
 pub type Address = [u8; 20];
+
 #[derive(Serialize, Deserialize, Getters, Debug, Clone)]
 pub struct MempoolSnapsot {
     pub pending: Vec<Hash>,
     pub valid: Vec<Hash>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ChainStateValue {
+    CurrentHeader(BlockHeader),
+}
+
+impl_codec!(ChainStateValue);
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct TxPoolConfig {

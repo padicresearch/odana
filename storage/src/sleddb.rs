@@ -1,9 +1,12 @@
-use crate::{KVEntry, KVStore, StorageIterator};
+use std::path::Path;
+
 use anyhow::Result;
-use codec::{Decoder, Encoder};
 use itertools::Itertools;
 use sled::{IVec, Tree};
-use std::path::Path;
+
+use codec::{Decoder, Encoder};
+
+use crate::{KVStore, Schema, StorageIterator};
 
 pub struct SledDB {
     inner: sled::Db,
@@ -20,7 +23,7 @@ impl SledDB {
     }
 }
 
-impl<S: KVEntry> KVStore<S> for SledDB {
+impl<S: Schema> KVStore<S> for SledDB {
     fn get(&self, key: &S::Key) -> anyhow::Result<Option<S::Value>> {
         let key = key.encode()?;
         let result = self.column(S::column())?.get(&key)?;

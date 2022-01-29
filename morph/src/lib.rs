@@ -23,7 +23,6 @@ use codec::{Codec, Decoder, Encoder};
 use codec::impl_codec;
 use crypto::SHA256;
 use primitive_types::{H160, H256};
-use storage::{KVEntry, KVStore};
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::{AccountState, get_address_from_pub_key};
@@ -32,7 +31,6 @@ use types::tx::{Transaction, TransactionKind};
 
 use crate::error::MorphError;
 use crate::kv::Schema;
-use crate::logdb::{HistoryLog, LogData};
 use crate::store::{
     AccountMetadataStorage, AccountStateStorage, column_families, default_db_opts,
     HistorySequenceStorage, HistoryStorage,
@@ -40,7 +38,6 @@ use crate::store::{
 
 mod error;
 mod kv;
-mod logdb;
 mod snapshot;
 mod store;
 
@@ -51,8 +48,6 @@ pub struct ReadProof {
     proof: Vec<u8>,
     root: Hash,
 }
-
-pub type MorphStorageKV = dyn KVStore<Morph> + Send + Sync;
 
 #[derive(Clone)]
 pub struct Morph {
@@ -116,6 +111,12 @@ impl StateDB for Morph {
     fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
         Ok(Arc::new(self.intermediate()?))
     }
+
+    fn checkpoint(&self, path: String) -> Result<Arc<dyn StateDB>> {
+        let state = self.checkpoint(&path)?;
+        Ok(Arc::new(state))
+    }
+
 
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
         self.apply_txs(txs)?;

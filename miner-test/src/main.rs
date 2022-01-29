@@ -64,6 +64,20 @@ impl Blockchain for DummyChain {
         let state = state.value().clone();
         Ok(state)
     }
+
+    fn current_header(&self) -> Result<Option<IndexedBlockHeader>> {
+        let chain = self.chain.read().map_err(|e| anyhow::anyhow!("RW error"))?;
+        let block = chain.last().cloned().map(|b| b.header().clone().into());
+        Ok(block)
+    }
+    fn get_state_at(&self, root: &Hash) -> Result<Arc<dyn StateDB>> {
+        let d = self
+            .states
+            .get(root)
+            .ok_or(anyhow::anyhow!("no state found"))
+            .map(|r| r.value().clone())?;
+        Ok(d)
+    }
 }
 
 impl ChainReader for DummyChain {
@@ -86,24 +100,9 @@ impl ChainReader for DummyChain {
         let block = chain.get(index).cloned();
         Ok(block)
     }
-
-    fn get_state_at(&self, root: &Hash) -> Result<Arc<dyn StateDB>> {
-        let d = self
-            .states
-            .get(root)
-            .ok_or(anyhow::anyhow!("no state found"))
-            .map(|r| r.value().clone())?;
-        Ok(d)
-    }
 }
 
 impl ChainHeadReader for DummyChain {
-    fn current_header(&self) -> Result<Option<IndexedBlockHeader>> {
-        let chain = self.chain.read().map_err(|e| anyhow::anyhow!("RW error"))?;
-        let block = chain.last().cloned().map(|b| b.header().clone().into());
-        Ok(block)
-    }
-
     fn get_header(&self, hash: &Hash, level: i32) -> Result<Option<IndexedBlockHeader>> {
         let index = match self.blocks.get(hash) {
             None => return Ok(None),

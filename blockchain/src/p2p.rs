@@ -17,42 +17,36 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use codec::{Codec, Decoder, Encoder};
 use codec::impl_codec;
-use types::{BlockHash, MempoolSnapsot, TxHash};
 use types::block::{Block, BlockHeader};
-
-use crate::transaction::Tx;
+use types::Hash;
+use types::tx::Transaction;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CurrentHeadMessage {
     pub block_header: BlockHeader,
-    pub mempool: MempoolSnapsot,
-    pub recipient: Option<String>,
 }
 
 impl CurrentHeadMessage {
     pub fn new(
         block_header: BlockHeader,
-        mempool: MempoolSnapsot,
-        recipient: Option<String>,
     ) -> Self {
         Self {
             block_header,
-            mempool,
-            recipient,
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BroadcastTransactionMessage {
-    tx: Tx,
+    tx: Transaction,
 }
+
 impl BroadcastTransactionMessage {
-    pub fn new(tx: Tx) -> Self {
+    pub fn new(tx: Transaction) -> Self {
         Self { tx }
     }
 
-    pub fn tx(self) -> Tx {
+    pub fn tx(self) -> Transaction {
         self.tx
     }
 }
@@ -85,11 +79,11 @@ impl GetCurrentHeadMessage {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetBlockHeaderMessage {
     pub sender: String,
-    pub block_hashes: Vec<BlockHash>,
+    pub block_hashes: Vec<Hash>,
 }
 
 impl GetBlockHeaderMessage {
-    pub fn new(sender: String, block_hashes: Vec<BlockHash>) -> Self {
+    pub fn new(sender: String, block_hashes: Vec<Hash>) -> Self {
         Self {
             sender,
             block_hashes,
@@ -100,11 +94,11 @@ impl GetBlockHeaderMessage {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BlockTransactionsMessage {
     pub recipient: String,
-    pub txs: Vec<Tx>,
+    pub txs: Vec<Transaction>,
 }
 
 impl BlockTransactionsMessage {
-    pub fn new(recipient: String, txs: Vec<Tx>) -> Self {
+    pub fn new(recipient: String, txs: Vec<Transaction>) -> Self {
         Self { recipient, txs }
     }
 }
@@ -127,11 +121,11 @@ impl BlockHeaderMessage {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetBlockTransactionsMessage {
     pub sender: String,
-    pub tx_ids: Vec<TxHash>,
+    pub tx_ids: Vec<Hash>,
 }
 
 impl GetBlockTransactionsMessage {
-    pub fn new(sender: PeerId, tx_ids: Vec<TxHash>) -> Self {
+    pub fn new(sender: PeerId, tx_ids: Vec<Hash>) -> Self {
         Self {
             sender: sender.to_string(),
             tx_ids,
@@ -145,8 +139,8 @@ pub enum PeerMessage {
     CurrentHead(CurrentHeadMessage),
     GetBlockHeader(GetBlockHeaderMessage),
     BlockHeader(BlockHeaderMessage),
-    GetBlockTransactions(GetBlockTransactionsMessage),
-    BlockTransactions(BlockTransactionsMessage),
+    GetBlock(Block),
+    Block(Block),
     BroadcastTransaction(BroadcastTransactionMessage),
     BroadcastBlock(BroadcastBlockMessage),
 }

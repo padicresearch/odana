@@ -9,7 +9,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use merkle::Merkle;
 use primitive_types::{H160, H256, U256};
 use tracing::{info, warn};
-use traits::{ChainHeadReader, Consensus, StateDB};
+use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 use txpool::TxPool;
 use types::Address;
 use types::block::BlockHeader;
@@ -27,7 +27,8 @@ pub fn start_worker(
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
     state: Arc<dyn StateDB>,
-    chain: Arc<dyn ChainHeadReader>,
+    chain: Arc<dyn Blockchain>,
+    chain_header_reader: Arc<dyn ChainHeadReader>,
     interrupt: Arc<AtomicI8>,
 ) -> Result<()> {
     let is_running: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
@@ -60,6 +61,7 @@ pub fn start_worker(
                     txpool.clone(),
                     state.clone(),
                     chain.clone(),
+                    chain_header_reader.clone()
                 )?;
                 current_block_template = Some((head.clone(), txs.clone()));
                 info!(coinbase = ?coinbase, txs_count = txs.len(), "🚧 mining a new block");
@@ -89,14 +91,14 @@ pub fn start_worker(
             }
             block_template.nonce += 1;
             if consensus
-                .verify_header(chain.clone(), &block_template)
+                .verify_header(chain_header_reader.clone(), &block_template)
                 .is_ok()
             {
                 let hash = block_template.hash();
                 let level = block_template.level;
                 info!(level = level, hash = ?hex::encode(hash), parent_hash = ?format!("{}", H256::from(block_template.parent_hash)), "⛏ mined potential block");
                 // Apply the block to node state then broadcast it to other peers
-                match consensus.finalize_and_assemble(chain.clone(), &mut block_template, state.clone(), txs)? {
+                match consensus.finalize_and_assemble(chain_header_reader.clone(), &mut block_template, state.clone(), txs)? {
                     None => {
                         warn!("Failed to finalize and assemble mined block");
                     }
@@ -120,7 +122,8 @@ fn make_block_template(
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
     state: Arc<dyn StateDB>,
-    chain: Arc<dyn ChainHeadReader>,
+    chain: Arc<dyn Blockchain>,
+    chain_header_reader: Arc<dyn ChainHeadReader>,
 ) -> Result<(BlockHeader, Vec<Transaction>)> {
     let txpool = txpool.clone();
     let txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
@@ -156,7 +159,7 @@ fn make_block_template(
         time,
         nonce: 0,
     };
-    consensus.prepare_header(chain.clone(), &mut header)?;
-    consensus.finalize(chain, &mut header, state, tsx.clone())?;
+    consensus.prepare_header(chain_header_reader.clone(), &mut header)?;
+    consensus.finalize(chain_header_reader, &mut header, state, tsx.clone())?;
     Ok((header, tsx))
 }

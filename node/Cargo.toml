@@ -16,4 +16,10 @@ storage = { path = "../storage" }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0.45"
 types = { path = "../common/types" }
+txpool = { path = "../txpool" }
+morph = { path = "../morph" }
+consensus = { path = "../consensus" }
+miner = { path = "../miner" }
+account = { path = "../account" }
+traits = { path = "../common/traits" }
 tracing = { path = "../common/tracing" }

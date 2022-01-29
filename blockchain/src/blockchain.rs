@@ -1,275 +1,218 @@
-use crate::block_storage::{BlockStorage, BlockStorageKV};
-use crate::consensus::{check_block_pow, execute_tx, validate_block, validate_transaction};
-use crate::errors::BlockChainError;
-use crate::mempool::{MemPool, MemPoolStorageKV, MempoolSnapsot};
-use crate::miner::Miner;
-use crate::transaction::Tx;
-use crate::utxo::{UTXOStorageKV, UTXO};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, RwLock};
+
 use anyhow::{Error, Result};
-use codec::{Decoder, Encoder};
-use serde::{Deserialize, Serialize};
-use std::f32::consts::E;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use storage::sleddb::SledDB;
-use storage::{KVEntry, KVStore, PersistentStorage};
+use lru::LruCache;
 use tokio::sync::mpsc::UnboundedSender;
-use types::block::{Block, BlockHeader};
 
-pub const PROTOCOL_VERSION: u16 = 10001;
-pub const SOFTWARE_VERSION: u16 = 10001;
-pub const BLOCK_DIFFICULTY: &str = "000000";
-pub const GENESIS_BLOCK: &str = "0000004cf909c9a9c71ada661a3e4104e004db406f3dcdf25fd6e0aad664b15700000000000000000000000000000000000000000000000000000000000000000000000097f9bc610100a44f0000000000000000000000000000e972937e71e8b54595f3d9659050c3ee906337896a9eb96e74dfb0e702bb3d680100000000000000e536ea0295f24623b9ccbb5b96babbe586c8efd6f2745a19fcf7e3f195af63b8";
+use morph::Morph;
+use primitive_types::H256;
+use storage::PersistentStorage;
+use tracing::{info, warn};
+use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
+use txpool::TxPool;
+use types::block::{Block, IndexedBlockHeader};
+use types::events::LocalEventMessage;
+use types::Hash;
 
-pub fn genesis_block() -> Block {
-    let decoded_bytes = hex::decode(GENESIS_BLOCK).expect("Error creating genesis block");
-    let genesis_block: Block =
-        bincode::deserialize(&decoded_bytes).expect("Error creating genesis block");
-    genesis_block
+use crate::block_storage::BlockStorage;
+use crate::chain_state::ChainStateStorage;
+use crate::errors::BlockChainError;
+
+pub struct Tuchain {
+    chain: Arc<ChainState>,
+    txpool: Arc<RwLock<TxPool>>,
 }
 
-pub struct BlockChain {
-    state: Arc<BlockChainState>,
-    miner: Arc<Miner>,
-    local_mpsc_sender: UnboundedSender<LocalMessage>,
-}
-#[derive(Clone, Debug)]
-pub enum LocalMessage {
-    MindedBlock(Block),
-    BroadcastTx(Tx),
-    StateChanged {
-        current_head: BlockHeader,
-        mempool: MempoolSnapsot,
-    },
-}
+impl Tuchain {
+    pub fn initialize(dir: PathBuf, consensus: Arc<dyn Consensus>, main_storage: Arc<PersistentStorage>, lmpsc: UnboundedSender<LocalEventMessage>) -> Result<Self> {
+        let chain_state_storage = Arc::new(ChainStateStorage::new(main_storage.database()));
+        let block_storage = Arc::new(BlockStorage::new(main_storage));
+        let chain_state = Arc::new(ChainState::new(dir.join("state"), consensus.clone(), block_storage, chain_state_storage)?);
+        let txpool = Arc::new(RwLock::new(TxPool::new(None, None, lmpsc, chain_state.clone())?));
 
-impl BlockChain {
-    pub fn new(
-        storage: Arc<PersistentStorage>,
-        local_mpsc_sender: UnboundedSender<LocalMessage>,
-    ) -> Result<Self> {
-        let utxo = Arc::new(UTXO::new(storage.clone()));
-        let mempool = Arc::new(MemPool::new(utxo.clone(), storage.clone(), None)?);
-        let block_storage = Arc::new(BlockStorage::new(storage.clone()));
-        let miner = Arc::new(Miner::new(
-            mempool.clone(),
-            utxo.clone(),
-            local_mpsc_sender.clone(),
-        ));
-        let chain_state = BlockChainState {
-            mempool,
-            utxo,
-            block_storage,
-            state: match storage.as_ref() {
-                PersistentStorage::InMemory(storage) => storage.clone(),
-                PersistentStorage::Sled(storage) => storage.clone(),
-            },
-        };
-        chain_state.resolve_current_head(&genesis_block())?;
-
-        Ok(Self {
-            state: Arc::new(chain_state),
-            miner,
-            local_mpsc_sender,
+        Ok(Tuchain {
+            chain: chain_state,
+            txpool,
         })
     }
 
-    pub fn dispatch(&self, action: StateAction) -> Result<()> {
-        match self.state.dispatch(action)? {
-            StateEffect::CurrentHeadChanged => {
-                if let (Ok(Some(current_head)), Ok(mempool)) =
-                    (self.state.get_current_head(), self.state.get_mempool())
-                {
-                    self.local_mpsc_sender.send(LocalMessage::StateChanged {
-                        current_head,
-                        mempool,
-                    })?;
+    pub fn chain(&self) -> Arc<ChainState> {
+        self.chain.clone()
+    }
+
+    pub fn txpool(&self) -> Arc<RwLock<TxPool>> {
+        self.txpool.clone()
+    }
+}
+
+pub struct ChainState {
+    state_provider: Arc<Mutex<LruCache<Hash, Arc<Morph>>>>,
+    state_dir: PathBuf,
+    block_storage: Arc<BlockStorage>,
+    chain_state: Arc<ChainStateStorage>,
+}
+
+const CURR_STATE_ROOT: Hash = [0; 32];
+
+impl ChainState {
+    pub fn new(
+        state_dir: PathBuf,
+        consensus: Arc<dyn Consensus>,
+        block_storage: Arc<BlockStorage>,
+        chain_state_storage: Arc<ChainStateStorage>,
+    ) -> Result<Self> {
+        let mut state_provider = LruCache::new(10);
+
+        if let Some(current_head) = chain_state_storage.get_current_header()? {
+            let state = Arc::new(Morph::new(
+                state_dir.join(format!("{:?}", H256::from(current_head.state_root))),
+            )?);
+            state_provider.put(current_head.state_root, state.clone());
+            state_provider.put(CURR_STATE_ROOT, state.clone());
+            info!(current_head = ?current_head, "restore from blockchain state");
+        } else {
+            let genesis = consensus.get_genesis_header();
+            let block = Block::new(genesis.clone(), vec![]);
+            block_storage.put(block)?;
+            chain_state_storage.set_current_header(genesis)?;
+            let state = Arc::new(Morph::new(
+                state_dir.join(format!("{:?}", H256::from(genesis.state_root))),
+            )?);
+            state_provider.put(genesis.state_root, state.clone());
+            info!(current_head = ?genesis, "blockchain state started from genesis");
+        }
+
+        Ok(Self {
+            state_provider: Arc::new(Mutex::new(state_provider)),
+            state_dir,
+            block_storage,
+            chain_state: chain_state_storage,
+        })
+    }
+
+    pub fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()> {
+        for block in blocks {
+            match self
+                .update_chain(consensus.clone(), block)
+                .and_then(|(block, state)| {
+                    let header = block.header().clone();
+                    self.block_storage
+                        .put(block.clone())
+                        .and_then(|_| Ok((header, state)))
+                }) {
+                Ok((header, new_state)) => {
+                    let mut provider = self
+                        .state_provider
+                        .lock()
+                        .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+                    provider.put(header.state_root, new_state.clone());
+                    provider.put(CURR_STATE_ROOT, new_state);
+                    self.chain_state.set_current_header(header)?;
+                }
+                Err(_) => {
+                    // remove
                 }
             }
-            StateEffect::TxAdded => {}
-            StateEffect::None => {}
         }
         Ok(())
     }
 
-    pub fn state(&self) -> Arc<BlockChainState> {
-        self.state.clone()
-    }
-
-    pub fn miner(&self) -> Arc<Miner> {
-        self.miner.clone()
-    }
-}
-
-pub fn start_mining(
-    miner: Arc<Miner>,
-    state: Arc<BlockChainState>,
-    sender: UnboundedSender<LocalMessage>,
-) {
-    tokio::task::spawn(async move {
-        loop {
-            let state = state.clone();
-            match miner.mine(
-                &state
-                    .get_current_head()
-                    .expect("Blockchain state failed")
-                    .ok_or(BlockChainError::UnknownError)
-                    .expect("Blockchain state failed"),
-            ) {
-                Ok(new_block) => {
-                    sender.send(LocalMessage::MindedBlock(new_block));
-                }
-                Err(error) => {
-                    println!("Miner Error: {}", error);
-                }
-            }
+    fn update_chain(
+        &self,
+        consensus: Arc<dyn Consensus>,
+        block: Block,
+    ) -> Result<(Block, Arc<Morph>)> {
+        let current_state = self.state()?;
+        let state_intermediate = Arc::new(
+            current_state.checkpoint(
+                self.state_dir
+                    .join(format!("{:?}", H256::from(block.header().state_root))),
+            )?,
+        );
+        let mut header = block.header().clone();
+        consensus.prepare_header(self.block_storage.clone(), &mut header)?;
+        consensus.finalize(
+            self.block_storage.clone(),
+            &mut header,
+            state_intermediate.clone(),
+            block.transactions().clone(),
+        )?;
+        consensus.verify_header(self.block_storage.clone(), &header)?;
+        if header.hash() != block.hash() {
+            return Err(BlockChainError::InvalidBlock.into());
         }
-    });
-}
 
-const CURRENT_HEAD_KEY: &str = "current-head";
-
-pub type BlockChainStateKV = dyn KVStore<BlockChainState> + Send + Sync;
-
-#[derive(Serialize, Deserialize)]
-pub enum StateValue {
-    CurrentHead(BlockHeader),
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct StateKey {
-    key: String,
-}
-
-impl Encoder for StateValue {}
-impl Decoder for StateValue {}
-
-impl Encoder for StateKey {
-    fn encode(&self) -> Result<Vec<u8>> {
-        Ok(self.key.as_bytes().to_vec())
-    }
-}
-
-impl Decoder for StateKey {
-    fn decode(buf: &[u8]) -> Result<Self> {
-        Ok(StateKey {
-            key: String::from_utf8(buf.to_vec())?,
-        })
-    }
-}
-
-impl From<String> for StateKey {
-    fn from(inner: String) -> Self {
-        Self { key: inner }
-    }
-}
-
-impl From<&'static str> for StateKey {
-    fn from(s: &'static str) -> Self {
-        Self { key: s.to_string() }
-    }
-}
-
-pub struct BlockChainState {
-    mempool: Arc<MemPool>,
-    utxo: Arc<UTXO>,
-    block_storage: Arc<BlockStorage>,
-    state: Arc<BlockChainStateKV>,
-}
-
-unsafe impl Send for BlockChainState {}
-unsafe impl Sync for BlockChainState {}
-
-impl BlockChainState {
-    pub fn new(
-        mempool: Arc<MemPool>,
-        utxo: Arc<UTXO>,
-        block_storage: Arc<BlockStorage>,
-        state: Arc<BlockChainStateKV>,
-    ) -> Self {
-        Self {
-            mempool,
-            utxo,
-            block_storage,
-            state,
-        }
-    }
-}
-
-impl KVEntry for BlockChainState {
-    type Key = StateKey;
-    type Value = StateValue;
-
-    fn column() -> &'static str {
-        "chain_state"
-    }
-}
-
-impl BlockChainState {
-    pub fn get_current_head(&self) -> Result<Option<BlockHeader>> {
-        match self.state.get(&CURRENT_HEAD_KEY.into())? {
-            None => Ok(None),
-            Some(StateValue::CurrentHead(head)) => Ok(Some(head)),
-        }
-    }
-    pub fn get_mempool(&self) -> Result<MempoolSnapsot> {
-        self.mempool.snapshot()
+        Ok((block, state_intermediate))
     }
 
-    fn resolve_current_head(&self, new_block: &Block) -> Result<StateEffect> {
-        let current_head = self.get_current_head()?;
-        match current_head {
+    pub fn load_state(&self, root_hash: &Hash) -> Result<Arc<Morph>> {
+        let mut provider = self
+            .state_provider
+            .lock()
+            .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+        match provider.get(root_hash) {
             None => {
-                self.state.put(
-                    CURRENT_HEAD_KEY.into(),
-                    StateValue::CurrentHead(new_block.header()),
-                )?;
-                return Ok(StateEffect::CurrentHeadChanged);
+                let state =
+                    Morph::new(self.state_dir.join(format!("{:?}", H256::from(root_hash))))?;
+                return Ok(Arc::new(state));
             }
-            Some(current_head) => {
-                if current_head.hash() == new_block.prev_block_hash() {
-                    self.state.put(
-                        CURRENT_HEAD_KEY.into(),
-                        StateValue::CurrentHead(new_block.header()),
-                    )?;
-                    return Ok(StateEffect::CurrentHeadChanged);
-                }
-            }
+            Some(state) => Ok(state.clone()),
         }
-
-        Ok(StateEffect::None)
     }
-    fn dispatch(&self, action: StateAction) -> Result<StateEffect> {
-        return match action {
-            StateAction::AddNewBlock(block) => {
-                validate_block(&block)?;
-                for tx_hash in block.transactions().iter() {
-                    let tx = self
-                        .mempool
-                        .get_tx(tx_hash)?
-                        .ok_or(BlockChainError::TransactionNotFound)?;
-                    execute_tx(tx, self.utxo.as_ref())?;
-                    self.mempool.remove(tx_hash)?;
-                }
 
-                self.block_storage.put_block(block.clone())?;
-                self.resolve_current_head(&block)
-            }
-            StateAction::AddNewTransaction(tx) => {
-                self.mempool.put(&tx)?;
-                Ok(StateEffect::TxAdded)
-            }
-        };
+    pub fn block_storage(&self) -> Arc<BlockStorage> {
+        self.block_storage.clone()
+    }
+
+    pub fn state(&self) -> anyhow::Result<Arc<Morph>> {
+        let mut provider = self
+            .state_provider
+            .lock()
+            .map_err(|e| anyhow::anyhow!("{:?}", e))?;
+        provider
+            .get(&CURR_STATE_ROOT)
+            .ok_or(anyhow::anyhow!("No state found"))
+            .map(|value| value.clone())
     }
 }
 
-pub enum StateAction {
-    AddNewBlock(Block),
-    AddNewTransaction(Tx),
+impl Blockchain for ChainState {
+    fn get_current_state(&self) -> anyhow::Result<Arc<dyn StateDB>> {
+        Ok(self.state()?)
+    }
+
+    fn current_header(&self) -> anyhow::Result<Option<IndexedBlockHeader>> {
+        self.chain_state
+            .get_current_header()
+            .map(|header| header.map(|header| header.into()))
+    }
+
+    fn get_state_at(&self, root: &Hash) -> anyhow::Result<Arc<dyn StateDB>> {
+        Ok(self.load_state(root)?)
+    }
 }
 
-pub enum StateEffect {
-    CurrentHeadChanged,
-    TxAdded,
-    None,
+impl ChainReader for ChainState {
+    fn get_block(&self, hash: &Hash, level: i32) -> Result<Option<Block>> {
+        self.block_storage.get_block(hash, level)
+    }
+
+    fn get_block_by_hash(&self, hash: &Hash) -> Result<Option<Block>> {
+        self.block_storage.get_block_by_hash(hash)
+    }
 }
+
+// impl ChainHeadReader for ChainState {
+//     fn get_header(&self, hash: &Hash, level: i32) -> Result<Option<IndexedBlockHeader>> {
+//         self.block_storage.get_header(hash, level)
+//     }
+//
+//     fn get_header_by_hash(&self, hash: &Hash) -> Result<Option<IndexedBlockHeader>> {
+//        self.block_storage.get_header_by_hash(hash)
+//     }
+//
+//     fn get_header_by_level(&self, level: i32) -> Result<Option<IndexedBlockHeader>> {
+//         self.block_storage.get_header_by_level(level)
+//     }
+// }

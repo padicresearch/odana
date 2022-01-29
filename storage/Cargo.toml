@@ -10,4 +10,9 @@ sled = "0.34.7"
 itertools = "0.10.3"
 anyhow = "1.0.45"
 thiserror = "1.0.30"
-codec = {path = "../codec"}
+codec = { path = "../codec" }
+rocksdb = { version = "0.17.0" }
+
+[dev-dependencies]
+fs_extra = "1.2.0"
+tempdir = "0.3.7"

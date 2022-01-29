@@ -1,25 +1,23 @@
 use std::env;
+use std::env::temp_dir;
 use std::sync::Arc;
+use std::sync::atomic::AtomicI8;
 
-use anyhow::Error;
-
-use blockchain::block_storage::BlockStorage;
-use blockchain::blockchain::{
-    BlockChain, BlockChainState, LocalMessage, start_mining, StateAction,
-};
-use blockchain::mempool::MemPool;
-use blockchain::p2p::{
-    BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage, NodeIdentity,
-    PeerMessage, start_p2p_server,
-};
-use blockchain::utxo::UTXO;
-use storage::{KVEntry, PersistentStorage};
+use account::create_account;
+use blockchain::blockchain::Tuchain;
+use blockchain::column_family_names;
+use blockchain::p2p::{BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage, NodeIdentity, PeerMessage, start_p2p_server};
+use consensus::barossa::{BarossaProtocol, Network};
+use miner::worker::start_worker;
+use storage::{PersistentStorage, PersistentStorageBackend};
 use storage::memstore::MemStore;
-use storage::sleddb::SledDB;
-use types::block::Block;
+use tracing::Level;
+use tracing::tracing_subscriber;
+use traits::Blockchain;
+use types::events::LocalEventMessage;
 
 enum EventStream {
-    LocalMessage(LocalMessage),
+    LocalMessage(LocalEventMessage),
     PeerMessage(PeerMessage),
     Unhandled,
 }
@@ -28,29 +26,37 @@ enum EventStream {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     //logging
-    tracing::tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_max_level(Level::INFO)
+        .init();
 
     // Communications
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (node_2_peer_sender, mut node_2_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_2_node_sender, mut peer_2_node_receiver) = tokio::sync::mpsc::unbounded_channel();
+    let interrupt = Arc::new(AtomicI8::new(2)).clone();
+    let mut tempdir = temp_dir();
+    tempdir.push("tuchain");
+    let kv = Arc::new(MemStore::new(column_family_names()));
+    let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::InMemory(kv)));
+    let barossa_consensus = Arc::new(BarossaProtocol::new(Network::Testnet));
+    let blockchain = Arc::new(Tuchain::initialize(tempdir, barossa_consensus.clone(), storage, local_mpsc_sender.clone()).unwrap()).clone();
 
-    let kv = Arc::new(MemStore::new(vec![
-        BlockStorage::column(),
-        UTXO::column(),
-        MemPool::column(),
-        BlockChainState::column(),
-    ]));
-    let storage = Arc::new(PersistentStorage::InMemory(kv));
-    let blockchain = BlockChain::new(storage, local_mpsc_sender.clone())?;
+    {
+        let blockchain = blockchain.clone();
+        tokio::spawn(async move {
+            let miner = create_account();
+            start_worker(miner.address, local_mpsc_sender, barossa_consensus.clone(), blockchain.txpool(), blockchain.chain().state().unwrap(), blockchain.chain(), blockchain.chain().block_storage(), interrupt.clone()).unwrap();
+        });
+    }
 
-    start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
+    //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
     start_p2p_server(
         NodeIdentity::generate(),
         node_2_peer_receiver,
         peer_2_node_sender,
     )
-    .await?;
+        .await?;
 
     loop {
         let event = tokio::select! {
@@ -79,15 +85,10 @@ async fn main() -> anyhow::Result<()> {
                 EventStream::PeerMessage(msg) => {
                     match msg {
                         PeerMessage::GetCurrentHead(req) => {
-                            if let (Ok(Some(current_head)), Ok(mempool)) = (
-                                blockchain.state().get_current_head(),
-                                blockchain.state().get_mempool(),
-                            ) {
+                            if let Ok(Some(current_head)) = blockchain.chain().current_header() {
                                 node_2_peer_sender.send(PeerMessage::CurrentHead(
                                     CurrentHeadMessage::new(
-                                        current_head,
-                                        mempool,
-                                        Some(req.sender),
+                                        current_head.raw
                                     ),
                                 ));
                             }
@@ -97,60 +98,50 @@ async fn main() -> anyhow::Result<()> {
                         }
                         PeerMessage::GetBlockHeader(_) => {}
                         PeerMessage::BlockHeader(_) => {}
-                        PeerMessage::GetBlockTransactions(_) => {}
-                        PeerMessage::BlockTransactions(_) => {}
+                        PeerMessage::GetBlock(_) => {}
+                        PeerMessage::Block(_) => {}
                         PeerMessage::BroadcastTransaction(tx_msg) => {
-                            match blockchain.dispatch(StateAction::AddNewTransaction(tx_msg.tx())) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    println!("State Dispatch Error {}", e)
-                                }
-                            };
+                            println!("{:?}", tx_msg)
                         }
                         PeerMessage::BroadcastBlock(block_msg) => {
-                            match blockchain.dispatch(StateAction::AddNewBlock(block_msg.block())) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    println!("State Dispatch Error {}", e)
-                                }
-                            };
+                            println!("{:?}", block_msg)
                         }
                     };
                 }
                 EventStream::LocalMessage(local_msg) => {
                     match local_msg {
-                        LocalMessage::MindedBlock(block) => {
-                            println!("Minded new Block : {}", block);
+                        LocalEventMessage::MindedBlock(block) => {
+                            println!("Minded new Block : {:?}", block);
                             node_2_peer_sender.send(PeerMessage::BroadcastBlock(
                                 BroadcastBlockMessage::new(block.clone()),
                             ));
-                            match blockchain.dispatch(StateAction::AddNewBlock(block)) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    println!("State Dispatch Error {}", e)
-                                }
-                            };
+                            // match blockchain.dispatch(StateAction::AddNewBlock(block)) {
+                            //     Ok(_) => {}
+                            //     Err(e) => {
+                            //         println!("State Dispatch Error {}", e)
+                            //     }
+                            // };
                         }
-                        LocalMessage::BroadcastTx(tx) => {
-                            match blockchain.dispatch(StateAction::AddNewTransaction(tx.clone())) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    println!("State Dispatch Error {}", e)
-                                }
-                            };
+                        LocalEventMessage::BroadcastTx(tx) => {
+                            // match blockchain.dispatch(StateAction::AddNewTransaction(tx.clone())) {
+                            //     Ok(_) => {}
+                            //     Err(e) => {
+                            //         println!("State Dispatch Error {}", e)
+                            //     }
+                            // };
                             //println!("Sending Transaction to Chain : {:?}", tx);
                             node_2_peer_sender.send(PeerMessage::BroadcastTransaction(
                                 BroadcastTransactionMessage::new(tx),
                             ));
                         }
-                        LocalMessage::StateChanged {
-                            current_head,
-                            mempool,
+                        LocalEventMessage::StateChanged {
+                            current_head
                         } => {
                             node_2_peer_sender.send(PeerMessage::CurrentHead(
-                                CurrentHeadMessage::new(current_head, mempool, None),
+                                CurrentHeadMessage::new(current_head),
                             ));
                         }
+                        LocalEventMessage::TxPoolPack(_) => {}
                     }
                 }
                 EventStream::Unhandled => {}

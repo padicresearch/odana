@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -8,8 +9,10 @@ use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::Transaction;
 
-pub trait Blockchain: ChainHeadReader + ChainReader {
+pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
+    fn current_header(&self) -> Result<Option<IndexedBlockHeader>>;
+    fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
 }
 
 pub trait StateDB: Send + Sync {
@@ -19,6 +22,7 @@ pub trait StateDB: Send + Sync {
     fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
     fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
+    fn checkpoint(&self, path: String) -> Result<Arc<dyn StateDB>>;
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash>;
 }
 
@@ -33,16 +37,14 @@ pub trait Saturating {
 }
 
 pub trait ChainHeadReader: Send + Sync {
-    fn current_header(&self) -> Result<Option<IndexedBlockHeader>>;
     fn get_header(&self, hash: &Hash, level: i32) -> Result<Option<IndexedBlockHeader>>;
     fn get_header_by_hash(&self, hash: &Hash) -> Result<Option<IndexedBlockHeader>>;
     fn get_header_by_level(&self, level: i32) -> Result<Option<IndexedBlockHeader>>;
 }
 
-pub trait ChainReader: ChainHeadReader + Send + Sync {
+pub trait ChainReader: Send + Sync {
     fn get_block(&self, hash: &Hash, level: i32) -> Result<Option<Block>>;
     fn get_block_by_hash(&self, hash: &Hash) -> Result<Option<Block>>;
-    fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
 }
 
 pub trait Consensus: Send + Sync {

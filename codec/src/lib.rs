@@ -75,6 +75,8 @@ impl_codec_primitives!(u32 => u32::from_be_bytes);
 impl_codec_primitives!(u64 => u64::from_be_bytes);
 impl_codec_primitives!(u128 => u128::from_be_bytes);
 
+impl_codec!(String);
+
 impl Encoder for H160 {
     fn encode(&self) -> Result<Vec<u8>> {
         Ok(self.as_bytes().to_vec())

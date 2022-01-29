@@ -17,17 +17,23 @@ thiserror = "1.0.30"
 flexbuffers = "2.0.0"
 bincode = "1.0.130"
 serde = { version = "1.0.130", features = ["derive"] }
-merkle = {path = "../merkle"}
-storage = {path = "../storage"}
-codec = {path = "../codec"}
-types = {path = "../common/types"}
-account = {path = "../account"}
+merkle = { path = "../merkle" }
+storage = { path = "../storage" }
+codec = { path = "../codec" }
+types = { path = "../common/types" }
+traits = { path = "../common/traits" }
+account = { path = "../account" }
+morph = { path = "../morph" }
+txpool = { path = "../txpool" }
 chrono = "0.4.19"
 itertools = "0.10.3"
-rusqlite = "0.26.3"
 tokio = { version = "1", features = ["full"] }
 commitlog = "0.2"
 derive-getters = "0.2.0"
 libp2p = { version = "0.41.0", features = ["tcp-tokio"] }
 num-bigint = "0.4.3"
-primitive-types = { path = "../common/primitive-types"}
+primitive-types = { path = "../common/primitive-types" }
+dashmap = "5.0.0"
+lru = "0.7.2"
+rocksdb = { version = "0.17.0" }
+tracing = { path = "../common/tracing" }

@@ -1,12 +1,15 @@
-use crate::error::StorageError;
-use crate::KVEntry;
-use crate::KVStore;
-use anyhow::{Error, Result};
-use codec::{Codec, Decoder, Encoder};
 use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::RwLock;
+
+use anyhow::{Error, Result};
+
+use codec::{Codec, Decoder, Encoder};
+
+use crate::error::StorageError;
+use crate::KVStore;
+use crate::Schema;
 
 #[derive(Debug)]
 pub struct ColumnMemStore {
@@ -80,7 +83,7 @@ impl MemStore {
     }
 }
 
-impl<S: KVEntry> KVStore<S> for MemStore {
+impl<S: Schema> KVStore<S> for MemStore {
     fn get(&self, key: &S::Key) -> Result<Option<S::Value>> {
         let key = key.encode()?;
         match self.column(S::column())?.get(key)? {

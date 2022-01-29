@@ -17,6 +17,11 @@ use crate::tx::Transaction;
 
 use super::*;
 
+#[derive(Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize)]
+pub struct BlockPrimaryKey(pub Hash, pub i32);
+
+impl_codec!(BlockPrimaryKey);
+
 #[derive(Serialize, Deserialize, Copy, Clone, Getters)]
 pub struct BlockHeader {
     pub parent_hash: Hash,
@@ -79,13 +84,13 @@ impl std::fmt::Debug for BlockHeader {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Block {
     header: BlockHeader,
-    transactions: Box<[Transaction]>,
+    transactions: Vec<Transaction>,
     #[serde(skip)]
     hash: Arc<RwLock<Option<Hash>>>,
 }
 
 impl Block {
-    pub fn transactions(&self) -> &Box<[Transaction]> {
+    pub fn transactions(&self) -> &Vec<Transaction> {
         &self.transactions
     }
 }
@@ -97,7 +102,7 @@ impl Block {
     pub fn new(header: BlockHeader, transactions: Vec<Transaction>) -> Self {
         Self {
             header,
-            transactions: transactions.into_boxed_slice(),
+            transactions,
             hash: Arc::new(Default::default()),
         }
     }
