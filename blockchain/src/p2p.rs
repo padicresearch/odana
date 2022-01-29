@@ -204,17 +204,11 @@ async fn config_network(
         .into_authentic(&node_identity.identity_keys())
         .expect("cannot create auth keys");
 
-    // let transport = TokioTcpConfig::new()
-    //     .upgrade(Version::V1)
-    //     .authenticate(NoiseConfig::xx(auth_keys).into_authenticated())
-    //     .multiplex(libp2p::mplex::MplexConfig::new())
-    //     .boxed();
-    let mut bytes = [0u8; 32];
-    let secret_key = ed25519::SecretKey::from_bytes(&mut bytes).expect(
-        "this returns `Err` only if the length is wrong; the length is correct; qed",
-    );
-    let auth_keys = identity::Keypair::Ed25519(secret_key.into());
-    let transport = libp2p::development_transport(auth_keys).await?;
+    let transport = TokioTcpConfig::new()
+        .upgrade(Version::V1)
+        .authenticate(NoiseConfig::xx(auth_keys).into_authenticated())
+        .multiplex(libp2p::mplex::MplexConfig::new())
+        .boxed();
 
     let network_topic = libp2p::floodsub::Topic::new("testnet");
 
