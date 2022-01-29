@@ -2,6 +2,8 @@ use anyhow::{Error, Result};
 use hex::ToHex;
 use libp2p::{Multiaddr, PeerId, Swarm, Transport};
 use libp2p::core::either::EitherError;
+use libp2p::core::identity;
+use libp2p::core::identity::ed25519;
 use libp2p::core::transport::upgrade::Version;
 use libp2p::floodsub::{Floodsub, FloodsubEvent};
 use libp2p::futures::StreamExt;
@@ -207,8 +209,12 @@ async fn config_network(
     //     .authenticate(NoiseConfig::xx(auth_keys).into_authenticated())
     //     .multiplex(libp2p::mplex::MplexConfig::new())
     //     .boxed();
-
-    let transport = libp2p::development_transport(node_identity.identity_keys()).await?;
+    let mut bytes = [0u8; 32];
+    let secret_key = ed25519::SecretKey::from_bytes(&mut bytes).expect(
+        "this returns `Err` only if the length is wrong; the length is correct; qed",
+    );
+    let auth_keys = identity::Keypair::Ed25519(secret_key.into());
+    let transport = libp2p::development_transport(auth_keys).await?;
 
     let network_topic = libp2p::floodsub::Topic::new("testnet");
 
