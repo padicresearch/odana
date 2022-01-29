@@ -293,7 +293,7 @@ async fn handle_swam_event<T>(
 ) {
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
-            println!("Listening on {}/{}", address, swarm.local_peer_id().to_string());
+            println!("Listening on {}/p2p/{}", address, swarm.local_peer_id().to_string());
         }
         SwarmEvent::Behaviour(OutEvent::Floodsub(FloodsubEvent::Message(message))) => {
             info!("new flood message {:?}", message);
