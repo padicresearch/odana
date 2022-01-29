@@ -245,9 +245,6 @@ pub async fn start_p2p_server(
     peer_arg: Option<String>
 ) -> Result<()> {
     let mut swarm = config_network(node_identity, p2p_to_node).await?;
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
-        .expect("Error connecting to p2p");
-
     if let Some(to_dial) = peer_arg {
         let addr: Multiaddr = to_dial.parse()?;
         let peer_id = match addr.iter().last() {
@@ -261,6 +258,9 @@ pub async fn start_p2p_server(
             .add_node_to_partial_view(peer_id);
         println!("Dialed {:?}", to_dial)
     }
+    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
+        .expect("Error connecting to p2p");
+
 
     tokio::task::spawn(async move {
         loop {
@@ -293,7 +293,8 @@ async fn handle_swam_event<T>(
 ) {
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
-            println!("Listening on {}/p2p/{}", address, swarm.local_peer_id().to_string());
+            let local_peer_id = *swarm.local_peer_id();
+            println!("Listening on {}", address.with(Protocol::P2p(local_peer_id.into())));
         }
         SwarmEvent::Behaviour(OutEvent::Floodsub(FloodsubEvent::Message(message))) => {
             info!("new flood message {:?}", message);
