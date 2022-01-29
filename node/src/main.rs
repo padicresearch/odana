@@ -104,7 +104,7 @@ async fn main() -> anyhow::Result<()> {
                             println!("{:?}", tx_msg)
                         }
                         PeerMessage::BroadcastBlock(block_msg) => {
-                            println!("{:?}", block_msg)
+                            println!("Received Block {:?}", block_msg)
                         }
                     };
                 }

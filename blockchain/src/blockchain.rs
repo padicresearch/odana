@@ -202,17 +202,3 @@ impl ChainReader for ChainState {
         self.block_storage.get_block_by_hash(hash)
     }
 }
-
-// impl ChainHeadReader for ChainState {
-//     fn get_header(&self, hash: &Hash, level: i32) -> Result<Option<IndexedBlockHeader>> {
-//         self.block_storage.get_header(hash, level)
-//     }
-//
-//     fn get_header_by_hash(&self, hash: &Hash) -> Result<Option<IndexedBlockHeader>> {
-//        self.block_storage.get_header_by_hash(hash)
-//     }
-//
-//     fn get_header_by_level(&self, level: i32) -> Result<Option<IndexedBlockHeader>> {
-//         self.block_storage.get_header_by_level(level)
-//     }
-// }
