@@ -286,8 +286,8 @@ async fn handle_swam_event<T>(
             }
         }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Discovered(list))) => {
-            info!("new peer discovered {:?}", list);
-            for (peer, _) in list {
+            for (peer, addr) in list {
+                info!("new peer discovered {:?}", addr);
                 swarm
                     .behaviour_mut()
                     .floodsub
