@@ -2,6 +2,7 @@ use std::env;
 use std::env::temp_dir;
 use std::sync::Arc;
 use std::sync::atomic::AtomicI8;
+use std::time::SystemTime;
 
 use account::create_account;
 use blockchain::blockchain::Tuchain;
@@ -35,12 +36,18 @@ async fn main() -> anyhow::Result<()> {
     let (node_2_peer_sender, mut node_2_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_2_node_sender, mut peer_2_node_receiver) = tokio::sync::mpsc::unbounded_channel();
     let interrupt = Arc::new(AtomicI8::new(2)).clone();
-    let mut tempdir = temp_dir();
-    tempdir.push("tuchain");
+    let time = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let mut path = temp_dir();
+    path.push(format!("tuchain-temp–{}", time));
+    // let mut tempdir = temp_dir();
+    // tempdir.push("tuchain");
     let kv = Arc::new(MemStore::new(column_family_names()));
     let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::InMemory(kv)));
     let barossa_consensus = Arc::new(BarossaProtocol::new(Network::Testnet));
-    let blockchain = Arc::new(Tuchain::initialize(tempdir, barossa_consensus.clone(), storage, local_mpsc_sender.clone()).unwrap()).clone();
+    let blockchain = Arc::new(Tuchain::initialize(path, barossa_consensus.clone(), storage, local_mpsc_sender.clone()).unwrap()).clone();
 
     {
         let blockchain = blockchain.clone();
