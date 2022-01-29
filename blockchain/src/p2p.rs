@@ -235,7 +235,7 @@ pub async fn start_p2p_server(
     p2p_to_node: UnboundedSender<PeerMessage>,
 ) -> Result<()> {
     let mut swarm = config_network(node_identity, p2p_to_node).await?;
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
+    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse()?)
         .expect("Error connecting to p2p");
 
     tokio::task::spawn(async move {
