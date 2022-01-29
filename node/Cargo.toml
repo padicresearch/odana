@@ -23,3 +23,4 @@ miner = { path = "../miner" }
 account = { path = "../account" }
 traits = { path = "../common/traits" }
 tracing = { path = "../common/tracing" }
+clap = { version = "3.0.13", features = ["derive"] }

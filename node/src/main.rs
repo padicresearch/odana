@@ -4,6 +4,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicI8;
 use std::time::SystemTime;
 
+use clap::Parser;
+
 use account::create_account;
 use blockchain::blockchain::Tuchain;
 use blockchain::column_family_names;
@@ -23,9 +25,23 @@ enum EventStream {
     Unhandled,
 }
 
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[clap(short, long)]
+    peer: Option<String>,
+
+}
+
+
 ///tmp/tuchain
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let args: Args = Args::parse();
+
+
     //logging
     tracing_subscriber::fmt()
         .with_max_level(Level::INFO)
@@ -49,6 +65,17 @@ async fn main() -> anyhow::Result<()> {
     let barossa_consensus = Arc::new(BarossaProtocol::new(Network::Testnet));
     let blockchain = Arc::new(Tuchain::initialize(path, barossa_consensus.clone(), storage, local_mpsc_sender.clone()).unwrap()).clone();
 
+
+    //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
+    start_p2p_server(
+        NodeIdentity::generate(),
+        node_2_peer_receiver,
+        peer_2_node_sender,
+        args.peer,
+    )
+        .await.unwrap();
+
+
     {
         let blockchain = blockchain.clone();
         tokio::spawn(async move {
@@ -56,14 +83,6 @@ async fn main() -> anyhow::Result<()> {
             start_worker(miner.address, local_mpsc_sender, barossa_consensus.clone(), blockchain.txpool(), blockchain.chain().state().unwrap(), blockchain.chain(), blockchain.chain().block_storage(), interrupt.clone()).unwrap();
         });
     }
-
-    //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
-    start_p2p_server(
-        NodeIdentity::generate(),
-        node_2_peer_receiver,
-        peer_2_node_sender,
-    )
-        .await?;
 
     loop {
         let event = tokio::select! {

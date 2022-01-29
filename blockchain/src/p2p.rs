@@ -233,10 +233,18 @@ pub async fn start_p2p_server(
     node_identity: NodeIdentity,
     mut node_to_p2p: UnboundedReceiver<PeerMessage>,
     p2p_to_node: UnboundedSender<PeerMessage>,
+    peer_arg: Option<String>
 ) -> Result<()> {
     let mut swarm = config_network(node_identity, p2p_to_node).await?;
+    println!("Peer Arg {:?}", peer_arg);
+    if let Some(to_dial) = peer_arg {
+        let addr: Multiaddr = to_dial.parse()?;
+        swarm.dial(addr)?;
+        println!("Dialed {:?}", to_dial)
+    }
     Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
         .expect("Error connecting to p2p");
+
 
     tokio::task::spawn(async move {
         loop {
