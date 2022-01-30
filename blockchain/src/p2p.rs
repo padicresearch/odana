@@ -325,6 +325,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         }
         SwarmEvent::ConnectionClosed { endpoint, cause, .. } => {
             if let Some(cause) = cause {
+                swarm.dial(endpoint.get_remote_address().clone()).unwrap();
                 warn!(peer = ?endpoint.get_remote_address(), cause = ?cause, "Connection closed");
             }
         }

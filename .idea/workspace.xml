@@ -416,14 +416,7 @@
       <workItem from="1643182527054" duration="4749000" />
       <workItem from="1643214218156" duration="2586000" />
       <workItem from="1643280946395" duration="40169000" />
-      <workItem from="1643436658026" duration="35362000" />
-    </task>
-    <task id="LOCAL-00046" summary="test txpool extensively">
-      <created>1642054794154</created>
-      <option name="number" value="00046" />
-      <option name="presentableId" value="LOCAL-00046" />
-      <option name="project" value="LOCAL" />
-      <updated>1642054794154</updated>
+      <workItem from="1643436658026" duration="36075000" />
     </task>
     <task id="LOCAL-00047" summary="rewrite txpool">
       <created>1642192576671</created>
@@ -761,7 +754,14 @@
       <option name="project" value="LOCAL" />
       <updated>1643475310137</updated>
     </task>
-    <option name="localTasksCounter" value="95" />
+    <task id="LOCAL-00095" summary="mvp: test p2p communication">
+      <created>1643523947474</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1643523947474</updated>
+    </task>
+    <option name="localTasksCounter" value="96" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
