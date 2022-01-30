@@ -98,6 +98,22 @@ impl Block {
 impl_codec!(Block);
 impl_codec!(BlockHeader);
 
+impl PartialEq for Block {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash().eq(&other.hash())
+    }
+}
+
+impl Eq for Block {}
+
+impl PartialEq for BlockHeader {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash().eq(&other.hash())
+    }
+}
+
+impl Eq for BlockHeader {}
+
 impl Block {
     pub fn new(header: BlockHeader, transactions: Vec<Transaction>) -> Self {
         Self {
