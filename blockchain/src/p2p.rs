@@ -1,6 +1,7 @@
 use anyhow::{Error, Result};
 use hex::ToHex;
 use libp2p::{Multiaddr, PeerId, Swarm, Transport};
+use libp2p::core::connection::ConnectionError;
 use libp2p::core::either::EitherError;
 use libp2p::core::identity;
 use libp2p::core::identity::ed25519;
@@ -14,13 +15,14 @@ use libp2p::NetworkBehaviour;
 use libp2p::noise::{AuthenticKeypair, NoiseConfig, X25519Spec};
 use libp2p::request_response::RequestResponse;
 use libp2p::swarm::{NetworkBehaviourEventProcess, SwarmBuilder, SwarmEvent};
+use libp2p::swarm::protocols_handler::NodeHandlerWrapperError;
 use libp2p::tcp::TokioTcpConfig;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use codec::{Codec, Decoder, Encoder};
 use codec::impl_codec;
-use tracing::info;
+use tracing::{info, warn};
 use types::block::{Block, BlockHeader};
 use types::Hash;
 use types::tx::Transaction;
@@ -239,6 +241,10 @@ pub async fn start_p2p_server(
     peer_arg: Option<String>
 ) -> Result<()> {
     let mut swarm = config_network(node_identity, p2p_to_node).await?;
+
+    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
+        .expect("Error connecting to p2p");
+
     if let Some(to_dial) = peer_arg {
         let addr: Multiaddr = to_dial.parse()?;
         let peer_id = match addr.iter().last() {
@@ -246,15 +252,8 @@ pub async fn start_p2p_server(
             _ => anyhow::bail!("Expect peer multiaddr to contain peer ID."),
         };
         swarm.dial(addr.with(Protocol::P2p(peer_id.into())))?;
-        swarm
-            .behaviour_mut()
-            .floodsub
-            .add_node_to_partial_view(peer_id);
         println!("Dialed {:?}", to_dial)
     }
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
-        .expect("Error connecting to p2p");
-
 
     tokio::task::spawn(async move {
         loop {
@@ -281,7 +280,7 @@ async fn handle_publish_message(msg: Option<PeerMessage>, swarm: &mut Swarm<Chai
     }
 }
 
-async fn handle_swam_event<T>(
+async fn handle_swam_event<T: std::fmt::Debug>(
     event: SwarmEvent<OutEvent, T>,
     swarm: &mut Swarm<ChainNetworkBehavior>,
 ) {
@@ -306,7 +305,8 @@ async fn handle_swam_event<T>(
             }
         }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Expired(list))) => {
-            for (peer, _) in list {
+            for (peer, addr) in list {
+                info!("Peer expired {:?}", addr);
                 if !swarm.behaviour_mut().mdns.has_node(&peer) {
                     swarm
                         .behaviour_mut()
@@ -316,7 +316,18 @@ async fn handle_swam_event<T>(
             }
         }
 
-        SwarmEvent::ConnectionEstablished { peer_id, .. } => {}
+        SwarmEvent::ConnectionEstablished { peer_id, endpoint, .. } => {
+            swarm
+                .behaviour_mut()
+                .floodsub
+                .add_node_to_partial_view(peer_id);
+            info!(peer = ?endpoint.get_remote_address(),"Connection established");
+        }
+        SwarmEvent::ConnectionClosed { endpoint, cause, .. } => {
+            if let Some(cause) = cause {
+                warn!(peer = ?endpoint.get_remote_address(), cause = ?cause, "Connection closed");
+            }
+        }
         _ => {}
     }
 }
