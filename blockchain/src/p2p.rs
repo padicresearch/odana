@@ -8,6 +8,7 @@ use libp2p::core::identity::ed25519;
 use libp2p::core::transport::upgrade::Version;
 use libp2p::floodsub::{Floodsub, FloodsubEvent};
 use libp2p::futures::StreamExt;
+use libp2p::gossipsub::{Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic, Topic, ValidationMode};
 use libp2p::identity::Keypair;
 use libp2p::mdns::{Mdns, MdnsEvent};
 use libp2p::multiaddr::Protocol;
@@ -212,18 +213,25 @@ async fn config_network(
         .multiplex(libp2p::mplex::MplexConfig::new())
         .boxed();
 
-    let network_topic = libp2p::floodsub::Topic::new("testnet");
+    let network_topic = Sha256Topic::new("testnet");
 
     let mdns = Mdns::new(Default::default())
         .await
         .expect("Cannot create mdns");
+    let max_transmit_size = 500;
+    let config = GossipsubConfigBuilder::default()
+        .max_transmit_size(max_transmit_size)
+        .protocol_id_prefix("tuchain")
+        .validation_mode(ValidationMode::Permissive)
+        .build()
+        .unwrap();
     let mut behaviour = ChainNetworkBehavior {
-        floodsub: Floodsub::new(node_identity.peer_id.clone()),
+        gossipsub: Gossipsub::new(MessageAuthenticity::Author(node_identity.peer_id.clone()), config).expect("Failed to create Gossip sub network"),
         mdns,
         p2p_to_node,
     };
 
-    behaviour.floodsub.subscribe(network_topic);
+    behaviour.gossipsub.subscribe(&network_topic);
 
     let swarm = SwarmBuilder::new(transport, behaviour, node_identity.peer_id)
         .executor(Box::new(|fut| {
@@ -268,11 +276,10 @@ pub async fn start_p2p_server(
 async fn handle_publish_message(msg: Option<PeerMessage>, swarm: &mut Swarm<ChainNetworkBehavior>) {
     if let Some(msg) = msg {
         if let Ok(encoded_msg) = msg.encode() {
-            info!("sending flood message {:?}", msg);
-            let network_topic = libp2p::floodsub::Topic::new("testnet");
+            let network_topic = Sha256Topic::new("testnet");
             swarm
                 .behaviour_mut()
-                .floodsub
+                .gossipsub
                 .publish(network_topic, encoded_msg);
         } else {
             println!("Failed to encode message {:?}", msg)
@@ -289,8 +296,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             let local_peer_id = *swarm.local_peer_id();
             println!("Listening on {}", address.with(Protocol::P2p(local_peer_id.into())));
         }
-        SwarmEvent::Behaviour(OutEvent::Floodsub(FloodsubEvent::Message(message))) => {
-            info!("Received Message from Peer {:?}", message);
+        SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Message { propagation_source, message_id, message })) => {
+            info!("Received Message from Peer {:?} {:?}", propagation_source, message);
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 swarm.behaviour_mut().p2p_to_node.send(peer_message);
             }
@@ -300,8 +307,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 info!("new peer discovered {:?}", addr);
                 swarm
                     .behaviour_mut()
-                    .floodsub
-                    .add_node_to_partial_view(peer);
+                    .gossipsub
+                    .add_explicit_peer(&peer);
             }
         }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Expired(list))) => {
@@ -310,8 +317,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 if !swarm.behaviour_mut().mdns.has_node(&peer) {
                     swarm
                         .behaviour_mut()
-                        .floodsub
-                        .remove_node_from_partial_view(&peer);
+                        .gossipsub
+                        .remove_explicit_peer(&peer);
                 }
             }
         }
@@ -319,8 +326,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::ConnectionEstablished { peer_id, endpoint, .. } => {
             swarm
                 .behaviour_mut()
-                .floodsub
-                .add_node_to_partial_view(peer_id);
+                .gossipsub
+                .add_explicit_peer(&peer_id);
             info!(peer = ?endpoint.get_remote_address(),"Connection established");
         }
         SwarmEvent::ConnectionClosed { endpoint, cause, .. } => {
@@ -336,7 +343,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
 #[derive(NetworkBehaviour)]
 #[behaviour(out_event = "OutEvent")]
 struct ChainNetworkBehavior {
-    floodsub: Floodsub,
+    gossipsub: Gossipsub,
     mdns: Mdns,
     #[behaviour(ignore)]
     p2p_to_node: UnboundedSender<PeerMessage>,
@@ -344,7 +351,7 @@ struct ChainNetworkBehavior {
 
 #[derive(Debug)]
 enum OutEvent {
-    Floodsub(FloodsubEvent),
+    Gossipsub(GossipsubEvent),
     Mdns(MdnsEvent),
 }
 
@@ -354,11 +361,12 @@ impl From<MdnsEvent> for OutEvent {
     }
 }
 
-impl From<FloodsubEvent> for OutEvent {
-    fn from(v: FloodsubEvent) -> Self {
-        Self::Floodsub(v)
+impl From<GossipsubEvent> for OutEvent {
+    fn from(v: GossipsubEvent) -> Self {
+        Self::Gossipsub(v)
     }
 }
+
 enum P2PEvent {}
 
 #[cfg(test)]
