@@ -14,6 +14,7 @@ pub mod errors;
 pub mod p2p;
 pub mod blockchain;
 pub mod chain_state;
+pub mod peer_man;
 
 
 pub fn column_families() -> Vec<ColumnFamilyDescriptor> {

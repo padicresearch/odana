@@ -34,6 +34,9 @@ construct_uint! {
     pub struct U128(2);
 }
 construct_uint! {
+    pub struct U192(3);
+}
+construct_uint! {
     pub struct U256(4);
 }
 construct_uint! {
@@ -51,20 +54,26 @@ construct_fixed_hash! {
     pub struct H256(32);
 }
 construct_fixed_hash! {
+    pub struct H448(56);
+}
+construct_fixed_hash! {
     pub struct H512(64);
 }
 
 impl_uint_num_traits!(U128, 2);
+impl_uint_num_traits!(U192, 3);
 impl_uint_num_traits!(U256, 4);
 impl_uint_num_traits!(U512, 8);
 
 impl_uint_serde!(U128, 2);
+impl_uint_serde!(U192, 3);
 impl_uint_serde!(U256, 4);
 impl_uint_serde!(U512, 8);
 
 impl_fixed_hash_serde!(H128, 16);
 impl_fixed_hash_serde!(H160, 20);
 impl_fixed_hash_serde!(H256, 32);
+impl_fixed_hash_serde!(H448, 56);
 impl_fixed_hash_serde!(H512, 64);
 impl_fixed_hash_conversions!(H256, H160);
 
@@ -79,6 +88,22 @@ impl U128 {
     pub fn to_be_bytes(self) -> [u8; 16] {
         let mut out = [0_u8; 16];
         self.to_big_endian(&mut out);
+        out
+    }
+}
+
+impl U192 {
+    #[inline(always)]
+    pub fn to_be_bytes(self) -> [u8; 24] {
+        let mut out = [0_u8; 24];
+        self.to_big_endian(&mut out);
+        out
+    }
+
+    #[inline(always)]
+    pub fn to_le_bytes(self) -> [u8; 24] {
+        let mut out = [0_u8; 24];
+        self.to_little_endian(&mut out);
         out
     }
 }

@@ -3,8 +3,9 @@ use std::sync::Arc;
 
 use chrono::{Timelike, Utc};
 
+use crypto::is_valid_proof_of_work;
 use primitive_types::{Compact, H128, H160, H256, U256};
-use traits::{ChainHeadReader, Consensus, is_valid_proof_of_work, StateDB};
+use traits::{ChainHeadReader, Consensus, StateDB};
 use types::{Genesis, Hash};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::Transaction;
@@ -22,6 +23,13 @@ pub enum Network {
     Alphanet,
     Mainnet,
 }
+
+pub const NODE_POW_TARGET: U256 = U256([
+    0x0000000000000000u64,
+    0x0000000000000000u64,
+    0x0000000000000000u64,
+    0x00000fffff000000u64,
+]);
 
 const TESTNET_MAX_DIFFICULTY: U256 = U256([
     0x0000000000000000u64,
@@ -220,10 +228,7 @@ impl BarossaProtocol {
         max_bits
     }
 
-    /// Copy from https://github.com/mambisi/parity-bitcoin/blob/bf58a0d80ec196b99c9cf46b623b0a779af020f2/verification/src/work_bch.rs#L62
-    /// Algorithm to adjust difficulty after each block. Implementation is based on Bitcoin ABC commit:
-    /// https://github.com/Bitcoin-ABC/bitcoin-abc/commit/be51cf295c239ff6395a0aa67a3e13906aca9cb2
-    fn work_required_bitcoin_cash_adjusted(
+    fn work_required_adjusted(
         &self,
         parent_header: IndexedBlockHeader,
         time: u32,
@@ -595,7 +600,7 @@ mod tests {
                 .get_header_by_level(height.into())
                 .unwrap()
                 .unwrap();
-            let calculated_bits = barossa.work_required_bitcoin_cash_adjusted(
+            let calculated_bits = barossa.work_required_adjusted(
                 parent,
                 0,
                 height as u32 + 1,
@@ -615,7 +620,7 @@ mod tests {
         header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
         let calculated_bits =
-            barossa.work_required_bitcoin_cash_adjusted(header, 0, 2061, header_provider.clone());
+            barossa.work_required_adjusted(header, 0, 2061, header_provider.clone());
         debug_assert_eq!(calculated_bits, current_bits);
 
         // .. and then produce a block with the expected timestamp.
@@ -627,7 +632,7 @@ mod tests {
         header.raw.time = header.raw.time + 2 * 600 - 6000;
         header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
-        let calculated_bits = barossa.work_required_bitcoin_cash_adjusted(
+        let calculated_bits = barossa.work_required_adjusted(
             header_provider.get_header_by_level(2060).unwrap().unwrap(),
             0,
             2061,

@@ -1,3 +1,6 @@
+use core::iter;
+use std::str::FromStr;
+
 use anyhow::{Error, Result};
 use async_bincode::AsyncBincodeReader;
 use async_trait::async_trait;
@@ -21,7 +24,7 @@ use libp2p::mdns::{Mdns, MdnsEvent};
 use libp2p::multiaddr::Protocol;
 use libp2p::NetworkBehaviour;
 use libp2p::noise::{AuthenticKeypair, NoiseConfig, X25519Spec};
-use libp2p::request_response::{RequestResponse, RequestResponseCodec, RequestResponseEvent, RequestResponseMessage};
+use libp2p::request_response::{ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseConfig, RequestResponseEvent, RequestResponseMessage};
 use libp2p::swarm::{NetworkBehaviourEventProcess, SwarmBuilder, SwarmEvent};
 use libp2p::swarm::protocols_handler::NodeHandlerWrapperError;
 use libp2p::tcp::TokioTcpConfig;
@@ -30,10 +33,48 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use codec::{Codec, Decoder, Encoder};
 use codec::impl_codec;
+use crypto::{generate_pow_from_pub_key, SHA256};
+use primitive_types::{Compact, H256};
+use primitive_types::{H160, U192};
 use tracing::{info, warn};
 use types::block::{Block, BlockHeader};
 use types::Hash;
 use types::tx::Transaction;
+
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
+pub struct P2pNode {
+    pub_key: H256,
+    nonce: U192,
+}
+
+impl P2pNode {
+    pub fn new(pub_key: H256, nonce: U192) -> Self {
+        Self { pub_key, nonce }
+    }
+
+    pub fn pow(&self) -> H256 {
+        let mut pow_stamp = [0_u8; 56];
+        pow_stamp[..24].copy_from_slice(&self.nonce.to_le_bytes());
+        pow_stamp[24..].copy_from_slice(self.pub_key.as_bytes());
+        SHA256::digest(pow_stamp)
+    }
+
+    pub fn pub_key(&self) -> &H256 {
+        &self.pub_key
+    }
+
+    pub fn nonce(&self) -> &U192 {
+        &self.nonce
+    }
+
+    pub fn peer_id(&self) -> Result<PeerId> {
+        Ok(PeerId::from_public_key(
+            &libp2p::identity::PublicKey::Ed25519(libp2p::identity::ed25519::PublicKey::decode(
+                self.pub_key.as_bytes(),
+            )?),
+        ))
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct CurrentHeadMessage {
@@ -144,6 +185,34 @@ impl GetBlockTransactionsMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct ReAckMessage {
+    pub node_info: P2pNode,
+    pub peers: Vec<String>,
+}
+
+impl ReAckMessage {
+    pub fn new(node_info: P2pNode, peers: Vec<String>) -> Self {
+        Self {
+            node_info,
+            peers,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct AdvertiseMessage {
+    pub peers: Vec<String>,
+}
+
+impl AdvertiseMessage {
+    pub fn new(peers: Vec<String>) -> Self {
+        Self {
+            peers
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub enum PeerMessage {
     GetCurrentHead(GetCurrentHeadMessage),
     CurrentHead(CurrentHeadMessage),
@@ -153,20 +222,26 @@ pub enum PeerMessage {
     Block(Block),
     BroadcastTransaction(BroadcastTransactionMessage),
     BroadcastBlock(BroadcastBlockMessage),
+    Ack,
+    ReAck(ReAckMessage),
 }
 
 impl_codec!(PeerMessage);
 
 pub struct Peer {}
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeIdentity {
-    pub_key: libp2p::identity::ed25519::PublicKey,
-    secret_key: libp2p::identity::ed25519::SecretKey,
-    peer_id: PeerId,
+    pub_key: H256,
+    //libp2p::identity::ed25519::PublicKey
+    secret_key: H256,
+    //libp2p::identity::ed25519::SecretKey
+    peer_id: String,
+    nonce: U192,
 }
 
 impl NodeIdentity {
-    pub fn new(_pow: [u8; 32]) -> Self {
+    pub fn generate(target: Compact) -> Self {
         let keys = libp2p::identity::ed25519::Keypair::generate();
 
         let pub_key = keys.public();
@@ -175,34 +250,42 @@ impl NodeIdentity {
         let peer_id =
             PeerId::from_public_key(&libp2p::identity::PublicKey::Ed25519(pub_key.clone()));
 
-        Self {
-            pub_key,
-            secret_key,
-            peer_id,
-        }
-    }
-
-    pub fn generate() -> Self {
-        let keys = libp2p::identity::ed25519::Keypair::generate();
-
-        let pub_key = keys.public();
-        let secret_key = keys.secret();
-
-        let peer_id =
-            PeerId::from_public_key(&libp2p::identity::PublicKey::Ed25519(pub_key.clone()));
+        let (nonce, _) = generate_pow_from_pub_key(H256::from(pub_key.encode()), target);
 
         Self {
-            pub_key,
-            secret_key,
-            peer_id,
+            pub_key: H256::from(pub_key.encode()),
+            secret_key: H256::from_slice(secret_key.as_ref()),
+            peer_id: peer_id.to_base58(),
+            nonce,
         }
     }
 
     pub fn identity_keys(&self) -> libp2p::identity::Keypair {
         let keys = libp2p::identity::Keypair::Ed25519(libp2p::identity::ed25519::Keypair::from(
-            self.secret_key.clone(),
+            self.secret_key(),
         ));
         keys
+    }
+
+    pub fn secret_key(&self) -> libp2p::identity::ed25519::SecretKey {
+        let mut raw = self.secret_key.to_fixed_bytes();
+        libp2p::identity::ed25519::SecretKey::from_bytes(&mut raw).unwrap()
+    }
+
+    pub fn pub_key(&self) -> &H256 {
+        &self.pub_key
+    }
+
+    pub fn peer_id(&self) -> PeerId {
+        PeerId::from_str(&self.peer_id).unwrap()
+    }
+
+    pub fn nonce(&self) -> &U192 {
+        &self.nonce
+    }
+
+    pub fn to_p2p_node(&self) -> P2pNode {
+        P2pNode::new(self.pub_key, self.nonce)
     }
 }
 
@@ -232,20 +315,23 @@ async fn config_network(
         .validation_mode(ValidationMode::Permissive)
         .build()
         .unwrap();
+
+
     let mut behaviour = ChainNetworkBehavior {
         gossipsub: Gossipsub::new(
-            MessageAuthenticity::Author(node_identity.peer_id.clone()),
+            MessageAuthenticity::Author(node_identity.peer_id()),
             config,
         )
             .expect("Failed to create Gossip sub network"),
         mdns,
+        requestresponse: RequestResponse::new(ChainP2pExchangeCodec, iter::once((ChainP2pExchangeProtocol, ProtocolSupport::Full)), RequestResponseConfig::default()),
         p2p_to_node,
         topic: network_topic.clone(),
     };
 
     behaviour.gossipsub.subscribe(&network_topic);
 
-    let swarm = SwarmBuilder::new(transport, behaviour, node_identity.peer_id)
+    let swarm = SwarmBuilder::new(transport, behaviour, node_identity.peer_id())
         .executor(Box::new(|fut| {
             tokio::spawn(fut);
         }))
@@ -333,18 +419,31 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 }
             }
         }
-        SwarmEvent::Behaviour(OutEvent::RequestResponse(RequestResponseEvent::Message { peer, message })) => {
-            match message {
-                RequestResponseMessage::Request { request_id, request, .. } => {},
-
-                RequestResponseMessage::Response { request_id, response } => {}
+        SwarmEvent::Behaviour(OutEvent::RequestResponse(RequestResponseEvent::Message {
+                                                            peer,
+                                                            message,
+                                                        })) => match message {
+            RequestResponseMessage::Request {
+                request_id,
+                request,
+                channel,
+            } => {
+                println!("Request {:#?}", request);
             }
-        }
+
+            RequestResponseMessage::Response {
+                request_id,
+                response,
+            } => {
+                println!("Response {:#?}", response);
+            }
+        },
 
         SwarmEvent::ConnectionEstablished {
             peer_id, endpoint, ..
         } => {
-            swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
+            let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack);
+            //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
             info!(peer = ?endpoint.get_remote_address(),"Connection established");
         }
         SwarmEvent::ConnectionClosed {
@@ -364,6 +463,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
 struct ChainNetworkBehavior {
     gossipsub: Gossipsub,
     mdns: Mdns,
+    requestresponse: RequestResponse<ChainP2pExchangeCodec>,
     #[behaviour(ignore)]
     p2p_to_node: UnboundedSender<PeerMessage>,
     #[behaviour(ignore)]
@@ -395,7 +495,6 @@ impl From<RequestResponseEvent<PeerMessage, PeerMessage>> for OutEvent {
     }
 }
 
-
 #[derive(Debug, Clone)]
 struct ChainP2pExchangeProtocol;
 
@@ -414,47 +513,69 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     type Request = PeerMessage;
     type Response = PeerMessage;
 
-    async fn read_request<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Request> where T: AsyncRead + Unpin + Send {
+    async fn read_request<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Request>
+        where
+            T: AsyncRead + Unpin + Send,
+    {
         let data = read_length_prefixed(io, 1_000_000).await?;
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
         let message: Result<PeerMessage> = PeerMessage::decode(&data);
         let message = match message {
-            Ok(message) => {
-                message
-            }
-            Err(_) => {
-                return Err(std::io::ErrorKind::Unsupported.into())
-            }
+            Ok(message) => message,
+            Err(_) => return Err(std::io::ErrorKind::Unsupported.into()),
         };
         Ok(message)
     }
 
-    async fn read_response<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Response> where T: AsyncRead + Unpin + Send {
+    async fn read_response<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Response>
+        where
+            T: AsyncRead + Unpin + Send,
+    {
         let data = read_length_prefixed(io, 1_000_000).await?;
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
         let message: Result<PeerMessage> = PeerMessage::decode(&data);
         let message = match message {
-            Ok(message) => {
-                message
-            }
-            Err(_) => {
-                return Err(std::io::ErrorKind::Unsupported.into())
-            }
+            Ok(message) => message,
+            Err(_) => return Err(std::io::ErrorKind::Unsupported.into()),
         };
         Ok(message)
     }
 
-    async fn write_request<T>(&mut self, _: &Self::Protocol, io: &mut T, req: Self::Request) -> std::io::Result<()> where T: AsyncWrite + Unpin + Send {
+    async fn write_request<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+        req: Self::Request,
+    ) -> std::io::Result<()>
+        where
+            T: AsyncWrite + Unpin + Send,
+    {
         write_length_prefixed(io, req.encode().unwrap()).await?;
         io.close().await?;
         Ok(())
     }
 
-    async fn write_response<T>(&mut self, _: &Self::Protocol, io: &mut T, res: Self::Response) -> std::io::Result<()> where T: AsyncWrite + Unpin + Send {
+    async fn write_response<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+        res: Self::Response,
+    ) -> std::io::Result<()>
+        where
+            T: AsyncWrite + Unpin + Send,
+    {
         write_length_prefixed(io, res.encode().unwrap()).await?;
         io.close().await?;
         Ok(())
@@ -463,7 +584,6 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
 
 #[cfg(test)]
 mod tests {
-    use crate::account::create_account;
 
     #[test]
     fn account_to_node_id() {}

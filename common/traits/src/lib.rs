@@ -24,6 +24,7 @@ pub trait StateDB: Send + Sync {
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
     fn checkpoint(&self, path: String) -> Result<Arc<dyn StateDB>>;
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash>;
+    fn root_hash(&self) -> Hash;
 }
 
 pub trait StateIntermediate {}
@@ -77,18 +78,4 @@ pub trait Consensus: Send + Sync {
     fn is_genesis(&self, header: &BlockHeader) -> bool;
     fn miner_reward(&self, block_level: i32) -> u128;
     fn get_genesis_header(&self) -> BlockHeader;
-}
-
-pub fn is_valid_proof_of_work(max_work_bits: Compact, bits: Compact, hash: &H256) -> bool {
-    let maximum = match max_work_bits.to_u256() {
-        Ok(max) => max,
-        _err => return false,
-    };
-
-    let target = match bits.to_u256() {
-        Ok(target) => target,
-        _err => return false,
-    };
-    let value = U256::from(hash.as_fixed_bytes());
-    target <= maximum && value <= target
 }

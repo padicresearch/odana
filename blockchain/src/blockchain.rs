@@ -2,13 +2,15 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
 
 use anyhow::{Error, Result};
+use colored::Colorize;
 use lru::LruCache;
 use tokio::sync::mpsc::UnboundedSender;
 
+use crypto::{RIPEMD160, SHA256};
 use morph::Morph;
-use primitive_types::H256;
+use primitive_types::{H160, H256};
 use storage::PersistentStorage;
-use tracing::{info, warn};
+use tracing::{error, info};
 use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
 use txpool::TxPool;
 use types::block::{Block, IndexedBlockHeader};
@@ -25,11 +27,26 @@ pub struct Tuchain {
 }
 
 impl Tuchain {
-    pub fn initialize(dir: PathBuf, consensus: Arc<dyn Consensus>, main_storage: Arc<PersistentStorage>, lmpsc: UnboundedSender<LocalEventMessage>) -> Result<Self> {
+    pub fn initialize(
+        dir: PathBuf,
+        consensus: Arc<dyn Consensus>,
+        main_storage: Arc<PersistentStorage>,
+        lmpsc: UnboundedSender<LocalEventMessage>,
+    ) -> Result<Self> {
         let chain_state_storage = Arc::new(ChainStateStorage::new(main_storage.database()));
         let block_storage = Arc::new(BlockStorage::new(main_storage));
-        let chain_state = Arc::new(ChainState::new(dir.join("state"), consensus.clone(), block_storage, chain_state_storage)?);
-        let txpool = Arc::new(RwLock::new(TxPool::new(None, None, lmpsc, chain_state.clone())?));
+        let chain_state = Arc::new(ChainState::new(
+            dir.join("state"),
+            consensus.clone(),
+            block_storage,
+            chain_state_storage,
+        )?);
+        let txpool = Arc::new(RwLock::new(TxPool::new(
+            None,
+            None,
+            lmpsc,
+            chain_state.clone(),
+        )?));
 
         Ok(Tuchain {
             chain: chain_state,
@@ -108,10 +125,12 @@ impl ChainState {
                         .map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     provider.put(header.state_root, new_state.clone());
                     provider.put(CURR_STATE_ROOT, new_state);
-                    self.chain_state.set_current_header(header)?;
+                    self.chain_state.set_current_header(header.clone())?;
+                    info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Applied new block");
                 }
-                Err(_) => {
-                    // remove
+                Err(e) => {
+                    error!(error = ?e, "Error updating chain state")
+                    // Todo: clean up opened states
                 }
             }
         }
@@ -124,12 +143,10 @@ impl ChainState {
         block: Block,
     ) -> Result<(Block, Arc<Morph>)> {
         let current_state = self.state()?;
-        let state_intermediate = Arc::new(
-            current_state.checkpoint(
-                self.state_dir
-                    .join(format!("{:?}", H256::from(block.header().state_root))),
-            )?,
-        );
+        let new_state_path = self
+            .state_dir
+            .join(format!("{:?}", H256::from(block.header().state_root)));
+        let state_intermediate = Arc::new(current_state.checkpoint(new_state_path)?);
         let mut header = block.header().clone();
         consensus.prepare_header(self.block_storage.clone(), &mut header)?;
         consensus.finalize(
@@ -142,7 +159,6 @@ impl ChainState {
         if header.hash() != block.hash() {
             return Err(BlockChainError::InvalidBlock.into());
         }
-
         Ok((block, state_intermediate))
     }
 

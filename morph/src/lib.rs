@@ -122,6 +122,10 @@ impl StateDB for Morph {
         self.apply_txs(txs)?;
         self.root_hash()
     }
+
+    fn root_hash(&self) -> Hash {
+        self.root_hash().unwrap()
+    }
 }
 
 impl Morph {

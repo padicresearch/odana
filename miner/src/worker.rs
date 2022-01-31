@@ -12,7 +12,7 @@ use tracing::{info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 use txpool::TxPool;
 use types::Address;
-use types::block::BlockHeader;
+use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::Transaction;
 
@@ -26,13 +26,13 @@ pub fn start_worker(
     lmpsc: UnboundedSender<LocalEventMessage>,
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
-    state: Arc<dyn StateDB>,
     chain: Arc<dyn Blockchain>,
     chain_header_reader: Arc<dyn ChainHeadReader>,
     interrupt: Arc<AtomicI8>,
 ) -> Result<()> {
     let is_running: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
     let mut current_block_template: Option<(BlockHeader, Vec<Transaction>)> = None;
+    info!(miner = ?coinbase, "👷 mine worker started running");
     loop {
         let mut running = is_running.load(Ordering::Acquire);
         let i = interrupt.load(Ordering::Acquire);
@@ -51,7 +51,6 @@ pub fn start_worker(
 
         if !running {
             is_running.store(true, Ordering::Release);
-            info!(miner = ?coinbase, "👷 mine worker started running");
         }
         let (mut block_template, txs) = match &current_block_template {
             None => {
@@ -59,9 +58,9 @@ pub fn start_worker(
                     coinbase.to_fixed_bytes(),
                     consensus.clone(),
                     txpool.clone(),
-                    state.clone(),
+                    chain.get_current_state()?,
                     chain.clone(),
-                    chain_header_reader.clone()
+                    chain_header_reader.clone(),
                 )?;
                 current_block_template = Some((head.clone(), txs.clone()));
                 info!(coinbase = ?coinbase, txs_count = txs.len(), "🚧 mining a new block");
@@ -97,18 +96,9 @@ pub fn start_worker(
                 let hash = block_template.hash();
                 let level = block_template.level;
                 info!(level = level, hash = ?hex::encode(hash), parent_hash = ?format!("{}", H256::from(block_template.parent_hash)), "⛏ mined potential block");
-                // Apply the block to node state then broadcast it to other peers
-                match consensus.finalize_and_assemble(chain_header_reader.clone(), &mut block_template, state.clone(), txs)? {
-                    None => {
-                        warn!("Failed to finalize and assemble mined block");
-                    }
-                    Some(block) => {
-                        lmpsc.send(LocalEventMessage::MindedBlock(block));
-                    }
-                }
-
-                interrupt.store(RESET, Ordering::Release);
-
+                let block = Block::new(block_template, txs);
+                lmpsc.send(LocalEventMessage::MindedBlock(block));
+                interrupt.store(PAUSE, Ordering::Release);
                 break;
             }
         }
@@ -160,6 +150,6 @@ fn make_block_template(
         nonce: 0,
     };
     consensus.prepare_header(chain_header_reader.clone(), &mut header)?;
-    consensus.finalize(chain_header_reader, &mut header, state, tsx.clone())?;
+    consensus.finalize(chain_header_reader, &mut header, state.clone(), tsx.clone())?;
     Ok((header, tsx))
 }

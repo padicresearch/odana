@@ -31,6 +31,7 @@ use crate::tx_noncer::TxNoncer;
 
 mod error;
 mod prque;
+#[cfg(test)]
 mod tests;
 mod tx_list;
 pub mod tx_lookup;

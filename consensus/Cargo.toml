@@ -10,6 +10,7 @@ anyhow = "1.0.45"
 thiserror = "1.0.30"
 types = { path = "../common/types" }
 traits = { path = "../common/traits" }
+crypto = { path = "../crypto" }
 primitive-types = { path = "../common/primitive-types" }
 hex = "0.4.3"
 chrono = "0.4"

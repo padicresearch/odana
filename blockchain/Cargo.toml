@@ -25,6 +25,7 @@ traits = { path = "../common/traits" }
 account = { path = "../account" }
 morph = { path = "../morph" }
 txpool = { path = "../txpool" }
+crypto = { path = "../crypto" }
 chrono = "0.4.19"
 itertools = "0.10.3"
 tokio = { version = "1", features = ["full"] }

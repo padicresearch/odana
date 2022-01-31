@@ -1,7 +1,7 @@
 use std::env;
 use std::env::temp_dir;
 use std::sync::Arc;
-use std::sync::atomic::AtomicI8;
+use std::sync::atomic::{AtomicI8, Ordering};
 use std::time::SystemTime;
 
 use clap::Parser;
@@ -9,8 +9,11 @@ use clap::Parser;
 use account::create_account;
 use blockchain::blockchain::Tuchain;
 use blockchain::column_family_names;
-use blockchain::p2p::{BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage, NodeIdentity, PeerMessage, start_p2p_server};
-use consensus::barossa::{BarossaProtocol, Network};
+use blockchain::p2p::{
+    BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage, NodeIdentity,
+    PeerMessage, start_p2p_server,
+};
+use consensus::barossa::{BarossaProtocol, Network, NODE_POW_TARGET};
 use miner::worker::start_worker;
 use storage::{PersistentStorage, PersistentStorageBackend};
 use storage::memstore::MemStore;
@@ -32,20 +35,15 @@ struct Args {
     /// Name of the person to greet
     #[clap(short, long)]
     peer: Option<String>,
-
 }
-
 
 ///tmp/tuchain
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args: Args = Args::parse();
 
-
     //logging
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     // Communications
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
@@ -58,29 +56,49 @@ async fn main() -> anyhow::Result<()> {
         .as_nanos();
     let mut path = temp_dir();
     path.push(format!("tuchain-temp–{}", time));
+
+    let node_id = NodeIdentity::generate(NODE_POW_TARGET.into());
+    println!("{:#?}", node_id);
+
     // let mut tempdir = temp_dir();
     // tempdir.push("tuchain");
     let kv = Arc::new(MemStore::new(column_family_names()));
-    let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::InMemory(kv)));
+    let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::InMemory(
+        kv,
+    )));
     let barossa_consensus = Arc::new(BarossaProtocol::new(Network::Testnet));
-    let blockchain = Arc::new(Tuchain::initialize(path, barossa_consensus.clone(), storage, local_mpsc_sender.clone()).unwrap()).clone();
-
+    let blockchain = Arc::new(
+        Tuchain::initialize(
+            path,
+            barossa_consensus.clone(),
+            storage,
+            local_mpsc_sender.clone(),
+        )
+            .unwrap(),
+    )
+        .clone();
 
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
-    start_p2p_server(
-        NodeIdentity::generate(),
-        node_2_peer_receiver,
-        peer_2_node_sender,
-        args.peer,
-    )
-        .await.unwrap();
-
+    start_p2p_server(node_id, node_2_peer_receiver, peer_2_node_sender, args.peer)
+        .await
+        .unwrap();
 
     {
         let blockchain = blockchain.clone();
+        let consensus = barossa_consensus.clone();
+        let interrupt = interrupt.clone();
         tokio::spawn(async move {
             let miner = create_account();
-            start_worker(miner.address, local_mpsc_sender, barossa_consensus.clone(), blockchain.txpool(), blockchain.chain().state().unwrap(), blockchain.chain(), blockchain.chain().block_storage(), interrupt.clone()).unwrap();
+            start_worker(
+                miner.address,
+                local_mpsc_sender,
+                consensus,
+                blockchain.txpool(),
+                blockchain.chain(),
+                blockchain.chain().block_storage(),
+                interrupt,
+            )
+                .unwrap();
         });
     }
 
@@ -113,9 +131,7 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::GetCurrentHead(req) => {
                             if let Ok(Some(current_head)) = blockchain.chain().current_header() {
                                 node_2_peer_sender.send(PeerMessage::CurrentHead(
-                                    CurrentHeadMessage::new(
-                                        current_head.raw
-                                    ),
+                                    CurrentHeadMessage::new(current_head.raw),
                                 ));
                             }
                         }
@@ -132,15 +148,21 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::BroadcastBlock(block_msg) => {
                             println!("Received Block {:?}", block_msg)
                         }
+                        PeerMessage::Ack => {}
+                        PeerMessage::ReAck(msg) => {}
                     };
                 }
                 EventStream::LocalMessage(local_msg) => {
                     match local_msg {
                         LocalEventMessage::MindedBlock(block) => {
-                            println!("Minded new Block : {:?}", block);
                             node_2_peer_sender.send(PeerMessage::BroadcastBlock(
                                 BroadcastBlockMessage::new(block.clone()),
                             ));
+                            blockchain
+                                .chain()
+                                .put_chain(barossa_consensus.clone(), vec![block])
+                                .unwrap();
+                            interrupt.store(miner::worker::RESET, Ordering::Release);
                             // match blockchain.dispatch(StateAction::AddNewBlock(block)) {
                             //     Ok(_) => {}
                             //     Err(e) => {
@@ -160,9 +182,7 @@ async fn main() -> anyhow::Result<()> {
                                 BroadcastTransactionMessage::new(tx),
                             ));
                         }
-                        LocalEventMessage::StateChanged {
-                            current_head
-                        } => {
+                        LocalEventMessage::StateChanged { current_head } => {
                             node_2_peer_sender.send(PeerMessage::CurrentHead(
                                 CurrentHeadMessage::new(current_head),
                             ));

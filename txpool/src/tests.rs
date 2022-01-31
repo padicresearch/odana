@@ -181,6 +181,10 @@ impl StateDB for DummyStateDB {
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
         todo!()
     }
+
+    fn root_hash(&self) -> Hash {
+        todo!()
+    }
 }
 
 impl Blockchain for DummyChain {

@@ -68,10 +68,10 @@ impl BlockHeader {
             mix_nonce: U256::from(self.mix_nonce),
             coinbase: H160::from(self.coinbase),
             difficulty: self.difficulty.into(),
-            chain_id: self.difficulty.into(),
-            level: self.difficulty.into(),
-            time: self.difficulty.into(),
-            nonce: self.difficulty.into(),
+            chain_id: self.chain_id.into(),
+            level: (self.level as u32).into(),
+            time: self.time.into(),
+            nonce: self.nonce.into(),
         }
     }
 }
