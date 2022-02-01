@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use rocksdb::ColumnFamilyDescriptor;
 
 use storage::{KVStore, PersistentStorage, Schema};
 use traits::{ChainHeadReader, ChainReader};

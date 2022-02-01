@@ -17,7 +17,8 @@ pub mod account;
 pub mod block;
 pub mod events;
 pub mod tx;
-pub mod p2p;
+pub mod config;
+pub mod network;
 
 pub type Hash = [u8; 32];
 pub type Address = [u8; 20];

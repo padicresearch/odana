@@ -1,8 +1,8 @@
 use anyhow::Result;
-use dashmap::{DashMap, DashSet};
 use libp2p::PeerId;
 
 use crypto::SHA256;
+use dashmap::{DashMap, DashSet};
 use primitive_types::{H160, H256, H448, U128, U192};
 
 #[derive(Debug, Clone)]
@@ -50,6 +50,7 @@ mod test {
     use primitive_types::{Compact, H256, H448, U192, U256};
     use types::account::get_address_from_pub_key;
 
+    use crate::identity::NodeIdentity;
     use crate::p2p::NodeIdentity;
 
     pub const NODE_POW_TARGET: U256 = U256([

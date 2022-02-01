@@ -6,12 +6,11 @@ use colored::Colorize;
 use lru::LruCache;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crypto::{RIPEMD160, SHA256};
 use morph::Morph;
-use primitive_types::{H160, H256};
+use primitive_types::H256;
 use storage::PersistentStorage;
 use tracing::{error, info};
-use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
+use traits::{Blockchain, ChainReader, Consensus, StateDB};
 use txpool::TxPool;
 use types::block::{Block, IndexedBlockHeader};
 use types::events::LocalEventMessage;

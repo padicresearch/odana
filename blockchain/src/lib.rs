@@ -9,12 +9,10 @@ use crate::block_storage::{BlockByHash, BlockByLevel, BlockPrimaryStorage};
 use crate::chain_state::ChainStateStorage;
 
 pub mod block_storage;
-mod bootstrap;
+pub mod bootstrap;
 pub mod errors;
-pub mod p2p;
 pub mod blockchain;
 pub mod chain_state;
-pub mod peer_man;
 
 
 pub fn column_families() -> Vec<ColumnFamilyDescriptor> {

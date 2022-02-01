@@ -1,293 +1,38 @@
-use core::iter;
-use std::str::FromStr;
+use std::iter;
 
-use anyhow::{Error, Result};
-use async_bincode::AsyncBincodeReader;
+use anyhow::Result;
 use async_trait::async_trait;
 use colored::Colorize;
-use hex::ToHex;
 use libp2p::{Multiaddr, PeerId, Swarm, Transport};
-use libp2p::core::{identity, ProtocolName};
-use libp2p::core::connection::ConnectionError;
-use libp2p::core::either::EitherError;
-use libp2p::core::identity::ed25519;
+use libp2p::core::multiaddr::Protocol;
+use libp2p::core::ProtocolName;
 use libp2p::core::transport::upgrade::Version;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed};
-use libp2p::floodsub::{Floodsub, FloodsubEvent};
-use libp2p::futures::{AsyncRead, AsyncWrite, AsyncWriteExt, StreamExt};
-use libp2p::gossipsub::{
-    Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic, Topic,
-    ValidationMode,
-};
-use libp2p::identity::Keypair;
+use libp2p::futures::{AsyncRead, AsyncWrite, AsyncWriteExt, SinkExt, StreamExt};
+use libp2p::gossipsub::{Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic, ValidationMode};
 use libp2p::mdns::{Mdns, MdnsEvent};
-use libp2p::multiaddr::Protocol;
 use libp2p::NetworkBehaviour;
 use libp2p::noise::{AuthenticKeypair, NoiseConfig, X25519Spec};
 use libp2p::request_response::{ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseConfig, RequestResponseEvent, RequestResponseMessage};
-use libp2p::swarm::{NetworkBehaviourEventProcess, SwarmBuilder, SwarmEvent};
-use libp2p::swarm::protocols_handler::NodeHandlerWrapperError;
+use libp2p::swarm::{SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use codec::{Codec, Decoder, Encoder};
-use codec::impl_codec;
+use codec::{Decoder, Encoder};
 use crypto::{generate_pow_from_pub_key, SHA256};
-use primitive_types::{Compact, H256};
-use primitive_types::{H160, U192};
-use tracing::{info, warn};
+use primitive_types::{Compact, H256, U192};
+use tracing::{error, info, warn};
 use types::block::{Block, BlockHeader};
+use types::config::NodeIdentityConfig;
 use types::Hash;
 use types::tx::Transaction;
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
-pub struct P2pNode {
-    pub_key: H256,
-    nonce: U192,
-}
+use crate::identity::*;
+use crate::message::*;
 
-impl P2pNode {
-    pub fn new(pub_key: H256, nonce: U192) -> Self {
-        Self { pub_key, nonce }
-    }
-
-    pub fn pow(&self) -> H256 {
-        let mut pow_stamp = [0_u8; 56];
-        pow_stamp[..24].copy_from_slice(&self.nonce.to_le_bytes());
-        pow_stamp[24..].copy_from_slice(self.pub_key.as_bytes());
-        SHA256::digest(pow_stamp)
-    }
-
-    pub fn pub_key(&self) -> &H256 {
-        &self.pub_key
-    }
-
-    pub fn nonce(&self) -> &U192 {
-        &self.nonce
-    }
-
-    pub fn peer_id(&self) -> Result<PeerId> {
-        Ok(PeerId::from_public_key(
-            &libp2p::identity::PublicKey::Ed25519(libp2p::identity::ed25519::PublicKey::decode(
-                self.pub_key.as_bytes(),
-            )?),
-        ))
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct CurrentHeadMessage {
-    pub block_header: BlockHeader,
-}
-
-impl CurrentHeadMessage {
-    pub fn new(block_header: BlockHeader) -> Self {
-        Self { block_header }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
-pub struct BroadcastTransactionMessage {
-    tx: Transaction,
-}
-
-impl BroadcastTransactionMessage {
-    pub fn new(tx: Transaction) -> Self {
-        Self { tx }
-    }
-
-    pub fn tx(self) -> Transaction {
-        self.tx
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct BroadcastBlockMessage {
-    block: Block,
-}
-impl BroadcastBlockMessage {
-    pub fn new(block: Block) -> Self {
-        Self { block }
-    }
-
-    pub fn block(self) -> Block {
-        self.block
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct GetCurrentHeadMessage {
-    pub sender: String,
-}
-
-impl GetCurrentHeadMessage {
-    pub fn new(sender: String) -> Self {
-        Self { sender }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct GetBlockHeaderMessage {
-    pub sender: String,
-    pub block_hashes: Vec<Hash>,
-}
-
-impl GetBlockHeaderMessage {
-    pub fn new(sender: String, block_hashes: Vec<Hash>) -> Self {
-        Self {
-            sender,
-            block_hashes,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct BlockTransactionsMessage {
-    pub recipient: String,
-    pub txs: Vec<Transaction>,
-}
-
-impl BlockTransactionsMessage {
-    pub fn new(recipient: String, txs: Vec<Transaction>) -> Self {
-        Self { recipient, txs }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct BlockHeaderMessage {
-    pub recipient: String,
-    pub block_headers: Vec<BlockHeader>,
-}
-
-impl BlockHeaderMessage {
-    pub fn new(recipient: PeerId, block_headers: Vec<BlockHeader>) -> Self {
-        Self {
-            recipient: recipient.to_string(),
-            block_headers,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct GetBlockTransactionsMessage {
-    pub sender: String,
-    pub tx_ids: Vec<Hash>,
-}
-
-impl GetBlockTransactionsMessage {
-    pub fn new(sender: PeerId, tx_ids: Vec<Hash>) -> Self {
-        Self {
-            sender: sender.to_string(),
-            tx_ids,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct ReAckMessage {
-    pub node_info: P2pNode,
-    pub peers: Vec<String>,
-}
-
-impl ReAckMessage {
-    pub fn new(node_info: P2pNode, peers: Vec<String>) -> Self {
-        Self {
-            node_info,
-            peers,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub struct AdvertiseMessage {
-    pub peers: Vec<String>,
-}
-
-impl AdvertiseMessage {
-    pub fn new(peers: Vec<String>) -> Self {
-        Self {
-            peers
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
-pub enum PeerMessage {
-    GetCurrentHead(GetCurrentHeadMessage),
-    CurrentHead(CurrentHeadMessage),
-    GetBlockHeader(GetBlockHeaderMessage),
-    BlockHeader(BlockHeaderMessage),
-    GetBlock(Block),
-    Block(Block),
-    BroadcastTransaction(BroadcastTransactionMessage),
-    BroadcastBlock(BroadcastBlockMessage),
-    Ack,
-    ReAck(ReAckMessage),
-}
-
-impl_codec!(PeerMessage);
-
-pub struct Peer {}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct NodeIdentity {
-    pub_key: H256,
-    //libp2p::identity::ed25519::PublicKey
-    secret_key: H256,
-    //libp2p::identity::ed25519::SecretKey
-    peer_id: String,
-    nonce: U192,
-}
-
-impl NodeIdentity {
-    pub fn generate(target: Compact) -> Self {
-        let keys = libp2p::identity::ed25519::Keypair::generate();
-
-        let pub_key = keys.public();
-        let secret_key = keys.secret();
-
-        let peer_id =
-            PeerId::from_public_key(&libp2p::identity::PublicKey::Ed25519(pub_key.clone()));
-
-        let (nonce, _) = generate_pow_from_pub_key(H256::from(pub_key.encode()), target);
-
-        Self {
-            pub_key: H256::from(pub_key.encode()),
-            secret_key: H256::from_slice(secret_key.as_ref()),
-            peer_id: peer_id.to_base58(),
-            nonce,
-        }
-    }
-
-    pub fn identity_keys(&self) -> libp2p::identity::Keypair {
-        let keys = libp2p::identity::Keypair::Ed25519(libp2p::identity::ed25519::Keypair::from(
-            self.secret_key(),
-        ));
-        keys
-    }
-
-    pub fn secret_key(&self) -> libp2p::identity::ed25519::SecretKey {
-        let mut raw = self.secret_key.to_fixed_bytes();
-        libp2p::identity::ed25519::SecretKey::from_bytes(&mut raw).unwrap()
-    }
-
-    pub fn pub_key(&self) -> &H256 {
-        &self.pub_key
-    }
-
-    pub fn peer_id(&self) -> PeerId {
-        PeerId::from_str(&self.peer_id).unwrap()
-    }
-
-    pub fn nonce(&self) -> &U192 {
-        &self.nonce
-    }
-
-    pub fn to_p2p_node(&self) -> P2pNode {
-        P2pNode::new(self.pub_key, self.nonce)
-    }
-}
+pub mod message;
+pub mod identity;
+pub mod peer_man;
 
 async fn config_network(
     node_identity: NodeIdentity,
@@ -316,22 +61,26 @@ async fn config_network(
         .build()
         .unwrap();
 
-
     let mut behaviour = ChainNetworkBehavior {
         gossipsub: Gossipsub::new(
-            MessageAuthenticity::Author(node_identity.peer_id()),
+            MessageAuthenticity::Author(node_identity.peer_id().clone()),
             config,
         )
             .expect("Failed to create Gossip sub network"),
         mdns,
-        requestresponse: RequestResponse::new(ChainP2pExchangeCodec, iter::once((ChainP2pExchangeProtocol, ProtocolSupport::Full)), RequestResponseConfig::default()),
+        requestresponse: RequestResponse::new(
+            ChainP2pExchangeCodec,
+            iter::once((ChainP2pExchangeProtocol, ProtocolSupport::Full)),
+            RequestResponseConfig::default(),
+        ),
         p2p_to_node,
         topic: network_topic.clone(),
+        node: node_identity.to_p2p_node(),
     };
 
     behaviour.gossipsub.subscribe(&network_topic);
 
-    let swarm = SwarmBuilder::new(transport, behaviour, node_identity.peer_id())
+    let swarm = SwarmBuilder::new(transport, behaviour, node_identity.peer_id().clone())
         .executor(Box::new(|fut| {
             tokio::spawn(fut);
         }))
@@ -348,8 +97,7 @@ pub async fn start_p2p_server(
 ) -> Result<()> {
     let mut swarm = config_network(node_identity, p2p_to_node).await?;
 
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
-        .expect("Error connecting to p2p");
+    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?).expect("Error connecting to p2p");
 
     if let Some(to_dial) = peer_arg {
         let addr: Multiaddr = to_dial.parse()?;
@@ -428,21 +176,38 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 request,
                 channel,
             } => {
-                println!("Request {:#?}", request);
+                match &request {
+                    PeerMessage::Ack => {
+                        let chain_network = swarm.behaviour_mut();
+                        chain_network.requestresponse.send_response(
+                            channel,
+                            PeerMessage::ReAck(ReAckMessage::new(chain_network.node, Vec::new())),
+                        );
+                    }
+                    _ => {}
+                }
             }
 
             RequestResponseMessage::Response {
                 request_id,
                 response,
             } => {
-                println!("Response {:#?}", response);
+                match &response {
+                    PeerMessage::ReAck(msg) => {
+                        println!("Response {:#?}", msg);
+                    }
+                    _ => {}
+                }
             }
         },
 
         SwarmEvent::ConnectionEstablished {
             peer_id, endpoint, ..
         } => {
-            let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack);
+            let request_id = swarm
+                .behaviour_mut()
+                .requestresponse
+                .send_request(&peer_id, PeerMessage::Ack);
             //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
             info!(peer = ?endpoint.get_remote_address(),"Connection established");
         }
@@ -450,7 +215,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint, cause, ..
         } => {
             if let Some(cause) = cause {
-                swarm.dial(endpoint.get_remote_address().clone()).unwrap();
+                //swarm.dial(endpoint.get_remote_address().clone()).unwrap();
                 warn!(peer = ?endpoint.get_remote_address(), cause = ?cause, "Connection closed");
             }
         }
@@ -468,6 +233,8 @@ struct ChainNetworkBehavior {
     p2p_to_node: UnboundedSender<PeerMessage>,
     #[behaviour(ignore)]
     topic: Sha256Topic,
+    #[behaviour(ignore)]
+    node: P2pNode,
 }
 
 #[derive(Debug)]
@@ -522,6 +289,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
             T: AsyncRead + Unpin + Send,
     {
         let data = read_length_prefixed(io, 1_000_000).await?;
+        println!("read_request {}", data.len());
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
@@ -542,6 +310,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
             T: AsyncRead + Unpin + Send,
     {
         let data = read_length_prefixed(io, 1_000_000).await?;
+        println!("read_response {}", data.len());
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
@@ -562,6 +331,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         where
             T: AsyncWrite + Unpin + Send,
     {
+        println!("write_request");
         write_length_prefixed(io, req.encode().unwrap()).await?;
         io.close().await?;
         Ok(())
@@ -576,6 +346,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         where
             T: AsyncWrite + Unpin + Send,
     {
+        println!("write_response");
         write_length_prefixed(io, res.encode().unwrap()).await?;
         io.close().await?;
         Ok(())
@@ -584,7 +355,6 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
 
 #[cfg(test)]
 mod tests {
-
     #[test]
     fn account_to_node_id() {}
 }

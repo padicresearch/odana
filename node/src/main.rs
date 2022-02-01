@@ -22,6 +22,8 @@ use tracing::tracing_subscriber;
 use traits::Blockchain;
 use types::events::LocalEventMessage;
 
+pub mod environment;
+
 enum EventStream {
     LocalMessage(LocalEventMessage),
     PeerMessage(PeerMessage),

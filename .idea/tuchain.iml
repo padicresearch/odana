@@ -36,6 +36,7 @@
       <sourceFolder url="file://$MODULE_DIR$/merk/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/miner/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/miner-test/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/p2p/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/common/target" />
