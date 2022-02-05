@@ -9,5 +9,11 @@ pub enum LocalEventMessage {
     MindedBlock(Block),
     BroadcastTx(Transaction),
     TxPoolPack(Vec<Transaction>),
-    StateChanged { current_head: BlockHeader },
+    StateChanged {
+        current_head: BlockHeader,
+    },
+    NetworkHighestHeadChanged {
+        peer_id: String,
+        current_head: BlockHeader,
+    },
 }

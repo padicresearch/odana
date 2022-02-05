@@ -12,6 +12,7 @@ bincode = "1.3.3"
 crypto = { path = "../crypto" }
 merkle = { path = "../merkle" }
 blockchain = { path = "../blockchain" }
+p2p = { path = "../p2p" }
 storage = { path = "../storage" }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0.45"

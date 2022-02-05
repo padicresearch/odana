@@ -33,11 +33,9 @@ impl BlockStorage {
 impl ChainHeadReader for BlockStorage {
     fn get_header(&self, hash: &Hash, level: i32) -> anyhow::Result<Option<IndexedBlockHeader>> {
         let primary_key = BlockPrimaryKey(*hash, level);
-        self.primary.get_block(&primary_key).map(|opt_block| {
-            opt_block.map(|b| {
-                b.header().clone().into()
-            })
-        })
+        self.primary
+            .get_block(&primary_key)
+            .map(|opt_block| opt_block.map(|b| b.header().clone().into()))
     }
 
     fn get_header_by_hash(&self, hash: &Hash) -> anyhow::Result<Option<IndexedBlockHeader>> {
@@ -72,7 +70,6 @@ impl ChainReader for BlockStorage {
     }
 }
 
-
 /// Primary block storage
 pub type BlockPrimaryStorageKV = dyn KVStore<BlockPrimaryStorage> + Send + Sync;
 
@@ -91,9 +88,7 @@ impl Schema for BlockPrimaryStorage {
 
 impl BlockPrimaryStorage {
     pub fn new(kv: Arc<BlockPrimaryStorageKV>) -> Self {
-        Self {
-            kv
-        }
+        Self { kv }
     }
     pub fn put_block(&self, block: Block) -> Result<BlockPrimaryKey> {
         let hash = block.hash();
@@ -125,9 +120,7 @@ impl Schema for BlockByLevel {
 
 impl BlockByLevel {
     pub fn new(kv: Arc<BlockByLevelStorageKV>) -> Self {
-        Self {
-            kv
-        }
+        Self { kv }
     }
     pub fn index(&self, level: i32, primary_key: BlockPrimaryKey) -> Result<()> {
         self.kv.put(level as u32, primary_key)
@@ -155,9 +148,7 @@ impl Schema for BlockByHash {
 
 impl BlockByHash {
     pub fn new(kv: Arc<BlockByHashStorageKV>) -> Self {
-        Self {
-            kv
-        }
+        Self { kv }
     }
     pub fn index(&self, hash: Hash, primary_key: BlockPrimaryKey) -> Result<()> {
         self.kv.put(hash, primary_key)
@@ -166,6 +157,3 @@ impl BlockByHash {
         self.kv.get(hash)
     }
 }
-
-
-

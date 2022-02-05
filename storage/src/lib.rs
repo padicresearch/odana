@@ -60,29 +60,24 @@ pub struct PersistentStorage {
 
 impl PersistentStorage {
     pub fn new(backend: PersistentStorageBackend) -> Self {
-        Self {
-            backend
-        }
+        Self { backend }
     }
 
-    pub fn database<S>(&self) -> Arc<dyn KVStore<S> + Send + Sync> where S: Schema {
+    pub fn database<S>(&self) -> Arc<dyn KVStore<S> + Send + Sync>
+    where
+        S: Schema,
+    {
         match &self.backend {
-            PersistentStorageBackend::InMemory(database) => {
-                database.clone()
-            }
-            PersistentStorageBackend::Sled(database) => {
-                database.clone()
-            }
-            PersistentStorageBackend::RocksDB(database) => {
-                database.clone()
-            }
+            PersistentStorageBackend::InMemory(database) => database.clone(),
+            PersistentStorageBackend::Sled(database) => database.clone(),
+            PersistentStorageBackend::RocksDB(database) => database.clone(),
         }
     }
 }
 
 pub trait KVStore<Entry>
-    where
-        Entry: Schema,
+where
+    Entry: Schema,
 {
     fn get(&self, key: &Entry::Key) -> Result<Option<Entry::Value>>;
     fn put(&self, key: Entry::Key, value: Entry::Value) -> Result<()>;
@@ -92,8 +87,7 @@ pub trait KVStore<Entry>
 }
 
 pub type StorageIterator<'a, Entry: Schema> =
-Box<dyn 'a + Send + Iterator<Item=(Result<Entry::Key>, Result<Entry::Value>)>>;
-
+    Box<dyn 'a + Send + Iterator<Item = (Result<Entry::Key>, Result<Entry::Value>)>>;
 
 #[cfg(test)]
 mod test {
@@ -114,9 +108,7 @@ mod test {
 
     impl BlockStorage {
         pub fn new(kv: Arc<BlockStorageKV>) -> Self {
-            Self {
-                kv
-            }
+            Self { kv }
         }
         pub fn put_block(&self, key: String, block: String) -> Result<()> {
             self.kv.put(key, block)
@@ -145,7 +137,9 @@ mod test {
         let sled = Arc::new(SledDB::new(temp.path()).unwrap());
         let persistent = Arc::new(PersistentStorage::new(PersistentStorageBackend::Sled(sled)));
         let block_storage = BlockStorage::new(persistent.database());
-        block_storage.put_block("h".to_string(), "bb".to_string()).unwrap();
+        block_storage
+            .put_block("h".to_string(), "bb".to_string())
+            .unwrap();
         println!("{:?}", block_storage.get_block(&"h".to_string()).unwrap())
     }
 }

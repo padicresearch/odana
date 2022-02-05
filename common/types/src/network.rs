@@ -3,10 +3,21 @@ use serde::{Deserialize, Serialize};
 use primitive_types::{Compact, U256};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Network {
     Testnet,
     Alphanet,
     Mainnet,
+}
+
+impl Into<String> for Network {
+    fn into(self) -> String {
+        match self {
+            Network::Testnet => "testnet".to_string(),
+            Network::Alphanet => "aplhanet".to_string(),
+            Network::Mainnet => "mainnet".to_string(),
+        }
+    }
 }
 
 const TESTNET_MAX_DIFFICULTY: U256 = U256([

@@ -6,7 +6,7 @@ use types::block::{Block, BlockHeader};
 use types::Hash;
 use types::tx::Transaction;
 
-use crate::identity::P2pNode;
+use crate::identity::PeerNode;
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct CurrentHeadMessage {
@@ -62,44 +62,35 @@ impl GetCurrentHeadMessage {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct GetBlockHeaderMessage {
-    pub sender: String,
-    pub block_hashes: Vec<Hash>,
+    pub from: Hash,
+    pub to: Hash,
 }
 
 impl GetBlockHeaderMessage {
-    pub fn new(sender: String, block_hashes: Vec<Hash>) -> Self {
-        Self {
-            sender,
-            block_hashes,
-        }
+    pub fn new(from: Hash, to: Hash) -> Self {
+        Self { from, to }
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct BlockTransactionsMessage {
-    pub recipient: String,
     pub txs: Vec<Transaction>,
 }
 
 impl BlockTransactionsMessage {
-    pub fn new(recipient: String, txs: Vec<Transaction>) -> Self {
-        Self { recipient, txs }
+    pub fn new(txs: Vec<Transaction>) -> Self {
+        Self { txs }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct BlockHeaderMessage {
-    pub recipient: String,
     pub block_headers: Vec<BlockHeader>,
 }
 
 impl BlockHeaderMessage {
-    pub fn new(recipient: PeerId, block_headers: Vec<BlockHeader>) -> Self {
-        Self {
-            recipient: recipient.to_string(),
-            block_headers,
-        }
+    pub fn new(block_headers: Vec<BlockHeader>) -> Self {
+        Self { block_headers }
     }
 }
 
@@ -120,12 +111,12 @@ impl GetBlockTransactionsMessage {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct ReAckMessage {
-    pub node_info: P2pNode,
+    pub node_info: PeerNode,
     pub peers: Vec<String>,
 }
 
 impl ReAckMessage {
-    pub fn new(node_info: P2pNode, peers: Vec<String>) -> Self {
+    pub fn new(node_info: PeerNode, peers: Vec<String>) -> Self {
         Self { node_info, peers }
     }
 }

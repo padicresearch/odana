@@ -1,4 +1,7 @@
+use std::fs::File;
 use std::iter;
+use std::net::Ipv4Addr;
+use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -9,34 +12,73 @@ use libp2p::core::ProtocolName;
 use libp2p::core::transport::upgrade::Version;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed};
 use libp2p::futures::{AsyncRead, AsyncWrite, AsyncWriteExt, SinkExt, StreamExt};
-use libp2p::gossipsub::{Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic, ValidationMode};
+use libp2p::gossipsub::{
+    Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic,
+    ValidationMode,
+};
+use libp2p::identify::IdentifyConfig;
 use libp2p::mdns::{Mdns, MdnsEvent};
 use libp2p::NetworkBehaviour;
 use libp2p::noise::{AuthenticKeypair, NoiseConfig, X25519Spec};
-use libp2p::request_response::{ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseConfig, RequestResponseEvent, RequestResponseMessage};
-use libp2p::swarm::{SwarmBuilder, SwarmEvent};
+use libp2p::request_response::{
+    ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseConfig,
+    RequestResponseEvent, RequestResponseMessage,
+};
+use libp2p::swarm::{NetworkBehaviour, SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use codec::{Decoder, Encoder};
 use crypto::{generate_pow_from_pub_key, SHA256};
 use primitive_types::{Compact, H256, U192};
-use tracing::{error, info, warn};
+use tracing::{error, info, trace, warn};
 use types::block::{Block, BlockHeader};
-use types::config::NodeIdentityConfig;
+use types::config::{EnvironmentConfig, NodeIdentityConfig};
 use types::Hash;
 use types::tx::Transaction;
 
 use crate::identity::*;
 use crate::message::*;
+use crate::peer_manager::PeerList;
 
-pub mod message;
 pub mod identity;
-pub mod peer_man;
+pub mod message;
+pub mod peer_manager;
+
+trait P2pEnvironment {
+    fn node_identity(&self) -> NodeIdentity;
+    fn p2p_address(&self) -> Multiaddr;
+    fn topic(&self) -> Sha256Topic;
+    fn p2p_pow_target(&self) -> Compact;
+}
+
+impl P2pEnvironment for EnvironmentConfig {
+    fn node_identity(&self) -> NodeIdentity {
+        let file = File::open(&self.identity_file).unwrap();
+        let identity_config: NodeIdentityConfig = serde_json::from_reader(file).unwrap();
+        return NodeIdentity::from_config(identity_config).unwrap();
+        //NodeIdentity::generate(self.network.max_difficulty_compact())
+    }
+
+    fn p2p_address(&self) -> Multiaddr {
+        Multiaddr::empty()
+            .with(Protocol::Ip4(self.host.parse().unwrap()))
+            .with(Protocol::Tcp(self.p2p_port))
+    }
+
+    fn topic(&self) -> Sha256Topic {
+        Sha256Topic::new(self.network)
+    }
+
+    fn p2p_pow_target(&self) -> Compact {
+        self.network.max_difficulty_compact()
+    }
+}
 
 async fn config_network(
     node_identity: NodeIdentity,
     p2p_to_node: UnboundedSender<PeerMessage>,
+    peer_list: Arc<PeerList>,
 ) -> Result<Swarm<ChainNetworkBehavior>> {
     let auth_keys = libp2p::noise::Keypair::<X25519Spec>::new()
         .into_authentic(&node_identity.identity_keys())
@@ -66,7 +108,7 @@ async fn config_network(
             MessageAuthenticity::Author(node_identity.peer_id().clone()),
             config,
         )
-            .expect("Failed to create Gossip sub network"),
+        .expect("Failed to create Gossip sub network"),
         mdns,
         requestresponse: RequestResponse::new(
             ChainP2pExchangeCodec,
@@ -76,6 +118,7 @@ async fn config_network(
         p2p_to_node,
         topic: network_topic.clone(),
         node: node_identity.to_p2p_node(),
+        peers: peer_list,
     };
 
     behaviour.gossipsub.subscribe(&network_topic);
@@ -94,10 +137,12 @@ pub async fn start_p2p_server(
     mut node_to_p2p: UnboundedReceiver<PeerMessage>,
     p2p_to_node: UnboundedSender<PeerMessage>,
     peer_arg: Option<String>,
+    peer_list: Arc<PeerList>,
 ) -> Result<()> {
-    let mut swarm = config_network(node_identity, p2p_to_node).await?;
+    let mut swarm = config_network(node_identity, p2p_to_node, peer_list).await?;
 
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?).expect("Error connecting to p2p");
+    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
+        .expect("Error connecting to p2p");
 
     if let Some(to_dial) = peer_arg {
         let addr: Multiaddr = to_dial.parse()?;
@@ -140,15 +185,15 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::NewListenAddr { address, .. } => {
             let local_peer_id = *swarm.local_peer_id();
             info!(
-                "connection listening on {}",
+                "Node listening on {}",
                 format!("{}", address.with(Protocol::P2p(local_peer_id.into()))).blue()
             );
         }
         SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Message {
-                                                      propagation_source,
-                                                      message_id,
-                                                      message,
-                                                  })) => {
+            propagation_source,
+            message_id,
+            message,
+        })) => {
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 swarm.behaviour_mut().p2p_to_node.send(peer_message);
             }
@@ -168,37 +213,36 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             }
         }
         SwarmEvent::Behaviour(OutEvent::RequestResponse(RequestResponseEvent::Message {
-                                                            peer,
-                                                            message,
-                                                        })) => match message {
+            peer,
+            message,
+        })) => match message {
             RequestResponseMessage::Request {
                 request_id,
                 request,
                 channel,
-            } => {
-                match &request {
-                    PeerMessage::Ack => {
-                        let chain_network = swarm.behaviour_mut();
-                        chain_network.requestresponse.send_response(
-                            channel,
-                            PeerMessage::ReAck(ReAckMessage::new(chain_network.node, Vec::new())),
-                        );
-                    }
-                    _ => {}
+            } => match &request {
+                PeerMessage::Ack => {
+                    let chain_network = swarm.behaviour_mut();
+                    chain_network.requestresponse.send_response(
+                        channel,
+                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, Vec::new())),
+                    );
                 }
-            }
+                _ => {}
+            },
 
             RequestResponseMessage::Response {
                 request_id,
                 response,
-            } => {
-                match &response {
-                    PeerMessage::ReAck(msg) => {
-                        println!("Response {:#?}", msg);
+            } => match &response {
+                PeerMessage::ReAck(msg) => {
+                    if swarm.behaviour().peers.promote_peer(&peer,request_id, msg.node_info) {
+                        swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
+                        info!(peer = ?&peer, peer_stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
                     }
-                    _ => {}
                 }
-            }
+                _ => {}
+            },
         },
 
         SwarmEvent::ConnectionEstablished {
@@ -208,8 +252,9 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 .behaviour_mut()
                 .requestresponse
                 .send_request(&peer_id, PeerMessage::Ack);
+            swarm.behaviour().peers.add_potential_peer(peer_id, request_id);
             //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
-            info!(peer = ?endpoint.get_remote_address(),"Connection established");
+            trace!(peer = ?endpoint.get_remote_address(),"Connection established");
         }
         SwarmEvent::ConnectionClosed {
             endpoint, cause, ..
@@ -234,7 +279,9 @@ struct ChainNetworkBehavior {
     #[behaviour(ignore)]
     topic: Sha256Topic,
     #[behaviour(ignore)]
-    node: P2pNode,
+    node: PeerNode,
+    #[behaviour(ignore)]
+    peers: Arc<PeerList>,
 }
 
 #[derive(Debug)]
@@ -285,8 +332,8 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         _: &Self::Protocol,
         io: &mut T,
     ) -> std::io::Result<Self::Request>
-        where
-            T: AsyncRead + Unpin + Send,
+    where
+        T: AsyncRead + Unpin + Send,
     {
         let data = read_length_prefixed(io, 1_000_000).await?;
         println!("read_request {}", data.len());
@@ -306,8 +353,8 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         _: &Self::Protocol,
         io: &mut T,
     ) -> std::io::Result<Self::Response>
-        where
-            T: AsyncRead + Unpin + Send,
+    where
+        T: AsyncRead + Unpin + Send,
     {
         let data = read_length_prefixed(io, 1_000_000).await?;
         println!("read_response {}", data.len());
@@ -328,8 +375,8 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         io: &mut T,
         req: Self::Request,
     ) -> std::io::Result<()>
-        where
-            T: AsyncWrite + Unpin + Send,
+    where
+        T: AsyncWrite + Unpin + Send,
     {
         println!("write_request");
         write_length_prefixed(io, req.encode().unwrap()).await?;
@@ -343,8 +390,8 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         io: &mut T,
         res: Self::Response,
     ) -> std::io::Result<()>
-        where
-            T: AsyncWrite + Unpin + Send,
+    where
+        T: AsyncWrite + Unpin + Send,
     {
         println!("write_response");
         write_length_prefixed(io, res.encode().unwrap()).await?;

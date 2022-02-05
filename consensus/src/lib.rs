@@ -10,7 +10,6 @@ use types::account::AccountState;
 use types::block::{Block, BlockHeader};
 use types::tx::Transaction;
 
-use crate::barossa::Network;
 use crate::constants::RETARGETING_INTERVAL;
 use crate::error::Error;
 

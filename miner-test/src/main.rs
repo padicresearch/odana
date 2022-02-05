@@ -164,7 +164,6 @@ async fn main() {
     let chain_2 = chain.clone();
     let txpool_2 = txpool.clone();
 
-
     tokio::spawn(async move {
         start_worker(
             miner.address.clone(),
@@ -182,9 +181,7 @@ async fn main() {
                 LocalEventMessage::MindedBlock(block) => {
                     chain_2.add(block.clone());
                     chain_2.insert_state(block.header().state_root, morph.clone());
-                    let current_head = chain_2.current_header().unwrap().map(|head| {
-                        head.raw
-                    });
+                    let current_head = chain_2.current_header().unwrap().map(|head| head.raw);
                     let new_head = block.header();
 
                     let mut txpool = txpool_2.write().unwrap();

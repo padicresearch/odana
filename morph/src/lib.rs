@@ -117,7 +117,6 @@ impl StateDB for Morph {
         Ok(Arc::new(state))
     }
 
-
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
         self.apply_txs(txs)?;
         self.root_hash()
@@ -266,10 +265,7 @@ impl Morph {
 
         let root = db.root_hash();
         let proof = db.prove(query)?;
-        Ok((account_state, ReadProof {
-            proof,
-            root,
-        }))
+        Ok((account_state, ReadProof { proof, root }))
     }
 
     pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {
@@ -434,7 +430,7 @@ mod tests {
                         fee: (amount as f64 * 0.01) as u128,
                     },
                 )
-                    .unwrap()])
+                .unwrap()])
                 .is_ok());
         }
 

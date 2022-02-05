@@ -66,11 +66,8 @@ pub fn start_worker(
                 info!(coinbase = ?coinbase, txs_count = txs.len(), "🚧 mining a new block");
                 (head, txs)
             }
-            Some((head, txs)) => {
-                (head.clone(), txs.clone())
-            }
+            Some((head, txs)) => (head.clone(), txs.clone()),
         };
-
 
         loop {
             let i = interrupt.load(Ordering::Acquire);

@@ -9,18 +9,20 @@ use clap::Parser;
 use account::create_account;
 use blockchain::blockchain::Tuchain;
 use blockchain::column_family_names;
-use blockchain::p2p::{
-    BroadcastBlockMessage, BroadcastTransactionMessage, CurrentHeadMessage, NodeIdentity,
-    PeerMessage, start_p2p_server,
-};
-use consensus::barossa::{BarossaProtocol, Network, NODE_POW_TARGET};
+use consensus::barossa::{BarossaProtocol, NODE_POW_TARGET};
 use miner::worker::start_worker;
+use p2p::identity::NodeIdentity;
+use p2p::message::*;
+use p2p::peer_manager::PeerList;
+use p2p::start_p2p_server;
 use storage::{PersistentStorage, PersistentStorageBackend};
 use storage::memstore::MemStore;
+use tracing::info;
 use tracing::Level;
 use tracing::tracing_subscriber;
 use traits::Blockchain;
 use types::events::LocalEventMessage;
+use types::network::Network;
 
 pub mod environment;
 
@@ -39,6 +41,12 @@ struct Args {
     peer: Option<String>,
 }
 
+enum NodeState {
+    Idle,
+    Bootstrapping,
+    Synced,
+}
+
 ///tmp/tuchain
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -51,13 +59,14 @@ async fn main() -> anyhow::Result<()> {
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (node_2_peer_sender, mut node_2_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_2_node_sender, mut peer_2_node_receiver) = tokio::sync::mpsc::unbounded_channel();
+    let peers = Arc::new(PeerList::new());
     let interrupt = Arc::new(AtomicI8::new(2)).clone();
     let time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_nanos();
     let mut path = temp_dir();
-    path.push(format!("tuchain-temp–{}", time));
+    path.push("tuchain");
 
     let node_id = NodeIdentity::generate(NODE_POW_TARGET.into());
     println!("{:#?}", node_id);
@@ -76,14 +85,20 @@ async fn main() -> anyhow::Result<()> {
             storage,
             local_mpsc_sender.clone(),
         )
-            .unwrap(),
+        .unwrap(),
     )
-        .clone();
+    .clone();
 
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
-    start_p2p_server(node_id, node_2_peer_receiver, peer_2_node_sender, args.peer)
-        .await
-        .unwrap();
+    start_p2p_server(
+        node_id,
+        node_2_peer_receiver,
+        peer_2_node_sender,
+        args.peer,
+        peers.clone(),
+    )
+    .await
+    .unwrap();
 
     {
         let blockchain = blockchain.clone();
@@ -100,7 +115,7 @@ async fn main() -> anyhow::Result<()> {
                 blockchain.chain().block_storage(),
                 interrupt,
             )
-                .unwrap();
+            .unwrap();
         });
     }
 
@@ -157,29 +172,16 @@ async fn main() -> anyhow::Result<()> {
                 EventStream::LocalMessage(local_msg) => {
                     match local_msg {
                         LocalEventMessage::MindedBlock(block) => {
+                            blockchain
+                                .chain()
+                                .put_chain(barossa_consensus.clone(), vec![block.clone()])
+                                .unwrap();
+                            interrupt.store(miner::worker::RESET, Ordering::Release);
                             node_2_peer_sender.send(PeerMessage::BroadcastBlock(
                                 BroadcastBlockMessage::new(block.clone()),
                             ));
-                            blockchain
-                                .chain()
-                                .put_chain(barossa_consensus.clone(), vec![block])
-                                .unwrap();
-                            interrupt.store(miner::worker::RESET, Ordering::Release);
-                            // match blockchain.dispatch(StateAction::AddNewBlock(block)) {
-                            //     Ok(_) => {}
-                            //     Err(e) => {
-                            //         println!("State Dispatch Error {}", e)
-                            //     }
-                            // };
                         }
                         LocalEventMessage::BroadcastTx(tx) => {
-                            // match blockchain.dispatch(StateAction::AddNewTransaction(tx.clone())) {
-                            //     Ok(_) => {}
-                            //     Err(e) => {
-                            //         println!("State Dispatch Error {}", e)
-                            //     }
-                            // };
-                            //println!("Sending Transaction to Chain : {:?}", tx);
                             node_2_peer_sender.send(PeerMessage::BroadcastTransaction(
                                 BroadcastTransactionMessage::new(tx),
                             ));
@@ -190,6 +192,22 @@ async fn main() -> anyhow::Result<()> {
                             ));
                         }
                         LocalEventMessage::TxPoolPack(_) => {}
+                        LocalEventMessage::NetworkHighestHeadChanged {
+                            peer_id,
+                            current_head,
+                        } => {
+                            if let Ok(Some(node_current_head)) = blockchain.chain().current_header()
+                            {
+                                if node_current_head.raw.level < current_head.level {
+                                    // Start downloading blocks from the Peer
+                                    let msg = GetBlockHeaderMessage::new(
+                                        current_head.hash(),
+                                        node_current_head.hash.to_fixed_bytes(),
+                                    );
+                                    info!("Send message {:?}", msg);
+                                }
+                            }
+                        }
                     }
                 }
                 EventStream::Unhandled => {}

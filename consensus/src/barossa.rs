@@ -25,8 +25,6 @@ pub const NODE_POW_TARGET: U256 = U256([
     0x00000fffff000000u64,
 ]);
 
-
-
 pub struct BarossaProtocol {
     network: Network,
 }
@@ -375,7 +373,10 @@ impl Consensus for BarossaProtocol {
         txs: Vec<Transaction>,
     ) -> anyhow::Result<()> {
         state.apply_txs(txs.clone())?;
-        header.state_root = state.credit_balance(&H160::from(header.coinbase), self.miner_reward(header.level))?;
+        header.state_root = state.credit_balance(
+            &H160::from(header.coinbase),
+            self.miner_reward(header.level),
+        )?;
         self.verify_header(chain, header);
         Ok(())
     }

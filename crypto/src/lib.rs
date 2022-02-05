@@ -41,7 +41,6 @@ mod test {
     }
 }
 
-
 pub fn is_valid_proof_of_work(max_work_bits: Compact, bits: Compact, hash: &H256) -> bool {
     let maximum = match max_work_bits.to_u256() {
         Ok(max) => max,
@@ -67,7 +66,6 @@ pub fn is_valid_proof_of_work_hash(bits: Compact, hash: &H256) -> bool {
     value <= target
 }
 
-
 pub fn generate_pow_from_pub_key(pub_key: H256, target: Compact) -> (U192, H448) {
     let mut nonce = U192::zero();
     let mut pow_stamp = [0_u8; 56];
@@ -76,7 +74,7 @@ pub fn generate_pow_from_pub_key(pub_key: H256, target: Compact) -> (U192, H448)
         pow_stamp[..24].copy_from_slice(&nonce.to_le_bytes());
         let h = SHA256::digest(pow_stamp);
         if is_valid_proof_of_work_hash(target, &h) {
-            return (nonce, H448::from(pow_stamp))
+            return (nonce, H448::from(pow_stamp));
         }
         nonce += U192::one();
     }

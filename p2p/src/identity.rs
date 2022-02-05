@@ -8,15 +8,15 @@ use serde::{Deserialize, Serialize};
 use crypto::{generate_pow_from_pub_key, SHA256};
 use primitive_types::{H256, U192};
 use primitive_types::Compact;
-use types::config::NodeIdentityConfig;
+use types::config::{EnvironmentConfig, NodeIdentityConfig};
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
-pub struct P2pNode {
+pub struct PeerNode {
     pub_key: H256,
     nonce: U192,
 }
 
-impl P2pNode {
+impl PeerNode {
     pub fn new(pub_key: H256, nonce: U192) -> Self {
         Self { pub_key, nonce }
     }
@@ -44,16 +44,6 @@ impl P2pNode {
         ))
     }
 }
-
-trait P2pEnvironment {
-    fn node_identity(&self) -> NodeIdentity;
-    fn p2p_address(&self) -> Multiaddr;
-    fn topic(&self) -> Sha256Topic;
-    fn p2p_pow_target(&self) -> Compact;
-}
-
-
-pub struct Peer {}
 
 #[derive(Clone, Debug)]
 pub struct NodeIdentity {
@@ -119,15 +109,13 @@ impl NodeIdentity {
         let mut secret_key_raw = config.secret_key.to_fixed_bytes();
         Ok(Self {
             pub_key: libp2p::identity::ed25519::PublicKey::decode(config.pub_key.as_bytes())?,
-            secret_key: libp2p::identity::ed25519::SecretKey::from_bytes(
-                &mut secret_key_raw,
-            )?,
+            secret_key: libp2p::identity::ed25519::SecretKey::from_bytes(&mut secret_key_raw)?,
             peer_id: PeerId::from_str(config.peer_id.as_str())?,
             nonce: config.nonce,
         })
     }
 
-    pub fn to_p2p_node(&self) -> P2pNode {
-        P2pNode::new(H256::from(self.pub_key.encode()), self.nonce)
+    pub fn to_p2p_node(&self) -> PeerNode {
+        PeerNode::new(H256::from(self.pub_key.encode()), self.nonce)
     }
 }

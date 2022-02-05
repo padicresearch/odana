@@ -36,27 +36,50 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="mvp: test p2p communication">
-      <change afterPath="$PROJECT_DIR$/common/types/src/network.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/node/src/environment.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/p2p/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/p2p/src/identity.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="refactor">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/account/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/errors.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/errors.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/p2p.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/peer_man.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_man.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codec/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/codec/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/account.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/config.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/config.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/p2p.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/config.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/network.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/network.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/benches/bigint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/benches/bigint.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/src/ecdsa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/ecdsa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner-test/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner-test/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/kv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/kv.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/store.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/environment.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/environment.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/identity.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/identity.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/peer_man.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/rocks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/rocks.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/prque.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/prque.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -175,7 +198,7 @@
       <recent name="$PROJECT_DIR$/morph/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test peer_man::test::check_pow">
+  <component name="RunManager" selected="Cargo.Test config::test::test_config">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -256,6 +279,22 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test config::test::test_config" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package types --lib config::test::test_config -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test peer_man::test::check_pow" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package blockchain --lib peer_man::test::check_pow -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -304,22 +343,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tx::test::test_message_pack_serialization" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package types --lib tx::test::test_message_pack_serialization -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test --package tuchain --lib tests" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -342,19 +365,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
       <item itemvalue="Cargo.Test tests::test_morph" />
       <item itemvalue="Cargo.Run miner-test" />
       <item itemvalue="Cargo.Test test::test_backends" />
       <item itemvalue="Cargo.Test peer_man::test::check_pow" />
+      <item itemvalue="Cargo.Test config::test::test_config" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test config::test::test_config" />
         <item itemvalue="Cargo.Test peer_man::test::check_pow" />
         <item itemvalue="Cargo.Test test::test_backends" />
         <item itemvalue="Cargo.Run miner-test" />
         <item itemvalue="Cargo.Test tests::test_morph" />
-        <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
       </list>
     </recent_temporary>
   </component>
@@ -437,14 +460,10 @@
       <workItem from="1643436658026" duration="93327000" />
       <workItem from="1643715018635" duration="19000" />
       <workItem from="1643720416846" duration="624000" />
-      <workItem from="1643722280894" duration="6245000" />
-    </task>
-    <task id="LOCAL-00051" summary="rewrite txpool">
-      <created>1642365741642</created>
-      <option name="number" value="00051" />
-      <option name="presentableId" value="LOCAL-00051" />
-      <option name="project" value="LOCAL" />
-      <updated>1642365741642</updated>
+      <workItem from="1643722280894" duration="12454000" />
+      <workItem from="1643813635652" duration="5606000" />
+      <workItem from="1643979517072" duration="2570000" />
+      <workItem from="1644051388901" duration="7059000" />
     </task>
     <task id="LOCAL-00052" summary="rewrite txpool">
       <created>1642401675912</created>
@@ -782,7 +801,14 @@
       <option name="project" value="LOCAL" />
       <updated>1643672706052</updated>
     </task>
-    <option name="localTasksCounter" value="100" />
+    <task id="LOCAL-00100" summary="refactor">
+      <created>1643729326627</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1643729326628</updated>
+    </task>
+    <option name="localTasksCounter" value="101" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -813,7 +839,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="fix proof validation error" />
     <MESSAGE value="update morph(account engine) tests" />
     <MESSAGE value="add `impl_codec_primitives`" />
     <MESSAGE value="implementing txpool" />
@@ -838,7 +863,8 @@
     <MESSAGE value="migrate morph to merk" />
     <MESSAGE value="add miner" />
     <MESSAGE value="mvp: test p2p communication" />
-    <option name="LAST_COMMIT_MESSAGE" value="mvp: test p2p communication" />
+    <MESSAGE value="refactor" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
