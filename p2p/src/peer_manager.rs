@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
@@ -78,7 +79,7 @@ impl PeerList {
         self.connected_peers.contains_key(peer)
     }
 
-    pub fn peers_addrs(&self) -> Vec<Multiaddr> {
+    pub fn peers_addrs(&self) -> BTreeSet<Multiaddr> {
         self.addrs.iter().map(|peer| peer.value().clone()).collect()
     }
 
