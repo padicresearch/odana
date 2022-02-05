@@ -276,8 +276,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 request,
                 channel,
             } => match &request {
-                PeerMessage::Ack(_) => {
-                    println!("Request from {:?}", swarm.behaviour_mut().requestresponse.addresses_of_peer(&peer));
+                PeerMessage::Ack(addr) => {
+                    println!("Request from {:?}", addr);
                     let chain_network = swarm.behaviour_mut();
                     let mut combine = Vec::new();
                     let peers: Vec<_> = chain_network.gossipsub.mesh_peers(&chain_network.topic.hash()).cloned().collect();
