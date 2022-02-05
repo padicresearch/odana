@@ -36,7 +36,9 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="bootstrapping" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="bootstrapping">
+      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -419,14 +421,7 @@
       <workItem from="1643722280894" duration="12454000" />
       <workItem from="1643813635652" duration="5606000" />
       <workItem from="1643979517072" duration="2570000" />
-      <workItem from="1644051388901" duration="10290000" />
-    </task>
-    <task id="LOCAL-00055" summary="implement truncate pending transactions">
-      <created>1642422566333</created>
-      <option name="number" value="00055" />
-      <option name="presentableId" value="LOCAL-00055" />
-      <option name="project" value="LOCAL" />
-      <updated>1642422566333</updated>
+      <workItem from="1644051388901" duration="10707000" />
     </task>
     <task id="LOCAL-00056" summary="cargo fmt">
       <created>1642422595792</created>
@@ -764,7 +759,14 @@
       <option name="project" value="LOCAL" />
       <updated>1644062074613</updated>
     </task>
-    <option name="localTasksCounter" value="104" />
+    <task id="LOCAL-00104" summary="bootstrapping">
+      <created>1644062477852</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1644062477852</updated>
+    </task>
+    <option name="localTasksCounter" value="105" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

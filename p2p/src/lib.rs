@@ -103,7 +103,7 @@ async fn config_network(
         .protocol_id_prefix("tuchain")
         .validation_mode(ValidationMode::Permissive)
         .build()
-        .unwrap();
+        .expect("Failed to create Gossip sub network");
 
     let mut behaviour = ChainNetworkBehavior {
         gossipsub: Gossipsub::new(
@@ -252,9 +252,10 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     {
                         swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
                         for peer in &msg.peers {
+                            //TODO Handle errors
                             println!("DAILING {}", peer);
-                            //let addr: Multiaddr = peer.parse().unwrap();
-                            //swarm.dial(addr).unwrap()
+                            let addr: Multiaddr = peer.parse().unwrap();
+                            swarm.dial(addr).unwrap()
                         }
 
                         info!(peer = ?&peer, peer_stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
