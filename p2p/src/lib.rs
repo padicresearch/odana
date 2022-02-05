@@ -254,7 +254,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 .send_request(&peer_id, PeerMessage::Ack);
             swarm.behaviour().peers.add_potential_peer(peer_id, request_id);
             //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
-            trace!(peer = ?endpoint.get_remote_address(),"Connection established");
+            info!(peer = ?endpoint.get_remote_address(),"Connection established");
         }
         SwarmEvent::ConnectionClosed {
             endpoint, cause, ..
