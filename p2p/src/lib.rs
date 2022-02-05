@@ -9,6 +9,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use colored::Colorize;
 use libp2p::{Multiaddr, PeerId, Swarm, Transport};
+use libp2p::core::connection::{Connected, ConnectedPoint};
 use libp2p::core::multiaddr::Protocol;
 use libp2p::core::network::Peer;
 use libp2p::core::ProtocolName;
@@ -298,22 +299,22 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         },
 
         SwarmEvent::ConnectionEstablished {
-            peer_id, endpoint, ..
+            peer_id, endpoint: ConnectedPoint::Dialer { address }, ..
         } => {
             let request_id = swarm
                 .behaviour_mut()
                 .requestresponse
                 .send_request(&peer_id, PeerMessage::Ack);
 
-            let addrs = swarm.behaviour_mut().requestresponse.addresses_of_peer(&peer_id);
-            println!("Connection with addresses {:#?}", addrs);
+            //let addrs = swarm.behaviour_mut().requestresponse.addresses_of_peer(&peer_id);
+            println!("Connection with addresses {:#?}", address);
             swarm.behaviour().peers.add_potential_peer(
                 peer_id,
-                addrs[0].clone(),
+                address.clone(),
                 request_id,
             );
             //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
-            info!(peer = ?endpoint.get_remote_address(),"Connection established");
+            info!(peer = ?address,"Connection established");
         }
         SwarmEvent::ConnectionClosed {
             endpoint, cause, ..
