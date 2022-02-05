@@ -216,9 +216,11 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Subscribed { peer_id, topic })) => {
             if topic.eq(&swarm.behaviour_mut().topic.hash()) {
                 // Connect to a remove peer
-                println!("NEW PEER CONNECT DNS {:#?}", swarm.behaviour_mut().mdns.addresses_of_peer(&peer_id));
-                println!("NEW PEER CONNECT KAD {:#?}", swarm.behaviour_mut().kad.addresses_of_peer(&peer_id));
-                let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack("Mnone".to_string()));
+                let local_peer_id = *swarm.local_peer_id();
+                let public_ip = public_ip::addr_v4().await.unwrap();
+                let addr = Multiaddr::empty().with(Protocol::Ip4(public_ip)).with(Protocol::P2p(local_peer_id.into()));
+                println!("MY ADDRESS {:#?}", addr);
+                let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack(addr.to_string()));
                 // swarm.behaviour_mut().peers.add_potential_peer()
                 //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
             }
@@ -242,11 +244,12 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             match result {
                 Ok(ok) => {
                     for peer in ok.peers.iter() {
-                        let local_peer_id = swarm.external_addresses().next();
-                        let add = local_peer_id.unwrap();
-                        println!("MINE ADDRESS {}", add.addr.clone());
+                        let local_peer_id = *swarm.local_peer_id();
+                        let public_ip = public_ip::addr_v4().await.unwrap();
+                        let addr = Multiaddr::empty().with(Protocol::Ip4(public_ip)).with(Protocol::P2p(local_peer_id.into()));
+                        println!("MY ADDRESS {:#?}", addr);
 
-                        swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack("Mnone".to_string()));
+                        swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack(addr.to_string()));
                     }
                 }
                 Err(_) => {}
@@ -325,10 +328,13 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::ConnectionEstablished {
             peer_id, endpoint: ConnectedPoint::Dialer { address }, ..
         } => {
+            let local_peer_id = *swarm.local_peer_id();
+            let public_ip = public_ip::addr_v4().await.unwrap();
+            let addr = Multiaddr::empty().with(Protocol::Ip4(public_ip)).with(Protocol::P2p(local_peer_id.into()));
             let request_id = swarm
                 .behaviour_mut()
                 .requestresponse
-                .send_request(&peer_id, PeerMessage::Ack("DD".to_string()));
+                .send_request(&peer_id, PeerMessage::Ack(addr.to_string()));
 
             //let addrs = swarm.behaviour_mut().requestresponse.addresses_of_peer(&peer_id);
             println!("Connection with addresses {:#?}", address);
