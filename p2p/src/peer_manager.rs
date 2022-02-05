@@ -42,13 +42,13 @@ impl PeerList {
 
     pub fn promote_peer(&self, peer: &PeerId, request_id: RequestId, node: PeerNode) -> bool {
         match self.potential_peers.remove(peer) {
-            None => false,
+            None => {
+                println!("No potential peer");
+                false
+            },
             Some((peer, id)) => {
-                if request_id == id {
-                    self.connected_peers.insert(peer, node);
-                    return true;
-                }
-                return false;
+                self.connected_peers.insert(peer, node);
+                return true;
             }
         }
     }

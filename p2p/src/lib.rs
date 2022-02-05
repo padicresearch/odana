@@ -250,7 +250,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     for peer in ok.peers.iter() {
                         let addr = swarm.behaviour_mut().public_address.clone();
                         println!("MY ADDRESS {:#?}", addr);
-                        swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack(addr.to_string()));
+                        let request_id = swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack(addr.to_string()));
+                        swarm.behaviour_mut().peers.add_potential_peer(peer.clone(), request_id)
                     }
                 }
                 Err(_) => {}
@@ -302,6 +303,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 response,
             } => match &response {
                 PeerMessage::ReAck(msg) => {
+                    println!("{:#?}", msg);
                     if swarm
                         .behaviour()
                         .peers
@@ -313,6 +315,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         }
 
                         for addr in msg.peers.iter() {
+                            println!("Try connect {}", addr);
                             let addr: Multiaddr = addr.parse().unwrap();
                             let peer_id = match addr.iter().last() {
                                 Some(Protocol::P2p(hash)) => PeerId::from_multihash(hash).expect("Valid hash."),
