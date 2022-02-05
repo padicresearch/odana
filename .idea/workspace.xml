@@ -36,9 +36,7 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="kademila discovery">
-      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
-    </list>
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="kademila discovery" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -421,21 +419,7 @@
       <workItem from="1643722280894" duration="12454000" />
       <workItem from="1643813635652" duration="5606000" />
       <workItem from="1643979517072" duration="2570000" />
-      <workItem from="1644051388901" duration="22934000" />
-    </task>
-    <task id="LOCAL-00067" summary="merge txpool">
-      <created>1642582327314</created>
-      <option name="number" value="00067" />
-      <option name="presentableId" value="LOCAL-00067" />
-      <option name="project" value="LOCAL" />
-      <updated>1642582327314</updated>
-    </task>
-    <task id="LOCAL-00068" summary="implementing barossa consensus">
-      <created>1642661385182</created>
-      <option name="number" value="00068" />
-      <option name="presentableId" value="LOCAL-00068" />
-      <option name="project" value="LOCAL" />
-      <updated>1642661385182</updated>
+      <workItem from="1644051388901" duration="23234000" />
     </task>
     <task id="LOCAL-00069" summary="implementing barossa consensus">
       <created>1642669389609</created>
@@ -766,7 +750,21 @@
       <option name="project" value="LOCAL" />
       <updated>1644076770619</updated>
     </task>
-    <option name="localTasksCounter" value="116" />
+    <task id="LOCAL-00116" summary="kademila discovery">
+      <created>1644077377773</created>
+      <option name="number" value="00116" />
+      <option name="presentableId" value="LOCAL-00116" />
+      <option name="project" value="LOCAL" />
+      <updated>1644077377773</updated>
+    </task>
+    <task id="LOCAL-00117" summary="kademila discovery">
+      <created>1644077481598</created>
+      <option name="number" value="00117" />
+      <option name="presentableId" value="LOCAL-00117" />
+      <option name="project" value="LOCAL" />
+      <updated>1644077481598</updated>
+    </task>
+    <option name="localTasksCounter" value="118" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

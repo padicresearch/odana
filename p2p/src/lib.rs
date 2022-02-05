@@ -217,6 +217,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             if topic.eq(&swarm.behaviour_mut().topic.hash()) {
                 // Connect to a remove peer
                 swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack);
+                //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
             }
         }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Discovered(list))) => {
