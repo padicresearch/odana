@@ -224,6 +224,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 let addr = swarm.behaviour_mut().public_address.clone();
                 println!("MY ADDRESS {:#?}", addr);
                 let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack(addr.to_string()));
+                swarm.behaviour_mut().peers.add_potential_peer(peer_id, request_id);
                 // swarm.behaviour_mut().peers.add_potential_peer()
                 //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
             }
@@ -294,6 +295,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         .collect();
                     println!("Combine Mesh {:?}", combine);
                     println!("Combine peers_addrs {:?}", combined);
+                    chain_network.peers.set_peer_address(peer, addr.parse().unwrap());
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),
@@ -339,8 +341,11 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             println!("Connection with addresses {:#?}", address);
             swarm.behaviour().peers.add_potential_peer(
                 peer_id,
-                address.clone(),
                 request_id,
+            );
+            swarm.behaviour().peers.set_peer_address(
+                peer_id,
+                address.clone(),
             );
             //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
             info!(peer = ?address,"Connection established");

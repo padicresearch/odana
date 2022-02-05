@@ -29,9 +29,13 @@ impl PeerList {
         }
     }
 
-    pub fn add_potential_peer(&self, peer: PeerId, addr: Multiaddr, request_id: RequestId) {
+    pub fn add_potential_peer(&self, peer: PeerId, request_id: RequestId) {
         let peer_id = Arc::new(peer);
         self.potential_peers.insert(peer_id.clone(), request_id);
+    }
+
+    pub fn set_peer_address(&self, peer: PeerId, addr: Multiaddr) {
+        let peer_id = Arc::new(peer);
         self.addrs.insert(peer_id, addr);
     }
 
