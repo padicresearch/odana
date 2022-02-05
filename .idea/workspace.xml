@@ -37,7 +37,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="kademila discovery">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -422,14 +421,7 @@
       <workItem from="1643722280894" duration="12454000" />
       <workItem from="1643813635652" duration="5606000" />
       <workItem from="1643979517072" duration="2570000" />
-      <workItem from="1644051388901" duration="26036000" />
-    </task>
-    <task id="LOCAL-00073" summary="fix proof of work">
-      <created>1642876252018</created>
-      <option name="number" value="00073" />
-      <option name="presentableId" value="LOCAL-00073" />
-      <option name="project" value="LOCAL" />
-      <updated>1642876252019</updated>
+      <workItem from="1644051388901" duration="26343000" />
     </task>
     <task id="LOCAL-00074" summary="migrate morph to merk">
       <created>1643073645041</created>
@@ -767,7 +759,14 @@
       <option name="project" value="LOCAL" />
       <updated>1644079427584</updated>
     </task>
-    <option name="localTasksCounter" value="122" />
+    <task id="LOCAL-00122" summary="kademila discovery">
+      <created>1644080931104</created>
+      <option name="number" value="00122" />
+      <option name="presentableId" value="LOCAL-00122" />
+      <option name="project" value="LOCAL" />
+      <updated>1644080931104</updated>
+    </task>
+    <option name="localTasksCounter" value="123" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
