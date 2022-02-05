@@ -150,7 +150,7 @@ pub async fn start_p2p_server(
     peer_arg: Option<String>,
     peer_list: Arc<PeerList>,
 ) -> Result<()> {
-    let mut swarm = config_network(node_identity, p2p_to_node, peer_list).await?;
+    let mut swarm = config_network(node_identity.clone(), p2p_to_node, peer_list).await?;
 
     Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
         .expect("Error connecting to p2p");
@@ -162,6 +162,7 @@ pub async fn start_p2p_server(
             _ => anyhow::bail!("Expect peer multiaddr to contain peer ID."),
         };
         swarm.behaviour_mut().kad.add_address(&peer_id, addr.with(Protocol::P2p(peer_id.into())));
+        swarm.behaviour_mut().kad.get_closest_peers(node_identity.peer_id().clone());
         //swarm.dial(addr.with(Protocol::P2p(peer_id.into())))?;
     }
 
