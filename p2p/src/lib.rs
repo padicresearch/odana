@@ -252,8 +252,9 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     {
                         swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
                         for peer in &msg.peers {
-                            let addr: Multiaddr = peer.parse().unwrap();
-                            swarm.dial(addr).unwrap()
+                            println!("DAILING {}", peer);
+                            //let addr: Multiaddr = peer.parse().unwrap();
+                            //swarm.dial(addr).unwrap()
                         }
 
                         info!(peer = ?&peer, peer_stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
