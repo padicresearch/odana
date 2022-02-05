@@ -232,6 +232,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         .iter()
                         .map(|addr| addr.to_string())
                         .collect();
+                    println!("Combined {:?}", combined);
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(chain_network.node, combined)),
@@ -272,9 +273,12 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 .behaviour_mut()
                 .requestresponse
                 .send_request(&peer_id, PeerMessage::Ack);
+
+            let addr = endpoint.get_remote_address();
+            println!("Connection with ADDR {}", addr);
             swarm.behaviour().peers.add_potential_peer(
                 peer_id,
-                endpoint.get_remote_address().clone(),
+                addr.clone(),
                 request_id,
             );
             //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
@@ -359,7 +363,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let data = read_length_prefixed(io, 1_000_000).await?;
+        let data = read_length_prefixed(io, 10_000_000).await?;
         println!("read_request {}", data.len());
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
@@ -380,7 +384,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let data = read_length_prefixed(io, 1_000_000).await?;
+        let data = read_length_prefixed(io, 10_000_000).await?;
         println!("read_response {}", data.len());
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
