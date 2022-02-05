@@ -134,7 +134,6 @@ async fn main() -> anyhow::Result<()> {
                 if let Some(peer) = peer_msg {
                     Some(EventStream::PeerMessage(peer))
                 }else {
-                    println!("Unhandled Peer Message");
                     Some(EventStream::Unhandled)
                 }
             }
