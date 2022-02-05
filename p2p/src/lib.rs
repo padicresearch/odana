@@ -259,21 +259,13 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             } => match &request {
                 PeerMessage::Ack => {
                     let chain_network = swarm.behaviour_mut();
-                    // let combined: Vec<_> = chain_network
-                    //     .peers
-                    //     .peers_addrs()
-                    //     .iter()
-                    //     .map(|addr| addr.to_string())
-                    //     .collect();
-                    // println!("Combined {:?}", combined);
-                    let query_id = chain_network.kad.get_closest_peers(peer);
-                    let d: Vec<_> = chain_network.kad.kbuckets()
-                        .flat_map(|t| {
-                            let iter: Vec<_> = t.iter().map(|k| (k.node.key.clone(), k.node.value.clone())).collect();
-                            iter.into_iter()
-                        })
+                    let combined: Vec<_> = chain_network
+                        .peers
+                        .peers_addrs()
+                        .iter()
+                        .map(|addr| addr.to_string())
                         .collect();
-                    println!("kbuckets {:#?}", d);
+                    println!("Combined {:?}", combined);
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),
@@ -313,11 +305,11 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 .requestresponse
                 .send_request(&peer_id, PeerMessage::Ack);
 
-            let addr = endpoint.get_remote_address();
-            println!("Connection with ADDR {}", addr);
+            let addrs = swarm.behaviour_mut().requestresponse.addresses_of_peer(&peer_id);
+            println!("Connection with addresses {:#?}", addrs);
             swarm.behaviour().peers.add_potential_peer(
                 peer_id,
-                addr.clone(),
+                addrs[0].clone(),
                 request_id,
             );
             //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
