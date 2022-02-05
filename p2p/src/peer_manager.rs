@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use dashmap::{DashMap, DashSet};
-use libp2p::PeerId;
+use libp2p::{Multiaddr, PeerId};
 use libp2p::request_response::RequestId;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -17,6 +17,7 @@ use crate::identity::PeerNode;
 pub struct PeerList {
     potential_peers: DashMap<Arc<PeerId>, RequestId>,
     connected_peers: DashMap<Arc<PeerId>, PeerNode>,
+    addrs: DashMap<Arc<PeerId>, Multiaddr>,
 }
 
 impl PeerList {
@@ -24,11 +25,14 @@ impl PeerList {
         Self {
             potential_peers: Default::default(),
             connected_peers: Default::default(),
+            addrs: Default::default(),
         }
     }
 
-    pub fn add_potential_peer(&self, peer: PeerId, request_id: RequestId) {
-        self.potential_peers.insert(Arc::new(peer), request_id);
+    pub fn add_potential_peer(&self, peer: PeerId, addr: Multiaddr, request_id: RequestId) {
+        let peer_id = Arc::new(peer);
+        self.potential_peers.insert(peer_id.clone(), request_id);
+        self.addrs.insert(peer_id, addr);
     }
 
     pub fn promote_peer(&self, peer: &PeerId, request_id: RequestId, node: PeerNode) -> bool {
@@ -47,6 +51,7 @@ impl PeerList {
     pub fn remove_peer(&self, peer: &PeerId) {
         self.potential_peers.remove(peer);
         self.connected_peers.remove(peer);
+        self.addrs.remove(peer);
     }
 
     pub fn stats(&self,) -> (usize, usize) {
@@ -61,12 +66,16 @@ impl PeerList {
         return Box::new(self.potential_peers.iter().map(|r| r.key().clone()));
     }
 
-    pub fn connected_peers<'a>(&'a self) -> Box<dyn Iterator<Item = Arc<PeerId>> + 'a> {
+    pub fn connected_peers<'a>(&'a self) -> Box<dyn Iterator<Item=Arc<PeerId>> + 'a> {
         return Box::new(self.connected_peers.iter().map(|r| r.key().clone()));
     }
 
     pub fn is_peer_connected(&self, peer: &PeerId) -> bool {
         self.connected_peers.contains_key(peer)
+    }
+
+    pub fn peers_addrs(&self) -> Vec<Multiaddr> {
+        self.addrs.iter().map(|peer| peer.value().clone()).collect()
     }
 
     pub fn random_connected_peer(&self) -> &PeerId {

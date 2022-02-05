@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::fs::File;
 use std::iter;
 use std::net::Ipv4Addr;
@@ -8,6 +9,7 @@ use async_trait::async_trait;
 use colored::Colorize;
 use libp2p::{Multiaddr, PeerId, Swarm, Transport};
 use libp2p::core::multiaddr::Protocol;
+use libp2p::core::network::Peer;
 use libp2p::core::ProtocolName;
 use libp2p::core::transport::upgrade::Version;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed};
@@ -212,6 +214,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 }
             }
         }
+
         SwarmEvent::Behaviour(OutEvent::RequestResponse(RequestResponseEvent::Message {
             peer,
             message,
@@ -223,9 +226,15 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             } => match &request {
                 PeerMessage::Ack => {
                     let chain_network = swarm.behaviour_mut();
+                    let combined: Vec<_> = chain_network
+                        .peers
+                        .peers_addrs()
+                        .iter()
+                        .map(|addr| addr.to_string())
+                        .collect();
                     chain_network.requestresponse.send_response(
                         channel,
-                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, Vec::new())),
+                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, combined)),
                     );
                 }
                 _ => {}
@@ -236,8 +245,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 response,
             } => match &response {
                 PeerMessage::ReAck(msg) => {
-                    if swarm.behaviour().peers.promote_peer(&peer,request_id, msg.node_info) {
+                    if swarm
+                        .behaviour()
+                        .peers
+                        .promote_peer(&peer, request_id, msg.node_info)
+                    {
                         swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
+                        for peer in &msg.peers {
+                            let addr: Multiaddr = peer.parse().unwrap();
+                            swarm.dial(addr).unwrap()
+                        }
+
                         info!(peer = ?&peer, peer_stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
                     }
                 }
@@ -252,7 +270,11 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 .behaviour_mut()
                 .requestresponse
                 .send_request(&peer_id, PeerMessage::Ack);
-            swarm.behaviour().peers.add_potential_peer(peer_id, request_id);
+            swarm.behaviour().peers.add_potential_peer(
+                peer_id,
+                endpoint.get_remote_address().clone(),
+                request_id,
+            );
             //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
             info!(peer = ?endpoint.get_remote_address(),"Connection established");
         }
