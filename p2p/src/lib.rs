@@ -204,12 +204,18 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             );
         }
         SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Message {
-            propagation_source,
-            message_id,
-            message,
-        })) => {
+                                                      propagation_source,
+                                                      message_id,
+                                                      message,
+                                                  })) => {
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 swarm.behaviour_mut().p2p_to_node.send(peer_message);
+            }
+        }
+
+        SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Subscribed { peer_id, topic })) => {
+            if topic.eq(&swarm.behaviour_mut().topic.hash()) {
+                println!("Remote Peer Subscribed: Try to connnnnect yo {}", peer_id);
             }
         }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Discovered(list))) => {
@@ -260,6 +266,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             } => match &request {
                 PeerMessage::Ack => {
                     let chain_network = swarm.behaviour_mut();
+                    // let mut combine = Vec::new();
+                    // chain_network.gossipsub.all_mesh_peers()
                     let combined: Vec<_> = chain_network
                         .peers
                         .peers_addrs()
