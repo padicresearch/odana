@@ -266,15 +266,14 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             } => match &request {
                 PeerMessage::Ack => {
                     let chain_network = swarm.behaviour_mut();
-                    // let mut combine = Vec::new();
-                    // chain_network.gossipsub.all_mesh_peers()
-                    let combined: Vec<_> = chain_network
-                        .peers
-                        .peers_addrs()
-                        .iter()
-                        .map(|addr| addr.to_string())
-                        .collect();
-                    println!("Combined {:?}", combined);
+                    let mut combine = Vec::new();
+                    let peers: Vec<_> = chain_network.gossipsub.mesh_peers(&chain_network.topic.hash()).cloned().collect();
+                    for peer in peers.iter() {
+                        for addr in chain_network.gossipsub.addresses_of_peer(peer).iter() {
+                            combine.push(addr.to_string())
+                        }
+                    }
+                    println!("Combined {:?}", combine);
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),
