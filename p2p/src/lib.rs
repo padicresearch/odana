@@ -274,7 +274,14 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                             combine.push(addr.to_string())
                         }
                     }
-                    println!("Combined {:?}", combine);
+                    let combined: Vec<_> = chain_network
+                        .peers
+                        .peers_addrs()
+                        .iter()
+                        .map(|addr| addr.to_string())
+                        .collect();
+                    println!("Combine Mesh {:?}", combine);
+                    println!("Combine peers_addrs {:?}", combined);
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),
