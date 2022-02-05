@@ -3,6 +3,7 @@ use std::fs::File;
 use std::iter;
 use std::net::Ipv4Addr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -19,6 +20,8 @@ use libp2p::gossipsub::{
     ValidationMode,
 };
 use libp2p::identify::IdentifyConfig;
+use libp2p::kad::{GetClosestPeersError, GetClosestPeersOk, Kademlia, KademliaConfig, KademliaEvent, QueryResult};
+use libp2p::kad::record::store::MemoryStore;
 use libp2p::mdns::{Mdns, MdnsEvent};
 use libp2p::NetworkBehaviour;
 use libp2p::noise::{AuthenticKeypair, NoiseConfig, X25519Spec};
@@ -97,6 +100,10 @@ async fn config_network(
     let mdns = Mdns::new(Default::default())
         .await
         .expect("Cannot create mdns");
+    let mut cfg = KademliaConfig::default();
+    cfg.set_query_timeout(Duration::from_secs(5 * 60));
+    let kad = Kademlia::with_config(node_identity.peer_id().clone(), MemoryStore::new(node_identity.peer_id().clone()), cfg);
+
     let max_transmit_size = 500;
     let config = GossipsubConfigBuilder::default()
         .max_transmit_size(max_transmit_size)
@@ -105,13 +112,15 @@ async fn config_network(
         .build()
         .expect("Failed to create Gossip sub network");
 
+
     let mut behaviour = ChainNetworkBehavior {
         gossipsub: Gossipsub::new(
             MessageAuthenticity::Author(node_identity.peer_id().clone()),
             config,
         )
-        .expect("Failed to create Gossip sub network"),
+            .expect("Failed to create Gossip sub network"),
         mdns,
+        kad,
         requestresponse: RequestResponse::new(
             ChainP2pExchangeCodec,
             iter::once((ChainP2pExchangeProtocol, ProtocolSupport::Full)),
@@ -152,7 +161,8 @@ pub async fn start_p2p_server(
             Some(Protocol::P2p(hash)) => PeerId::from_multihash(hash).expect("Valid hash."),
             _ => anyhow::bail!("Expect peer multiaddr to contain peer ID."),
         };
-        swarm.dial(addr.with(Protocol::P2p(peer_id.into())))?;
+        swarm.behaviour_mut().kad.add_address(&peer_id, addr.with(Protocol::P2p(peer_id.into())));
+        //swarm.dial(addr.with(Protocol::P2p(peer_id.into())))?;
     }
 
     tokio::task::spawn(async move {
@@ -215,10 +225,21 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             }
         }
 
+        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::OutboundQueryCompleted { id, result: QueryResult::GetClosestPeers(result), stats })) => {
+            match result {
+                Ok(ok) => {
+                    for peer in ok.peers.iter() {
+                        swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack);
+                    }
+                }
+                Err(_) => {}
+            }
+        }
+
         SwarmEvent::Behaviour(OutEvent::RequestResponse(RequestResponseEvent::Message {
-            peer,
-            message,
-        })) => match message {
+                                                            peer,
+                                                            message,
+                                                        })) => match message {
             RequestResponseMessage::Request {
                 request_id,
                 request,
@@ -226,16 +247,16 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             } => match &request {
                 PeerMessage::Ack => {
                     let chain_network = swarm.behaviour_mut();
-                    let combined: Vec<_> = chain_network
-                        .peers
-                        .peers_addrs()
-                        .iter()
-                        .map(|addr| addr.to_string())
-                        .collect();
-                    println!("Combined {:?}", combined);
+                    // let combined: Vec<_> = chain_network
+                    //     .peers
+                    //     .peers_addrs()
+                    //     .iter()
+                    //     .map(|addr| addr.to_string())
+                    //     .collect();
+                    // println!("Combined {:?}", combined);
                     chain_network.requestresponse.send_response(
                         channel,
-                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, combined)),
+                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),
                     );
                 }
                 _ => {}
@@ -253,12 +274,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         .promote_peer(&peer, request_id, msg.node_info)
                     {
                         swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
-
-                        for addr in &msg.peers {
-                            //TODO Handle errors
-                            println!("DAILING {}", addr);
-                            let addr: Multiaddr = addr.parse().unwrap();
-                            swarm.dial(addr).unwrap()
+                        for addrs in swarm.behaviour_mut().requestresponse.addresses_of_peer(&peer) {
+                            swarm.behaviour_mut().kad.add_address(&peer, addrs);
                         }
 
                         info!(peer = ?&peer, peer_stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
@@ -303,6 +320,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
 struct ChainNetworkBehavior {
     gossipsub: Gossipsub,
     mdns: Mdns,
+    kad: Kademlia<MemoryStore>,
     requestresponse: RequestResponse<ChainP2pExchangeCodec>,
     #[behaviour(ignore)]
     p2p_to_node: UnboundedSender<PeerMessage>,
@@ -319,6 +337,7 @@ enum OutEvent {
     Gossipsub(GossipsubEvent),
     RequestResponse(RequestResponseEvent<PeerMessage, PeerMessage>),
     Mdns(MdnsEvent),
+    Kademlia(KademliaEvent),
 }
 
 impl From<MdnsEvent> for OutEvent {
@@ -330,6 +349,12 @@ impl From<MdnsEvent> for OutEvent {
 impl From<GossipsubEvent> for OutEvent {
     fn from(v: GossipsubEvent) -> Self {
         Self::Gossipsub(v)
+    }
+}
+
+impl From<KademliaEvent> for OutEvent {
+    fn from(v: KademliaEvent) -> Self {
+        Self::Kademlia(v)
     }
 }
 
