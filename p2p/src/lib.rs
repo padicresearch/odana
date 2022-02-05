@@ -280,13 +280,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 PeerMessage::Ack(addr) => {
                     println!("Request from {:?}", addr);
                     let chain_network = swarm.behaviour_mut();
-                    let mut combine = Vec::new();
-                    let peers: Vec<_> = chain_network.gossipsub.mesh_peers(&chain_network.topic.hash()).cloned().collect();
-                    for peer in peers.iter() {
-                        for addr in chain_network.gossipsub.addresses_of_peer(peer).iter() {
-                            combine.push(addr.to_string())
-                        }
-                    }
                     let addr: Multiaddr = addr.parse().unwrap();
                     let mut peers = chain_network.peers.peers_addrs();
                     peers.remove(&addr);
@@ -294,12 +287,11 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         .iter()
                         .map(|addr| addr.to_string())
                         .collect();
-                    println!("Combine Mesh {:?}", combine);
                     println!("Combine peers_addrs {:?}", combined);
                     chain_network.peers.set_peer_address(peer, addr);
                     chain_network.requestresponse.send_response(
                         channel,
-                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),
+                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, combined)),
                     );
                 }
                 _ => {}
