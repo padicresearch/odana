@@ -352,11 +352,12 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             info!(peer = ?address,"Connection established");
         }
         SwarmEvent::ConnectionClosed {
-            endpoint, cause, ..
+            endpoint: ConnectedPoint::Dialer { address }, cause, peer_id, ..
         } => {
             if let Some(cause) = cause {
                 //swarm.dial(endpoint.get_remote_address().clone()).unwrap();
-                warn!(peer = ?endpoint.get_remote_address(), cause = ?cause, "Connection closed");
+                swarm.behaviour_mut().peers.remove_peer(&peer_id);
+                warn!(peer = ?peer_id, address = ?address, cause = ?cause, "Connection closed");
             }
         }
         _ => {}

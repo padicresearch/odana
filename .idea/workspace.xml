@@ -421,14 +421,7 @@
       <workItem from="1643722280894" duration="12454000" />
       <workItem from="1643813635652" duration="5606000" />
       <workItem from="1643979517072" duration="2570000" />
-      <workItem from="1644051388901" duration="32739000" />
-    </task>
-    <task id="LOCAL-00083" summary="mvp: test p2p communication">
-      <created>1643469671630</created>
-      <option name="number" value="00083" />
-      <option name="presentableId" value="LOCAL-00083" />
-      <option name="project" value="LOCAL" />
-      <updated>1643469671630</updated>
+      <workItem from="1644051388901" duration="33044000" />
     </task>
     <task id="LOCAL-00084" summary="mvp: test p2p communication">
       <created>1643470249704</created>
@@ -766,7 +759,14 @@
       <option name="project" value="LOCAL" />
       <updated>1644088884048</updated>
     </task>
-    <option name="localTasksCounter" value="132" />
+    <task id="LOCAL-00132" summary="kademila discovery">
+      <created>1644089347957</created>
+      <option name="number" value="00132" />
+      <option name="presentableId" value="LOCAL-00132" />
+      <option name="project" value="LOCAL" />
+      <updated>1644089347957</updated>
+    </task>
+    <option name="localTasksCounter" value="133" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
