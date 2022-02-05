@@ -113,6 +113,10 @@ async fn config_network(
         .build()
         .expect("Failed to create Gossip sub network");
 
+    let local_peer_id = node_identity.peer_id().clone();
+    let public_ip = public_ip::addr_v4().await.unwrap();
+    let public_address = Multiaddr::empty().with(Protocol::Ip4(public_ip)).with(Protocol::Tcp(9020)).with(Protocol::P2p(local_peer_id.into()));
+
 
     let mut behaviour = ChainNetworkBehavior {
         gossipsub: Gossipsub::new(
@@ -130,6 +134,7 @@ async fn config_network(
         p2p_to_node,
         topic: network_topic.clone(),
         node: node_identity.to_p2p_node(),
+        public_address,
         peers: peer_list,
     };
 
@@ -216,9 +221,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Subscribed { peer_id, topic })) => {
             if topic.eq(&swarm.behaviour_mut().topic.hash()) {
                 // Connect to a remove peer
-                let local_peer_id = *swarm.local_peer_id();
-                let public_ip = public_ip::addr_v4().await.unwrap();
-                let addr = Multiaddr::empty().with(Protocol::Ip4(public_ip)).with(Protocol::P2p(local_peer_id.into()));
+                let addr = swarm.behaviour_mut().public_address.clone();
                 println!("MY ADDRESS {:#?}", addr);
                 let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack(addr.to_string()));
                 // swarm.behaviour_mut().peers.add_potential_peer()
@@ -244,11 +247,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             match result {
                 Ok(ok) => {
                     for peer in ok.peers.iter() {
-                        let local_peer_id = *swarm.local_peer_id();
-                        let public_ip = public_ip::addr_v4().await.unwrap();
-                        let addr = Multiaddr::empty().with(Protocol::Ip4(public_ip)).with(Protocol::P2p(local_peer_id.into()));
+                        let addr = swarm.behaviour_mut().public_address.clone();
                         println!("MY ADDRESS {:#?}", addr);
-
                         swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack(addr.to_string()));
                     }
                 }
@@ -328,9 +328,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::ConnectionEstablished {
             peer_id, endpoint: ConnectedPoint::Dialer { address }, ..
         } => {
-            let local_peer_id = *swarm.local_peer_id();
-            let public_ip = public_ip::addr_v4().await.unwrap();
-            let addr = Multiaddr::empty().with(Protocol::Ip4(public_ip)).with(Protocol::P2p(local_peer_id.into()));
+            let addr = swarm.behaviour_mut().public_address.clone();
+            println!("MY ADDRESS {:#?}", addr);
             let request_id = swarm
                 .behaviour_mut()
                 .requestresponse
@@ -371,6 +370,8 @@ struct ChainNetworkBehavior {
     topic: Sha256Topic,
     #[behaviour(ignore)]
     node: PeerNode,
+    #[behaviour(ignore)]
+    public_address: Multiaddr,
     #[behaviour(ignore)]
     peers: Arc<PeerList>,
 }
