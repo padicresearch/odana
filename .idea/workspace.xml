@@ -421,14 +421,7 @@
       <workItem from="1643722280894" duration="12454000" />
       <workItem from="1643813635652" duration="5606000" />
       <workItem from="1643979517072" duration="2570000" />
-      <workItem from="1644051388901" duration="24642000" />
-    </task>
-    <task id="LOCAL-00071" summary="implement miner">
-      <created>1642838977993</created>
-      <option name="number" value="00071" />
-      <option name="presentableId" value="LOCAL-00071" />
-      <option name="project" value="LOCAL" />
-      <updated>1642838977994</updated>
+      <workItem from="1644051388901" duration="25038000" />
     </task>
     <task id="LOCAL-00072" summary="fix proof of work">
       <created>1642867169899</created>
@@ -766,7 +759,14 @@
       <option name="project" value="LOCAL" />
       <updated>1644078135348</updated>
     </task>
-    <option name="localTasksCounter" value="120" />
+    <task id="LOCAL-00120" summary="kademila discovery">
+      <created>1644079038957</created>
+      <option name="number" value="00120" />
+      <option name="presentableId" value="LOCAL-00120" />
+      <option name="project" value="LOCAL" />
+      <updated>1644079038957</updated>
+    </task>
+    <option name="localTasksCounter" value="121" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
