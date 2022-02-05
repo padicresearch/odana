@@ -246,16 +246,18 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 response,
             } => match &response {
                 PeerMessage::ReAck(msg) => {
+                    println!("ReAck {:?}", msg);
                     if swarm
                         .behaviour()
                         .peers
                         .promote_peer(&peer, request_id, msg.node_info)
                     {
                         swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
-                        for peer in &msg.peers {
+
+                        for addr in &msg.peers {
                             //TODO Handle errors
-                            println!("DAILING {}", peer);
-                            let addr: Multiaddr = peer.parse().unwrap();
+                            println!("DAILING {}", addr);
+                            let addr: Multiaddr = addr.parse().unwrap();
                             swarm.dial(addr).unwrap()
                         }
 
