@@ -320,6 +320,15 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                             swarm.behaviour_mut().kad.add_address(&peer, addrs);
                         }
 
+                        for addr in msg.peers.iter() {
+                            let addr: Multiaddr = addr.parse().unwrap();
+                            let peer_id = match addr.iter().last() {
+                                Some(Protocol::P2p(hash)) => PeerId::from_multihash(hash).expect("Valid hash."),
+                                _ => panic!("Expect peer multiaddr to contain peer ID."),
+                            };
+                            swarm.dial(addr).unwrap();
+                        }
+
                         info!(peer = ?&peer, peer_stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
                     }
                 }
