@@ -164,7 +164,7 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::BroadcastBlock(block_msg) => {
                             println!("Received Block {:?}", block_msg)
                         }
-                        PeerMessage::Ack => {}
+                        PeerMessage::Ack(_) => {}
                         PeerMessage::ReAck(msg) => {}
                     };
                 }

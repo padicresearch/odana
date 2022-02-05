@@ -218,7 +218,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 // Connect to a remove peer
                 println!("NEW PEER CONNECT DNS {:#?}", swarm.behaviour_mut().mdns.addresses_of_peer(&peer_id));
                 println!("NEW PEER CONNECT KAD {:#?}", swarm.behaviour_mut().kad.addresses_of_peer(&peer_id));
-                let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack);
+                let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack("Mnone".to_string()));
                 // swarm.behaviour_mut().peers.add_potential_peer()
                 //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
             }
@@ -242,7 +242,11 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             match result {
                 Ok(ok) => {
                     for peer in ok.peers.iter() {
-                        swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack);
+                        let local_peer_id = swarm.external_addresses().next();
+                        let add = local_peer_id.unwrap();
+                        println!("MINE ADDRESS {}", add.addr.clone());
+
+                        swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack("Mnone".to_string()));
                     }
                 }
                 Err(_) => {}
@@ -269,7 +273,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 request,
                 channel,
             } => match &request {
-                PeerMessage::Ack => {
+                PeerMessage::Ack(_) => {
                     println!("Request from {:?}", swarm.behaviour_mut().requestresponse.addresses_of_peer(&peer));
                     let chain_network = swarm.behaviour_mut();
                     let mut combine = Vec::new();
@@ -324,7 +328,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             let request_id = swarm
                 .behaviour_mut()
                 .requestresponse
-                .send_request(&peer_id, PeerMessage::Ack);
+                .send_request(&peer_id, PeerMessage::Ack("DD".to_string()));
 
             //let addrs = swarm.behaviour_mut().requestresponse.addresses_of_peer(&peer_id);
             println!("Connection with addresses {:#?}", address);

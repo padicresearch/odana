@@ -142,7 +142,7 @@ pub enum PeerMessage {
     Block(Block),
     BroadcastTransaction(BroadcastTransactionMessage),
     BroadcastBlock(BroadcastBlockMessage),
-    Ack,
+    Ack(String),
     ReAck(ReAckMessage),
 }
 
