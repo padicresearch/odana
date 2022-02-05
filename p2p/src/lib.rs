@@ -215,7 +215,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
 
         SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Subscribed { peer_id, topic })) => {
             if topic.eq(&swarm.behaviour_mut().topic.hash()) {
-                println!("Remote Peer Subscribed: Try to connnnnect yo {}", peer_id);
+                // Connect to a remove peer
+                swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack);
             }
         }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Discovered(list))) => {
