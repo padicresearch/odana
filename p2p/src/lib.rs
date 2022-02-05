@@ -216,6 +216,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Subscribed { peer_id, topic })) => {
             if topic.eq(&swarm.behaviour_mut().topic.hash()) {
                 // Connect to a remove peer
+                println!("NEW PEER CONNECT {}", &peer_id);
                 swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack);
                 //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
             }
