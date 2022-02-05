@@ -237,6 +237,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             }
         }
 
+        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::RoutablePeer { peer, address })) => {
+            println!("RoutablePeer {}", address);
+        }
+
+        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::RoutingUpdated { peer, is_new_peer, addresses, bucket_range, old_peer })) => {
+            println!("RoutingUpdated Peer {} {:#?}", peer, addresses);
+        }
+        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::PendingRoutablePeer { peer, address })) => {
+            println!("PendingRoutablePeer Peer {}", address);
+        }
+
         SwarmEvent::Behaviour(OutEvent::RequestResponse(RequestResponseEvent::Message {
                                                             peer,
                                                             message,
@@ -255,6 +266,14 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     //     .map(|addr| addr.to_string())
                     //     .collect();
                     // println!("Combined {:?}", combined);
+                    let query_id = chain_network.kad.get_closest_peers(peer);
+                    let d: Vec<_> = chain_network.kad.kbuckets()
+                        .flat_map(|t| {
+                            let iter: Vec<_> = t.iter().map(|k| (k.node.key.clone(), k.node.value.clone())).collect();
+                            iter.into_iter()
+                        })
+                        .collect();
+                    println!("kbuckets {:#?}", d);
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),

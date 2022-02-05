@@ -36,7 +36,7 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="bootstrapping">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="kademila discovery">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
     </list>
@@ -422,21 +422,7 @@
       <workItem from="1643722280894" duration="12454000" />
       <workItem from="1643813635652" duration="5606000" />
       <workItem from="1643979517072" duration="2570000" />
-      <workItem from="1644051388901" duration="14986000" />
-    </task>
-    <task id="LOCAL-00059" summary="implemented txpool">
-      <created>1642434965897</created>
-      <option name="number" value="00059" />
-      <option name="presentableId" value="LOCAL-00059" />
-      <option name="project" value="LOCAL" />
-      <updated>1642434965897</updated>
-    </task>
-    <task id="LOCAL-00060" summary="implemented txpool">
-      <created>1642454174438</created>
-      <option name="number" value="00060" />
-      <option name="presentableId" value="LOCAL-00060" />
-      <option name="project" value="LOCAL" />
-      <updated>1642454174438</updated>
+      <workItem from="1644051388901" duration="18977000" />
     </task>
     <task id="LOCAL-00061" summary="implemented txpool">
       <created>1642517004333</created>
@@ -767,7 +753,21 @@
       <option name="project" value="LOCAL" />
       <updated>1644066221812</updated>
     </task>
-    <option name="localTasksCounter" value="108" />
+    <task id="LOCAL-00108" summary="bootstrapping">
+      <created>1644068294325</created>
+      <option name="number" value="00108" />
+      <option name="presentableId" value="LOCAL-00108" />
+      <option name="project" value="LOCAL" />
+      <updated>1644068294325</updated>
+    </task>
+    <task id="LOCAL-00109" summary="kademila discovery">
+      <created>1644068438856</created>
+      <option name="number" value="00109" />
+      <option name="presentableId" value="LOCAL-00109" />
+      <option name="project" value="LOCAL" />
+      <updated>1644068438856</updated>
+    </task>
+    <option name="localTasksCounter" value="110" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -798,7 +798,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="add `impl_codec_primitives`" />
     <MESSAGE value="implementing txpool" />
     <MESSAGE value="use `address` instead of `pub_key`" />
     <MESSAGE value="use struct instead tuple" />
@@ -823,7 +822,8 @@
     <MESSAGE value="mvp: test p2p communication" />
     <MESSAGE value="refactor" />
     <MESSAGE value="bootstrapping" />
-    <option name="LAST_COMMIT_MESSAGE" value="bootstrapping" />
+    <MESSAGE value="kademila discovery" />
+    <option name="LAST_COMMIT_MESSAGE" value="kademila discovery" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
