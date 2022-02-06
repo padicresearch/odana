@@ -43,13 +43,16 @@ impl PeerList {
     }
 
     pub fn promote_peer(&self, peer: &PeerId, request_id: RequestId, node: PeerNode, pow_target: Compact) -> Result<()> {
+        if self.connected_peers.contains_key(peer) {
+            return Ok(())
+        }
         match self.potential_peers.remove(peer) {
             None => {
                 bail!("No potential peer")
             },
             Some((peer, id)) => {
                 if id != request_id {
-                    bail!("Request id mismatch{}", peer)
+                    println!("Request id mismatch; excepted {}, found {}", id, request_id)
                 }
                 match node.peer_id() {
                     Ok(derived_peer_id) => {
