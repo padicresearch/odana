@@ -5,7 +5,7 @@ use std::net::Ipv4Addr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use async_trait::async_trait;
 use colored::Colorize;
 use libp2p::{Multiaddr, PeerId, Swarm, Transport};
@@ -16,6 +16,7 @@ use libp2p::core::ProtocolName;
 use libp2p::core::transport::upgrade::Version;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed};
 use libp2p::futures::{AsyncRead, AsyncWrite, AsyncWriteExt, SinkExt, StreamExt};
+use libp2p::futures::future::err;
 use libp2p::gossipsub::{
     Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic,
     ValidationMode,
@@ -279,16 +280,18 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 response,
             } => match &response {
                 PeerMessage::ReAck(msg) => {
-                    if swarm
+                    match swarm
                         .behaviour()
                         .peers
-                        .promote_peer(&peer, request_id, msg.node_info, swarm.behaviour().pow_target)
-                    {
-                        swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
-                        info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
-                    } else {
-                        warn!(peer = ?&peer, peer_node_info = ?msg.node_info,"Failed to promote peer");
-                        swarm.disconnect_peer_id(peer);
+                        .promote_peer(&peer, request_id, msg.node_info, swarm.behaviour().pow_target) {
+                        Ok(_) => {
+                            swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
+                            info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
+                        }
+                        Err(error) => {
+                            warn!(peer = ?&peer, error = ?error,"Failed to promote peer");
+                            swarm.disconnect_peer_id(peer);
+                        }
                     }
                 }
                 _ => {}
