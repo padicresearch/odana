@@ -42,14 +42,20 @@ impl PeerList {
         self.addrs.insert(peer_id, addr);
     }
 
-    pub fn promote_peer(&self, peer: &PeerId, request_id: RequestId, node: PeerNode, pow_target: Compact) -> Result<()> {
+    pub fn promote_peer(
+        &self,
+        peer: &PeerId,
+        request_id: RequestId,
+        node: PeerNode,
+        pow_target: Compact,
+    ) -> Result<()> {
         if self.connected_peers.contains_key(peer) {
-            return Ok(())
+            return Ok(());
         }
         match self.potential_peers.remove(peer) {
             None => {
                 bail!("No potential peer")
-            },
+            }
             Some((peer, id)) => {
                 if id != request_id {
                     println!("Request id mismatch; excepted {}, found {}", id, request_id)
@@ -80,7 +86,7 @@ impl PeerList {
         self.addrs.remove(peer);
     }
 
-    pub fn stats(&self,) -> (usize, usize) {
+    pub fn stats(&self) -> (usize, usize) {
         (self.potential_peers.len(), self.connected_peers.len())
     }
 
@@ -92,7 +98,7 @@ impl PeerList {
         return Box::new(self.potential_peers.iter().map(|r| r.key().clone()));
     }
 
-    pub fn connected_peers<'a>(&'a self) -> Box<dyn Iterator<Item=Arc<PeerId>> + 'a> {
+    pub fn connected_peers<'a>(&'a self) -> Box<dyn Iterator<Item = Arc<PeerId>> + 'a> {
         return Box::new(self.connected_peers.iter().map(|r| r.key().clone()));
     }
 

@@ -96,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
         peer_2_node_sender,
         args.peer,
         peers.clone(),
-        NODE_POW_TARGET.into()
+        NODE_POW_TARGET.into(),
     )
     .await
     .unwrap();

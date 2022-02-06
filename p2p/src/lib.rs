@@ -22,7 +22,9 @@ use libp2p::gossipsub::{
     ValidationMode,
 };
 use libp2p::identify::IdentifyConfig;
-use libp2p::kad::{GetClosestPeersError, GetClosestPeersOk, Kademlia, KademliaConfig, KademliaEvent, QueryResult};
+use libp2p::kad::{
+    GetClosestPeersError, GetClosestPeersOk, Kademlia, KademliaConfig, KademliaEvent, QueryResult,
+};
 use libp2p::kad::record::store::MemoryStore;
 use libp2p::mdns::{Mdns, MdnsEvent};
 use libp2p::NetworkBehaviour;
@@ -86,7 +88,7 @@ async fn config_network(
     node_identity: NodeIdentity,
     p2p_to_node: UnboundedSender<PeerMessage>,
     peer_list: Arc<PeerList>,
-    pow_target: Compact
+    pow_target: Compact,
 ) -> Result<Swarm<ChainNetworkBehavior>> {
     let auth_keys = libp2p::noise::Keypair::<X25519Spec>::new()
         .into_authentic(&node_identity.identity_keys())
@@ -105,7 +107,11 @@ async fn config_network(
         .expect("Cannot create mdns");
     let mut cfg = KademliaConfig::default();
     cfg.set_query_timeout(Duration::from_secs(5 * 60));
-    let kad = Kademlia::with_config(node_identity.peer_id().clone(), MemoryStore::new(node_identity.peer_id().clone()), cfg);
+    let kad = Kademlia::with_config(
+        node_identity.peer_id().clone(),
+        MemoryStore::new(node_identity.peer_id().clone()),
+        cfg,
+    );
 
     let max_transmit_size = 500;
     let config = GossipsubConfigBuilder::default()
@@ -117,15 +123,17 @@ async fn config_network(
 
     let local_peer_id = node_identity.peer_id().clone();
     let public_ip = public_ip::addr_v4().await.unwrap();
-    let public_address = Multiaddr::empty().with(Protocol::Ip4(public_ip)).with(Protocol::Tcp(9020)).with(Protocol::P2p(local_peer_id.into()));
-
+    let public_address = Multiaddr::empty()
+        .with(Protocol::Ip4(public_ip))
+        .with(Protocol::Tcp(9020))
+        .with(Protocol::P2p(local_peer_id.into()));
 
     let mut behaviour = ChainNetworkBehavior {
         gossipsub: Gossipsub::new(
             MessageAuthenticity::Author(node_identity.peer_id().clone()),
             config,
         )
-            .expect("Failed to create Gossip sub network"),
+        .expect("Failed to create Gossip sub network"),
         mdns,
         kad,
         requestresponse: RequestResponse::new(
@@ -138,7 +146,7 @@ async fn config_network(
         node: node_identity.to_p2p_node(),
         public_address,
         peers: peer_list,
-        pow_target
+        pow_target,
     };
 
     behaviour.gossipsub.subscribe(&network_topic);
@@ -158,9 +166,10 @@ pub async fn start_p2p_server(
     p2p_to_node: UnboundedSender<PeerMessage>,
     peer_arg: Option<String>,
     peer_list: Arc<PeerList>,
-    pow_target: Compact
+    pow_target: Compact,
 ) -> Result<()> {
-    let mut swarm = config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
+    let mut swarm =
+        config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
 
     Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
         .expect("Error connecting to p2p");
@@ -171,8 +180,14 @@ pub async fn start_p2p_server(
             Some(Protocol::P2p(hash)) => PeerId::from_multihash(hash).expect("Valid hash."),
             _ => anyhow::bail!("Expect peer multiaddr to contain peer ID."),
         };
-        swarm.behaviour_mut().kad.add_address(&peer_id, addr.with(Protocol::P2p(peer_id.into())));
-        swarm.behaviour_mut().kad.get_closest_peers(node_identity.peer_id().clone());
+        swarm
+            .behaviour_mut()
+            .kad
+            .add_address(&peer_id, addr.with(Protocol::P2p(peer_id.into())));
+        swarm
+            .behaviour_mut()
+            .kad
+            .get_closest_peers(node_identity.peer_id().clone());
         //swarm.dial(addr.with(Protocol::P2p(peer_id.into())))?;
     }
 
@@ -213,18 +228,19 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             );
         }
         SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Message {
-                                                      propagation_source,
-                                                      message_id,
-                                                      message,
-                                                  })) => {
+            propagation_source,
+            message_id,
+            message,
+        })) => {
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 swarm.behaviour_mut().p2p_to_node.send(peer_message);
             }
         }
 
         SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Unsubscribed {
-                                                      peer_id, topic
-                                                  })) => {
+            peer_id,
+            topic,
+        })) => {
             if topic == swarm.behaviour_mut().topic.hash() {
                 swarm.disconnect_peer_id(peer_id);
             }
@@ -245,16 +261,24 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             }
         }
 
-        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::OutboundQueryCompleted { id, result: QueryResult::GetClosestPeers(result), stats })) => {
-            match result {
-                Ok(ok) => {
-                    info!(list = ?ok.peers,"Found Peers");
-                }
-                Err(_) => {}
+        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::OutboundQueryCompleted {
+            id,
+            result: QueryResult::GetClosestPeers(result),
+            stats,
+        })) => match result {
+            Ok(ok) => {
+                info!(list = ?ok.peers,"Found Peers");
             }
-        }
+            Err(_) => {}
+        },
 
-        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::RoutingUpdated { peer, is_new_peer, addresses, bucket_range, old_peer })) => {
+        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::RoutingUpdated {
+            peer,
+            is_new_peer,
+            addresses,
+            bucket_range,
+            old_peer,
+        })) => {
             if is_new_peer {
                 for address in addresses.iter() {
                     println!("Sending Ack to {}", address);
@@ -263,22 +287,19 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         .behaviour_mut()
                         .requestresponse
                         .send_request(&peer, PeerMessage::Ack(addr));
-                    swarm.behaviour().peers.add_potential_peer(
-                        peer,
-                        request_id,
-                    );
-                    swarm.behaviour().peers.set_peer_address(
-                        peer,
-                        address.clone(),
-                    );
+                    swarm.behaviour().peers.add_potential_peer(peer, request_id);
+                    swarm
+                        .behaviour()
+                        .peers
+                        .set_peer_address(peer, address.clone());
                 }
             }
         }
 
         SwarmEvent::Behaviour(OutEvent::RequestResponse(RequestResponseEvent::Message {
-                                                            peer,
-                                                            message,
-                                                        })) => match message {
+            peer,
+            message,
+        })) => match message {
             RequestResponseMessage::Request {
                 request_id,
                 request,
@@ -302,10 +323,12 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 response,
             } => match &response {
                 PeerMessage::ReAck(msg) => {
-                    match swarm
-                        .behaviour()
-                        .peers
-                        .promote_peer(&peer, request_id, msg.node_info, swarm.behaviour().pow_target) {
+                    match swarm.behaviour().peers.promote_peer(
+                        &peer,
+                        request_id,
+                        msg.node_info,
+                        swarm.behaviour().pow_target,
+                    ) {
                         Ok(_) => {
                             swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
                             info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
@@ -320,30 +343,46 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             },
         },
 
+        SwarmEvent::Behaviour(OutEvent::RequestResponse(
+            RequestResponseEvent::OutboundFailure {
+                peer,
+                request_id,
+                error,
+            },
+        )) => {}
+
         SwarmEvent::ConnectionEstablished {
-            peer_id, endpoint: ConnectedPoint::Dialer { address }, ..
+            peer_id,
+            endpoint: ConnectedPoint::Dialer { address },
+            ..
         } => {
             let addr = swarm.behaviour_mut().public_address.clone();
             let request_id = swarm
                 .behaviour_mut()
                 .requestresponse
                 .send_request(&peer_id, PeerMessage::Ack(addr));
-            swarm.behaviour().peers.add_potential_peer(
-                peer_id,
-                request_id,
-            );
-            swarm.behaviour().peers.set_peer_address(
-                peer_id,
-                address.clone(),
-            );
+            swarm
+                .behaviour()
+                .peers
+                .add_potential_peer(peer_id, request_id);
+            swarm
+                .behaviour()
+                .peers
+                .set_peer_address(peer_id, address.clone());
             info!(peer = ?address,"Connection established");
         }
         SwarmEvent::ConnectionClosed {
-            endpoint: ConnectedPoint::Dialer { address }, cause, peer_id, ..
+            endpoint: ConnectedPoint::Dialer { address },
+            cause,
+            peer_id,
+            ..
         } => {
             if let Some(cause) = cause {
                 swarm.behaviour_mut().peers.remove_peer(&peer_id);
-                swarm.behaviour_mut().gossipsub.remove_explicit_peer(&peer_id);
+                swarm
+                    .behaviour_mut()
+                    .gossipsub
+                    .remove_explicit_peer(&peer_id);
                 swarm.behaviour_mut().kad.remove_peer(&peer_id);
                 warn!(peer = ?peer_id, address = ?address, cause = ?cause, "Connection closed");
             }

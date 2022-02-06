@@ -37,7 +37,39 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="debug node discovery">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/account/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codec/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/codec/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/account.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/benches/bigint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/benches/bigint.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/src/ecdsa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/ecdsa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner-test/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner-test/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/kv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/kv.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/morph/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/morph/src/store.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/identity.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/identity.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/rocks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/rocks.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/prque.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/prque.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -422,14 +454,7 @@
       <workItem from="1643813635652" duration="5606000" />
       <workItem from="1643979517072" duration="2570000" />
       <workItem from="1644051388901" duration="35754000" />
-      <workItem from="1644132362915" duration="10801000" />
-    </task>
-    <task id="LOCAL-00095" summary="mvp: test p2p communication">
-      <created>1643523947474</created>
-      <option name="number" value="00095" />
-      <option name="presentableId" value="LOCAL-00095" />
-      <option name="project" value="LOCAL" />
-      <updated>1643523947474</updated>
+      <workItem from="1644132362915" duration="13473000" />
     </task>
     <task id="LOCAL-00096" summary="mvp: test p2p communication">
       <created>1643524659469</created>
@@ -767,7 +792,14 @@
       <option name="project" value="LOCAL" />
       <updated>1644145719099</updated>
     </task>
-    <option name="localTasksCounter" value="144" />
+    <task id="LOCAL-00144" summary="debug node discovery">
+      <created>1644146436047</created>
+      <option name="number" value="00144" />
+      <option name="presentableId" value="LOCAL-00144" />
+      <option name="project" value="LOCAL" />
+      <updated>1644146436047</updated>
+    </task>
+    <option name="localTasksCounter" value="145" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
