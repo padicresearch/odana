@@ -254,6 +254,27 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             }
         }
 
+        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::RoutingUpdated { peer, is_new_peer, addresses, bucket_range, old_peer })) => {
+            if is_new_peer {
+                for address in addresses.iter() {
+                    println!("Sending Ack to {}", address);
+                    let addr = swarm.behaviour_mut().public_address.clone();
+                    let request_id = swarm
+                        .behaviour_mut()
+                        .requestresponse
+                        .send_request(&peer, PeerMessage::Ack(addr));
+                    swarm.behaviour().peers.add_potential_peer(
+                        peer,
+                        request_id,
+                    );
+                    swarm.behaviour().peers.set_peer_address(
+                        peer,
+                        address.clone(),
+                    );
+                }
+            }
+        }
+
         SwarmEvent::Behaviour(OutEvent::RequestResponse(RequestResponseEvent::Message {
                                                             peer,
                                                             message,
