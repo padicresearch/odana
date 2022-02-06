@@ -1,4 +1,4 @@
-use libp2p::PeerId;
+use libp2p::{Multiaddr, PeerId};
 use serde::{Deserialize, Serialize};
 
 use codec::{Decoder, Encoder, impl_codec};
@@ -142,7 +142,7 @@ pub enum PeerMessage {
     Block(Block),
     BroadcastTransaction(BroadcastTransactionMessage),
     BroadcastBlock(BroadcastBlockMessage),
-    Ack(String),
+    Ack(Multiaddr),
     ReAck(ReAckMessage),
 }
 
