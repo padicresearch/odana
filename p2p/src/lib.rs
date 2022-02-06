@@ -267,6 +267,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
+                    println!("Sending ReAck to {}", addr);
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),
@@ -409,8 +410,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let data = read_length_prefixed(io, 10_000_000).await?;
-        println!("read_request {}", data.len());
+        let data = read_length_prefixed(io, 1_000_000).await?;
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
@@ -430,8 +430,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        let data = read_length_prefixed(io, 10_000_000).await?;
-        println!("read_response {}", data.len());
+        let data = read_length_prefixed(io, 1_000_000).await?;
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
@@ -452,7 +451,6 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        println!("write_request");
         write_length_prefixed(io, req.encode().unwrap()).await?;
         io.close().await?;
         Ok(())
@@ -467,7 +465,6 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        println!("write_response");
         write_length_prefixed(io, res.encode().unwrap()).await?;
         io.close().await?;
         Ok(())
