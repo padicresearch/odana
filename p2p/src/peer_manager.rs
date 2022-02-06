@@ -1,14 +1,15 @@
 use std::collections::BTreeSet;
 use std::sync::{Arc, RwLock};
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use dashmap::{DashMap, DashSet};
 use libp2p::{Multiaddr, PeerId};
 use libp2p::request_response::RequestId;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crypto::SHA256;
-use primitive_types::{H160, H256, H448, U128, U192};
+use primitive_types::{Compact, H160, H256, H448, U128, U192};
+use tracing::info;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
 
@@ -40,13 +41,30 @@ impl PeerList {
         self.addrs.insert(peer_id, addr);
     }
 
-    pub fn promote_peer(&self, peer: &PeerId, request_id: RequestId, node: PeerNode) -> bool {
+    pub fn promote_peer(&self, peer: &PeerId, request_id: RequestId, node: PeerNode, pow_target: Compact) -> bool {
         match self.potential_peers.remove(peer) {
             None => {
                 println!("No potential peer");
                 false
             },
             Some((peer, id)) => {
+                println!("REQ CHECK {} == {}", id, request_id);
+                match node.peer_id() {
+                    Ok(derived_peer_id) => {
+                        if derived_peer_id != *peer {
+                            println!("Invalid PeerId mismatch by node {}", peer);
+                            return false
+                        }
+                    }
+                    Err(_) => {
+                        println!("Invalid PeerId mismatch by node {}", peer);
+                    }
+                }
+
+                if !crypto::is_valid_proof_of_work_hash(pow_target, &node.pow()) {
+                    println!("Invalid POW by node {}", peer);
+                    return false
+                }
                 self.connected_peers.insert(peer, node);
                 return true;
             }

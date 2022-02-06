@@ -85,6 +85,7 @@ async fn config_network(
     node_identity: NodeIdentity,
     p2p_to_node: UnboundedSender<PeerMessage>,
     peer_list: Arc<PeerList>,
+    pow_target: Compact
 ) -> Result<Swarm<ChainNetworkBehavior>> {
     let auth_keys = libp2p::noise::Keypair::<X25519Spec>::new()
         .into_authentic(&node_identity.identity_keys())
@@ -136,6 +137,7 @@ async fn config_network(
         node: node_identity.to_p2p_node(),
         public_address,
         peers: peer_list,
+        pow_target
     };
 
     behaviour.gossipsub.subscribe(&network_topic);
@@ -155,8 +157,9 @@ pub async fn start_p2p_server(
     p2p_to_node: UnboundedSender<PeerMessage>,
     peer_arg: Option<String>,
     peer_list: Arc<PeerList>,
+    pow_target: Compact
 ) -> Result<()> {
-    let mut swarm = config_network(node_identity.clone(), p2p_to_node, peer_list).await?;
+    let mut swarm = config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
 
     Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
         .expect("Error connecting to p2p");
@@ -244,33 +247,10 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::OutboundQueryCompleted { id, result: QueryResult::GetClosestPeers(result), stats })) => {
             match result {
                 Ok(ok) => {
-                    let local_peer_id = *swarm.local_peer_id();
-                    for peer in ok.peers.iter() {
-                        if peer != &local_peer_id {
-                            let addr = swarm.behaviour_mut().public_address.clone();
-                            info!("Sending Ack to {:#?}", peer);
-                            let request_id = swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack(addr));
-                            swarm.behaviour_mut().peers.add_potential_peer(peer.clone(), request_id)
-                        }
-                    }
+                    info!(list = ?ok.peers,"Found Peers");
                 }
                 Err(_) => {}
             }
-        }
-
-        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::RoutablePeer { peer, address })) => {
-            println!("RoutablePeer {}", address);
-        }
-
-        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::RoutingUpdated { peer, is_new_peer, addresses, bucket_range, old_peer })) => {
-            println!("RoutingUpdated Peer {} {:#?}", peer, addresses);
-        }
-        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::PendingRoutablePeer { peer, address })) => {
-            println!("PendingRoutablePeer Peer {}", address);
-        }
-
-        SwarmEvent::Behaviour(OutEvent::Kademlia(KademliaEvent::UnroutablePeer { peer })) => {
-            println!("UnroutablePeer Peer {}", peer);
         }
 
         SwarmEvent::Behaviour(OutEvent::RequestResponse(RequestResponseEvent::Message {
@@ -299,14 +279,16 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 response,
             } => match &response {
                 PeerMessage::ReAck(msg) => {
-                    println!("{:#?}", msg);
                     if swarm
                         .behaviour()
                         .peers
-                        .promote_peer(&peer, request_id, msg.node_info)
+                        .promote_peer(&peer, request_id, msg.node_info, swarm.behaviour().pow_target)
                     {
                         swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
-                        info!(peer = ?&peer, peer_stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
+                        info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
+                    } else {
+                        warn!(peer = ?&peer, peer_node_info = ?msg.node_info,"Failed to promote peer");
+                        swarm.disconnect_peer_id(peer);
                     }
                 }
                 _ => {}
@@ -335,7 +317,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint: ConnectedPoint::Dialer { address }, cause, peer_id, ..
         } => {
             if let Some(cause) = cause {
-                //swarm.dial(endpoint.get_remote_address().clone()).unwrap();
                 swarm.behaviour_mut().peers.remove_peer(&peer_id);
                 swarm.behaviour_mut().gossipsub.remove_explicit_peer(&peer_id);
                 swarm.behaviour_mut().kad.remove_peer(&peer_id);
@@ -363,6 +344,8 @@ struct ChainNetworkBehavior {
     public_address: Multiaddr,
     #[behaviour(ignore)]
     peers: Arc<PeerList>,
+    #[behaviour(ignore)]
+    pow_target: Compact,
 }
 
 #[derive(Debug)]
