@@ -307,7 +307,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         .promote_peer(&peer, request_id, msg.node_info)
                     {
                         swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
-                        for addrs in swarm.behaviour_mut().requestresponse.addresses_of_peer(&peer) {
+                        for addrs in swarm.behaviour_mut().gossipsub.addresses_of_peer(&peer) {
                             println!("Adding {} to KAD", addrs);
                             swarm.behaviour_mut().kad.add_address(&peer, addrs);
                         }
