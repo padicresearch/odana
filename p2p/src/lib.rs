@@ -218,15 +218,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             }
         }
 
-        SwarmEvent::Behaviour(OutEvent::Gossipsub(GossipsubEvent::Subscribed { peer_id, topic })) => {
-            if topic.eq(&swarm.behaviour_mut().topic.hash()) {
-                println!("Subscribed {}", peer_id);
-                // Connect to a remote peer
-                // let addr = swarm.behaviour_mut().public_address.clone();
-                // let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer_id, PeerMessage::Ack(addr.to_string()));
-                // swarm.behaviour_mut().peers.add_potential_peer(peer_id, request_id);
-            }
-        }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Discovered(list))) => {
             for (peer, addr) in list {
                 info!(peer = ?addr, "New Peer discovered");
@@ -247,7 +238,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 Ok(ok) => {
                     for peer in ok.peers.iter() {
                         let addr = swarm.behaviour_mut().public_address.clone();
-                        println!("MY ADDRESS {:#?}", addr);
+                        println!("Sending Ack to {:#?}", addr);
                         let request_id = swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack(addr.to_string()));
                         swarm.behaviour_mut().peers.add_potential_peer(peer.clone(), request_id)
                     }
@@ -280,17 +271,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     let chain_network = swarm.behaviour_mut();
                     let addr: Multiaddr = addr.parse().unwrap();
                     chain_network.kad.add_address(&peer, addr.clone());
-                    let mut peers = chain_network.peers.peers_addrs();
-                    peers.remove(&addr);
-                    let combined: Vec<_> = peers
-                        .iter()
-                        .map(|addr| addr.to_string())
-                        .collect();
-                    println!("Combine peers_addrs {:?}", combined);
+                    // let mut peers = chain_network.peers.peers_addrs();
+                    // peers.remove(&addr);
+                    // let combined: Vec<_> = peers
+                    //     .iter()
+                    //     .map(|addr| addr.to_string())
+                    //     .collect();
+                    // println!("Combine peers_addrs {:?}", combined);
                     chain_network.peers.set_peer_address(peer, addr);
                     chain_network.requestresponse.send_response(
                         channel,
-                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, combined)),
+                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),
                     );
                 }
                 _ => {}
@@ -308,21 +299,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         .promote_peer(&peer, request_id, msg.node_info)
                     {
                         swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
-                        // for addrs in swarm.behaviour_mut().gossipsub.addresses_of_peer(&peer) {
-                        //     println!("Adding {} to KAD", addrs);
-                        //     swarm.behaviour_mut().kad.add_address(&peer, addrs);
-                        // }
-
-                        // for addr in msg.peers.iter() {
-                        //     println!("Try connect {}", addr);
-                        //     let addr: Multiaddr = addr.parse().unwrap();
-                        //     let peer_id = match addr.iter().last() {
-                        //         Some(Protocol::P2p(hash)) => PeerId::from_multihash(hash).expect("Valid hash."),
-                        //         _ => panic!("Expect peer multiaddr to contain peer ID."),
-                        //     };
-                        //     swarm.dial(addr).unwrap();
-                        // }
-
                         info!(peer = ?&peer, peer_stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
                     }
                 }

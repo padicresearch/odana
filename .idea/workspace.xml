@@ -422,21 +422,7 @@
       <workItem from="1643813635652" duration="5606000" />
       <workItem from="1643979517072" duration="2570000" />
       <workItem from="1644051388901" duration="35754000" />
-      <workItem from="1644132362915" duration="2093000" />
-    </task>
-    <task id="LOCAL-00086" summary="mvp: test p2p communication">
-      <created>1643471091974</created>
-      <option name="number" value="00086" />
-      <option name="presentableId" value="LOCAL-00086" />
-      <option name="project" value="LOCAL" />
-      <updated>1643471091974</updated>
-    </task>
-    <task id="LOCAL-00087" summary="mvp: test p2p communication">
-      <created>1643471188235</created>
-      <option name="number" value="00087" />
-      <option name="presentableId" value="LOCAL-00087" />
-      <option name="project" value="LOCAL" />
-      <updated>1643471188235</updated>
+      <workItem from="1644132362915" duration="2717000" />
     </task>
     <task id="LOCAL-00088" summary="mvp: test p2p communication">
       <created>1643471260517</created>
@@ -767,7 +753,21 @@
       <option name="project" value="LOCAL" />
       <updated>1644137032012</updated>
     </task>
-    <option name="localTasksCounter" value="135" />
+    <task id="LOCAL-00135" summary="debug node discovery">
+      <created>1644137380044</created>
+      <option name="number" value="00135" />
+      <option name="presentableId" value="LOCAL-00135" />
+      <option name="project" value="LOCAL" />
+      <updated>1644137380044</updated>
+    </task>
+    <task id="LOCAL-00136" summary="debug node discovery">
+      <created>1644137651889</created>
+      <option name="number" value="00136" />
+      <option name="presentableId" value="LOCAL-00136" />
+      <option name="project" value="LOCAL" />
+      <updated>1644137651889</updated>
+    </task>
+    <option name="localTasksCounter" value="137" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
