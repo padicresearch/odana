@@ -48,7 +48,7 @@ use types::tx::Transaction;
 
 use crate::identity::*;
 use crate::message::*;
-use crate::peer_manager::PeerList;
+use crate::peer_manager::{NetworkState, PeerList};
 
 pub mod identity;
 pub mod message;
@@ -167,6 +167,7 @@ pub async fn start_p2p_server(
     peer_arg: Option<String>,
     peer_list: Arc<PeerList>,
     pow_target: Compact,
+    network_state: Arc<NetworkState>
 ) -> Result<()> {
     let mut swarm =
         config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
@@ -192,10 +193,11 @@ pub async fn start_p2p_server(
     }
 
     tokio::task::spawn(async move {
+        let state = network_state.clone();
         loop {
             tokio::select! {
             msg = node_to_p2p.recv() => {handle_publish_message(msg, &mut swarm).await}
-            event = swarm.select_next_some() => {handle_swam_event(event, &mut swarm).await}}
+            event = swarm.select_next_some() => {handle_swam_event(event, &mut swarm, &state).await}}
         }
     });
     Ok(())
@@ -218,6 +220,7 @@ async fn handle_publish_message(msg: Option<PeerMessage>, swarm: &mut Swarm<Chai
 async fn handle_swam_event<T: std::fmt::Debug>(
     event: SwarmEvent<OutEvent, T>,
     swarm: &mut Swarm<ChainNetworkBehavior>,
+    network_state: &Arc<NetworkState>
 ) {
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
@@ -233,6 +236,12 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             message,
         })) => {
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
+                match &peer_message {
+                    PeerMessage::CurrentHead(msg) => {
+                        network_state.update_peer_current_head(&propagation_source, msg.block_header.clone());
+                    }
+                    _ => {}
+                }
                 swarm.behaviour_mut().p2p_to_node.send(peer_message);
             }
         }

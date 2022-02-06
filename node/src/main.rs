@@ -13,7 +13,7 @@ use consensus::barossa::{BarossaProtocol, NODE_POW_TARGET};
 use miner::worker::start_worker;
 use p2p::identity::NodeIdentity;
 use p2p::message::*;
-use p2p::peer_manager::PeerList;
+use p2p::peer_manager::{NetworkState, PeerList};
 use p2p::start_p2p_server;
 use storage::{PersistentStorage, PersistentStorageBackend};
 use storage::memstore::MemStore;
@@ -85,10 +85,12 @@ async fn main() -> anyhow::Result<()> {
             storage,
             local_mpsc_sender.clone(),
         )
-        .unwrap(),
+            .unwrap(),
     )
-    .clone();
+        .clone();
 
+
+    let network_state = Arc::new(NetworkState::new(peers.clone(), local_mpsc_sender.clone()));
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
     start_p2p_server(
         node_id,
@@ -97,8 +99,9 @@ async fn main() -> anyhow::Result<()> {
         args.peer,
         peers.clone(),
         NODE_POW_TARGET.into(),
+        network_state.clone(),
     )
-    .await
+        .await
     .unwrap();
 
     {
@@ -154,6 +157,7 @@ async fn main() -> anyhow::Result<()> {
                         }
                         PeerMessage::CurrentHead(msg) => {
                             println!("Received CurrentHead {:?}", msg);
+                            println!("Network State {:?}", msg);
                         }
                         PeerMessage::GetBlockHeader(_) => {}
                         PeerMessage::BlockHeader(_) => {}
@@ -204,7 +208,7 @@ async fn main() -> anyhow::Result<()> {
                                         current_head.hash(),
                                         node_current_head.hash.to_fixed_bytes(),
                                     );
-                                    info!("Send message {:?}", msg);
+                                    info!("Send message block download {:?}", msg);
                                 }
                             }
                         }
