@@ -248,7 +248,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     for peer in ok.peers.iter() {
                         if peer != &local_peer_id {
                             let addr = swarm.behaviour_mut().public_address.clone();
-                            info!("Sending Ack to {:#?}", addr);
+                            info!("Sending Ack to {:#?}", peer);
                             let request_id = swarm.behaviour_mut().requestresponse.send_request(peer, PeerMessage::Ack(addr));
                             swarm.behaviour_mut().peers.add_potential_peer(peer.clone(), request_id)
                         }
