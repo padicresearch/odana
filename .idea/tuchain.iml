@@ -6,8 +6,40 @@
       <sourceFolder url="file://$MODULE_DIR$/merkle/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/eddsa/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/trie/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/node/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crypto/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/blockchain/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/codec/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/storage/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/morph/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/account/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/tracing/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/types/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/traits/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/uint/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/uint/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/uint/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/uint/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/fixed-hash/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/fixed-hash/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/impls/num-traits/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/impls/serde/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/impls/serde/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/primitive-types/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/transaction/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/consensus/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/txpool/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/event/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/merk/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/merk/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/miner/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/miner-test/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/p2p/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
+      <excludeFolder url="file://$MODULE_DIR$/common/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

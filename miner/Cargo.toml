@@ -1,0 +1,20 @@
+[package]
+name = "miner"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+traits = { path = "../common/traits" }
+types = { path = "../common/types" }
+primitive-types = { path = "../common/primitive-types" }
+txpool = { path = "../txpool" }
+anyhow = "1"
+merkle = { path = "../merkle" }
+chrono = "0.4"
+tracing = { path = "../common/tracing" }
+account = { path = "../account" }
+tempdir = "0.3.7"
+tokio = { version = "1", features = ["full"] }
+hex = "0.4.3"

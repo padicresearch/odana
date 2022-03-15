@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="BranchesTreeState">
     <expand>
       <path>
@@ -24,22 +27,21 @@
   </component>
   <component name="CMakeSettings">
     <configurations>
-      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" ENABLED="true" />
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" />
     </configurations>
   </component>
   <component name="CargoProjects">
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
-    <cargoProject FILE="$PROJECT_DIR$/merkle/Cargo.toml" />
     <cargoProject FILE="$PROJECT_DIR$/eddsa/Cargo.toml" />
-    <cargoProject FILE="$PROJECT_DIR$/trie/Cargo.toml" />
+    <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implemented fixed word length trie tree">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fmt">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/trie/src/compact.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/compact.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/trie/src/simple.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/simple.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/trie/src/tests/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/tests/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/trie/src/word.rs" beforeDir="false" afterPath="$PROJECT_DIR$/trie/src/word.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,6 +59,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitSEFilterConfiguration">
@@ -67,8 +74,49 @@
       <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
     </file-type-list>
   </component>
+  <component name="GitToolBoxStore">
+    <option name="projectConfigVersion" value="4" />
+    <option name="recentBranches">
+      <RecentBranches>
+        <option name="branchesForRepo">
+          <list>
+            <RecentBranchesForRepo>
+              <option name="branches">
+                <list>
+                  <RecentBranch>
+                    <option name="branchName" value="consensus" />
+                    <option name="lastUsedInstant" value="1642582383" />
+                  </RecentBranch>
+                  <RecentBranch>
+                    <option name="branchName" value="txpool" />
+                    <option name="lastUsedInstant" value="1642192592" />
+                  </RecentBranch>
+                  <RecentBranch>
+                    <option name="branchName" value="master" />
+                    <option name="lastUsedInstant" value="1642192591" />
+                  </RecentBranch>
+                </list>
+              </option>
+              <option name="repositoryRootUrl" value="file://$PROJECT_DIR$" />
+            </RecentBranchesForRepo>
+          </list>
+        </option>
+      </RecentBranches>
+    </option>
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$USER_HOME$/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/env.rs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.cargo/git/checkouts/merk-828d5c9dd0cf2977/470413c/src/merk/mod.rs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.cargo/git/checkouts/merk-828d5c9dd0cf2977/470413c/src/test_utils/temp_merk.rs" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="qgmqrl00" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectId" id="1lJ1WhFiO9Q9HPjVl0HKgbOyuh4" />
   <component name="ProjectLevelVcsManager">
@@ -84,11 +132,10 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="RunOnceActivity.cidr.known.project.marker" value="true" />
-    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="cf.first.check.clang-format" value="false" />
     <property name="cidr.known.project.marker" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/trie/src" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../cumulus" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
@@ -99,10 +146,69 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/merk" />
+      <recent name="$PROJECT_DIR$/morph/merk" />
+      <recent name="$PROJECT_DIR$/common" />
+      <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/trie/src" />
     </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/p2p/src" />
+      <recent name="$PROJECT_DIR$/morph/src/state" />
+      <recent name="$PROJECT_DIR$/consensus/src" />
+      <recent name="$PROJECT_DIR$/common/types/src" />
+      <recent name="$PROJECT_DIR$/morph/src" />
+    </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::it_works (1)">
+  <component name="RunManager" selected="Cargo.Test config::test::test_config">
+    <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="test build" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Build Txpool" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="build --package txpool" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="build " />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clippy" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -110,6 +216,7 @@
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -118,13 +225,14 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test lib::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package merkle --lib tests" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
+    <configuration name="Run miner-test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="run --package miner-test --bin miner-test" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -133,13 +241,14 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::it_works (1)" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package trie --lib tests::it_works -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$/trie" />
+    <configuration name="Test config::test::test_config" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package types --lib config::test::test_config -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -148,13 +257,14 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::test_error_for_already_inserted_item" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package merkle --lib tests::test_error_for_already_inserted_item -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
+    <configuration name="Test peer_man::test::check_pow" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package blockchain --lib peer_man::test::check_pow -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -163,13 +273,14 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::test_h" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package merkle --lib tests::test_h -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
+    <configuration name="Test test::test_backends" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package storage --lib test::test_backends -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -178,13 +289,14 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::test_proof" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package merkle --lib tests::test_proof -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$/merkle" />
+    <configuration name="Test tests::test_morph" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package morph --lib tests::test_morph -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -200,6 +312,7 @@
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
       <option name="backtrace" value="SHORT" />
       <envs />
       <option name="isRedirectInput" value="false" />
@@ -208,32 +321,31 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <list>
+      <item itemvalue="Cargo.Build" />
+      <item itemvalue="Cargo.Build Txpool" />
+      <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test lib::tests" />
-      <item itemvalue="Cargo.Test tests::test_error_for_already_inserted_item" />
-      <item itemvalue="Cargo.Test tests::test_h" />
-      <item itemvalue="Cargo.Test tests::test_proof" />
-      <item itemvalue="Cargo.Test tests::it_works (1)" />
+      <item itemvalue="Cargo.Test tests::test_morph" />
+      <item itemvalue="Cargo.Run miner-test" />
+      <item itemvalue="Cargo.Test test::test_backends" />
+      <item itemvalue="Cargo.Test peer_man::test::check_pow" />
+      <item itemvalue="Cargo.Test config::test::test_config" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test tests::it_works (1)" />
-        <item itemvalue="Cargo.Test tests::test_error_for_already_inserted_item" />
-        <item itemvalue="Cargo.Test lib::tests" />
-        <item itemvalue="Cargo.Test tests::test_proof" />
-        <item itemvalue="Cargo.Test tests::test_h" />
+        <item itemvalue="Cargo.Test config::test::test_config" />
+        <item itemvalue="Cargo.Test peer_man::test::check_pow" />
+        <item itemvalue="Cargo.Test test::test_backends" />
+        <item itemvalue="Cargo.Run miner-test" />
+        <item itemvalue="Cargo.Test tests::test_morph" />
       </list>
     </recent_temporary>
   </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
+    <option name="useRustfmt" value="true" />
     <option name="version" value="2" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
@@ -251,93 +363,415 @@
       <workItem from="1620768182434" duration="1346000" />
       <workItem from="1620843631274" duration="15141000" />
       <workItem from="1621023831596" duration="146000" />
-      <workItem from="1621023993921" duration="62567000" />
+      <workItem from="1621023993921" duration="65544000" />
+      <workItem from="1621184759529" duration="1000" />
+      <workItem from="1621670713868" duration="105000" />
+      <workItem from="1621755016796" duration="658000" />
+      <workItem from="1621756044523" duration="410000" />
+      <workItem from="1621756467493" duration="636000" />
+      <workItem from="1621780780788" duration="2084000" />
+      <workItem from="1626287010055" duration="1017000" />
+      <workItem from="1628332842062" duration="3870000" />
+      <workItem from="1629543923693" duration="1469000" />
+      <workItem from="1637169388323" duration="52219000" />
+      <workItem from="1637599584117" duration="7143000" />
+      <workItem from="1638280156637" duration="948000" />
+      <workItem from="1638660952563" duration="40529000" />
+      <workItem from="1638906068891" duration="15173000" />
+      <workItem from="1639222969218" duration="10298000" />
+      <workItem from="1639297817690" duration="5301000" />
+      <workItem from="1639408601075" duration="7194000" />
+      <workItem from="1639427769419" duration="8457000" />
+      <workItem from="1639767253851" duration="56741000" />
+      <workItem from="1640345901081" duration="75755000" />
+      <workItem from="1640684008978" duration="2564000" />
+      <workItem from="1640686587740" duration="39636000" />
+      <workItem from="1640853013602" duration="1846000" />
+      <workItem from="1640854878560" duration="124000" />
+      <workItem from="1640855271357" duration="1493000" />
+      <workItem from="1640856777469" duration="33000" />
+      <workItem from="1640856823301" duration="59000" />
+      <workItem from="1640856909996" duration="15765000" />
+      <workItem from="1640948420444" duration="68591000" />
+      <workItem from="1641211248424" duration="11320000" />
+      <workItem from="1641289911967" duration="40611000" />
+      <workItem from="1641398352914" duration="45300000" />
+      <workItem from="1641552170751" duration="46617000" />
+      <workItem from="1641741811275" duration="57462000" />
+      <workItem from="1641971241761" duration="9132000" />
+      <workItem from="1641993805431" duration="30668000" />
+      <workItem from="1642064352872" duration="1913000" />
+      <workItem from="1642091260977" duration="13193000" />
+      <workItem from="1642186007441" duration="146553000" />
+      <workItem from="1642515673083" duration="5305000" />
+      <workItem from="1642527106604" duration="23249000" />
+      <workItem from="1642594276504" duration="94000" />
+      <workItem from="1642602482288" duration="15354000" />
+      <workItem from="1642660794228" duration="6654000" />
+      <workItem from="1642667625402" duration="6885000" />
+      <workItem from="1642694134111" duration="2183000" />
+      <workItem from="1642711159809" duration="40932000" />
+      <workItem from="1642832117627" duration="37883000" />
+      <workItem from="1642883654798" duration="23293000" />
+      <workItem from="1643017838016" duration="5046000" />
+      <workItem from="1643042381091" duration="16164000" />
+      <workItem from="1643129357972" duration="3428000" />
+      <workItem from="1643182527054" duration="4749000" />
+      <workItem from="1643214218156" duration="2586000" />
+      <workItem from="1643280946395" duration="40169000" />
+      <workItem from="1643436658026" duration="93327000" />
+      <workItem from="1643715018635" duration="19000" />
+      <workItem from="1643720416846" duration="624000" />
+      <workItem from="1643722280894" duration="12454000" />
+      <workItem from="1643813635652" duration="5606000" />
+      <workItem from="1643979517072" duration="2570000" />
+      <workItem from="1644051388901" duration="35754000" />
+      <workItem from="1644132362915" duration="16313000" />
     </task>
-    <task id="LOCAL-00001" summary="merkle tree">
-      <created>1607372272366</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
+    <task id="LOCAL-00097" summary="mvp: test p2p communication">
+      <created>1643530444450</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
       <option name="project" value="LOCAL" />
-      <updated>1607372272366</updated>
+      <updated>1643530444450</updated>
     </task>
-    <task id="LOCAL-00002" summary="merkle tree">
-      <created>1607372296246</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
+    <task id="LOCAL-00098" summary="mvp: test p2p communication">
+      <created>1643552629046</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
       <option name="project" value="LOCAL" />
-      <updated>1607372296246</updated>
+      <updated>1643552629046</updated>
     </task>
-    <task id="LOCAL-00003" summary="checkpoint">
-      <created>1607377273657</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
+    <task id="LOCAL-00099" summary="mvp: test p2p communication">
+      <created>1643672706051</created>
+      <option name="number" value="00099" />
+      <option name="presentableId" value="LOCAL-00099" />
       <option name="project" value="LOCAL" />
-      <updated>1607377273658</updated>
+      <updated>1643672706052</updated>
     </task>
-    <task id="LOCAL-00004" summary="checkpoint">
-      <created>1607441282525</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
+    <task id="LOCAL-00100" summary="refactor">
+      <created>1643729326627</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
       <option name="project" value="LOCAL" />
-      <updated>1607441282525</updated>
+      <updated>1643729326628</updated>
     </task>
-    <task id="LOCAL-00005" summary="Refactor merkle tree">
-      <created>1620856719677</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
+    <task id="LOCAL-00101" summary="bootstrapping">
+      <created>1644058882539</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
       <option name="project" value="LOCAL" />
-      <updated>1620856719678</updated>
+      <updated>1644058882539</updated>
     </task>
-    <task id="LOCAL-00006" summary="cargo clippy">
-      <created>1620858599630</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
+    <task id="LOCAL-00102" summary="bootstrapping">
+      <created>1644059132033</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
       <option name="project" value="LOCAL" />
-      <updated>1620858599630</updated>
+      <updated>1644059132033</updated>
     </task>
-    <task id="LOCAL-00007" summary="clean up">
-      <created>1620861778972</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
+    <task id="LOCAL-00103" summary="bootstrapping">
+      <created>1644062074613</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
       <option name="project" value="LOCAL" />
-      <updated>1620861778972</updated>
+      <updated>1644062074613</updated>
     </task>
-    <task id="LOCAL-00008" summary="simple trei implementation">
-      <created>1621099281754</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
+    <task id="LOCAL-00104" summary="bootstrapping">
+      <created>1644062477852</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
       <option name="project" value="LOCAL" />
-      <updated>1621099281754</updated>
+      <updated>1644062477852</updated>
     </task>
-    <task id="LOCAL-00009" summary="implemented generic trie">
-      <created>1621103696158</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
+    <task id="LOCAL-00105" summary="bootstrapping">
+      <created>1644062924383</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
       <option name="project" value="LOCAL" />
-      <updated>1621103696158</updated>
+      <updated>1644062924383</updated>
     </task>
-    <task id="LOCAL-00010" summary="implemented generic trie">
-      <created>1621105720638</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
+    <task id="LOCAL-00106" summary="bootstrapping">
+      <created>1644064468090</created>
+      <option name="number" value="00106" />
+      <option name="presentableId" value="LOCAL-00106" />
       <option name="project" value="LOCAL" />
-      <updated>1621105720638</updated>
+      <updated>1644064468090</updated>
     </task>
-    <task id="LOCAL-00011" summary="format">
-      <created>1621105793095</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
+    <task id="LOCAL-00107" summary="bootstrapping">
+      <created>1644066221811</created>
+      <option name="number" value="00107" />
+      <option name="presentableId" value="LOCAL-00107" />
       <option name="project" value="LOCAL" />
-      <updated>1621105793095</updated>
+      <updated>1644066221812</updated>
     </task>
-    <task id="LOCAL-00012" summary="implemented fixed word length trie tree">
-      <created>1621159564672</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
+    <task id="LOCAL-00108" summary="bootstrapping">
+      <created>1644068294325</created>
+      <option name="number" value="00108" />
+      <option name="presentableId" value="LOCAL-00108" />
       <option name="project" value="LOCAL" />
-      <updated>1621159564672</updated>
+      <updated>1644068294325</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00109" summary="kademila discovery">
+      <created>1644068438856</created>
+      <option name="number" value="00109" />
+      <option name="presentableId" value="LOCAL-00109" />
+      <option name="project" value="LOCAL" />
+      <updated>1644068438856</updated>
+    </task>
+    <task id="LOCAL-00110" summary="kademila discovery">
+      <created>1644073134118</created>
+      <option name="number" value="00110" />
+      <option name="presentableId" value="LOCAL-00110" />
+      <option name="project" value="LOCAL" />
+      <updated>1644073134118</updated>
+    </task>
+    <task id="LOCAL-00111" summary="kademila discovery">
+      <created>1644074452406</created>
+      <option name="number" value="00111" />
+      <option name="presentableId" value="LOCAL-00111" />
+      <option name="project" value="LOCAL" />
+      <updated>1644074452406</updated>
+    </task>
+    <task id="LOCAL-00112" summary="kademila discovery">
+      <created>1644074887294</created>
+      <option name="number" value="00112" />
+      <option name="presentableId" value="LOCAL-00112" />
+      <option name="project" value="LOCAL" />
+      <updated>1644074887294</updated>
+    </task>
+    <task id="LOCAL-00113" summary="kademila discovery">
+      <created>1644075289880</created>
+      <option name="number" value="00113" />
+      <option name="presentableId" value="LOCAL-00113" />
+      <option name="project" value="LOCAL" />
+      <updated>1644075289880</updated>
+    </task>
+    <task id="LOCAL-00114" summary="kademila discovery">
+      <created>1644076147456</created>
+      <option name="number" value="00114" />
+      <option name="presentableId" value="LOCAL-00114" />
+      <option name="project" value="LOCAL" />
+      <updated>1644076147456</updated>
+    </task>
+    <task id="LOCAL-00115" summary="kademila discovery">
+      <created>1644076770619</created>
+      <option name="number" value="00115" />
+      <option name="presentableId" value="LOCAL-00115" />
+      <option name="project" value="LOCAL" />
+      <updated>1644076770619</updated>
+    </task>
+    <task id="LOCAL-00116" summary="kademila discovery">
+      <created>1644077377773</created>
+      <option name="number" value="00116" />
+      <option name="presentableId" value="LOCAL-00116" />
+      <option name="project" value="LOCAL" />
+      <updated>1644077377773</updated>
+    </task>
+    <task id="LOCAL-00117" summary="kademila discovery">
+      <created>1644077481598</created>
+      <option name="number" value="00117" />
+      <option name="presentableId" value="LOCAL-00117" />
+      <option name="project" value="LOCAL" />
+      <updated>1644077481598</updated>
+    </task>
+    <task id="LOCAL-00118" summary="kademila discovery">
+      <created>1644077625533</created>
+      <option name="number" value="00118" />
+      <option name="presentableId" value="LOCAL-00118" />
+      <option name="project" value="LOCAL" />
+      <updated>1644077625533</updated>
+    </task>
+    <task id="LOCAL-00119" summary="kademila discovery">
+      <created>1644078135348</created>
+      <option name="number" value="00119" />
+      <option name="presentableId" value="LOCAL-00119" />
+      <option name="project" value="LOCAL" />
+      <updated>1644078135348</updated>
+    </task>
+    <task id="LOCAL-00120" summary="kademila discovery">
+      <created>1644079038957</created>
+      <option name="number" value="00120" />
+      <option name="presentableId" value="LOCAL-00120" />
+      <option name="project" value="LOCAL" />
+      <updated>1644079038957</updated>
+    </task>
+    <task id="LOCAL-00121" summary="kademila discovery">
+      <created>1644079427584</created>
+      <option name="number" value="00121" />
+      <option name="presentableId" value="LOCAL-00121" />
+      <option name="project" value="LOCAL" />
+      <updated>1644079427584</updated>
+    </task>
+    <task id="LOCAL-00122" summary="kademila discovery">
+      <created>1644080931104</created>
+      <option name="number" value="00122" />
+      <option name="presentableId" value="LOCAL-00122" />
+      <option name="project" value="LOCAL" />
+      <updated>1644080931104</updated>
+    </task>
+    <task id="LOCAL-00123" summary="kademila discovery">
+      <created>1644081155769</created>
+      <option name="number" value="00123" />
+      <option name="presentableId" value="LOCAL-00123" />
+      <option name="project" value="LOCAL" />
+      <updated>1644081155769</updated>
+    </task>
+    <task id="LOCAL-00124" summary="kademila discovery">
+      <created>1644084415457</created>
+      <option name="number" value="00124" />
+      <option name="presentableId" value="LOCAL-00124" />
+      <option name="project" value="LOCAL" />
+      <updated>1644084415457</updated>
+    </task>
+    <task id="LOCAL-00125" summary="kademila discovery">
+      <created>1644085334463</created>
+      <option name="number" value="00125" />
+      <option name="presentableId" value="LOCAL-00125" />
+      <option name="project" value="LOCAL" />
+      <updated>1644085334463</updated>
+    </task>
+    <task id="LOCAL-00126" summary="kademila discovery">
+      <created>1644085985582</created>
+      <option name="number" value="00126" />
+      <option name="presentableId" value="LOCAL-00126" />
+      <option name="project" value="LOCAL" />
+      <updated>1644085985582</updated>
+    </task>
+    <task id="LOCAL-00127" summary="kademila discovery">
+      <created>1644086006084</created>
+      <option name="number" value="00127" />
+      <option name="presentableId" value="LOCAL-00127" />
+      <option name="project" value="LOCAL" />
+      <updated>1644086006084</updated>
+    </task>
+    <task id="LOCAL-00128" summary="kademila discovery">
+      <created>1644086470084</created>
+      <option name="number" value="00128" />
+      <option name="presentableId" value="LOCAL-00128" />
+      <option name="project" value="LOCAL" />
+      <updated>1644086470085</updated>
+    </task>
+    <task id="LOCAL-00129" summary="kademila discovery">
+      <created>1644087257321</created>
+      <option name="number" value="00129" />
+      <option name="presentableId" value="LOCAL-00129" />
+      <option name="project" value="LOCAL" />
+      <updated>1644087257321</updated>
+    </task>
+    <task id="LOCAL-00130" summary="kademila discovery">
+      <created>1644087974230</created>
+      <option name="number" value="00130" />
+      <option name="presentableId" value="LOCAL-00130" />
+      <option name="project" value="LOCAL" />
+      <updated>1644087974230</updated>
+    </task>
+    <task id="LOCAL-00131" summary="kademila discovery">
+      <created>1644088884048</created>
+      <option name="number" value="00131" />
+      <option name="presentableId" value="LOCAL-00131" />
+      <option name="project" value="LOCAL" />
+      <updated>1644088884048</updated>
+    </task>
+    <task id="LOCAL-00132" summary="kademila discovery">
+      <created>1644089347957</created>
+      <option name="number" value="00132" />
+      <option name="presentableId" value="LOCAL-00132" />
+      <option name="project" value="LOCAL" />
+      <updated>1644089347957</updated>
+    </task>
+    <task id="LOCAL-00133" summary="kademila discovery">
+      <created>1644089676827</created>
+      <option name="number" value="00133" />
+      <option name="presentableId" value="LOCAL-00133" />
+      <option name="project" value="LOCAL" />
+      <updated>1644089676827</updated>
+    </task>
+    <task id="LOCAL-00134" summary="debug node discovery">
+      <created>1644137032011</created>
+      <option name="number" value="00134" />
+      <option name="presentableId" value="LOCAL-00134" />
+      <option name="project" value="LOCAL" />
+      <updated>1644137032012</updated>
+    </task>
+    <task id="LOCAL-00135" summary="debug node discovery">
+      <created>1644137380044</created>
+      <option name="number" value="00135" />
+      <option name="presentableId" value="LOCAL-00135" />
+      <option name="project" value="LOCAL" />
+      <updated>1644137380044</updated>
+    </task>
+    <task id="LOCAL-00136" summary="debug node discovery">
+      <created>1644137651889</created>
+      <option name="number" value="00136" />
+      <option name="presentableId" value="LOCAL-00136" />
+      <option name="project" value="LOCAL" />
+      <updated>1644137651889</updated>
+    </task>
+    <task id="LOCAL-00137" summary="debug node discovery">
+      <created>1644138194574</created>
+      <option name="number" value="00137" />
+      <option name="presentableId" value="LOCAL-00137" />
+      <option name="project" value="LOCAL" />
+      <updated>1644138194574</updated>
+    </task>
+    <task id="LOCAL-00138" summary="debug node discovery">
+      <created>1644140550672</created>
+      <option name="number" value="00138" />
+      <option name="presentableId" value="LOCAL-00138" />
+      <option name="project" value="LOCAL" />
+      <updated>1644140550672</updated>
+    </task>
+    <task id="LOCAL-00139" summary="debug node discovery">
+      <created>1644141243845</created>
+      <option name="number" value="00139" />
+      <option name="presentableId" value="LOCAL-00139" />
+      <option name="project" value="LOCAL" />
+      <updated>1644141243845</updated>
+    </task>
+    <task id="LOCAL-00140" summary="debug node discovery">
+      <created>1644143154010</created>
+      <option name="number" value="00140" />
+      <option name="presentableId" value="LOCAL-00140" />
+      <option name="project" value="LOCAL" />
+      <updated>1644143154010</updated>
+    </task>
+    <task id="LOCAL-00141" summary="debug node discovery">
+      <created>1644143731010</created>
+      <option name="number" value="00141" />
+      <option name="presentableId" value="LOCAL-00141" />
+      <option name="project" value="LOCAL" />
+      <updated>1644143731010</updated>
+    </task>
+    <task id="LOCAL-00142" summary="debug node discovery">
+      <created>1644144784663</created>
+      <option name="number" value="00142" />
+      <option name="presentableId" value="LOCAL-00142" />
+      <option name="project" value="LOCAL" />
+      <updated>1644144784663</updated>
+    </task>
+    <task id="LOCAL-00143" summary="debug node discovery">
+      <created>1644145719098</created>
+      <option name="number" value="00143" />
+      <option name="presentableId" value="LOCAL-00143" />
+      <option name="project" value="LOCAL" />
+      <updated>1644145719099</updated>
+    </task>
+    <task id="LOCAL-00144" summary="debug node discovery">
+      <created>1644146436047</created>
+      <option name="number" value="00144" />
+      <option name="presentableId" value="LOCAL-00144" />
+      <option name="project" value="LOCAL" />
+      <updated>1644146436047</updated>
+    </task>
+    <task id="LOCAL-00145" summary="cargo fmt">
+      <created>1644152541664</created>
+      <option name="number" value="00145" />
+      <option name="presentableId" value="LOCAL-00145" />
+      <option name="project" value="LOCAL" />
+      <updated>1644152541664</updated>
+    </task>
+    <option name="localTasksCounter" value="146" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -348,24 +782,57 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="master" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
           </value>
         </entry>
       </map>
     </option>
-    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="merkle tree" />
-    <MESSAGE value="checkpoint" />
-    <MESSAGE value="Refactor merkle tree" />
-    <MESSAGE value="cargo clippy" />
-    <MESSAGE value="clean up" />
-    <MESSAGE value="simple trei implementation" />
-    <MESSAGE value="implemented generic trie" />
-    <MESSAGE value="format" />
-    <MESSAGE value="implemented fixed word length trie tree" />
-    <option name="LAST_COMMIT_MESSAGE" value="implemented fixed word length trie tree" />
+    <MESSAGE value="use `address` instead of `pub_key`" />
+    <MESSAGE value="use struct instead tuple" />
+    <MESSAGE value="rename" />
+    <MESSAGE value="new morph implementation" />
+    <MESSAGE value="test txpool extensively" />
+    <MESSAGE value="rewrite txpool" />
+    <MESSAGE value="implement demote transactions" />
+    <MESSAGE value="implement truncate pending transactions" />
+    <MESSAGE value="implemented truncate queue" />
+    <MESSAGE value="implemented txpool" />
+    <MESSAGE value="add todos" />
+    <MESSAGE value="* clean up&#10;* consensus re-implementation" />
+    <MESSAGE value="merge txpool" />
+    <MESSAGE value="implementing barossa consensus" />
+    <MESSAGE value="* update to 2021&#10;* ecdsa KeyPair" />
+    <MESSAGE value="implement miner" />
+    <MESSAGE value="fix proof of work" />
+    <MESSAGE value="migrate morph to merk" />
+    <MESSAGE value="add miner" />
+    <MESSAGE value="mvp: test p2p communication" />
+    <MESSAGE value="refactor" />
+    <MESSAGE value="bootstrapping" />
+    <MESSAGE value="kademila discovery" />
+    <MESSAGE value="debug node discovery" />
+    <MESSAGE value="cargo fmt" />
+    <option name="LAST_COMMIT_MESSAGE" value="cargo fmt" />
+    <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
+    <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>

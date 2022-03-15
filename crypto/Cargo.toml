@@ -1,0 +1,18 @@
+[package]
+name = "crypto"
+version = "0.1.0"
+authors = ["mambisi <lilbizi96@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sha2 = "0.9.2"
+rand = "0.8.4"
+tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
+primitive-types = { path = "../common/primitive-types" }
+ripemd = "0.1.0"
+rand_chacha = "0.3.1"
+k256 = { version = "0.10.2", features = ["ecdsa-core", "ecdsa", "keccak256"] }
+thiserror = "1.0.30"
+rand_core = "0.6.3"
