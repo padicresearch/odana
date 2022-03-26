@@ -1,34 +1,29 @@
-use std::collections::BTreeSet;
 use std::fs::File;
 use std::iter;
-use std::net::Ipv4Addr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use colored::Colorize;
 use libp2p::{Multiaddr, PeerId, Swarm, Transport};
-use libp2p::core::connection::{Connected, ConnectedPoint};
+use libp2p::core::connection::ConnectedPoint;
 use libp2p::core::multiaddr::Protocol;
-use libp2p::core::network::Peer;
 use libp2p::core::ProtocolName;
 use libp2p::core::transport::upgrade::Version;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed};
 use libp2p::futures::{AsyncRead, AsyncWrite, AsyncWriteExt, SinkExt, StreamExt};
-use libp2p::futures::future::err;
 use libp2p::gossipsub::{
     Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic,
     ValidationMode,
 };
-use libp2p::identify::IdentifyConfig;
 use libp2p::kad::{
-    GetClosestPeersError, GetClosestPeersOk, Kademlia, KademliaConfig, KademliaEvent, QueryResult,
+    Kademlia, KademliaConfig, KademliaEvent, QueryResult,
 };
 use libp2p::kad::record::store::MemoryStore;
 use libp2p::mdns::{Mdns, MdnsEvent};
 use libp2p::NetworkBehaviour;
-use libp2p::noise::{AuthenticKeypair, NoiseConfig, X25519Spec};
+use libp2p::noise::{NoiseConfig, X25519Spec};
 use libp2p::request_response::{
     ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseConfig,
     RequestResponseEvent, RequestResponseMessage,
@@ -38,13 +33,10 @@ use libp2p::tcp::TokioTcpConfig;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use codec::{Decoder, Encoder};
-use crypto::{generate_pow_from_pub_key, SHA256};
-use primitive_types::{Compact, H256, U192};
-use tracing::{error, info, trace, warn};
-use types::block::{Block, BlockHeader};
+use primitive_types::Compact;
+use tracing::{info, warn};
+use traits::Blockchain;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
-use types::Hash;
-use types::tx::Transaction;
 
 use crate::identity::*;
 use crate::message::*;
@@ -167,7 +159,8 @@ pub async fn start_p2p_server(
     peer_arg: Option<String>,
     peer_list: Arc<PeerList>,
     pow_target: Compact,
-    network_state: Arc<NetworkState>
+    network_state: Arc<NetworkState>,
+    blockchain: Arc<dyn Blockchain>,
 ) -> Result<()> {
     let mut swarm =
         config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
@@ -194,10 +187,11 @@ pub async fn start_p2p_server(
 
     tokio::task::spawn(async move {
         let state = network_state.clone();
+        let blockchain = blockchain.clone();
         loop {
             tokio::select! {
             msg = node_to_p2p.recv() => {handle_publish_message(msg, &mut swarm).await}
-            event = swarm.select_next_some() => {handle_swam_event(event, &mut swarm, &state).await}}
+            event = swarm.select_next_some() => {handle_swam_event(event, &mut swarm, &state, &blockchain).await}}
         }
     });
     Ok(())
@@ -220,7 +214,8 @@ async fn handle_publish_message(msg: Option<PeerMessage>, swarm: &mut Swarm<Chai
 async fn handle_swam_event<T: std::fmt::Debug>(
     event: SwarmEvent<OutEvent, T>,
     swarm: &mut Swarm<ChainNetworkBehavior>,
-    network_state: &Arc<NetworkState>
+    network_state: &Arc<NetworkState>,
+    blockchain: &Arc<dyn Blockchain>,
 ) {
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
@@ -238,7 +233,10 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 match &peer_message {
                     PeerMessage::CurrentHead(msg) => {
-                        network_state.update_peer_current_head(&propagation_source, msg.block_header.clone());
+                        network_state.update_peer_current_head(
+                            &propagation_source,
+                            msg.block_header.clone(),
+                        );
                     }
                     _ => {}
                 }
@@ -321,7 +319,10 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     println!("Sending ReAck to {}", addr);
                     chain_network.requestresponse.send_response(
                         channel,
-                        PeerMessage::ReAck(ReAckMessage::new(chain_network.node, vec![])),
+                        PeerMessage::ReAck(ReAckMessage::new(
+                            chain_network.node,
+                            blockchain.current_header().unwrap().unwrap().raw,
+                        )),
                     );
                 }
                 _ => {}
@@ -340,6 +341,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     ) {
                         Ok(_) => {
                             swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
+                            network_state.update_peer_current_head(&peer, msg.current_header);
                             info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
                         }
                         Err(error) => {

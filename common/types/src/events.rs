@@ -1,6 +1,3 @@
-use std::sync::Arc;
-
-use crate::{Hash, MempoolSnapsot};
 use crate::block::{Block, BlockHeader};
 use crate::tx::Transaction;
 
@@ -15,5 +12,8 @@ pub enum LocalEventMessage {
     NetworkHighestHeadChanged {
         peer_id: String,
         current_head: BlockHeader,
+    },
+    NetworkNewPeerConnection {
+        stats: (usize, usize)
     },
 }

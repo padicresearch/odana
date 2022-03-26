@@ -1,16 +1,14 @@
 use std::collections::BTreeSet;
 use std::sync::{Arc, RwLock};
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use anyhow::bail;
-use dashmap::{DashMap, DashSet};
+use dashmap::DashMap;
 use libp2p::{Multiaddr, PeerId};
 use libp2p::request_response::RequestId;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crypto::SHA256;
-use primitive_types::{Compact, H160, H256, H448, U128, U192};
-use tracing::{info, trace};
+use primitive_types::Compact;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
 
@@ -138,6 +136,10 @@ impl NetworkState {
             "Peer is not connected"
         );
         let peer = self.peer_list.get_peer(peer_id).unwrap();
+        self.sender
+            .send(LocalEventMessage::NetworkNewPeerConnection {
+                stats: self.peer_list.stats()
+            });
         let mut highest_know_head = self.highest_know_head.write().unwrap();
         if highest_know_head.is_none() {
             let mut new_highest = Some(peer.clone());

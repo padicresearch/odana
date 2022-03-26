@@ -1,4 +1,3 @@
-use std::env;
 use std::env::temp_dir;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI8, Ordering};
@@ -60,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
     let (node_2_peer_sender, mut node_2_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_2_node_sender, mut peer_2_node_receiver) = tokio::sync::mpsc::unbounded_channel();
     let peers = Arc::new(PeerList::new());
-    let interrupt = Arc::new(AtomicI8::new(2)).clone();
+    let interrupt = Arc::new(AtomicI8::new(miner::worker::PAUSE)).clone();
     let time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
@@ -100,6 +99,7 @@ async fn main() -> anyhow::Result<()> {
         peers.clone(),
         NODE_POW_TARGET.into(),
         network_state.clone(),
+        blockchain.chain()
     )
         .await
     .unwrap();
@@ -211,6 +211,13 @@ async fn main() -> anyhow::Result<()> {
                                     info!("Send message block download {:?}", msg);
                                 }
                             }
+                        }
+                        LocalEventMessage::NetworkNewPeerConnection { stats } => {
+                            // if stats.1 > 0 {
+                            //     interrupt.fetch_update(Ordering::Acquire, Ordering::Release, |old| {
+                            //
+                            //     })
+                            // }
                         }
                     }
                 }
