@@ -18,7 +18,7 @@ tokio = { version = "1", features = ["full"] }
 anyhow = "1.0.45"
 types = { path = "../common/types" }
 txpool = { path = "../txpool" }
-morph = { path = "../morph" }
+state = { path = "../state" }
 consensus = { path = "../consensus" }
 miner = { path = "../miner" }
 account = { path = "../account" }

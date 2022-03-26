@@ -50,13 +50,15 @@ pub struct ReadProof {
 }
 
 #[derive(Clone)]
-pub struct Morph {
+pub struct State {
     db: Arc<RwLock<Merk>>,
 }
-unsafe impl Sync for Morph {}
-unsafe impl Send for Morph {}
 
-impl StateDB for Morph {
+unsafe impl Sync for State {}
+
+unsafe impl Send for State {}
+
+impl StateDB for State {
     fn nonce(&self, address: &H160) -> u64 {
         let db = self.db.clone();
         let db = match db.read().map_err(|e| anyhow::anyhow!("{}", e)) {
@@ -127,7 +129,7 @@ impl StateDB for Morph {
     }
 }
 
-impl Morph {
+impl State {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let merk = merk::Merk::open_opt(path, default_db_opts())?;
         let morph = Self {
@@ -358,7 +360,7 @@ pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
 impl_codec!(MorphOperation);
 
 pub trait MorphCheckPoint {
-    fn checkpoint(&self) -> Morph;
+    fn checkpoint(&self) -> State;
 }
 
 #[cfg(test)]
@@ -373,7 +375,7 @@ mod tests {
     #[test]
     fn test_morph() {
         let path = TempDir::new("state").unwrap();
-        let mut morph = Morph::new(path.path()).unwrap();
+        let mut morph = State::new(path.path()).unwrap();
         let alice = create_account();
         let bob = create_account();
         let jake = create_account();

@@ -25,7 +25,7 @@ use types::network::Network;
 
 pub mod environment;
 
-enum EventStream {
+enum Event {
     LocalMessage(LocalEventMessage),
     PeerMessage(PeerMessage),
     Unhandled,
@@ -128,17 +128,17 @@ async fn main() -> anyhow::Result<()> {
             local_msg = local_mpsc_receiver.recv() => {
                 if let Some(msg) = local_msg {
                     //println!("Local Message : {:?}", msg);
-                    Some(EventStream::LocalMessage(msg))
+                    Some(Event::LocalMessage(msg))
                 }else {
-                    Some(EventStream::Unhandled)
+                    Some(Event::Unhandled)
                 }
             }
 
             peer_msg = peer_2_node_receiver.recv() => {
                 if let Some(peer) = peer_msg {
-                    Some(EventStream::PeerMessage(peer))
+                    Some(Event::PeerMessage(peer))
                 }else {
-                    Some(EventStream::Unhandled)
+                    Some(Event::Unhandled)
                 }
             }
 
@@ -146,7 +146,7 @@ async fn main() -> anyhow::Result<()> {
 
         if let Some(event) = event {
             match event {
-                EventStream::PeerMessage(msg) => {
+                Event::PeerMessage(msg) => {
                     match msg {
                         PeerMessage::GetCurrentHead(req) => {
                             if let Ok(Some(current_head)) = blockchain.chain().current_header() {
@@ -173,7 +173,7 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::ReAck(msg) => {}
                     };
                 }
-                EventStream::LocalMessage(local_msg) => {
+                Event::LocalMessage(local_msg) => {
                     match local_msg {
                         LocalEventMessage::MindedBlock(block) => {
                             blockchain
@@ -221,7 +221,7 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                 }
-                EventStream::Unhandled => {}
+                Event::Unhandled => {}
             }
         }
     }

@@ -6,9 +6,10 @@ use anyhow::Result;
 use dashmap::DashMap;
 use tempdir::TempDir;
 
-use consensus::barossa::{BarossaProtocol, Network};
+use consensus::barossa::{BarossaProtocol};
+use types::network::Network;
 use miner::worker::start_worker;
-use morph::Morph;
+use state::State;
 use primitive_types::H256;
 use tracing::{Level, tracing_subscriber};
 use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
@@ -22,11 +23,11 @@ use types::Hash;
 pub struct DummyChain {
     chain: Arc<RwLock<Vec<Block>>>,
     blocks: DashMap<[u8; 32], usize>,
-    states: DashMap<[u8; 32], Arc<Morph>>,
+    states: DashMap<[u8; 32], Arc<State>>,
 }
 
 impl DummyChain {
-    fn new(blocks: Vec<Block>, inital_state: Arc<Morph>) -> Self {
+    fn new(blocks: Vec<Block>, inital_state: Arc<State>) -> Self {
         let c: DashMap<_, _> = blocks
             .iter()
             .enumerate()
@@ -43,7 +44,7 @@ impl DummyChain {
         }
     }
 
-    pub fn insert_state(&self, root: Hash, state: Arc<Morph>) {
+    pub fn insert_state(&self, root: Hash, state: Arc<State>) {
         self.states.insert(root, state.clone());
         self.states.insert([0; 32], state);
     }
@@ -143,10 +144,10 @@ async fn main() {
     let miner = account::create_account();
     let consensus = Arc::new(BarossaProtocol::new(Network::Testnet));
     let state_db_path = TempDir::new("state").unwrap();
-    let morph = Arc::new(Morph::new(state_db_path.path()).unwrap());
+    let state = Arc::new(State::new(state_db_path.path()).unwrap());
     let chain = Arc::new(DummyChain::new(
         vec![Block::new(consensus.get_genesis_header(), Vec::new())],
-        morph.clone(),
+        state.clone(),
     ));
 
     let txpool = Arc::new(RwLock::new(
@@ -158,7 +159,7 @@ async fn main() {
 
     let chain_1 = chain.clone();
     let txpool_1 = txpool.clone();
-    let morph_1 = morph.clone();
+    let state_1 = state.clone();
     let interrupt_1 = interrupt.clone();
 
     let chain_2 = chain.clone();
@@ -170,7 +171,7 @@ async fn main() {
             sender,
             consensus,
             txpool_1,
-            morph_1,
+            chain,
             chain_1,
             interrupt_1,
         );
@@ -180,7 +181,7 @@ async fn main() {
             match message {
                 LocalEventMessage::MindedBlock(block) => {
                     chain_2.add(block.clone());
-                    chain_2.insert_state(block.header().state_root, morph.clone());
+                    chain_2.insert_state(block.header().state_root, state_1.clone());
                     let current_head = chain_2.current_header().unwrap().map(|head| head.raw);
                     let new_head = block.header();
 
@@ -191,6 +192,8 @@ async fn main() {
                 LocalEventMessage::BroadcastTx(_) => {}
                 LocalEventMessage::TxPoolPack(_) => {}
                 LocalEventMessage::StateChanged { .. } => {}
+                LocalEventMessage::NetworkHighestHeadChanged { .. } => {}
+                LocalEventMessage::NetworkNewPeerConnection { .. } => {}
             }
         }
     }

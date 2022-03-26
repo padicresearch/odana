@@ -7,7 +7,7 @@ members = [
     "crypto",
     "blockchain",
     "storage",
-    "morph",
+    "state",
     "account",
     "common/traits",
     "common/uint",
