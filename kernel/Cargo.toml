@@ -1,0 +1,13 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix = "0.12"
+traits = { path = "../common/traits" }
+types = { path = "../common/types" }
+primitive-types = { path = "../common/primitive-types" }
+anyhow = "1.0.56"

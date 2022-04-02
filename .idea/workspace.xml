@@ -36,23 +36,16 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="tweaks">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="refactor">
+      <change afterPath="$PROJECT_DIR$/kernel/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/smt/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/smt/src/trie.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/smt/src/trie_cache.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner-test/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/miner-test/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner-test/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner-test/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/state/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/src/kv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/kv.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/src/snapshot.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/snapshot.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/morph/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/store.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,7 +65,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="consensus" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -94,6 +87,10 @@
             <RecentBranchesForRepo>
               <option name="branches">
                 <list>
+                  <RecentBranch>
+                    <option name="branchName" value="state-kernel" />
+                    <option name="lastUsedInstant" value="1648372281" />
+                  </RecentBranch>
                   <RecentBranch>
                     <option name="branchName" value="consensus" />
                     <option name="lastUsedInstant" value="1642582383" />
@@ -442,14 +439,8 @@
       <workItem from="1645654209944" duration="1210000" />
       <workItem from="1648283565905" duration="687000" />
       <workItem from="1648286370774" duration="491000" />
-      <workItem from="1648286947642" duration="2294000" />
-    </task>
-    <task id="LOCAL-00099" summary="mvp: test p2p communication">
-      <created>1643672706051</created>
-      <option name="number" value="00099" />
-      <option name="presentableId" value="LOCAL-00099" />
-      <option name="project" value="LOCAL" />
-      <updated>1643672706052</updated>
+      <workItem from="1648286947642" duration="10252000" />
+      <workItem from="1648797823654" duration="6834000" />
     </task>
     <task id="LOCAL-00100" summary="refactor">
       <created>1643729326627</created>
@@ -787,7 +778,14 @@
       <option name="project" value="LOCAL" />
       <updated>1648286969048</updated>
     </task>
-    <option name="localTasksCounter" value="148" />
+    <task id="LOCAL-00148" summary="refactor">
+      <created>1648289800003</created>
+      <option name="number" value="00148" />
+      <option name="presentableId" value="LOCAL-00148" />
+      <option name="project" value="LOCAL" />
+      <updated>1648289800005</updated>
+    </task>
+    <option name="localTasksCounter" value="149" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -837,13 +835,13 @@
     <MESSAGE value="migrate morph to merk" />
     <MESSAGE value="add miner" />
     <MESSAGE value="mvp: test p2p communication" />
-    <MESSAGE value="refactor" />
     <MESSAGE value="bootstrapping" />
     <MESSAGE value="kademila discovery" />
     <MESSAGE value="debug node discovery" />
     <MESSAGE value="cargo fmt" />
     <MESSAGE value="tweaks" />
-    <option name="LAST_COMMIT_MESSAGE" value="tweaks" />
+    <MESSAGE value="refactor" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
