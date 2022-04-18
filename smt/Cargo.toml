@@ -9,4 +9,13 @@ edition = "2021"
 traits = { path = "../common/traits" }
 types = { path = "../common/types" }
 primitive-types = { path = "../common/primitive-types" }
+rocksdb = { version = "0.17.0" }
 dashmap = "5.2.0"
+crypto = { path = "../crypto" }
+codec = { path = "../codec" }
+thiserror = "1.0.30"
+serde = { version = "1.0.130", features = ["derive"] }
+anyhow = "1.0.45"
+num_cpus = "1.13.1"
+[dev-dependencies]
+tempdir = "0.3.7"

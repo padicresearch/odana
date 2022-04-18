@@ -36,16 +36,21 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="refactor">
-      <change afterPath="$PROJECT_DIR$/kernel/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/smt/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/smt/src/trie.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/smt/src/trie_cache.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="begin sparse merkle tree">
+      <change afterPath="$PROJECT_DIR$/smt/src/persistent.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/smt/src/treehasher.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/smt/src/utils.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/codec/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/codec/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/smt/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/trie.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/trie_cache.rs" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,7 +84,7 @@
     </file-type-list>
   </component>
   <component name="GitToolBoxStore">
-    <option name="projectConfigVersion" value="4" />
+    <option name="projectConfigVersion" value="5" />
     <option name="recentBranches">
       <RecentBranches>
         <option name="branchesForRepo">
@@ -113,9 +118,9 @@
     </option>
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="file://$USER_HOME$/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/env.rs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.cargo/git/checkouts/merk-828d5c9dd0cf2977/470413c/src/merk/mod.rs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.cargo/git/checkouts/merk-828d5c9dd0cf2977/470413c/src/test_utils/temp_merk.rs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/env.rs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="qgmqrl00" />
@@ -134,24 +139,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">
-    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
-    <property name="ASKED_SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
-    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
-    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
-    <property name="RunOnceActivity.cidr.known.project.marker" value="true" />
-    <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="cf.first.check.clang-format" value="false" />
-    <property name="cidr.known.project.marker" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../cumulus" />
-    <property name="node.js.detected.package.eslint" value="true" />
-    <property name="node.js.detected.package.tslint" value="true" />
-    <property name="node.js.selected.package.eslint" value="(autodetect)" />
-    <property name="node.js.selected.package.tslint" value="(autodetect)" />
-    <property name="nodejs_package_manager_path" value="npm" />
-    <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
-    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
-  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "WebServerToolWindowFactoryState": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true"
+  }
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/merk" />
@@ -168,7 +169,7 @@
       <recent name="$PROJECT_DIR$/morph/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test config::test::test_config">
+  <component name="RunManager" selected="Cargo.Test smt::tests">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -281,8 +282,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test::test_backends" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package storage --lib test::test_backends -- --exact" />
+    <configuration name="Test smt::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package smt --lib smt::tests" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -297,8 +298,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::test_morph" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package morph --lib tests::test_morph -- --exact" />
+    <configuration name="Test test::test_backends" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package storage --lib test::test_backends -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -335,7 +336,7 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test tests::test_morph" />
+      <item itemvalue="Cargo.Test smt::tests" />
       <item itemvalue="Cargo.Run miner-test" />
       <item itemvalue="Cargo.Test test::test_backends" />
       <item itemvalue="Cargo.Test peer_man::test::check_pow" />
@@ -343,11 +344,11 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test smt::tests" />
         <item itemvalue="Cargo.Test config::test::test_config" />
         <item itemvalue="Cargo.Test peer_man::test::check_pow" />
         <item itemvalue="Cargo.Test test::test_backends" />
         <item itemvalue="Cargo.Run miner-test" />
-        <item itemvalue="Cargo.Test tests::test_morph" />
       </list>
     </recent_temporary>
   </component>
@@ -440,14 +441,10 @@
       <workItem from="1648283565905" duration="687000" />
       <workItem from="1648286370774" duration="491000" />
       <workItem from="1648286947642" duration="10252000" />
-      <workItem from="1648797823654" duration="6834000" />
-    </task>
-    <task id="LOCAL-00100" summary="refactor">
-      <created>1643729326627</created>
-      <option name="number" value="00100" />
-      <option name="presentableId" value="LOCAL-00100" />
-      <option name="project" value="LOCAL" />
-      <updated>1643729326628</updated>
+      <workItem from="1648797823654" duration="8822000" />
+      <workItem from="1649491141475" duration="28316000" />
+      <workItem from="1649722505891" duration="184000" />
+      <workItem from="1650093644749" duration="44009000" />
     </task>
     <task id="LOCAL-00101" summary="bootstrapping">
       <created>1644058882539</created>
@@ -785,7 +782,14 @@
       <option name="project" value="LOCAL" />
       <updated>1648289800005</updated>
     </task>
-    <option name="localTasksCounter" value="149" />
+    <task id="LOCAL-00149" summary="begin sparse merkle tree">
+      <created>1648908717038</created>
+      <option name="number" value="00149" />
+      <option name="presentableId" value="LOCAL-00149" />
+      <option name="project" value="LOCAL" />
+      <updated>1648908717038</updated>
+    </task>
+    <option name="localTasksCounter" value="150" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -816,7 +820,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="use struct instead tuple" />
     <MESSAGE value="rename" />
     <MESSAGE value="new morph implementation" />
     <MESSAGE value="test txpool extensively" />
@@ -841,7 +844,8 @@
     <MESSAGE value="cargo fmt" />
     <MESSAGE value="tweaks" />
     <MESSAGE value="refactor" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor" />
+    <MESSAGE value="begin sparse merkle tree" />
+    <option name="LAST_COMMIT_MESSAGE" value="begin sparse merkle tree" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

@@ -16,6 +16,16 @@ impl SHA256 {
         sha3.finalize(out.as_bytes_mut());
         out
     }
+
+    pub fn concat_digest<'a, I: IntoIterator<Item=&'a [u8]>>(items: I) -> H256 {
+        let mut out = H256::zero();
+        let mut sha3 = tiny_keccak::Sha3::v256();
+        for i in items {
+            sha3.update(i);
+        }
+        sha3.finalize(out.as_bytes_mut());
+        out
+    }
 }
 
 pub struct RIPEMD160;

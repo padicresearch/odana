@@ -377,7 +377,7 @@ impl Consensus for BarossaProtocol {
             &H160::from(header.coinbase),
             self.miner_reward(header.level),
         )?;
-        self.verify_header(chain, header);
+        self.verify_header(chain, header)?;
         Ok(())
     }
 
