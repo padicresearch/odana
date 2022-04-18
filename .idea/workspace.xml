@@ -36,21 +36,11 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="begin sparse merkle tree">
-      <change afterPath="$PROJECT_DIR$/smt/src/persistent.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/smt/src/treehasher.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/smt/src/utils.rs" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implemented sparse merkle tree">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/codec/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/codec/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/smt/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/trie.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/trie_cache.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/persistent.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/persistent.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/smt.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -444,14 +434,7 @@
       <workItem from="1648797823654" duration="8822000" />
       <workItem from="1649491141475" duration="28316000" />
       <workItem from="1649722505891" duration="184000" />
-      <workItem from="1650093644749" duration="44009000" />
-    </task>
-    <task id="LOCAL-00101" summary="bootstrapping">
-      <created>1644058882539</created>
-      <option name="number" value="00101" />
-      <option name="presentableId" value="LOCAL-00101" />
-      <option name="project" value="LOCAL" />
-      <updated>1644058882539</updated>
+      <workItem from="1650093644749" duration="47114000" />
     </task>
     <task id="LOCAL-00102" summary="bootstrapping">
       <created>1644059132033</created>
@@ -789,7 +772,14 @@
       <option name="project" value="LOCAL" />
       <updated>1648908717038</updated>
     </task>
-    <option name="localTasksCounter" value="150" />
+    <task id="LOCAL-00150" summary="implemented sparse merkle tree">
+      <created>1650279184037</created>
+      <option name="number" value="00150" />
+      <option name="presentableId" value="LOCAL-00150" />
+      <option name="project" value="LOCAL" />
+      <updated>1650279184037</updated>
+    </task>
+    <option name="localTasksCounter" value="151" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -820,7 +810,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="rename" />
     <MESSAGE value="new morph implementation" />
     <MESSAGE value="test txpool extensively" />
     <MESSAGE value="rewrite txpool" />
@@ -845,7 +834,8 @@
     <MESSAGE value="tweaks" />
     <MESSAGE value="refactor" />
     <MESSAGE value="begin sparse merkle tree" />
-    <option name="LAST_COMMIT_MESSAGE" value="begin sparse merkle tree" />
+    <MESSAGE value="implemented sparse merkle tree" />
+    <option name="LAST_COMMIT_MESSAGE" value="implemented sparse merkle tree" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

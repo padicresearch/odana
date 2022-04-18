@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, DB, Options};
 use anyhow::Result;
+use dashmap::DashMap;
 use crate::store::{DatabaseBackend, StorageError};
 
 
@@ -61,8 +62,8 @@ fn default_table_options() -> Options {
 
 pub(crate) fn cfs() -> Vec<ColumnFamilyDescriptor> {
     vec![
-        ColumnFamilyDescriptor::new(NodeColumn::COLUMN_NAME, default_table_options()),
-        ColumnFamilyDescriptor::new(ValueColumn::COLUMN_NAME, default_table_options()),
+        ColumnFamilyDescriptor::new(NodeColumn::column_name(), default_table_options()),
+        ColumnFamilyDescriptor::new(ValueColumn::column_name(), default_table_options()),
     ]
 }
 
@@ -79,59 +80,52 @@ impl NodeColumn {
 }
 
 impl DatabaseBackend for NodeColumn {
-    const COLUMN_NAME: &'static str = "node_map";
-
-    fn put<K, V>(&self, key: K, value: V) -> Result<()>
-        where
-            K: AsRef<[u8]>,
-            V: AsRef<[u8]>,
+    fn put(&self, key: &[u8], value: &[u8]) -> Result<()>
     {
         let cf = self
             .inner
-            .cf_handle(Self::COLUMN_NAME)
-            .ok_or(StorageError::ColumnFamilyMissing(Self::COLUMN_NAME))?;
+            .cf_handle(Self::column_name())
+            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
         self.inner
             .put_cf_opt(&cf, key, value, &default_write_opts())
             .map_err(|e| e.into())
     }
 
-    fn get<K>(&self, key: K) -> Result<Vec<u8>>
-        where
-            K: AsRef<[u8]>,
+    fn get(&self, key: &[u8]) -> Result<Vec<u8>>
     {
         let cf = self
             .inner
-            .cf_handle(Self::COLUMN_NAME)
-            .ok_or(StorageError::ColumnFamilyMissing(Self::COLUMN_NAME))?;
+            .cf_handle(Self::column_name())
+            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
 
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
-        value.ok_or(StorageError::InvalidKey(key.as_ref().to_vec()).into())
+        value.ok_or(StorageError::InvalidKey(key.to_vec()).into())
     }
 
-    fn delete<K>(&self, key: K) -> Result<()>
-        where
-            K: AsRef<[u8]>,
+    fn delete(&self, key: &[u8]) -> Result<()>
     {
         let cf = self
             .inner
-            .cf_handle(Self::COLUMN_NAME)
-            .ok_or(StorageError::ColumnFamilyMissing(Self::COLUMN_NAME))?;
+            .cf_handle(Self::column_name())
+            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
 
         self.inner
             .delete_cf_opt(&cf, key, &default_write_opts())
             .map_err(|e| e.into())
     }
 
-    fn get_or_default<K>(&self, key: K, default: Vec<u8>) -> Result<Vec<u8>>
-        where
-            K: AsRef<[u8]>,
+    fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>>
     {
         let cf = self
             .inner
-            .cf_handle(Self::COLUMN_NAME)
-            .ok_or(StorageError::ColumnFamilyMissing(Self::COLUMN_NAME))?;
+            .cf_handle(Self::column_name())
+            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
         Ok(value.unwrap_or(default))
+    }
+
+    fn column_name() -> &'static str {
+        "__node__"
     }
 }
 
@@ -149,58 +143,94 @@ impl ValueColumn {
 }
 
 impl DatabaseBackend for ValueColumn {
-    const COLUMN_NAME: &'static str = "value_map";
-
-    fn put<K, V>(&self, key: K, value: V) -> Result<()>
-        where
-            K: AsRef<[u8]>,
-            V: AsRef<[u8]>,
+    fn put(&self, key: &[u8], value: &[u8]) -> Result<()>
     {
         let cf = self
             .inner
-            .cf_handle(Self::COLUMN_NAME)
-            .ok_or(StorageError::ColumnFamilyMissing(Self::COLUMN_NAME))?;
+            .cf_handle(Self::column_name())
+            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
         self.inner
             .put_cf_opt(&cf, key, value, &default_write_opts())
             .map_err(|e| e.into())
     }
 
-    fn get<K>(&self, key: K) -> Result<Vec<u8>>
-        where
-            K: AsRef<[u8]>,
+    fn get(&self, key: &[u8]) -> Result<Vec<u8>>
     {
         let cf = self
             .inner
-            .cf_handle(Self::COLUMN_NAME)
-            .ok_or(StorageError::ColumnFamilyMissing(Self::COLUMN_NAME))?;
+            .cf_handle(Self::column_name())
+            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
 
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
-        value.ok_or(StorageError::InvalidKey(key.as_ref().to_vec()).into())
+        value.ok_or(StorageError::InvalidKey(key.to_vec()).into())
     }
 
-    fn delete<K>(&self, key: K) -> Result<()>
-        where
-            K: AsRef<[u8]>,
+    fn delete(&self, key: &[u8]) -> Result<()>
     {
         let cf = self
             .inner
-            .cf_handle(Self::COLUMN_NAME)
-            .ok_or(StorageError::ColumnFamilyMissing(Self::COLUMN_NAME))?;
+            .cf_handle(Self::column_name())
+            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
 
         self.inner
             .delete_cf_opt(&cf, key, &default_write_opts())
             .map_err(|e| e.into())
     }
 
-    fn get_or_default<K>(&self, key: K, default: Vec<u8>) -> Result<Vec<u8>>
-        where
-            K: AsRef<[u8]>,
+    fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>>
     {
         let cf = self
             .inner
-            .cf_handle(Self::COLUMN_NAME)
-            .ok_or(StorageError::ColumnFamilyMissing(Self::COLUMN_NAME))?;
+            .cf_handle(Self::column_name())
+            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
         Ok(value.unwrap_or(default))
+    }
+
+    fn column_name() -> &'static str {
+        "__value__"
+    }
+}
+
+
+pub(crate) struct MapStore {
+    inner: Arc<DashMap<Vec<u8>, Vec<u8>>>,
+}
+
+impl MapStore {
+    pub(crate) fn new() -> Self {
+        Self {
+            inner: Arc::new(DashMap::new())
+        }
+    }
+}
+
+impl DatabaseBackend for MapStore {
+    fn put(&self, key: &[u8], value: &[u8]) -> Result<()>
+    {
+        self.inner.insert(key.to_vec(), value.to_vec());
+        Ok(())
+    }
+
+    fn get(&self, key: &[u8]) -> Result<Vec<u8>>
+    {
+        let value = self.inner.get(key).map(|r| r.value().clone());
+        value.ok_or(StorageError::InvalidKey(key.to_vec()).into())
+    }
+
+    fn delete(&self, key: &[u8]) -> Result<()>
+    {
+        self.inner.remove(key);
+        Ok(())
+    }
+
+    fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>>
+    {
+        let value = self.inner.get(key).map(|r| r.value().clone());
+        Ok(value.unwrap_or(default))
+    }
+
+    fn column_name() -> &'static str {
+        ""
     }
 }

@@ -20,6 +20,15 @@ impl Trie {
         })
     }
 
+
+    pub fn in_memory(root: Option<H256>) -> Self {
+        Self {
+            th: TreeHasher::new(),
+            db: Database::in_memory(),
+            root: root.unwrap_or_default(),
+        }
+    }
+
     pub fn set_root(&mut self, new_root: H256) {
         self.root = new_root
     }
@@ -34,7 +43,7 @@ impl Trie {
         }
 
         let path = self.th.path(&key);
-        self.db.value.get_or_default(&path, Vec::new())
+        self.db.value.get_or_default(path.as_bytes(), Vec::new())
     }
 
     pub fn update(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<H256> {
@@ -134,7 +143,7 @@ impl Trie {
         let (actual_path, _) = self.th.parse_leaf(old_leaf_data);
         ensure!(path.as_bytes() != actual_path, "errKeyAlreadyEmpty");
         for node in path_nodes {
-            self.db.nodes.delete(node)?;
+            self.db.nodes.delete(node.as_bytes())?;
         }
 
         let mut current_hash = H256::zero();
@@ -143,7 +152,7 @@ impl Trie {
 
         for (i, side_node) in side_nodes.iter().enumerate() {
             if current_data.is_empty() {
-                let side_node_value = self.db.nodes.get(side_node)?;
+                let side_node_value = self.db.nodes.get(side_node.as_bytes())?;
                 if self.th.is_leaf(&side_node_value) {
                     current_hash = side_node.clone();
                     current_data = side_node.as_bytes().to_vec();
@@ -167,7 +176,7 @@ impl Trie {
                 current_hash = c;
                 current_data = t;
             }
-            self.db.nodes.put(&current_hash, &current_data)?;
+            self.db.nodes.put(current_hash.as_bytes(), &current_data)?;
             current_data = current_hash.as_bytes().to_vec();
         }
 
@@ -185,7 +194,7 @@ impl Trie {
         let value_hash = self.th.digest(value);
         let (mut current_hash, mut current_data) =
             self.th.digest_leaf(path.as_bytes(), value_hash.as_bytes());
-        self.db.nodes.put(&current_hash, &current_data)?;
+        self.db.nodes.put(current_hash.as_bytes(), &current_data)?;
         current_data = current_hash.as_bytes().to_vec();
 
         let mut common_prefix_count = 0;
@@ -211,19 +220,19 @@ impl Trie {
                     .th
                     .digest_node(current_data.as_slice(), path_nodes[0].as_bytes());
             }
-            self.db.nodes.put(&current_hash, &current_data)?;
+            self.db.nodes.put(current_hash.as_bytes(), &current_data)?;
             current_data = current_hash.as_bytes().to_vec();
         } else if !old_value_hash.is_zero() {
             if old_value_hash == value_hash {
                 return Ok(self.root);
             }
 
-            self.db.nodes.delete(path_nodes[0])?;
-            self.db.value.delete(path)?;
+            self.db.nodes.delete(path_nodes[0].as_bytes())?;
+            self.db.value.delete(path.as_bytes())?;
         }
 
         for i in 0..path_nodes.len() {
-            self.db.nodes.delete(path_nodes[i])?;
+            self.db.nodes.delete(path_nodes[i].as_bytes())?;
         }
 
         let offset_side_nodes = (self.depth() - side_nodes.len()) as i32;
@@ -251,10 +260,10 @@ impl Trie {
                 current_data = t;
             }
 
-            self.db.nodes.put(&current_hash, &current_data)?;
+            self.db.nodes.put(current_hash.as_bytes(), &current_data)?;
             current_data = current_hash.as_bytes().to_vec();
         }
-        self.db.value.put(path, value)?;
+        self.db.value.put(path.as_bytes(), value)?;
         Ok((current_hash))
     }
 }
@@ -267,8 +276,7 @@ mod tests {
 
     #[test]
     fn basic_get_set_check_root_test() {
-        let tmp_dir = TempDir::new("_basic_get_set_check_root_test_").unwrap();
-        let mut trie = Trie::open(tmp_dir, None).unwrap();
+        let mut trie = Trie::in_memory(None);
         println!("{}", trie.root());
         trie.update(vec![1, 2, 3], vec![1, 2, 3]).unwrap();
         println!("{}", trie.root());
