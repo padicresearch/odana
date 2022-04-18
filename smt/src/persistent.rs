@@ -36,56 +36,28 @@ fn default_read_opts() -> rocksdb::ReadOptions {
     opts
 }
 
-fn default_table_options() -> Options {
-    // default db options
-    let mut db_opts = Options::default();
 
-    // https://github.com/facebook/rocksdb/wiki/Setup-Options-and-Basic-Tuning#other-general-options
-    db_opts.set_level_compaction_dynamic_level_bytes(false);
-    db_opts.set_write_buffer_size(32 * 1024 * 1024);
-
-    // block table options
-    let mut table_options = BlockBasedOptions::default();
-    // table_options.set_block_cache(&Cache::new_lru_cache(32 * 1024 * 1024).unwrap());
-    // table_options.set_block_size(16 * 1024);
-    // table_options.set_cache_index_and_filter_blocks(true);
-    // table_options.set_pin_l0_filter_and_index_blocks_in_cache(true);
-
-    // set format_version 4 https://rocksdb.org/blog/2019/03/08/format-version-4.html
-    table_options.set_format_version(4);
-    table_options.set_index_block_restart_interval(16);
-
-    db_opts.set_block_based_table_factory(&table_options);
-
-    db_opts
-}
-
-pub(crate) fn cfs() -> Vec<ColumnFamilyDescriptor> {
-    vec![
-        ColumnFamilyDescriptor::new(NodeColumn::column_name(), default_table_options()),
-        ColumnFamilyDescriptor::new(ValueColumn::column_name(), default_table_options()),
-    ]
-}
-
-pub(crate) struct NodeColumn {
+pub(crate) struct DiskStore {
+    column_name: &'static str,
     inner: Arc<DB>,
 }
 
-impl NodeColumn {
-    pub(crate) fn new(db: Arc<DB>) -> Self {
+impl DiskStore {
+    pub(crate) fn new(column_name: &'static str, db: Arc<DB>) -> Self {
         Self {
-            inner: db
+            column_name,
+            inner: db,
         }
     }
 }
 
-impl DatabaseBackend for NodeColumn {
+impl DatabaseBackend for DiskStore {
     fn put(&self, key: &[u8], value: &[u8]) -> Result<()>
     {
         let cf = self
             .inner
-            .cf_handle(Self::column_name())
-            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
+            .cf_handle(self.column_name)
+            .ok_or(StorageError::ColumnFamilyMissing(self.column_name))?;
         self.inner
             .put_cf_opt(&cf, key, value, &default_write_opts())
             .map_err(|e| e.into())
@@ -95,8 +67,8 @@ impl DatabaseBackend for NodeColumn {
     {
         let cf = self
             .inner
-            .cf_handle(Self::column_name())
-            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
+            .cf_handle(self.column_name)
+            .ok_or(StorageError::ColumnFamilyMissing(self.column_name))?;
 
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
         value.ok_or(StorageError::InvalidKey(key.to_vec()).into())
@@ -106,8 +78,8 @@ impl DatabaseBackend for NodeColumn {
     {
         let cf = self
             .inner
-            .cf_handle(Self::column_name())
-            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
+            .cf_handle(self.column_name)
+            .ok_or(StorageError::ColumnFamilyMissing(self.column_name))?;
 
         self.inner
             .delete_cf_opt(&cf, key, &default_write_opts())
@@ -118,86 +90,20 @@ impl DatabaseBackend for NodeColumn {
     {
         let cf = self
             .inner
-            .cf_handle(Self::column_name())
-            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
+            .cf_handle(self.column_name)
+            .ok_or(StorageError::ColumnFamilyMissing(self.column_name))?;
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
         Ok(value.unwrap_or(default))
     }
 
-    fn column_name() -> &'static str {
-        "__node__"
-    }
 }
 
 
-pub(crate) struct ValueColumn {
-    inner: Arc<DB>,
-}
-
-impl ValueColumn {
-    pub(crate) fn new(db: Arc<DB>) -> Self {
-        Self {
-            inner: db
-        }
-    }
-}
-
-impl DatabaseBackend for ValueColumn {
-    fn put(&self, key: &[u8], value: &[u8]) -> Result<()>
-    {
-        let cf = self
-            .inner
-            .cf_handle(Self::column_name())
-            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
-        self.inner
-            .put_cf_opt(&cf, key, value, &default_write_opts())
-            .map_err(|e| e.into())
-    }
-
-    fn get(&self, key: &[u8]) -> Result<Vec<u8>>
-    {
-        let cf = self
-            .inner
-            .cf_handle(Self::column_name())
-            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
-
-        let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
-        value.ok_or(StorageError::InvalidKey(key.to_vec()).into())
-    }
-
-    fn delete(&self, key: &[u8]) -> Result<()>
-    {
-        let cf = self
-            .inner
-            .cf_handle(Self::column_name())
-            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
-
-        self.inner
-            .delete_cf_opt(&cf, key, &default_write_opts())
-            .map_err(|e| e.into())
-    }
-
-    fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>>
-    {
-        let cf = self
-            .inner
-            .cf_handle(Self::column_name())
-            .ok_or(StorageError::ColumnFamilyMissing(Self::column_name()))?;
-        let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
-        Ok(value.unwrap_or(default))
-    }
-
-    fn column_name() -> &'static str {
-        "__value__"
-    }
-}
-
-
-pub(crate) struct MapStore {
+pub(crate) struct MemoryStore {
     inner: Arc<DashMap<Vec<u8>, Vec<u8>>>,
 }
 
-impl MapStore {
+impl MemoryStore {
     pub(crate) fn new() -> Self {
         Self {
             inner: Arc::new(DashMap::new())
@@ -205,7 +111,7 @@ impl MapStore {
     }
 }
 
-impl DatabaseBackend for MapStore {
+impl DatabaseBackend for MemoryStore {
     fn put(&self, key: &[u8], value: &[u8]) -> Result<()>
     {
         self.inner.insert(key.to_vec(), value.to_vec());
@@ -230,7 +136,4 @@ impl DatabaseBackend for MapStore {
         Ok(value.unwrap_or(default))
     }
 
-    fn column_name() -> &'static str {
-        ""
-    }
 }
