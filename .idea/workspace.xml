@@ -36,9 +36,13 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="persistence refactor">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="refactor">
+      <change afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/tests/scale_info.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/tests/scale_info.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/persistent.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/persistent.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/smt.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -110,6 +114,7 @@
     <setting file="file://$USER_HOME$/.cargo/git/checkouts/merk-828d5c9dd0cf2977/470413c/src/merk/mod.rs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.cargo/git/checkouts/merk-828d5c9dd0cf2977/470413c/src/test_utils/temp_merk.rs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/env.rs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs" root0="SKIP_INSPECTION" />
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="qgmqrl00" />
@@ -128,20 +133,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "WebServerToolWindowFactoryState": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;editor.preferences.fonts.default&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/merk" />
@@ -158,7 +164,7 @@
       <recent name="$PROJECT_DIR$/morph/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test smt::tests">
+  <component name="RunManager" selected="Cargo.Test smt::tests::basic_get_set_check_root_test">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -223,22 +229,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Run miner-test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="run --package miner-test --bin miner-test" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Test config::test::test_config" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package types --lib config::test::test_config -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -271,6 +261,22 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test proof::tests::test_proof_basic" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package smt --lib proof::tests::test_proof_basic -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test smt::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package smt --lib smt::tests" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -287,8 +293,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test::test_backends" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package storage --lib test::test_backends -- --exact" />
+    <configuration name="Test smt::tests::basic_get_set_check_root_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package smt --lib smt::tests::basic_get_set_check_root_test -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -325,19 +331,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
+      <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
+      <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
       <item itemvalue="Cargo.Test smt::tests" />
-      <item itemvalue="Cargo.Run miner-test" />
-      <item itemvalue="Cargo.Test test::test_backends" />
       <item itemvalue="Cargo.Test peer_man::test::check_pow" />
       <item itemvalue="Cargo.Test config::test::test_config" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
+        <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
         <item itemvalue="Cargo.Test smt::tests" />
         <item itemvalue="Cargo.Test config::test::test_config" />
         <item itemvalue="Cargo.Test peer_man::test::check_pow" />
-        <item itemvalue="Cargo.Test test::test_backends" />
-        <item itemvalue="Cargo.Run miner-test" />
       </list>
     </recent_temporary>
   </component>
@@ -433,21 +439,11 @@
       <workItem from="1648797823654" duration="8822000" />
       <workItem from="1649491141475" duration="28316000" />
       <workItem from="1649722505891" duration="184000" />
-      <workItem from="1650093644749" duration="48088000" />
-    </task>
-    <task id="LOCAL-00103" summary="bootstrapping">
-      <created>1644062074613</created>
-      <option name="number" value="00103" />
-      <option name="presentableId" value="LOCAL-00103" />
-      <option name="project" value="LOCAL" />
-      <updated>1644062074613</updated>
-    </task>
-    <task id="LOCAL-00104" summary="bootstrapping">
-      <created>1644062477852</created>
-      <option name="number" value="00104" />
-      <option name="presentableId" value="LOCAL-00104" />
-      <option name="project" value="LOCAL" />
-      <updated>1644062477852</updated>
+      <workItem from="1650093644749" duration="49410000" />
+      <workItem from="1650291995232" duration="14504000" />
+      <workItem from="1650348641437" duration="2202000" />
+      <workItem from="1650438428362" duration="653000" />
+      <workItem from="1650551856495" duration="11292000" />
     </task>
     <task id="LOCAL-00105" summary="bootstrapping">
       <created>1644062924383</created>
@@ -778,7 +774,21 @@
       <option name="project" value="LOCAL" />
       <updated>1650282245822</updated>
     </task>
-    <option name="localTasksCounter" value="152" />
+    <task id="LOCAL-00152" summary="refactor">
+      <created>1650283512662</created>
+      <option name="number" value="00152" />
+      <option name="presentableId" value="LOCAL-00152" />
+      <option name="project" value="LOCAL" />
+      <updated>1650283512662</updated>
+    </task>
+    <task id="LOCAL-00153" summary="refactor">
+      <created>1650283593984</created>
+      <option name="number" value="00153" />
+      <option name="presentableId" value="LOCAL-00153" />
+      <option name="project" value="LOCAL" />
+      <updated>1650283593984</updated>
+    </task>
+    <option name="localTasksCounter" value="154" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -830,12 +840,38 @@
     <MESSAGE value="debug node discovery" />
     <MESSAGE value="cargo fmt" />
     <MESSAGE value="tweaks" />
-    <MESSAGE value="refactor" />
     <MESSAGE value="begin sparse merkle tree" />
     <MESSAGE value="implemented sparse merkle tree" />
     <MESSAGE value="persistence refactor" />
-    <option name="LAST_COMMIT_MESSAGE" value="persistence refactor" />
+    <MESSAGE value="refactor" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/smt/src/proof.rs</url>
+          <line>117</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/smt/src/proof.rs</url>
+          <line>47</line>
+          <option name="timeStamp" value="19" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/smt/src/proof.rs</url>
+          <line>118</line>
+          <option name="timeStamp" value="20" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/smt/src/persistent.rs</url>
+          <line>132</line>
+          <option name="timeStamp" value="29" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

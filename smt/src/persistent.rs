@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, DB, Options};
-use anyhow::Result;
+use anyhow::{bail, Result};
 use dashmap::DashMap;
 use crate::store::{DatabaseBackend, StorageError};
 
@@ -98,7 +98,7 @@ impl DatabaseBackend for DiskStore {
 
 }
 
-
+#[derive(Debug, Clone)]
 pub(crate) struct MemoryStore {
     inner: Arc<DashMap<Vec<u8>, Vec<u8>>>,
 }
@@ -126,6 +126,10 @@ impl DatabaseBackend for MemoryStore {
 
     fn delete(&self, key: &[u8]) -> Result<()>
     {
+        println!("Remove Key: {:?}", key);
+        if !self.inner.contains_key(key) {
+            bail!("Key not found")
+        }
         self.inner.remove(key);
         Ok(())
     }

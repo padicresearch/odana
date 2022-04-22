@@ -4,14 +4,15 @@ use crate::utils::{count_common_prefix, get_bits_at_from_msb};
 use anyhow::{bail, ensure, Result};
 use primitive_types::H256;
 use std::path::Path;
+use crate::proof::Proof;
 
-pub struct Trie {
+pub struct SparseMerkleTree {
     th: TreeHasher,
     db: Database,
     root: H256,
 }
 
-impl Trie {
+impl SparseMerkleTree {
     pub fn open<P: AsRef<Path>>(path: P, root: Option<H256>) -> Result<Self> {
         Ok(Self {
             th: TreeHasher::new(),
@@ -29,6 +30,15 @@ impl Trie {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn test_in_memory(db: Database) -> Self {
+        Self {
+            th: TreeHasher::new(),
+            db,
+            root: H256::zero(),
+        }
+    }
+
     pub fn set_root(&mut self, new_root: H256) {
         self.root = new_root
     }
@@ -36,24 +46,24 @@ impl Trie {
     pub fn root(&self) -> H256 {
         self.root
     }
-    pub fn get(&self, key: &Vec<u8>) -> Result<Vec<u8>> {
+    pub fn get<K>(&self, key: K) -> Result<Vec<u8>> where K: AsRef<[u8]> {
         let root = self.root();
         if root.is_zero() {
             return Ok(Vec::new());
         }
 
-        let path = self.th.path(&key);
-        self.db.value.get_or_default(path.as_bytes(), Vec::new())
+        let path = self.th.path(key.as_ref());
+        self.db.values.get_or_default(path.as_bytes(), Vec::new())
     }
 
-    pub fn update(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<H256> {
-        let new_root = self.update_for_root(key, value, self.root())?;
+    pub fn update<K, V>(&mut self, key: K, value: V) -> Result<H256> where K: AsRef<[u8]>, V: AsRef<[u8]> {
+        let new_root = self.update_for_root(key.as_ref(), value.as_ref(), self.root())?;
         self.set_root(new_root);
         return Ok(new_root);
     }
 
-    fn update_for_root(&mut self, key: Vec<u8>, value: Vec<u8>, root: H256) -> Result<H256> {
-        let path = self.th.path(&key);
+    fn update_for_root(&self, key: &[u8], value: &[u8], root: H256) -> Result<H256> {
+        let path = self.th.path(key);
         let (side_nodes, path_nodes, old_lead_data, _) =
             self.side_nodes_for_root(&path, &root, false)?;
 
@@ -61,7 +71,7 @@ impl Trie {
         if value.is_empty() {
             new_root =
                 self.delete_with_sides_nodes(&path, &side_nodes, &path_nodes, &old_lead_data)?;
-            self.db.nodes.delete(path.as_bytes())?;
+            self.db.values.delete(path.as_bytes())?;
         } else {
             new_root = self.update_with_sides_nodes(
                 &path,
@@ -75,11 +85,11 @@ impl Trie {
     }
 
     fn depth(&self) -> usize {
-        self.th.path_size()
+        self.th.path_size() * 8
     }
 
     fn side_nodes_for_root(
-        &mut self,
+        &self,
         path: &H256,
         root: &H256,
         get_sibling_data: bool,
@@ -97,7 +107,7 @@ impl Trie {
             return Ok((side_nodes, path_nodes, current_data, None));
         }
 
-        let mut node_hash = Vec::new();
+        let mut node_hash = H256::zero();
         let mut side_node = Vec::new();
         let mut sibling_data = Vec::new();
 
@@ -105,16 +115,21 @@ impl Trie {
             let (left_node, right_node) = self.th.parse_node(&current_data);
             if get_bits_at_from_msb(path.as_bytes(), i) == 1 {
                 side_node = left_node.to_vec();
-                node_hash = right_node.to_vec();
+                node_hash = H256::from_slice(right_node);
             } else {
                 side_node = right_node.to_vec();
-                node_hash = left_node.to_vec();
+                node_hash = H256::from_slice(left_node);
             }
 
             side_nodes.push(H256::from_slice(&side_node));
-            path_nodes.push(H256::from_slice(&node_hash));
+            path_nodes.push(node_hash);
 
-            current_data = self.db.nodes.get(&node_hash)?;
+            if node_hash.is_zero() {
+                current_data = Vec::new();
+                break
+            }
+
+            current_data = self.db.nodes.get(node_hash.as_bytes())?;
             if self.th.is_leaf(&current_data) {
                 break;
             }
@@ -130,7 +145,7 @@ impl Trie {
     }
 
     fn delete_with_sides_nodes(
-        &mut self,
+        &self,
         path: &H256,
         side_nodes: &Vec<H256>,
         path_nodes: &Vec<H256>,
@@ -141,7 +156,9 @@ impl Trie {
         }
 
         let (actual_path, _) = self.th.parse_leaf(old_leaf_data);
-        ensure!(path.as_bytes() != actual_path, "errKeyAlreadyEmpty");
+        if !actual_path.eq(path.as_bytes()) {
+            bail!("errKeyAlreadyEmpty")
+        }
         for node in path_nodes {
             self.db.nodes.delete(node.as_bytes())?;
         }
@@ -156,6 +173,7 @@ impl Trie {
                 if self.th.is_leaf(&side_node_value) {
                     current_hash = side_node.clone();
                     current_data = side_node.as_bytes().to_vec();
+                    continue;
                 } else {
                     current_data = self.th.placeholder().as_bytes().to_vec();
                     non_placeholder_reached = true;
@@ -184,7 +202,7 @@ impl Trie {
     }
 
     fn update_with_sides_nodes(
-        &mut self,
+        &self,
         path: &H256,
         value: &[u8],
         side_nodes: &Vec<H256>,
@@ -198,15 +216,17 @@ impl Trie {
         current_data = current_hash.as_bytes().to_vec();
 
         let mut common_prefix_count = 0;
-        let mut old_value_hash = H256::zero();
+        let mut old_value_hash = None;
 
         if path_nodes[0].is_zero() {
             common_prefix_count = self.depth();
         } else {
             let mut actual_path = H256::zero();
             let (ap, op) = self.th.parse_leaf(old_leaf_data);
+            println!("Actual Path[{}]: {:?}", ap.len(), ap);
+            println!("Old Value Hash[{}]: {:?}", op.len(), op);
             actual_path = H256::from_slice(ap);
-            old_value_hash = H256::from_slice(op);
+            old_value_hash = Some(H256::from_slice(op));
             common_prefix_count = count_common_prefix(ap, op) as usize;
         }
 
@@ -222,16 +242,16 @@ impl Trie {
             }
             self.db.nodes.put(current_hash.as_bytes(), &current_data)?;
             current_data = current_hash.as_bytes().to_vec();
-        } else if !old_value_hash.is_zero() {
+        } else if let Some(old_value_hash) = old_value_hash {
             if old_value_hash == value_hash {
                 return Ok(self.root);
             }
 
             self.db.nodes.delete(path_nodes[0].as_bytes())?;
-            self.db.value.delete(path.as_bytes())?;
+            self.db.values.delete(path.as_bytes())?;
         }
 
-        for i in 0..path_nodes.len() {
+        for i in 1..path_nodes.len() {
             self.db.nodes.delete(path_nodes[i].as_bytes())?;
         }
 
@@ -263,8 +283,50 @@ impl Trie {
             self.db.nodes.put(current_hash.as_bytes(), &current_data)?;
             current_data = current_hash.as_bytes().to_vec();
         }
-        self.db.value.put(path.as_bytes(), value)?;
+        self.db.values.put(path.as_bytes(), value)?;
         Ok((current_hash))
+    }
+
+    pub fn proof(&self, key: &[u8]) -> Result<Proof> {
+        return self.proof_for_root(key, &self.root)
+    }
+
+    pub fn proof_updatable(&self, key: &[u8]) -> Result<Proof> {
+        return self.proof_updatable_for_root(key, &self.root)
+    }
+
+    pub fn proof_for_root(&self, key: &[u8], root: &H256) -> Result<Proof> {
+        return self.do_proof_for_root(key, root, false)
+    }
+
+    pub fn proof_updatable_for_root(&self, key: &[u8], root: &H256) -> Result<Proof> {
+        return self.do_proof_for_root(key, root, true)
+    }
+
+    fn do_proof_for_root(&self, key: &[u8], root: &H256, is_updatable: bool) -> Result<Proof> {
+        let path = self.th.path(key);
+        let (side_nodes, path_nodes, lead_data, sibling_data) =
+            self.side_nodes_for_root(&path, &root, is_updatable)?;
+        let mut non_empty_side_nodes = Vec::new();
+        for v in side_nodes {
+            if !v.is_zero() {
+                non_empty_side_nodes.push(v)
+            }
+        }
+
+        let mut non_membership_leaf_data = None;
+        if !path_nodes[0].is_zero() {
+            let (actual_path, _) = self.th.parse_leaf(&lead_data);
+            if !actual_path.eq(path.as_bytes()) {
+                non_membership_leaf_data = Some(lead_data)
+            }
+        }
+
+        Ok(Proof {
+            side_nodes: non_empty_side_nodes,
+            non_membership_leaf_data,
+            sibling_data,
+        })
     }
 }
 
@@ -272,14 +334,20 @@ impl Trie {
 #[cfg(test)]
 mod tests {
     use tempdir::TempDir;
-    use crate::smt::Trie;
+    use crate::smt::SparseMerkleTree;
 
     #[test]
     fn basic_get_set_check_root_test() {
-        let mut trie = Trie::in_memory(None);
-        println!("{}", trie.root());
-        trie.update(vec![1, 2, 3], vec![1, 2, 3]).unwrap();
-        println!("{}", trie.root());
-        println!("{:?}", trie.get(&vec![1, 2, 3]).unwrap())
+        let mut trie = SparseMerkleTree::in_memory(None);
+        trie.update(b"kwame", b"AMA").unwrap();
+        trie.update(b"kofi", b"AMA").unwrap();
+        println!("{:?}", trie.root());
+        println!("{:?}", trie.get(b"kofi").unwrap());
+        println!("{:?}", trie.get(b"kwame").unwrap());
+        trie.update(b"kofi", b"").unwrap();
+        println!("{:?}", trie.root());
+
+        println!("{:?}", trie.get(b"kofi").unwrap());
+        println!("{:?}", trie.get(b"kwame").unwrap());
     }
 }

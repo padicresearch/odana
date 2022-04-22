@@ -65,7 +65,7 @@ pub(crate) trait DatabaseBackend {
 
 pub(crate) struct Database {
     pub(crate) nodes: Arc<dyn DatabaseBackend + Send + Sync>,
-    pub(crate) value: Arc<dyn DatabaseBackend + Send + Sync>,
+    pub(crate) values: Arc<dyn DatabaseBackend + Send + Sync>,
 }
 
 impl Database {
@@ -73,14 +73,22 @@ impl Database {
         let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), path, cfs())?);
         Ok(Self {
             nodes: Arc::new(DiskStore::new(COLUMN_NODE, db.clone())),
-            value: Arc::new(DiskStore::new(COLUMN_VALUE, db.clone())),
+            values: Arc::new(DiskStore::new(COLUMN_VALUE, db.clone())),
         })
     }
 
     pub(crate) fn in_memory() -> Self {
         Self {
             nodes: Arc::new(MemoryStore::new()),
-            value: Arc::new(MemoryStore::new()),
+            values: Arc::new(MemoryStore::new()),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test(nodes: Arc<MemoryStore>, values: Arc<MemoryStore>) -> Self {
+        Self {
+            nodes,
+            values,
         }
     }
 }
