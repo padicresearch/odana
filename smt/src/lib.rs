@@ -1,7 +1,9 @@
 mod treehasher;
 mod store;
-mod smt;
 mod utils;
 mod persistent;
-mod proof;
-mod error;
+mod smt;
+pub mod proof;
+pub mod error;
+
+pub use smt::*;
