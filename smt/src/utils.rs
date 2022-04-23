@@ -1,9 +1,10 @@
 pub(crate) fn get_bits_at_from_msb(data: &[u8], position: usize) -> i32 {
     let position = position as i32;
-    if (data[(position / 8) as usize] as i32) & (1 << (8 - 1 - ((position as u32) % 8))) > 0 {
-        return 1
+    let t = (data[(position / 8) as usize] as i32) & (1 << (8 - 1 - ((position as u32) % 8)));
+    if t > 0 {
+        return 1;
     }
-    return 0
+    return 0;
 }
 
 pub(crate) fn set_bits_at_from_msb(data: &mut [u8], position: usize) {

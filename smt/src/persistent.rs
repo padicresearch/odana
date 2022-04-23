@@ -1,8 +1,9 @@
 use std::sync::Arc;
-use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, DB, Options};
+use rocksdb::{DB};
 use anyhow::{bail, Result};
 use dashmap::DashMap;
-use crate::store::{DatabaseBackend, StorageError};
+use crate::error::Error;
+use crate::store::{DatabaseBackend};
 
 
 pub(crate) fn default_db_opts() -> rocksdb::Options {
@@ -13,15 +14,12 @@ pub(crate) fn default_db_opts() -> rocksdb::Options {
 
     // TODO: tune
     opts.increase_parallelism(num_cpus::get() as i32);
-    // opts.set_advise_random_on_open(false);
     opts.set_allow_mmap_writes(true);
     opts.set_allow_mmap_reads(true);
 
     opts.set_max_log_file_size(1_000_000);
     opts.set_recycle_log_file_num(5);
     opts.set_keep_log_file_num(5);
-    //opts.selo
-
     opts
 }
 
@@ -57,7 +55,7 @@ impl DatabaseBackend for DiskStore {
         let cf = self
             .inner
             .cf_handle(self.column_name)
-            .ok_or(StorageError::ColumnFamilyMissing(self.column_name))?;
+            .ok_or(Error::ColumnFamilyMissing(self.column_name))?;
         self.inner
             .put_cf_opt(&cf, key, value, &default_write_opts())
             .map_err(|e| e.into())
@@ -68,10 +66,10 @@ impl DatabaseBackend for DiskStore {
         let cf = self
             .inner
             .cf_handle(self.column_name)
-            .ok_or(StorageError::ColumnFamilyMissing(self.column_name))?;
+            .ok_or(Error::ColumnFamilyMissing(self.column_name))?;
 
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
-        value.ok_or(StorageError::InvalidKey(key.to_vec()).into())
+        value.ok_or(Error::InvalidKey(key.to_vec()).into())
     }
 
     fn delete(&self, key: &[u8]) -> Result<()>
@@ -79,7 +77,7 @@ impl DatabaseBackend for DiskStore {
         let cf = self
             .inner
             .cf_handle(self.column_name)
-            .ok_or(StorageError::ColumnFamilyMissing(self.column_name))?;
+            .ok_or(Error::ColumnFamilyMissing(self.column_name))?;
 
         self.inner
             .delete_cf_opt(&cf, key, &default_write_opts())
@@ -91,7 +89,7 @@ impl DatabaseBackend for DiskStore {
         let cf = self
             .inner
             .cf_handle(self.column_name)
-            .ok_or(StorageError::ColumnFamilyMissing(self.column_name))?;
+            .ok_or(Error::ColumnFamilyMissing(self.column_name))?;
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
         Ok(value.unwrap_or(default))
     }
@@ -121,14 +119,13 @@ impl DatabaseBackend for MemoryStore {
     fn get(&self, key: &[u8]) -> Result<Vec<u8>>
     {
         let value = self.inner.get(key).map(|r| r.value().clone());
-        value.ok_or(StorageError::InvalidKey(key.to_vec()).into())
+        value.ok_or(Error::InvalidKey(key.to_vec()).into())
     }
 
     fn delete(&self, key: &[u8]) -> Result<()>
     {
-        println!("Remove Key: {:?}", key);
         if !self.inner.contains_key(key) {
-            bail!("Key not found")
+            bail!(Error::InvalidKey(key.to_vec()))
         }
         self.inner.remove(key);
         Ok(())

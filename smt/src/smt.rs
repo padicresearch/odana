@@ -1,9 +1,10 @@
-use crate::store::{Database, DatabaseBackend, StorageError};
+use crate::store::{Database, DatabaseBackend};
 use crate::treehasher::TreeHasher;
 use crate::utils::{count_common_prefix, get_bits_at_from_msb};
 use anyhow::{bail, ensure, Result};
 use primitive_types::H256;
 use std::path::Path;
+use crate::error::Error;
 use crate::proof::Proof;
 
 pub struct SparseMerkleTree {
@@ -27,15 +28,6 @@ impl SparseMerkleTree {
             th: TreeHasher::new(),
             db: Database::in_memory(),
             root: root.unwrap_or_default(),
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn test_in_memory(db: Database) -> Self {
-        Self {
-            th: TreeHasher::new(),
-            db,
-            root: H256::zero(),
         }
     }
 
@@ -152,12 +144,12 @@ impl SparseMerkleTree {
         old_leaf_data: &Vec<u8>,
     ) -> Result<H256> {
         if path_nodes[0].is_zero() {
-            bail!("errKeyAlreadyEmpty")
+            bail!(Error::KeyAlreadyEmpty)
         }
 
         let (actual_path, _) = self.th.parse_leaf(old_leaf_data);
         if !actual_path.eq(path.as_bytes()) {
-            bail!("errKeyAlreadyEmpty")
+            bail!(Error::KeyAlreadyEmpty)
         }
         for node in path_nodes {
             self.db.nodes.delete(node.as_bytes())?;
@@ -223,11 +215,9 @@ impl SparseMerkleTree {
         } else {
             let mut actual_path = H256::zero();
             let (ap, op) = self.th.parse_leaf(old_leaf_data);
-            println!("Actual Path[{}]: {:?}", ap.len(), ap);
-            println!("Old Value Hash[{}]: {:?}", op.len(), op);
             actual_path = H256::from_slice(ap);
             old_value_hash = Some(H256::from_slice(op));
-            common_prefix_count = count_common_prefix(ap, op) as usize;
+            common_prefix_count = count_common_prefix(path.as_bytes(), actual_path.as_bytes()) as usize;
         }
 
         if common_prefix_count != self.depth() {
@@ -259,7 +249,7 @@ impl SparseMerkleTree {
 
         for i in 0..self.depth() {
             let mut side_node = H256::zero();
-            if i as i32 - offset_side_nodes < 0 || side_nodes.get(i - offset_side_nodes as usize).is_some() {
+            if i as i32 - offset_side_nodes < 0 || side_nodes.get(i - offset_side_nodes as usize).is_none() {
                 if common_prefix_count != self.depth() && common_prefix_count > self.depth() - 1 - i
                 {
                     side_node = self.th.placeholder();
@@ -309,9 +299,7 @@ impl SparseMerkleTree {
             self.side_nodes_for_root(&path, &root, is_updatable)?;
         let mut non_empty_side_nodes = Vec::new();
         for v in side_nodes {
-            if !v.is_zero() {
-                non_empty_side_nodes.push(v)
-            }
+            non_empty_side_nodes.push(v)
         }
 
         let mut non_membership_leaf_data = None;

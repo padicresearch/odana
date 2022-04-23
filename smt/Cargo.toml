@@ -17,5 +17,6 @@ thiserror = "1.0.30"
 serde = { version = "1.0.130", features = ["derive"] }
 anyhow = "1.0.45"
 num_cpus = "1.13.1"
+hex = "0.4.3"
 [dev-dependencies]
 tempdir = "0.3.7"

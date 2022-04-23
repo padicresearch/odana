@@ -4,3 +4,4 @@ mod smt;
 mod utils;
 mod persistent;
 mod proof;
+mod error;

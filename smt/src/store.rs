@@ -3,7 +3,6 @@ use rocksdb::{BlockBasedOptions, Cache, ColumnFamily, ColumnFamilyDescriptor, Op
 use std::clone;
 use std::path::Path;
 use std::sync::Arc;
-use thiserror::Error;
 use crate::persistent::{DiskStore, default_db_opts, MemoryStore};
 
 const COLUMN_NODE: &'static str = "__node__";
@@ -41,16 +40,7 @@ fn default_table_options() -> Options {
 }
 
 
-#[derive(Error, Debug)]
-pub enum StorageError {
-    #[error("RWPoison")]
-    RWPoison,
-    #[error("ColumnFamilyMissing {0}")]
-    ColumnFamilyMissing(&'static str),
 
-    #[error("Invalid Key {0:#?}")]
-    InvalidKey(Vec<u8>),
-}
 
 
 pub(crate) trait DatabaseBackend {

@@ -36,14 +36,17 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="refactor">
-      <change afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="fixes">
+      <change afterPath="$PROJECT_DIR$/smt/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/tests/scale_info.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/tests/scale_info.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/smt/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/persistent.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/persistent.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/proof.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/smt.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/utils.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/utils.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -164,7 +167,7 @@
       <recent name="$PROJECT_DIR$/morph/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test smt::tests::basic_get_set_check_root_test">
+  <component name="RunManager" selected="Cargo.Test proof::tests::test_proof_basic">
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -339,8 +342,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
         <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
+        <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
         <item itemvalue="Cargo.Test smt::tests" />
         <item itemvalue="Cargo.Test config::test::test_config" />
         <item itemvalue="Cargo.Test peer_man::test::check_pow" />
@@ -443,14 +446,9 @@
       <workItem from="1650291995232" duration="14504000" />
       <workItem from="1650348641437" duration="2202000" />
       <workItem from="1650438428362" duration="653000" />
-      <workItem from="1650551856495" duration="11292000" />
-    </task>
-    <task id="LOCAL-00105" summary="bootstrapping">
-      <created>1644062924383</created>
-      <option name="number" value="00105" />
-      <option name="presentableId" value="LOCAL-00105" />
-      <option name="project" value="LOCAL" />
-      <updated>1644062924383</updated>
+      <workItem from="1650551856495" duration="27977000" />
+      <workItem from="1650650686785" duration="2519000" />
+      <workItem from="1650657499535" duration="8763000" />
     </task>
     <task id="LOCAL-00106" summary="bootstrapping">
       <created>1644064468090</created>
@@ -788,7 +786,14 @@
       <option name="project" value="LOCAL" />
       <updated>1650283593984</updated>
     </task>
-    <option name="localTasksCounter" value="154" />
+    <task id="LOCAL-00154" summary="fixes">
+      <created>1650614593368</created>
+      <option name="number" value="00154" />
+      <option name="presentableId" value="LOCAL-00154" />
+      <option name="project" value="LOCAL" />
+      <updated>1650614593369</updated>
+    </task>
+    <option name="localTasksCounter" value="155" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -819,7 +824,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="test txpool extensively" />
     <MESSAGE value="rewrite txpool" />
     <MESSAGE value="implement demote transactions" />
     <MESSAGE value="implement truncate pending transactions" />
@@ -844,34 +848,9 @@
     <MESSAGE value="implemented sparse merkle tree" />
     <MESSAGE value="persistence refactor" />
     <MESSAGE value="refactor" />
-    <option name="LAST_COMMIT_MESSAGE" value="refactor" />
+    <MESSAGE value="fixes" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixes" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/smt/src/proof.rs</url>
-          <line>117</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/smt/src/proof.rs</url>
-          <line>47</line>
-          <option name="timeStamp" value="19" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/smt/src/proof.rs</url>
-          <line>118</line>
-          <option name="timeStamp" value="20" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/smt/src/persistent.rs</url>
-          <line>132</line>
-          <option name="timeStamp" value="29" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
