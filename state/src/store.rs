@@ -15,7 +15,7 @@ use tracing::{Value, warn};
 use types::account::AccountState;
 use types::Hash;
 
-use crate::{GENESIS_ROOT, MorphOperation};
+use crate::{GENESIS_ROOT, StateOperation};
 use crate::error::MorphError;
 use crate::kv::{KV, Schema};
 
@@ -66,7 +66,7 @@ pub enum HistoryIKey {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct HistoryIValue {
-    pub operation: MorphOperation,
+    pub operation: StateOperation,
     pub root: Hash,
     pub parent_root: Hash,
     pub seq: u128,
@@ -112,7 +112,7 @@ impl HistoryStorage {
     }
 
     //TODO:  implement Rollback
-    pub fn append(&self, key: Hash, value: MorphOperation) -> Result<HistoryIValue> {
+    pub fn append(&self, key: Hash, value: StateOperation) -> Result<HistoryIValue> {
         self.mu.lock().map_err(|e| anyhow::anyhow!("{}", e))?;
         anyhow::ensure!(
             !self.kv.contains(&HistoryIKey::Lookup(key))?,
@@ -363,7 +363,7 @@ mod test {
 
     use account::create_account;
 
-    use crate::MorphOperation;
+    use crate::StateOperation;
     use crate::store::{
         AccountMetadataStorage, AccountRoots, AccountStateStorage, column_families,
         default_db_opts, HistoryIKey, HistoryIValue, HistorySequenceStorage, HistoryStorage,
@@ -400,7 +400,7 @@ mod test {
         history_storage
             .append(
                 [1; 32],
-                MorphOperation::UpdateNonce {
+                StateOperation::UpdateNonce {
                     account: alice.address,
                     nonce: 1,
                     tx_hash: [0; 32],
@@ -410,7 +410,7 @@ mod test {
         history_storage
             .append(
                 [2; 32],
-                MorphOperation::UpdateNonce {
+                StateOperation::UpdateNonce {
                     account: alice.address,
                     nonce: 2,
                     tx_hash: [0; 32],
@@ -420,7 +420,7 @@ mod test {
         history_storage
             .append(
                 [3; 32],
-                MorphOperation::UpdateNonce {
+                StateOperation::UpdateNonce {
                     account: alice.address,
                     nonce: 3,
                     tx_hash: [0; 32],
@@ -448,7 +448,7 @@ mod test {
                 let his = history_storage
                     .append(
                         [i as u8; 32],
-                        MorphOperation::UpdateNonce {
+                        StateOperation::UpdateNonce {
                             account: bob.address,
                             nonce: i + 1,
                             tx_hash: [i as u8; 32],
@@ -461,7 +461,7 @@ mod test {
                 let his = history_storage
                     .append(
                         [i as u8; 32],
-                        MorphOperation::UpdateNonce {
+                        StateOperation::UpdateNonce {
                             account: alice.address,
                             nonce: i,
                             tx_hash: [i as u8; 32],

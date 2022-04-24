@@ -36,11 +36,18 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="export functions">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implemented sparse merkle tree">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/kernel/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/smt/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/proof.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/smt.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/subtree.rs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/treehasher.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/treehasher.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/store.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -162,6 +169,22 @@
     </key>
   </component>
   <component name="RunManager" selected="Cargo.Test proof::tests::test_proof_basic">
+    <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="build --package smt" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Build Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -226,8 +249,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test config::test::test_config" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package types --lib config::test::test_config -- --exact" />
+    <configuration name="Test basic_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kernel --lib basic_test -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -242,8 +265,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test peer_man::test::check_pow" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package blockchain --lib peer_man::test::check_pow -- --exact" />
+    <configuration name="Test config::test::test_config" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package types --lib config::test::test_config -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -325,22 +348,23 @@
     <list>
       <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Build Txpool" />
+      <item itemvalue="Cargo.Build SMT" />
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
+      <item itemvalue="Cargo.Test basic_test" />
       <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
       <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
       <item itemvalue="Cargo.Test smt::tests" />
-      <item itemvalue="Cargo.Test peer_man::test::check_pow" />
       <item itemvalue="Cargo.Test config::test::test_config" />
     </list>
     <recent_temporary>
       <list>
         <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
+        <item itemvalue="Cargo.Test basic_test" />
         <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
         <item itemvalue="Cargo.Test smt::tests" />
         <item itemvalue="Cargo.Test config::test::test_config" />
-        <item itemvalue="Cargo.Test peer_man::test::check_pow" />
       </list>
     </recent_temporary>
   </component>
@@ -442,21 +466,10 @@
       <workItem from="1650438428362" duration="653000" />
       <workItem from="1650551856495" duration="27977000" />
       <workItem from="1650650686785" duration="2519000" />
-      <workItem from="1650657499535" duration="12082000" />
-    </task>
-    <task id="LOCAL-00108" summary="bootstrapping">
-      <created>1644068294325</created>
-      <option name="number" value="00108" />
-      <option name="presentableId" value="LOCAL-00108" />
-      <option name="project" value="LOCAL" />
-      <updated>1644068294325</updated>
-    </task>
-    <task id="LOCAL-00109" summary="kademila discovery">
-      <created>1644068438856</created>
-      <option name="number" value="00109" />
-      <option name="presentableId" value="LOCAL-00109" />
-      <option name="project" value="LOCAL" />
-      <updated>1644068438856</updated>
+      <workItem from="1650657499535" duration="37108000" />
+      <workItem from="1651264774414" duration="18170000" />
+      <workItem from="1652771597523" duration="1318000" />
+      <workItem from="1652801999764" duration="3109000" />
     </task>
     <task id="LOCAL-00110" summary="kademila discovery">
       <created>1644073134118</created>
@@ -787,7 +800,21 @@
       <option name="project" value="LOCAL" />
       <updated>1650672426266</updated>
     </task>
-    <option name="localTasksCounter" value="157" />
+    <task id="LOCAL-00157" summary="inline functions">
+      <created>1650785942117</created>
+      <option name="number" value="00157" />
+      <option name="presentableId" value="LOCAL-00157" />
+      <option name="project" value="LOCAL" />
+      <updated>1650785942117</updated>
+    </task>
+    <task id="LOCAL-00158" summary="implemented sparse merkle tree">
+      <created>1650825324861</created>
+      <option name="number" value="00158" />
+      <option name="presentableId" value="LOCAL-00158" />
+      <option name="project" value="LOCAL" />
+      <updated>1650825324861</updated>
+    </task>
+    <option name="localTasksCounter" value="159" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -818,7 +845,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="implement truncate pending transactions" />
     <MESSAGE value="implemented truncate queue" />
     <MESSAGE value="implemented txpool" />
     <MESSAGE value="add todos" />
@@ -837,13 +863,14 @@
     <MESSAGE value="cargo fmt" />
     <MESSAGE value="tweaks" />
     <MESSAGE value="begin sparse merkle tree" />
-    <MESSAGE value="implemented sparse merkle tree" />
     <MESSAGE value="persistence refactor" />
     <MESSAGE value="refactor" />
     <MESSAGE value="fixes" />
     <MESSAGE value="bug fixes: proof now working" />
     <MESSAGE value="export functions" />
-    <option name="LAST_COMMIT_MESSAGE" value="export functions" />
+    <MESSAGE value="inline functions" />
+    <MESSAGE value="implemented sparse merkle tree" />
+    <option name="LAST_COMMIT_MESSAGE" value="implemented sparse merkle tree" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

@@ -91,7 +91,7 @@ impl StateDB for State {
     }
 
     fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
-        let action = MorphOperation::CreditBalance {
+        let action = StateOperation::CreditBalance {
             account: *address,
             amount,
             tx_hash: [0; 32],
@@ -101,7 +101,7 @@ impl StateDB for State {
     }
 
     fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
-        let action = MorphOperation::DebitBalance {
+        let action = StateOperation::DebitBalance {
             account: *address,
             amount,
             tx_hash: [0; 32],
@@ -190,7 +190,7 @@ impl State {
         Ok(())
     }
 
-    fn apply_operation(&self, action: MorphOperation) -> Result<()> {
+    fn apply_operation(&self, action: StateOperation) -> Result<()> {
         let mut db = self.db.write().map_err(|e| anyhow::anyhow!("{}", e))?;
 
         let current_account_state = self.get_account_state(&action.get_address(), &db)?;
@@ -218,23 +218,23 @@ impl State {
 
     fn apply_action(
         &self,
-        action: &MorphOperation,
+        action: &StateOperation,
         account_state: AccountState,
     ) -> Result<AccountState> {
         let mut account_state = account_state;
         match action {
-            MorphOperation::DebitBalance { amount, .. } => {
+            StateOperation::DebitBalance { amount, .. } => {
                 if account_state.free_balance < *amount {
                     return Err(MorphError::InsufficientFunds.into());
                 }
                 account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
                 Ok(account_state)
             }
-            MorphOperation::CreditBalance { amount, .. } => {
+            StateOperation::CreditBalance { amount, .. } => {
                 account_state.free_balance = account_state.free_balance.saturating_add(*amount);
                 Ok(account_state)
             }
-            MorphOperation::UpdateNonce { nonce, .. } => {
+            StateOperation::UpdateNonce { nonce, .. } => {
                 if *nonce <= account_state.nonce {
                     return Err(MorphError::NonceIsLessThanCurrent.into());
                 }
@@ -299,7 +299,7 @@ impl State {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum MorphOperation {
+pub enum StateOperation {
     DebitBalance {
         account: H160,
         amount: u128,
@@ -317,17 +317,17 @@ pub enum MorphOperation {
     },
 }
 
-impl MorphOperation {
+impl StateOperation {
     fn get_address(&self) -> H160 {
         match self {
-            MorphOperation::DebitBalance { account, .. } => *account,
-            MorphOperation::CreditBalance { account, .. } => *account,
-            MorphOperation::UpdateNonce { account, .. } => *account,
+            StateOperation::DebitBalance { account, .. } => *account,
+            StateOperation::CreditBalance { account, .. } => *account,
+            StateOperation::UpdateNonce { account, .. } => *account,
         }
     }
 }
 
-pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
+pub fn get_operations(tx: &Transaction) -> Vec<StateOperation> {
     let mut ops = Vec::new();
     let tx_hash = tx.hash();
     match tx.kind() {
@@ -338,17 +338,17 @@ pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
             fee,
             ..
         } => {
-            ops.push(MorphOperation::DebitBalance {
+            ops.push(StateOperation::DebitBalance {
                 account: H160::from(from),
                 amount: *amount + *fee,
                 tx_hash,
             });
-            ops.push(MorphOperation::CreditBalance {
+            ops.push(StateOperation::CreditBalance {
                 account: H160::from(to),
                 amount: *amount,
                 tx_hash,
             });
-            ops.push(MorphOperation::UpdateNonce {
+            ops.push(StateOperation::UpdateNonce {
                 account: H160::from(from),
                 nonce: tx.nonce(),
                 tx_hash,
@@ -357,7 +357,7 @@ pub fn get_operations(tx: &Transaction) -> Vec<MorphOperation> {
     }
     ops
 }
-impl_codec!(MorphOperation);
+impl_codec!(StateOperation);
 
 pub trait MorphCheckPoint {
     fn checkpoint(&self) -> State;

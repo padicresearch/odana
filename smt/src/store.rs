@@ -1,9 +1,12 @@
-use anyhow::Result;
-use rocksdb::{BlockBasedOptions, Cache, ColumnFamily, ColumnFamilyDescriptor, Options, DB};
-use std::clone;
-use std::path::Path;
+use crate::persistent::{default_db_opts, MemoryStore, RocksDB};
+use anyhow::{bail, Result};
+use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use crate::persistent::{DiskStore, default_db_opts, MemoryStore};
+use dashmap::DashMap;
+use hex::ToHex;
+use crate::error::Error;
+use serde::{Serialize, Deserialize};
 
 const COLUMN_NODE: &'static str = "__node__";
 const COLUMN_VALUE: &'static str = "__value__";
@@ -39,47 +42,119 @@ fn default_table_options() -> Options {
     db_opts
 }
 
-
-
-
-
 pub(crate) trait DatabaseBackend {
-    fn put(&self, key: &[u8], value: &[u8]) -> Result<()>;
+    fn put(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()>;
 
-    fn get(&self, key: &[u8]) -> Result<Vec<u8>>;
+    fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>>;
 
-    fn delete(&self, key: &[u8]) -> Result<()>;
+    fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()>;
 
-    fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>>;
+    fn checkpoint(&self, path: PathBuf) -> Result<Arc<dyn DatabaseBackend + Send + Sync>>;
+
+    fn get_or_default(
+        &self,
+        column_name: &'static str,
+        key: &[u8],
+        default: Vec<u8>,
+    ) -> Result<Vec<u8>>;
 }
 
 pub(crate) struct Database {
-    pub(crate) nodes: Arc<dyn DatabaseBackend + Send + Sync>,
-    pub(crate) values: Arc<dyn DatabaseBackend + Send + Sync>,
+    pub(crate) inner: Arc<dyn DatabaseBackend + Send + Sync>,
 }
 
 impl Database {
     pub(crate) fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let db = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), path, cfs())?);
+        let db = Arc::new(rocksdb::DB::open_cf_descriptors(
+            &default_db_opts(),
+            path,
+            cfs(),
+        )?);
         Ok(Self {
-            nodes: Arc::new(DiskStore::new(COLUMN_NODE, db.clone())),
-            values: Arc::new(DiskStore::new(COLUMN_VALUE, db.clone())),
+            inner: Arc::new(RocksDB::new(db)),
         })
     }
 
     pub(crate) fn in_memory() -> Self {
         Self {
-            nodes: Arc::new(MemoryStore::new()),
-            values: Arc::new(MemoryStore::new()),
+            inner: Arc::new(MemoryStore::new())
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn test(nodes: Arc<MemoryStore>, values: Arc<MemoryStore>) -> Self {
-        Self {
-            nodes,
-            values,
-        }
+    pub(crate) fn nodes_put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        self.inner.put(COLUMN_NODE, key, value)
+    }
+
+    pub(crate) fn nodes_get(&self, key: &[u8]) -> Result<Vec<u8>> {
+        self.inner.get(COLUMN_NODE, key)
+    }
+
+    pub(crate) fn nodes_delete(&self, key: &[u8]) -> Result<()> {
+        self.inner.delete(COLUMN_NODE, key)
+    }
+
+    pub(crate) fn nodes_get_or_default(
+        &self,
+        key: &[u8],
+        default: Vec<u8>,
+    ) -> Result<Vec<u8>> {
+        self.inner.get_or_default(COLUMN_VALUE, key, default)
+    }
+
+    pub(crate) fn values_put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        self.inner.put(COLUMN_VALUE, key, value)
+    }
+
+    pub(crate) fn values_get(&self, key: &[u8]) -> Result<Vec<u8>> {
+        self.inner.get(COLUMN_VALUE, key)
+    }
+
+    pub(crate) fn values_delete(&self, key: &[u8]) -> Result<()> {
+        self.inner.delete(COLUMN_VALUE, key)
+    }
+
+    pub(crate) fn values_get_or_default(
+        &self,
+        key: &[u8],
+        default: Vec<u8>,
+    ) -> Result<Vec<u8>> {
+        self.inner.get_or_default(COLUMN_VALUE, key, default)
+    }
+
+    pub(crate) fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Database> {
+        Ok(Database {
+            inner: self.inner.checkpoint(PathBuf::new().join(path))?
+        })
     }
 }
 
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct ArchivedStorage {
+    inner: DashMap<Vec<u8>, Vec<u8>>,
+}
+
+impl ArchivedStorage {
+    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        self.inner.insert(key.to_vec(), value.to_vec());
+        Ok(())
+    }
+
+    pub fn get(&self, key: &[u8]) -> Result<Vec<u8>> {
+        let value = self.inner.get(key).map(|r| r.value().clone());
+        value.ok_or(Error::InvalidKey(key.encode_hex::<String>()).into())
+    }
+
+    pub fn delete(&self, key: &[u8]) -> Result<()> {
+        if !self.inner.contains_key(key) {
+            bail!(Error::InvalidKey(key.encode_hex::<String>()))
+        }
+        self.inner.remove(key);
+        Ok(())
+    }
+
+    pub fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>> {
+        let value = self.inner.get(key).map(|r| r.value().clone());
+        Ok(value.unwrap_or(default))
+    }
+}
