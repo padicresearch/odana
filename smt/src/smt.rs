@@ -7,13 +7,23 @@ use std::path::Path;
 use crate::error::Error;
 use crate::proof::Proof;
 
-pub struct SparseMerkleTree {
+pub struct SMT {
     th: TreeHasher,
     db: Database,
     root: H256,
 }
 
-impl SparseMerkleTree {
+impl Default for SMT {
+    fn default() -> Self {
+        Self {
+            th: TreeHasher::new(),
+            db: Database::in_memory(),
+            root: Default::default(),
+        }
+    }
+}
+
+impl SMT {
     pub fn open<P: AsRef<Path>>(path: P, root: Option<H256>) -> Result<Self> {
         Ok(Self {
             th: TreeHasher::new(),
@@ -322,20 +332,10 @@ impl SparseMerkleTree {
 #[cfg(test)]
 mod tests {
     use tempdir::TempDir;
-    use crate::smt::SparseMerkleTree;
+    use crate::smt::SMT;
 
     #[test]
     fn basic_get_set_check_root_test() {
-        let mut trie = SparseMerkleTree::in_memory(None);
-        trie.update(b"kwame", b"AMA").unwrap();
-        trie.update(b"kofi", b"AMA").unwrap();
-        println!("{:?}", trie.root());
-        println!("{:?}", trie.get(b"kofi").unwrap());
-        println!("{:?}", trie.get(b"kwame").unwrap());
-        trie.update(b"kofi", b"").unwrap();
-        println!("{:?}", trie.root());
-
-        println!("{:?}", trie.get(b"kofi").unwrap());
-        println!("{:?}", trie.get(b"kwame").unwrap());
+        let mut trie = SMT::in_memory(None);
     }
 }

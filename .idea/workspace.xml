@@ -36,17 +36,11 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="fixes">
-      <change afterPath="$PROJECT_DIR$/smt/src/error.rs" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="export functions">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/smt/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/persistent.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/persistent.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/proof.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/smt.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/utils.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/utils.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/treehasher.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/treehasher.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -448,21 +442,7 @@
       <workItem from="1650438428362" duration="653000" />
       <workItem from="1650551856495" duration="27977000" />
       <workItem from="1650650686785" duration="2519000" />
-      <workItem from="1650657499535" duration="8763000" />
-    </task>
-    <task id="LOCAL-00106" summary="bootstrapping">
-      <created>1644064468090</created>
-      <option name="number" value="00106" />
-      <option name="presentableId" value="LOCAL-00106" />
-      <option name="project" value="LOCAL" />
-      <updated>1644064468090</updated>
-    </task>
-    <task id="LOCAL-00107" summary="bootstrapping">
-      <created>1644066221811</created>
-      <option name="number" value="00107" />
-      <option name="presentableId" value="LOCAL-00107" />
-      <option name="project" value="LOCAL" />
-      <updated>1644066221812</updated>
+      <workItem from="1650657499535" duration="12082000" />
     </task>
     <task id="LOCAL-00108" summary="bootstrapping">
       <created>1644068294325</created>
@@ -793,7 +773,21 @@
       <option name="project" value="LOCAL" />
       <updated>1650614593369</updated>
     </task>
-    <option name="localTasksCounter" value="155" />
+    <task id="LOCAL-00155" summary="bug fixes: proof now working">
+      <created>1650672248203</created>
+      <option name="number" value="00155" />
+      <option name="presentableId" value="LOCAL-00155" />
+      <option name="project" value="LOCAL" />
+      <updated>1650672248203</updated>
+    </task>
+    <task id="LOCAL-00156" summary="export functions">
+      <created>1650672426266</created>
+      <option name="number" value="00156" />
+      <option name="presentableId" value="LOCAL-00156" />
+      <option name="project" value="LOCAL" />
+      <updated>1650672426266</updated>
+    </task>
+    <option name="localTasksCounter" value="157" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -824,8 +818,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="rewrite txpool" />
-    <MESSAGE value="implement demote transactions" />
     <MESSAGE value="implement truncate pending transactions" />
     <MESSAGE value="implemented truncate queue" />
     <MESSAGE value="implemented txpool" />
@@ -849,7 +841,9 @@
     <MESSAGE value="persistence refactor" />
     <MESSAGE value="refactor" />
     <MESSAGE value="fixes" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixes" />
+    <MESSAGE value="bug fixes: proof now working" />
+    <MESSAGE value="export functions" />
+    <option name="LAST_COMMIT_MESSAGE" value="export functions" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

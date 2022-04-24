@@ -79,11 +79,11 @@ fn verify_proof_with_updates(proof: Proof, root: H256, key: &[u8], value: &[u8])
 mod tests {
     use crypto::SHA256;
     use crate::proof::verify_proof;
-    use crate::smt::SparseMerkleTree;
+    use crate::smt::SMT;
 
     #[test]
     fn test_proof_basic() {
-        let mut smt = SparseMerkleTree::in_memory(None);
+        let mut smt = SMT::in_memory(None);
 
     }
 }
