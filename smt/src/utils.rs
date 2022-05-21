@@ -19,12 +19,11 @@ pub(crate) fn count_set_bits(data: &[u8]) -> i32 {
         if get_bits_at_from_msb(data, i) == 1 {
             count += 1
         } else {
-            break
+            break;
         }
     }
-    return count
+    return count;
 }
-
 
 pub(crate) fn count_common_prefix(lhs: &[u8], rhs: &[u8]) -> i32 {
     let mut count = 0;
@@ -32,8 +31,8 @@ pub(crate) fn count_common_prefix(lhs: &[u8], rhs: &[u8]) -> i32 {
         if get_bits_at_from_msb(lhs, i) == get_bits_at_from_msb(rhs, i) {
             count += 1
         } else {
-            break
+            break;
         }
     }
-    return count
+    return count;
 }

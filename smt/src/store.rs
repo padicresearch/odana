@@ -1,15 +1,15 @@
+use crate::error::Error;
 use crate::persistent::{default_db_opts, MemoryStore, RocksDB};
+use crate::SparseMerkleTree;
 use anyhow::{bail, Result};
-use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use codec::{Decoder, Encoder};
 use dashmap::DashMap;
 use hex::ToHex;
-use crate::error::Error;
-use serde::{Serialize, Deserialize};
-use codec::{Decoder, Encoder};
 use primitive_types::H256;
-use crate::SparseMerkleTree;
+use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 const COLUMN_TREES: &'static str = "t";
 const COLUMN_ROOT: &'static str = "r";
@@ -80,12 +80,13 @@ impl Database {
 
     pub(crate) fn in_memory() -> Self {
         Self {
-            inner: Arc::new(MemoryStore::new())
+            inner: Arc::new(MemoryStore::new()),
         }
     }
 
     pub(crate) fn put(&self, key: H256, value: SparseMerkleTree) -> Result<()> {
-        self.inner.put(COLUMN_TREES, &key.encode()?, &value.encode()?)
+        self.inner
+            .put(COLUMN_TREES, &key.encode()?, &value.encode()?)
     }
 
     pub(crate) fn set_root(&self, new_root: H256) -> Result<()> {
@@ -108,11 +109,10 @@ impl Database {
 
     pub(crate) fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Database> {
         Ok(Database {
-            inner: self.inner.checkpoint(PathBuf::new().join(path))?
+            inner: self.inner.checkpoint(PathBuf::new().join(path))?,
         })
     }
 }
-
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct ArchivedStorage {

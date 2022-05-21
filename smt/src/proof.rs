@@ -1,10 +1,10 @@
-use std::fmt::{Debug};
-use serde::{Serialize, Deserialize};
-use primitive_types::H256;
+use crate::error::Error;
 use crate::treehasher::TreeHasher;
 use crate::utils::get_bits_at_from_msb;
 use hex::ToHex;
-use crate::error::Error;
+use primitive_types::H256;
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 //use anyhow::Result;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -31,7 +31,12 @@ struct Hasher;
 
 impl TreeHasher for Hasher {}
 
-pub(crate) fn verify_proof_with_updates(proof: &Proof, root: H256, key: &[u8], value: &[u8]) -> Result<Vec<Vec<Vec<u8>>>, Error> {
+pub(crate) fn verify_proof_with_updates(
+    proof: &Proof,
+    root: H256,
+    key: &[u8],
+    value: &[u8],
+) -> Result<Vec<Vec<Vec<u8>>>, Error> {
     let th = Hasher;
     let path = th.path(key);
     let mut updates = Vec::new();
@@ -45,19 +50,28 @@ pub(crate) fn verify_proof_with_updates(proof: &Proof, root: H256, key: &[u8], v
         } else if let Some(non_membership_leaf_data) = &proof.non_membership_leaf_data {
             let (actual_path, value_hash) = th.parse_leaf(non_membership_leaf_data);
             if actual_path.eq(path.as_bytes()) {
-                return Err(Error::NonMembershipPathError(actual_path.encode_hex::<String>(), path.as_bytes().encode_hex::<String>()))
+                return Err(Error::NonMembershipPathError(
+                    actual_path.encode_hex::<String>(),
+                    path.as_bytes().encode_hex::<String>(),
+                ));
             }
             let (l, r) = th.digest_leaf(actual_path, value_hash);
             current_hash = l;
             current_data = r;
-            updates.push(vec![current_hash.as_bytes().to_vec(), current_data.to_vec()]);
+            updates.push(vec![
+                current_hash.as_bytes().to_vec(),
+                current_data.to_vec(),
+            ]);
         }
     } else {
         let value_hash = th.digest(value);
         let (l, r) = th.digest_leaf(path.as_bytes(), value_hash.as_bytes());
         current_hash = l;
         current_data = r;
-        updates.push(vec![current_hash.as_bytes().to_vec(), current_data.to_vec()]);
+        updates.push(vec![
+            current_hash.as_bytes().to_vec(),
+            current_data.to_vec(),
+        ]);
     }
 
     for i in 0..proof.side_nodes.len() {
@@ -72,20 +86,23 @@ pub(crate) fn verify_proof_with_updates(proof: &Proof, root: H256, key: &[u8], v
             current_hash = l;
             current_data = r;
         }
-        updates.push(vec![current_hash.as_bytes().to_vec(), current_data.to_vec()]);
+        updates.push(vec![
+            current_hash.as_bytes().to_vec(),
+            current_data.to_vec(),
+        ]);
     }
 
     if current_hash.ne(&root) {
-        return Err(Error::BadProof(updates))
+        return Err(Error::BadProof(updates));
     }
     return Ok(updates);
 }
 
 #[cfg(test)]
 mod tests {
-    use primitive_types::H256;
     use crate::proof::verify_proof;
     use crate::smt::SparseMerkleTree;
+    use primitive_types::H256;
 
     #[test]
     fn test_proof_basic() {

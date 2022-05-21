@@ -1,14 +1,14 @@
 use crate::error::Error;
-use crate::proof::{Proof, verify_proof_with_updates};
+use crate::proof::{verify_proof_with_updates, Proof};
 use crate::store::{ArchivedStorage, DatabaseBackend};
 use crate::treehasher::TreeHasher;
 use crate::utils::{count_common_prefix, get_bits_at_from_msb};
 use anyhow::{bail, Result};
-use primitive_types::H256;
-use std::sync::Arc;
-use hex::ToHex;
-use serde::{Serialize, Deserialize};
 use codec::{Decoder, Encoder};
+use hex::ToHex;
+use primitive_types::H256;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 impl TreeHasher for SparseMerkleTree {}
 
@@ -44,7 +44,11 @@ impl SparseMerkleTree {
         self.root = new_root
     }
 
-    pub fn subtree(&self, import_nodes: bool, import_keys: Vec<Vec<u8>>) -> Result<SparseMerkleTree> {
+    pub fn subtree(
+        &self,
+        import_nodes: bool,
+        import_keys: Vec<Vec<u8>>,
+    ) -> Result<SparseMerkleTree> {
         let mut subtree = SparseMerkleTree::new();
         subtree.parent = self.root;
         subtree.root = self.root;
@@ -76,7 +80,8 @@ impl SparseMerkleTree {
 
         if let Some(sibling_data) = &proof.sibling_data {
             if !proof.side_nodes.is_empty() && proof.side_nodes.len() > 0 {
-                self.nodes.put(proof.side_nodes[0].as_bytes(), sibling_data)?;
+                self.nodes
+                    .put(proof.side_nodes[0].as_bytes(), sibling_data)?;
             }
         }
         Ok(())
@@ -251,9 +256,11 @@ impl SparseMerkleTree {
 
         if common_prefix_count != self.depth() {
             if get_bits_at_from_msb(path.as_bytes(), common_prefix_count) == 1 {
-                (current_hash, current_data) = self.digest_node(path_nodes[0].as_bytes(), current_data.as_slice());
+                (current_hash, current_data) =
+                    self.digest_node(path_nodes[0].as_bytes(), current_data.as_slice());
             } else {
-                (current_hash, current_data) = self.digest_node(current_data.as_slice(), path_nodes[0].as_bytes());
+                (current_hash, current_data) =
+                    self.digest_node(current_data.as_slice(), path_nodes[0].as_bytes());
             }
             self.nodes.put(current_hash.as_bytes(), &current_data)?;
             current_data = current_hash.as_bytes().to_vec();
@@ -402,7 +409,6 @@ impl SparseMerkleTree {
         self.root
     }
 }
-
 
 #[cfg(test)]
 mod tests {

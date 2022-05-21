@@ -6,14 +6,14 @@ use anyhow::Result;
 use lru::LruCache;
 use tokio::sync::mpsc::UnboundedSender;
 
-use state::State;
 use primitive_types::H256;
+use state::State;
 use storage::{KVStore, Schema};
 use tracing::{error, info};
 use traits::{Blockchain, ChainReader, Consensus, StateDB};
-use types::{ChainStateValue, Hash};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
+use types::{ChainStateValue, Hash};
 
 use crate::block_storage::BlockStorage;
 use crate::errors::BlockChainError;
@@ -79,7 +79,7 @@ impl ChainState {
         consensus: Arc<dyn Consensus>,
         block_storage: Arc<BlockStorage>,
         chain_state_storage: Arc<ChainStateStorage>,
-        sender: UnboundedSender<LocalEventMessage>
+        sender: UnboundedSender<LocalEventMessage>,
     ) -> Result<Self> {
         let mut state_provider = LruCache::new(10);
 
@@ -107,7 +107,7 @@ impl ChainState {
             state_dir,
             block_storage,
             chain_state: chain_state_storage,
-            sender
+            sender,
         })
     }
 
@@ -129,7 +129,9 @@ impl ChainState {
                     provider.put(header.state_root, new_state.clone());
                     provider.put(CURR_STATE_ROOT, new_state);
                     self.chain_state.set_current_header(header.clone())?;
-                    self.sender.send(LocalEventMessage::StateChanged { current_head: self.current_header().unwrap().unwrap().raw });
+                    self.sender.send(LocalEventMessage::StateChanged {
+                        current_head: self.current_header().unwrap().unwrap().raw,
+                    });
                     info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Applied new block");
                 }
                 Err(e) => {

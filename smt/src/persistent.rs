@@ -1,12 +1,12 @@
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use rocksdb::{DB};
-use anyhow::{bail, Result};
-use dashmap::DashMap;
 use crate::error::Error;
 use crate::store::{cfs, DatabaseBackend};
+use anyhow::{bail, Result};
+use dashmap::DashMap;
 use hex::ToHex;
 use rocksdb::checkpoint::Checkpoint;
+use rocksdb::DB;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 pub(crate) fn default_db_opts() -> rocksdb::Options {
     let mut opts = rocksdb::Options::default();
@@ -36,22 +36,18 @@ fn default_read_opts() -> rocksdb::ReadOptions {
     opts
 }
 
-
 pub(crate) struct RocksDB {
     inner: Arc<DB>,
 }
 
 impl RocksDB {
     pub(crate) fn new(db: Arc<DB>) -> Self {
-        Self {
-            inner: db,
-        }
+        Self { inner: db }
     }
 }
 
 impl DatabaseBackend for RocksDB {
-    fn put(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()>
-    {
+    fn put(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()> {
         let cf = self
             .inner
             .cf_handle(column_name)
@@ -61,8 +57,7 @@ impl DatabaseBackend for RocksDB {
             .map_err(|e| e.into())
     }
 
-    fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>>
-    {
+    fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>> {
         let cf = self
             .inner
             .cf_handle(column_name)
@@ -72,8 +67,7 @@ impl DatabaseBackend for RocksDB {
         value.ok_or(Error::InvalidKey(key.encode_hex::<String>()).into())
     }
 
-    fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()>
-    {
+    fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()> {
         let cf = self
             .inner
             .cf_handle(column_name)
@@ -94,8 +88,12 @@ impl DatabaseBackend for RocksDB {
         Ok(Arc::new(RocksDB::new(db)))
     }
 
-    fn get_or_default(&self, column_name: &'static str, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>>
-    {
+    fn get_or_default(
+        &self,
+        column_name: &'static str,
+        key: &[u8],
+        default: Vec<u8>,
+    ) -> Result<Vec<u8>> {
         let cf = self
             .inner
             .cf_handle(column_name)
@@ -103,41 +101,35 @@ impl DatabaseBackend for RocksDB {
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
         Ok(value.unwrap_or(default))
     }
-
-
-
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct MemoryStore {
-    inner: Arc<DashMap<&'static str, DashMap<Vec<u8>, Vec<u8>>>>
+    inner: Arc<DashMap<&'static str, DashMap<Vec<u8>, Vec<u8>>>>,
 }
 
 impl MemoryStore {
     pub(crate) fn new() -> Self {
         Self {
-            inner: Arc::new(DashMap::new())
+            inner: Arc::new(DashMap::new()),
         }
     }
 }
 
 impl DatabaseBackend for MemoryStore {
-    fn put(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()>
-    {
+    fn put(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()> {
         let column = self.inner.entry(column_name).or_default();
         column.insert(key.to_vec(), value.to_vec());
         Ok(())
     }
 
-    fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>>
-    {
+    fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>> {
         let column = self.inner.entry(column_name).or_default();
         let value = column.get(key).map(|r| r.value().clone());
         value.ok_or(Error::InvalidKey(key.encode_hex::<String>()).into())
     }
 
-    fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()>
-    {
+    fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()> {
         let column = self.inner.entry(column_name).or_default();
         if !column.contains_key(key) {
             bail!(Error::InvalidKey(key.encode_hex::<String>()))
@@ -148,12 +140,16 @@ impl DatabaseBackend for MemoryStore {
 
     fn checkpoint(&self, _: PathBuf) -> Result<Arc<dyn DatabaseBackend + Send + Sync>> {
         Ok(Arc::new(MemoryStore {
-            inner: self.inner.clone()
+            inner: self.inner.clone(),
         }))
     }
 
-    fn get_or_default(&self, column_name: &'static str, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>>
-    {
+    fn get_or_default(
+        &self,
+        column_name: &'static str,
+        key: &[u8],
+        default: Vec<u8>,
+    ) -> Result<Vec<u8>> {
         let column = self.inner.entry(column_name).or_default();
         let value = column.get(key).map(|r| r.value().clone());
         Ok(value.unwrap_or(default))

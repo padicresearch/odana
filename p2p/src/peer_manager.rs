@@ -1,11 +1,11 @@
 use std::collections::BTreeSet;
 use std::sync::{Arc, RwLock};
 
-use anyhow::Result;
 use anyhow::bail;
+use anyhow::Result;
 use dashmap::DashMap;
-use libp2p::{Multiaddr, PeerId};
 use libp2p::request_response::RequestId;
+use libp2p::{Multiaddr, PeerId};
 use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::Compact;
@@ -138,7 +138,7 @@ impl NetworkState {
         let peer = self.peer_list.get_peer(peer_id).unwrap();
         self.sender
             .send(LocalEventMessage::NetworkNewPeerConnection {
-                stats: self.peer_list.stats()
+                stats: self.peer_list.stats(),
             });
         let mut highest_know_head = self.highest_know_head.write().unwrap();
         if highest_know_head.is_none() {

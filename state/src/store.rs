@@ -4,20 +4,20 @@ use std::option::Option::Some;
 use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
-use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, MergeOperands};
 use rocksdb::Options;
+use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, MergeOperands};
 use serde::{Deserialize, Serialize};
 
-use codec::{Decoder, Encoder};
 use codec::impl_codec;
+use codec::{Decoder, Encoder};
 use primitive_types::{H160, H256};
-use tracing::{Value, warn};
+use tracing::{warn, Value};
 use types::account::AccountState;
 use types::Hash;
 
-use crate::{GENESIS_ROOT, StateOperation};
 use crate::error::MorphError;
-use crate::kv::{KV, Schema};
+use crate::kv::{Schema, KV};
+use crate::{StateOperation, GENESIS_ROOT};
 
 pub fn default_db_opts() -> Options {
     let mut opts = Options::default();
@@ -363,11 +363,11 @@ mod test {
 
     use account::create_account;
 
-    use crate::StateOperation;
     use crate::store::{
-        AccountMetadataStorage, AccountRoots, AccountStateStorage, column_families,
-        default_db_opts, HistoryIKey, HistoryIValue, HistorySequenceStorage, HistoryStorage,
+        column_families, default_db_opts, AccountMetadataStorage, AccountRoots,
+        AccountStateStorage, HistoryIKey, HistoryIValue, HistorySequenceStorage, HistoryStorage,
     };
+    use crate::StateOperation;
 
     #[test]
     fn test_merge_account_meta() {

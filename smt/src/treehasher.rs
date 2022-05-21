@@ -29,7 +29,9 @@ pub(crate) trait TreeHasher {
 
     #[inline]
     fn digest_node(&self, left_data: &[u8], right_data: &[u8]) -> (H256, Vec<u8>) {
-        let mut value = Vec::with_capacity(NODE_PREFIX.len() + left_data.as_ref().len() + right_data.as_ref().len());
+        let mut value = Vec::with_capacity(
+            NODE_PREFIX.len() + left_data.as_ref().len() + right_data.as_ref().len(),
+        );
         value.extend_from_slice(&NODE_PREFIX);
         value.extend_from_slice(left_data);
         value.extend_from_slice(right_data);
@@ -40,12 +42,18 @@ pub(crate) trait TreeHasher {
 
     #[inline]
     fn parse_leaf<'a>(&'a self, data: &'a [u8]) -> (&'a [u8], &'a [u8]) {
-        (&data[LEAF_PREFIX.len()..HASH_LEN + LEAF_PREFIX.len()], &data[LEAF_PREFIX.len() + HASH_LEN..])
+        (
+            &data[LEAF_PREFIX.len()..HASH_LEN + LEAF_PREFIX.len()],
+            &data[LEAF_PREFIX.len() + HASH_LEN..],
+        )
     }
 
     #[inline]
     fn parse_node<'a>(&'a self, data: &'a [u8]) -> (&'a [u8], &'a [u8]) {
-        (&data[NODE_PREFIX.len()..HASH_LEN + NODE_PREFIX.len()], &data[NODE_PREFIX.len() + HASH_LEN..])
+        (
+            &data[NODE_PREFIX.len()..HASH_LEN + NODE_PREFIX.len()],
+            &data[NODE_PREFIX.len() + HASH_LEN..],
+        )
     }
 
     #[inline]

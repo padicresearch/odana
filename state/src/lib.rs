@@ -3,15 +3,15 @@ use std::env::temp_dir;
 use std::option::Option::Some;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::{Arc, RwLock};
 use std::sync::RwLockReadGuard;
+use std::sync::{Arc, RwLock};
 use std::time::SystemTime;
 
 use anyhow::{Error, Result};
 use chrono::Utc;
-use merk::{Merk, Op};
 use merk::proofs::Query;
 use merk::test_utils::TempMerk;
+use merk::{Merk, Op};
 use rand::RngCore;
 use rocksdb::checkpoint::Checkpoint;
 use rocksdb::ColumnFamily;
@@ -19,20 +19,20 @@ use serde::{Deserialize, Serialize};
 use tempdir::TempDir;
 use tiny_keccak::{Hasher, Sha3};
 
-use codec::{Codec, Decoder, Encoder};
 use codec::impl_codec;
+use codec::{Codec, Decoder, Encoder};
 use crypto::SHA256;
 use primitive_types::{H160, H256};
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
-use types::account::{AccountState, get_address_from_pub_key};
-use types::Hash;
+use types::account::{get_address_from_pub_key, AccountState};
 use types::tx::{Transaction, TransactionKind};
+use types::Hash;
 
 use crate::error::MorphError;
 use crate::kv::Schema;
 use crate::store::{
-    AccountMetadataStorage, AccountStateStorage, column_families, default_db_opts,
+    column_families, default_db_opts, AccountMetadataStorage, AccountStateStorage,
     HistorySequenceStorage, HistoryStorage,
 };
 

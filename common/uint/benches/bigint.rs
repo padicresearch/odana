@@ -14,10 +14,10 @@
 
 use std::str::FromStr;
 
-use criterion::{Bencher, black_box, Criterion, ParameterizedBenchmark};
+use criterion::{black_box, Bencher, Criterion, ParameterizedBenchmark};
 use criterion::{criterion_group, criterion_main};
 use num_bigint::BigUint;
-use rug::{Integer, integer::Order};
+use rug::{integer::Order, Integer};
 
 use uint::{construct_uint, uint_full_mul_reg};
 

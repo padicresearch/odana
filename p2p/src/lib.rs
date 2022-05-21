@@ -6,23 +6,19 @@ use std::time::Duration;
 use anyhow::Result;
 use async_trait::async_trait;
 use colored::Colorize;
-use libp2p::{Multiaddr, PeerId, Swarm, Transport};
 use libp2p::core::connection::ConnectedPoint;
 use libp2p::core::multiaddr::Protocol;
-use libp2p::core::ProtocolName;
 use libp2p::core::transport::upgrade::Version;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed};
+use libp2p::core::ProtocolName;
 use libp2p::futures::{AsyncRead, AsyncWrite, AsyncWriteExt, SinkExt, StreamExt};
 use libp2p::gossipsub::{
     Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic,
     ValidationMode,
 };
-use libp2p::kad::{
-    Kademlia, KademliaConfig, KademliaEvent, QueryResult,
-};
 use libp2p::kad::record::store::MemoryStore;
+use libp2p::kad::{Kademlia, KademliaConfig, KademliaEvent, QueryResult};
 use libp2p::mdns::{Mdns, MdnsEvent};
-use libp2p::NetworkBehaviour;
 use libp2p::noise::{NoiseConfig, X25519Spec};
 use libp2p::request_response::{
     ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseConfig,
@@ -30,6 +26,8 @@ use libp2p::request_response::{
 };
 use libp2p::swarm::{NetworkBehaviour, SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
+use libp2p::NetworkBehaviour;
+use libp2p::{Multiaddr, PeerId, Swarm, Transport};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use codec::{Decoder, Encoder};

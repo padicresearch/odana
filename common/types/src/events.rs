@@ -14,6 +14,6 @@ pub enum LocalEventMessage {
         current_head: BlockHeader,
     },
     NetworkNewPeerConnection {
-        stats: (usize, usize)
+        stats: (usize, usize),
     },
 }

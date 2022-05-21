@@ -1,9 +1,10 @@
-use std::io::Write;
-use ripemd::{Digest, Ripemd160};
-use tiny_keccak::Hasher;
-use sha2::Digest as ShaDigest;
 use primitive_types::{Compact, H160, H256, H448, U192, U256};
+use ripemd::{Digest, Ripemd160};
 use sha2::digest::{FixedOutput, FixedOutputDirty};
+use sha2::Digest as ShaDigest;
+use std::io::Write;
+use tiny_keccak::Hasher;
+
 pub mod ecdsa;
 mod error;
 
@@ -28,7 +29,6 @@ impl SHA256 {
         out
     }
 }
-
 
 pub struct RIPEMD160;
 

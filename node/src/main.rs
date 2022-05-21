@@ -1,6 +1,6 @@
 use std::env::temp_dir;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicI8, Ordering};
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use clap::Parser;
@@ -14,11 +14,11 @@ use p2p::identity::NodeIdentity;
 use p2p::message::*;
 use p2p::peer_manager::{NetworkState, PeerList};
 use p2p::start_p2p_server;
-use storage::{PersistentStorage, PersistentStorageBackend};
 use storage::memstore::MemStore;
+use storage::{PersistentStorage, PersistentStorageBackend};
 use tracing::info;
-use tracing::Level;
 use tracing::tracing_subscriber;
+use tracing::Level;
 use traits::Blockchain;
 use types::events::LocalEventMessage;
 use types::network::Network;
@@ -88,7 +88,6 @@ async fn main() -> anyhow::Result<()> {
     )
         .clone();
 
-
     let network_state = Arc::new(NetworkState::new(peers.clone(), local_mpsc_sender.clone()));
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
     start_p2p_server(
@@ -99,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
         peers.clone(),
         NODE_POW_TARGET.into(),
         network_state.clone(),
-        blockchain.chain()
+        blockchain.chain(),
     )
         .await
     .unwrap();

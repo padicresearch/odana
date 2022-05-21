@@ -4,10 +4,10 @@ use std::iter::FromIterator;
 use anyhow::Result;
 
 use primitive_types::H160;
-use types::Hash;
 use types::tx::Transaction;
+use types::Hash;
 
-use crate::{Address, num_slots, TransactionRef, Transactions};
+use crate::{num_slots, Address, TransactionRef, Transactions};
 
 pub struct AccountSet {
     accounts: BTreeSet<H160>,

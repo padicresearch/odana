@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use actix::prelude::*;
+use std::sync::Arc;
 use traits::{Blockchain, StateDB};
 use types::block::Block;
 

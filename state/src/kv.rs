@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use anyhow::Result;
-use rocksdb::{ColumnFamily, ColumnFamilyDescriptor, DB, Snapshot, SnapshotWithThreadMode};
+use rocksdb::{ColumnFamily, ColumnFamilyDescriptor, Snapshot, SnapshotWithThreadMode, DB};
 
 use codec::{Codec, Decoder, Encoder};
 

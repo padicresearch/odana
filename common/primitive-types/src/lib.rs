@@ -77,7 +77,6 @@ impl_fixed_hash_serde!(H448, 56);
 impl_fixed_hash_serde!(H512, 64);
 impl_fixed_hash_conversions!(H256, H160);
 
-
 impl U128 {
     /// Multiplies two 128-bit integers to produce full 256-bit integer.
     /// Overflow is not possible.

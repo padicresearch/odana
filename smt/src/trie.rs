@@ -2,6 +2,7 @@ use crate::store::Database;
 use crate::SparseMerkleTree;
 use anyhow::{bail, Result};
 use codec::{Codec, Decoder, Encoder};
+use dashmap::DashSet;
 use primitive_types::H256;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -9,7 +10,6 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
-use dashmap::DashSet;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum IValue {
@@ -63,7 +63,10 @@ impl<K, V> Trie<K, V>
     pub fn reset(&self, root: H256) -> Result<()> {
         let mut head = self.head.write().map_err(|e| anyhow::anyhow!("{}", e))?;
         let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut staging_keys = self.staging_keys.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut staging_keys = self
+            .staging_keys
+            .write()
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
         let new_head = self.db.get(&root)?;
         *head = new_head;
         *staging = head.subtree(true, vec![])?;
@@ -105,7 +108,10 @@ impl<K, V> Trie<K, V>
         let mut head = self.head.write().map_err(|e| anyhow::anyhow!("{}", e))?;
 
         let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut staging_keys = self.staging_keys.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut staging_keys = self
+            .staging_keys
+            .write()
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
 
         self.db.put(staging.root(), staging.clone());
         *head = staging.clone();
@@ -117,7 +123,10 @@ impl<K, V> Trie<K, V>
     pub fn put(&self, key: K, value: V) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Value(value.encode()?).encode()?);
         let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut staging_keys = self.staging_keys.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut staging_keys = self
+            .staging_keys
+            .write()
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
         staging.update(key.clone(), value);
         staging_keys.push(key);
         Ok(())
@@ -126,7 +135,10 @@ impl<K, V> Trie<K, V>
     pub fn delete(&self, key: &K) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Deleted.encode()?);
         let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut staging_keys = self.staging_keys.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut staging_keys = self
+            .staging_keys
+            .write()
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
         staging.update(key.clone(), value);
         staging_keys.push(key);
         Ok(())
@@ -150,7 +162,7 @@ impl<K, V> Trie<K, V>
         }
 
         if value.is_empty() {
-            return Ok(None)
+            return Ok(None);
         }
         let decoded_value = IValue::decode(&value)?;
         return match decoded_value {
@@ -178,7 +190,7 @@ impl<K, V> Trie<K, V>
 #[cfg(test)]
 mod tests {
     use crate::Trie;
-    use primitive_types::{H256};
+    use primitive_types::H256;
     use tempdir::TempDir;
     use types::account::AccountState;
 
@@ -186,129 +198,151 @@ mod tests {
     fn basic_test() {
         let tmp_dir = TempDir::new("test").unwrap();
         let trie = Trie::open(tmp_dir.path()).unwrap();
-        trie
-            .put(
-                H256::from_slice(&vec![1; 32]),
-                AccountState {
-                    free_balance: 30000,
-                    reserve_balance: 3000,
-                    nonce: 1,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![1; 32]),
+            AccountState {
+                free_balance: 30000,
+                reserve_balance: 3000,
+                nonce: 1,
+            },
+        )
             .unwrap();
 
-        trie
-            .put(
-                H256::from_slice(&vec![2; 32]),
-                AccountState {
-                    free_balance: 10000,
-                    reserve_balance: 1000,
-                    nonce: 1,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![2; 32]),
+            AccountState {
+                free_balance: 10000,
+                reserve_balance: 1000,
+                nonce: 1,
+            },
+        )
             .unwrap();
 
-        trie
-            .put(
-                H256::from_slice(&vec![3; 32]),
-                AccountState {
-                    free_balance: 10000,
-                    reserve_balance: 1000,
-                    nonce: 1,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![3; 32]),
+            AccountState {
+                free_balance: 10000,
+                reserve_balance: 1000,
+                nonce: 1,
+            },
+        )
             .unwrap();
 
-        trie
-            .put(
-                H256::from_slice(&vec![24; 32]),
-                AccountState {
-                    free_balance: 10000,
-                    reserve_balance: 1000,
-                    nonce: 1,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![24; 32]),
+            AccountState {
+                free_balance: 10000,
+                reserve_balance: 1000,
+                nonce: 1,
+            },
+        )
             .unwrap();
         let root_1 = trie.commit().unwrap();
-        println!("{:#?}", trie.get(&H256::from_slice(&vec![3; 32]), true));
-        trie
-            .put(
-                H256::from_slice(&vec![24; 32]),
-                AccountState {
-                    free_balance: 20000,
-                    reserve_balance: 2000,
-                    nonce: 2,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![24; 32]),
+            AccountState {
+                free_balance: 20000,
+                reserve_balance: 2000,
+                nonce: 2,
+            },
+        )
             .unwrap();
 
-        trie
-            .put(
-                H256::from_slice(&vec![44; 32]),
-                AccountState {
-                    free_balance: 10000,
-                    reserve_balance: 1000,
-                    nonce: 1,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![44; 32]),
+            AccountState {
+                free_balance: 10000,
+                reserve_balance: 1000,
+                nonce: 1,
+            },
+        )
             .unwrap();
 
-        trie
-            .put(
-                H256::from_slice(&vec![32; 32]),
-                AccountState {
-                    free_balance: 10000,
-                    reserve_balance: 1000,
-                    nonce: 1,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![32; 32]),
+            AccountState {
+                free_balance: 10000,
+                reserve_balance: 1000,
+                nonce: 1,
+            },
+        )
             .unwrap();
 
-
-        trie
-            .put(
-                H256::from_slice(&vec![50; 32]),
-                AccountState {
-                    free_balance: 10000,
-                    reserve_balance: 1000,
-                    nonce: 1,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![50; 32]),
+            AccountState {
+                free_balance: 10000,
+                reserve_balance: 1000,
+                nonce: 1,
+            },
+        )
             .unwrap();
 
-        trie
-            .put(
-                H256::from_slice(&vec![3; 32]),
-                AccountState {
-                    free_balance: 200,
-                    reserve_balance: 200,
-                    nonce: 3,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![3; 32]),
+            AccountState {
+                free_balance: 200,
+                reserve_balance: 200,
+                nonce: 3,
+            },
+        )
             .unwrap();
 
         let root_2 = trie.commit().unwrap();
 
-        println!("{:#?}", trie.get(&H256::from_slice(&vec![3; 32]), true));
+        assert_eq!(
+            trie.get(&H256::from_slice(&vec![3; 32]), true).unwrap(),
+            Some(AccountState {
+                free_balance: 200,
+                reserve_balance: 200,
+                nonce: 3,
+            })
+        );
         trie.reset(root_1).unwrap();
-        println!("{:#?}", trie.get(&H256::from_slice(&vec![3; 32]), true));
+
+        assert_eq!(
+            trie.get(&H256::from_slice(&vec![3; 32]), true).unwrap(),
+            Some(AccountState {
+                free_balance: 10000,
+                reserve_balance: 1000,
+                nonce: 1,
+            })
+        );
 
         trie.reset(root_2).unwrap();
 
-
-        trie
-            .put(
-                H256::from_slice(&vec![3; 32]),
-                AccountState {
-                    free_balance: 90000,
-                    reserve_balance: 9000,
-                    nonce: 2,
-                },
-            )
+        trie.put(
+            H256::from_slice(&vec![3; 32]),
+            AccountState {
+                free_balance: 90000,
+                reserve_balance: 9000,
+                nonce: 2,
+            },
+        )
             .unwrap();
 
         let root_3 = trie.commit().unwrap();
-        println!("{:#?}", trie.get(&H256::from_slice(&vec![3; 32]), false));
-        println!("{:#?}", trie.get(&H256::from_slice(&vec![1; 32]), true));
+
+        assert_eq!(
+            trie.get(&H256::from_slice(&vec![3; 32]), false).unwrap(),
+            Some(AccountState {
+                free_balance: 90000,
+                reserve_balance: 9000,
+                nonce: 2,
+            })
+        );
+
+        assert_eq!(
+            trie.get(&H256::from_slice(&vec![1; 32]), false).unwrap(),
+            None
+        );
+        assert_eq!(
+            trie.get(&H256::from_slice(&vec![1; 32]), true).unwrap(),
+            Some(AccountState {
+                free_balance: 30000,
+                reserve_balance: 3000,
+                nonce: 1,
+            }, )
+        );
     }
 }

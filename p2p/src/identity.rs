@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use libp2p::{Multiaddr, PeerId};
 use libp2p::gossipsub::Sha256Topic;
+use libp2p::{Multiaddr, PeerId};
 use serde::{Deserialize, Serialize};
 
 use crypto::{generate_pow_from_pub_key, SHA256};
-use primitive_types::{H256, U192};
 use primitive_types::Compact;
+use primitive_types::{H256, U192};
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]

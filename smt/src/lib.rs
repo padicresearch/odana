@@ -1,14 +1,13 @@
 #![feature(in_band_lifetimes)]
 
-mod treehasher;
-mod store;
-mod utils;
-mod persistent;
-mod smt;
-pub mod proof;
 pub mod error;
+mod persistent;
+pub mod proof;
+mod smt;
+mod store;
+mod treehasher;
 pub mod trie;
+mod utils;
 
 pub use smt::*;
 pub use trie::*;
-

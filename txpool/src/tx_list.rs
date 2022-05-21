@@ -1,8 +1,8 @@
 use std::cmp::{Ordering, Reverse};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Deref;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::atomic::AtomicUsize;
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use anyhow::Result;
 
@@ -322,7 +322,7 @@ impl TxPricedList {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BinaryHeap, BTreeSet};
+    use std::collections::{BTreeSet, BinaryHeap};
     use std::rc::Rc;
     use std::sync::Arc;
 
@@ -332,8 +332,8 @@ mod tests {
     use types::tx::{Transaction, TransactionKind};
 
     use crate::tests::make_tx;
-    use crate::TransactionRef;
     use crate::tx_list::{PricedTransaction, TxList, TxPricedList};
+    use crate::TransactionRef;
 
     #[test]
     fn test_txlist() {

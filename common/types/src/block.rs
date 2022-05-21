@@ -8,8 +8,8 @@ use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
-use codec::{Decoder, Encoder};
 use codec::impl_codec;
+use codec::{Decoder, Encoder};
 use crypto::SHA256;
 use primitive_types::{Compact, H256, U128, U256};
 

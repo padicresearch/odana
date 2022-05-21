@@ -1,22 +1,22 @@
 use std::collections::hash_map::RandomState;
-use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicBool, AtomicI8};
+use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use dashmap::DashMap;
 use tempdir::TempDir;
 
-use consensus::barossa::{BarossaProtocol};
-use types::network::Network;
+use consensus::barossa::BarossaProtocol;
 use miner::worker::start_worker;
-use state::State;
 use primitive_types::H256;
-use tracing::{Level, tracing_subscriber};
+use state::State;
+use tracing::{tracing_subscriber, Level};
 use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
-use txpool::{ResetRequest, TxPool};
 use txpool::tx_lookup::AccountSet;
+use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
+use types::network::Network;
 use types::Hash;
 
 #[derive(Clone)]

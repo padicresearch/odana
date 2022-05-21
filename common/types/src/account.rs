@@ -3,10 +3,10 @@ use std::hash::Hash;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use codec::{Decoder, Encoder};
 use codec::impl_codec;
-use crypto::{RIPEMD160, SHA256};
+use codec::{Decoder, Encoder};
 use crypto::ecdsa::{PublicKey, SecretKey, Signature};
+use crypto::{RIPEMD160, SHA256};
 use primitive_types::H160;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
