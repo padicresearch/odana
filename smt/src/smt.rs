@@ -8,7 +8,6 @@ use codec::{Decoder, Encoder};
 use hex::ToHex;
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 impl TreeHasher for SparseMerkleTree {}
 

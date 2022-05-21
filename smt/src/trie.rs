@@ -1,15 +1,14 @@
 use crate::store::Database;
 use crate::SparseMerkleTree;
-use anyhow::{bail, Result};
+use anyhow::{Result};
 use codec::{Codec, Decoder, Encoder};
-use dashmap::DashSet;
 use primitive_types::H256;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum IValue {

@@ -1,4 +1,3 @@
-#![feature(in_band_lifetimes)]
 
 pub mod error;
 mod persistent;

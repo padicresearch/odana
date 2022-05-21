@@ -5,7 +5,6 @@ use hex::ToHex;
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-//use anyhow::Result;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Proof {

@@ -5,7 +5,7 @@ use dashmap::DashMap;
 use hex::ToHex;
 use rocksdb::checkpoint::Checkpoint;
 use rocksdb::DB;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use std::sync::Arc;
 
 pub(crate) fn default_db_opts() -> rocksdb::Options {
