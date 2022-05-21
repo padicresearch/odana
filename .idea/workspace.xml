@@ -36,52 +36,8 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="Implemented Trie with `reset`">
-      <change beforePath="$PROJECT_DIR$/account/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/account/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/codec/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/codec/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/account.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/benches/bigint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/benches/bigint.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crypto/src/ecdsa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/ecdsa.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kernel/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/kernel/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner-test/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner-test/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/identity.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/identity.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/persistent.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/persistent.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/proof.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/smt.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/treehasher.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/treehasher.rs" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="clean up: remove `staging_keys`">
       <change beforePath="$PROJECT_DIR$/smt/src/trie.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/trie.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/utils.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/utils.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/kv.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/kv.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/snapshot.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/snapshot.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/store.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/rocks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/rocks.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/prque.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/prque.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_noncer.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -505,28 +461,7 @@
       <workItem from="1652771597523" duration="1318000" />
       <workItem from="1652801999764" duration="5448000" />
       <workItem from="1652856913230" duration="32825000" />
-      <workItem from="1653033562920" duration="11280000" />
-    </task>
-    <task id="LOCAL-00112" summary="kademila discovery">
-      <created>1644074887294</created>
-      <option name="number" value="00112" />
-      <option name="presentableId" value="LOCAL-00112" />
-      <option name="project" value="LOCAL" />
-      <updated>1644074887294</updated>
-    </task>
-    <task id="LOCAL-00113" summary="kademila discovery">
-      <created>1644075289880</created>
-      <option name="number" value="00113" />
-      <option name="presentableId" value="LOCAL-00113" />
-      <option name="project" value="LOCAL" />
-      <updated>1644075289880</updated>
-    </task>
-    <task id="LOCAL-00114" summary="kademila discovery">
-      <created>1644076147456</created>
-      <option name="number" value="00114" />
-      <option name="presentableId" value="LOCAL-00114" />
-      <option name="project" value="LOCAL" />
-      <updated>1644076147456</updated>
+      <workItem from="1653033562920" duration="12375000" />
     </task>
     <task id="LOCAL-00115" summary="kademila discovery">
       <created>1644076770619</created>
@@ -850,7 +785,28 @@
       <option name="project" value="LOCAL" />
       <updated>1653117795251</updated>
     </task>
-    <option name="localTasksCounter" value="161" />
+    <task id="LOCAL-00161" summary="cargo fmt">
+      <created>1653118604745</created>
+      <option name="number" value="00161" />
+      <option name="presentableId" value="LOCAL-00161" />
+      <option name="project" value="LOCAL" />
+      <updated>1653118604745</updated>
+    </task>
+    <task id="LOCAL-00162" summary="cleanup imports">
+      <created>1653118679915</created>
+      <option name="number" value="00162" />
+      <option name="presentableId" value="LOCAL-00162" />
+      <option name="project" value="LOCAL" />
+      <updated>1653118679915</updated>
+    </task>
+    <task id="LOCAL-00163" summary="clean up: remove `staging_keys`">
+      <created>1653118868335</created>
+      <option name="number" value="00163" />
+      <option name="presentableId" value="LOCAL-00163" />
+      <option name="project" value="LOCAL" />
+      <updated>1653118868335</updated>
+    </task>
+    <option name="localTasksCounter" value="164" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -881,8 +837,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="implemented txpool" />
-    <MESSAGE value="add todos" />
     <MESSAGE value="* clean up&#10;* consensus re-implementation" />
     <MESSAGE value="merge txpool" />
     <MESSAGE value="implementing barossa consensus" />
@@ -895,7 +849,6 @@
     <MESSAGE value="bootstrapping" />
     <MESSAGE value="kademila discovery" />
     <MESSAGE value="debug node discovery" />
-    <MESSAGE value="cargo fmt" />
     <MESSAGE value="tweaks" />
     <MESSAGE value="begin sparse merkle tree" />
     <MESSAGE value="persistence refactor" />
@@ -906,7 +859,10 @@
     <MESSAGE value="inline functions" />
     <MESSAGE value="implemented sparse merkle tree" />
     <MESSAGE value="Implemented Trie with `reset`" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented Trie with `reset`" />
+    <MESSAGE value="cargo fmt" />
+    <MESSAGE value="cleanup imports" />
+    <MESSAGE value="clean up: remove `staging_keys`" />
+    <option name="LAST_COMMIT_MESSAGE" value="clean up: remove `staging_keys`" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

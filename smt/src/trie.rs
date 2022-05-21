@@ -1,6 +1,7 @@
+use crate::error::Error;
 use crate::store::Database;
 use crate::SparseMerkleTree;
-use anyhow::{Result};
+use anyhow::Result;
 use codec::{Codec, Decoder, Encoder};
 use primitive_types::H256;
 use serde::de::DeserializeOwned;
@@ -58,8 +59,8 @@ impl<K, V> Trie<K, V>
     }
 
     pub fn reset(&self, root: H256) -> Result<()> {
-        let mut head = self.head.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
+        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
         let new_head = self.db.get(&root)?;
         *head = new_head;
         *staging = head.subtree(true, vec![])?;
@@ -67,7 +68,7 @@ impl<K, V> Trie<K, V>
     }
 
     pub fn head(&self) -> Result<SparseMerkleTree> {
-        let mut head = self.head.read().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut head = self.head.read().map_err(|e| Error::RWPoison)?;
         Ok(head.clone())
     }
 
@@ -85,7 +86,7 @@ impl<K, V> Trie<K, V>
 
         let batch = res?;
 
-        let mut head = self.head.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
 
         for (key, value) in batch {
             head.update(key, value)?;
@@ -97,9 +98,9 @@ impl<K, V> Trie<K, V>
     }
 
     pub fn commit(&self) -> Result<H256> {
-        let mut head = self.head.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
 
-        let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
         self.db.put(staging.root(), staging.clone());
         *head = staging.clone();
         *staging = head.subtree(true, vec![])?;
@@ -108,22 +109,22 @@ impl<K, V> Trie<K, V>
 
     pub fn put(&self, key: K, value: V) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Value(value.encode()?).encode()?);
-        let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
         staging.update(key.clone(), value);
         Ok(())
     }
 
     pub fn delete(&self, key: &K) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Deleted.encode()?);
-        let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
         staging.update(key.clone(), value);
         Ok(())
     }
 
     pub fn get(&self, key: &K, descend: bool) -> Result<Option<V>> {
         let key = key.encode()?;
-        let mut staging = self.staging.read().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut head = self.head.read().map_err(|e| anyhow::anyhow!("{}", e))?;
+        let mut staging = self.staging.read().map_err(|e| Error::RWPoison)?;
+        let mut head = self.head.read().map_err(|e| Error::RWPoison)?;
         let mut value = staging.get(&key)?;
         if value.is_empty() && descend {
             let res = self.get_descend(&key, &head.root)?;
