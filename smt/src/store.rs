@@ -7,14 +7,17 @@ use dashmap::DashMap;
 use hex::ToHex;
 use crate::error::Error;
 use serde::{Serialize, Deserialize};
+use codec::{Decoder, Encoder};
+use primitive_types::H256;
+use crate::SparseMerkleTree;
 
-const COLUMN_NODE: &'static str = "__node__";
-const COLUMN_VALUE: &'static str = "__value__";
+const COLUMN_TREES: &'static str = "t";
+const COLUMN_ROOT: &'static str = "r";
 
 pub(crate) fn cfs() -> Vec<ColumnFamilyDescriptor> {
     vec![
-        ColumnFamilyDescriptor::new(COLUMN_NODE, default_table_options()),
-        ColumnFamilyDescriptor::new(COLUMN_VALUE, default_table_options()),
+        ColumnFamilyDescriptor::new(COLUMN_TREES, default_table_options()),
+        ColumnFamilyDescriptor::new(COLUMN_ROOT, default_table_options()),
     ]
 }
 
@@ -81,44 +84,26 @@ impl Database {
         }
     }
 
-    pub(crate) fn nodes_put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        self.inner.put(COLUMN_NODE, key, value)
+    pub(crate) fn put(&self, key: H256, value: SparseMerkleTree) -> Result<()> {
+        self.inner.put(COLUMN_TREES, &key.encode()?, &value.encode()?)
     }
 
-    pub(crate) fn nodes_get(&self, key: &[u8]) -> Result<Vec<u8>> {
-        self.inner.get(COLUMN_NODE, key)
+    pub(crate) fn set_root(&self, new_root: H256) -> Result<()> {
+        self.inner.put(COLUMN_ROOT, b"root", &new_root.encode()?)
     }
 
-    pub(crate) fn nodes_delete(&self, key: &[u8]) -> Result<()> {
-        self.inner.delete(COLUMN_NODE, key)
+    pub(crate) fn load_root(&self) -> Result<SparseMerkleTree> {
+        let root = self.inner.get(COLUMN_ROOT, b"root")?;
+        let root = H256::decode(&root)?;
+        self.get(&root)
     }
 
-    pub(crate) fn nodes_get_or_default(
-        &self,
-        key: &[u8],
-        default: Vec<u8>,
-    ) -> Result<Vec<u8>> {
-        self.inner.get_or_default(COLUMN_VALUE, key, default)
+    pub(crate) fn get(&self, key: &H256) -> Result<SparseMerkleTree> {
+        SparseMerkleTree::decode(&self.inner.get(COLUMN_TREES, &key.encode()?)?)
     }
 
-    pub(crate) fn values_put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        self.inner.put(COLUMN_VALUE, key, value)
-    }
-
-    pub(crate) fn values_get(&self, key: &[u8]) -> Result<Vec<u8>> {
-        self.inner.get(COLUMN_VALUE, key)
-    }
-
-    pub(crate) fn values_delete(&self, key: &[u8]) -> Result<()> {
-        self.inner.delete(COLUMN_VALUE, key)
-    }
-
-    pub(crate) fn values_get_or_default(
-        &self,
-        key: &[u8],
-        default: Vec<u8>,
-    ) -> Result<Vec<u8>> {
-        self.inner.get_or_default(COLUMN_VALUE, key, default)
+    pub(crate) fn delete(&self, key: &H256) -> Result<()> {
+        self.inner.delete(COLUMN_TREES, &key.encode()?)
     }
 
     pub(crate) fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Database> {
@@ -129,7 +114,7 @@ impl Database {
 }
 
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct ArchivedStorage {
     inner: DashMap<Vec<u8>, Vec<u8>>,
 }

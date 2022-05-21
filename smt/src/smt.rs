@@ -8,16 +8,21 @@ use primitive_types::H256;
 use std::sync::Arc;
 use hex::ToHex;
 use serde::{Serialize, Deserialize};
+use codec::{Decoder, Encoder};
 
 impl TreeHasher for SparseMerkleTree {}
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SparseMerkleTree {
     pub(crate) nodes: ArchivedStorage,
     pub(crate) values: ArchivedStorage,
     pub(crate) root: H256,
     pub(crate) parent: H256,
 }
+
+impl Encoder for SparseMerkleTree {}
+
+impl Decoder for SparseMerkleTree {}
 
 impl Default for SparseMerkleTree {
     fn default() -> Self {
@@ -39,9 +44,13 @@ impl SparseMerkleTree {
         self.root = new_root
     }
 
-    pub fn subtree(&self, import_keys: Vec<Vec<u8>>) -> Result<SparseMerkleTree> {
+    pub fn subtree(&self, import_nodes: bool, import_keys: Vec<Vec<u8>>) -> Result<SparseMerkleTree> {
         let mut subtree = SparseMerkleTree::new();
         subtree.parent = self.root;
+        subtree.root = self.root;
+        if import_nodes {
+            subtree.nodes = self.nodes.clone();
+        }
         for key in import_keys {
             let (value, proof) = self.get_with_proof_updatable(&key)?;
             subtree.add_branch(&proof, self.root(), &key, &value);
@@ -254,7 +263,8 @@ impl SparseMerkleTree {
             }
 
             self.nodes.delete(path_nodes[0].as_bytes())?;
-            self.values.delete(path.as_bytes())?;
+            //Error not handled because function fails when SMT is a Subtrees with no values copied
+            let _ = self.values.delete(path.as_bytes());
         }
 
         for i in 1..path_nodes.len() {
@@ -292,7 +302,7 @@ impl SparseMerkleTree {
             current_data = current_hash.as_bytes().to_vec();
         }
         self.values.put(path.as_bytes(), value)?;
-        Ok((current_hash))
+        Ok(current_hash)
     }
 
     pub fn proof(&self, key: &[u8]) -> Result<Proof> {
@@ -351,7 +361,7 @@ impl SparseMerkleTree {
         })
     }
 
-    fn get<K>(&self, key: K) -> Result<Vec<u8>>
+    pub fn get<K>(&self, key: K) -> Result<Vec<u8>>
         where
             K: AsRef<[u8]>,
     {
@@ -364,14 +374,14 @@ impl SparseMerkleTree {
         self.values.get_or_default(path.as_bytes(), Vec::new())
     }
 
-    fn get_with_proof<K>(&self, key: K) -> Result<(Vec<u8>, Proof)>
+    pub fn get_with_proof<K>(&self, key: K) -> Result<(Vec<u8>, Proof)>
         where
             K: AsRef<[u8]>,
     {
         return self.get_with_proof_for_root(key.as_ref(), &self.root());
     }
 
-    fn get_with_proof_updatable<K>(&self, key: K) -> Result<(Vec<u8>, Proof)>
+    pub fn get_with_proof_updatable<K>(&self, key: K) -> Result<(Vec<u8>, Proof)>
         where
             K: AsRef<[u8]>,
     {
@@ -388,7 +398,7 @@ impl SparseMerkleTree {
         return Ok(new_root);
     }
 
-    fn root(&self) -> H256 {
+    pub fn root(&self) -> H256 {
         self.root
     }
 }
@@ -400,5 +410,19 @@ mod tests {
     use std::string::String;
 
     #[test]
-    fn basic_get_set_check_root_test() {}
+    fn basic_get_set_check_root_test() {
+        let mut smt = SparseMerkleTree::new();
+        smt.update(&[1, 2, 3], &[1, 2, 3]);
+
+        println!("{:?}", smt.root);
+
+        let mut smt_2 = smt.subtree(true, vec![]).unwrap();
+        smt_2.update(&[1, 2, 3], &[10, 20, 30]);
+
+        println!("{:?}", smt_2.root);
+
+        smt.update(&[1, 2, 3], &[10, 20, 30]);
+        println!("{:?}", smt.root);
+        println!("{:?}", smt_2.root);
+    }
 }
