@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
-
+#[derive(Copy, Clone)]
 pub enum CopyStrategy {
     Partial,
     Full,
@@ -64,12 +64,13 @@ where
             Err(_) => SparseMerkleTree::new(),
         };
 
-        let staging_tree = tree.subtree(true, vec![])?;
+        let options = Options::default();
+        let staging_tree = tree.subtree(options.strategy, vec![])?;
         Ok(Self {
             db: Arc::new(db),
             head: Arc::new(RwLock::new(tree.clone())),
             staging: Arc::new(RwLock::new(staging_tree)),
-            options: Default::default(),
+            options,
             _data: Default::default(),
         })
     }
@@ -81,7 +82,7 @@ where
             Err(_) => SparseMerkleTree::new(),
         };
 
-        let staging_tree = tree.subtree(true, vec![])?;
+        let staging_tree = tree.subtree(options.strategy, vec![])?;
         Ok(Self {
             db: Arc::new(db),
             head: Arc::new(RwLock::new(tree.clone())),
@@ -98,7 +99,7 @@ where
             Err(_) => SparseMerkleTree::new(),
         };
 
-        let staging_tree = tree.subtree(true, vec![])?;
+        let staging_tree = tree.subtree(options.strategy, vec![])?;
         Ok(Self {
             db: Arc::new(db),
             head: Arc::new(RwLock::new(tree.clone())),
@@ -117,7 +118,7 @@ where
         let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
         let new_head = self.db.get(&root)?;
         *head = new_head;
-        *staging = self.subtree(&mut head)?;
+        *staging = head.subtree(self.options.strategy, vec![])?;
         Ok(())
     }
 
@@ -125,16 +126,8 @@ where
     pub fn rollback(&self) -> Result<()> {
         let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
         let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
-        *staging = self.subtree(&mut head)?;
+        *staging = head.subtree(self.options.strategy, vec![])?;
         Ok(())
-    }
-
-    fn subtree(&self, head: &mut RwLockWriteGuard<SparseMerkleTree>) -> Result<SparseMerkleTree> {
-        match self.options.strategy {
-            CopyStrategy::Partial => head.subtree(true, vec![]),
-            CopyStrategy::Full => Ok(head.clone()),
-            CopyStrategy::None => head.subtree(false, vec![]),
-        }
     }
 
     pub fn head(&self) -> Result<SparseMerkleTree> {
@@ -165,7 +158,7 @@ where
 
         let new_root = head.root();
         self.db.put(new_root, head.clone());
-        *staging = self.subtree(&mut head)?;
+        *staging = head.subtree(self.options.strategy, vec![])?;
         Ok(new_root)
     }
 
@@ -179,7 +172,7 @@ where
 
         self.db.put(staging.root(), staging.clone());
         *head = staging.clone();
-        *staging = self.subtree(&mut head)?;
+        *staging = head.subtree(self.options.strategy, vec![])?;
         Ok(head.root())
     }
 

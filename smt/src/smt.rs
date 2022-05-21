@@ -8,6 +8,7 @@ use codec::{Decoder, Encoder};
 use hex::ToHex;
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
+use crate::CopyStrategy;
 
 impl TreeHasher for SparseMerkleTree {}
 
@@ -45,19 +46,27 @@ impl SparseMerkleTree {
 
     pub fn subtree(
         &self,
-        import_nodes: bool,
+        strategy: CopyStrategy,
         import_keys: Vec<Vec<u8>>,
     ) -> Result<SparseMerkleTree> {
         let mut subtree = SparseMerkleTree::new();
         subtree.parent = self.root;
         subtree.root = self.root;
-        if import_nodes {
-            subtree.nodes = self.nodes.clone();
+
+        match strategy {
+            CopyStrategy::Partial => {
+                subtree.nodes = self.nodes.clone();
+                for key in import_keys {
+                    let (value, proof) = self.get_with_proof_updatable(&key)?;
+                    subtree.add_branch(&proof, self.root(), &key, &value);
+                }
+            }
+            CopyStrategy::Full => {
+                subtree = self.clone();
+            }
+            CopyStrategy::None => {}
         }
-        for key in import_keys {
-            let (value, proof) = self.get_with_proof_updatable(&key)?;
-            subtree.add_branch(&proof, self.root(), &key, &value);
-        }
+
         Ok(subtree)
     }
 
@@ -413,6 +422,7 @@ impl SparseMerkleTree {
 mod tests {
     use crate::smt::SparseMerkleTree;
     use std::string::String;
+    use crate::CopyStrategy;
 
     #[test]
     fn basic_get_set_check_root_test() {
@@ -421,7 +431,7 @@ mod tests {
 
         println!("{:?}", smt.root);
 
-        let mut smt_2 = smt.subtree(true, vec![]).unwrap();
+        let mut smt_2 = smt.subtree(CopyStrategy::Partial, vec![]).unwrap();
         smt_2.update(&[1, 2, 3], &[10, 20, 30]);
 
         println!("{:?}", smt_2.root);
