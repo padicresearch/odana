@@ -36,7 +36,8 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fmt">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="fix `apply`: reset staging after applying changes">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/trie.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/trie.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -57,7 +58,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="consensus" />
+        <entry key="$PROJECT_DIR$" value="state-kernel" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -79,6 +80,10 @@
             <RecentBranchesForRepo>
               <option name="branches">
                 <list>
+                  <RecentBranch>
+                    <option name="branchName" value="feature/sparse-merkle-tree" />
+                    <option name="lastUsedInstant" value="1653130744" />
+                  </RecentBranch>
                   <RecentBranch>
                     <option name="branchName" value="state-kernel" />
                     <option name="lastUsedInstant" value="1648372281" />
@@ -461,21 +466,7 @@
       <workItem from="1652771597523" duration="1318000" />
       <workItem from="1652801999764" duration="5448000" />
       <workItem from="1652856913230" duration="32825000" />
-      <workItem from="1653033562920" duration="13124000" />
-    </task>
-    <task id="LOCAL-00117" summary="kademila discovery">
-      <created>1644077481598</created>
-      <option name="number" value="00117" />
-      <option name="presentableId" value="LOCAL-00117" />
-      <option name="project" value="LOCAL" />
-      <updated>1644077481598</updated>
-    </task>
-    <task id="LOCAL-00118" summary="kademila discovery">
-      <created>1644077625533</created>
-      <option name="number" value="00118" />
-      <option name="presentableId" value="LOCAL-00118" />
-      <option name="project" value="LOCAL" />
-      <updated>1644077625533</updated>
+      <workItem from="1653033562920" duration="18343000" />
     </task>
     <task id="LOCAL-00119" summary="kademila discovery">
       <created>1644078135348</created>
@@ -806,7 +797,21 @@
       <option name="project" value="LOCAL" />
       <updated>1653119731908</updated>
     </task>
-    <option name="localTasksCounter" value="166" />
+    <task id="LOCAL-00166" summary="improvement">
+      <created>1653120457086</created>
+      <option name="number" value="00166" />
+      <option name="presentableId" value="LOCAL-00166" />
+      <option name="project" value="LOCAL" />
+      <updated>1653120457086</updated>
+    </task>
+    <task id="LOCAL-00167" summary="fix `apply`: reset staging after applying changes">
+      <created>1653120599730</created>
+      <option name="number" value="00167" />
+      <option name="presentableId" value="LOCAL-00167" />
+      <option name="project" value="LOCAL" />
+      <updated>1653120599730</updated>
+    </task>
+    <option name="localTasksCounter" value="168" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -837,8 +842,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="merge txpool" />
-    <MESSAGE value="implementing barossa consensus" />
     <MESSAGE value="* update to 2021&#10;* ecdsa KeyPair" />
     <MESSAGE value="implement miner" />
     <MESSAGE value="fix proof of work" />
@@ -862,7 +865,9 @@
     <MESSAGE value="clean up: remove `staging_keys`" />
     <MESSAGE value="error formatting" />
     <MESSAGE value="cargo fmt" />
-    <option name="LAST_COMMIT_MESSAGE" value="cargo fmt" />
+    <MESSAGE value="improvement" />
+    <MESSAGE value="fix `apply`: reset staging after applying changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix `apply`: reset staging after applying changes" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

@@ -9,7 +9,25 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
+
+pub enum CopyStrategy {
+    Partial,
+    Full,
+    None,
+}
+
+pub struct Options {
+    strategy: CopyStrategy,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            strategy: CopyStrategy::Partial,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum IValue {
@@ -30,6 +48,7 @@ pub struct Trie<K, V> {
     db: Arc<Database>,
     head: Arc<RwLock<SparseMerkleTree>>,
     staging: Arc<RwLock<SparseMerkleTree>>,
+    options: Options,
     _data: PhantomData<(K, V)>,
 }
 
@@ -50,6 +69,41 @@ where
             db: Arc::new(db),
             head: Arc::new(RwLock::new(tree.clone())),
             staging: Arc::new(RwLock::new(staging_tree)),
+            options: Default::default(),
+            _data: Default::default(),
+        })
+    }
+
+    pub(crate) fn open_with_options<P: AsRef<Path>>(path: P, options: Options) -> Result<Self> {
+        let db = Database::open(path)?;
+        let tree = match db.load_root() {
+            Ok(tree) => tree,
+            Err(_) => SparseMerkleTree::new(),
+        };
+
+        let staging_tree = tree.subtree(true, vec![])?;
+        Ok(Self {
+            db: Arc::new(db),
+            head: Arc::new(RwLock::new(tree.clone())),
+            staging: Arc::new(RwLock::new(staging_tree)),
+            options,
+            _data: Default::default(),
+        })
+    }
+
+    pub(crate) fn in_memory<P: AsRef<Path>>(options: Options) -> Result<Self> {
+        let db = Database::in_memory();
+        let tree = match db.load_root() {
+            Ok(tree) => tree,
+            Err(_) => SparseMerkleTree::new(),
+        };
+
+        let staging_tree = tree.subtree(true, vec![])?;
+        Ok(Self {
+            db: Arc::new(db),
+            head: Arc::new(RwLock::new(tree.clone())),
+            staging: Arc::new(RwLock::new(staging_tree)),
+            options,
             _data: Default::default(),
         })
     }
@@ -63,8 +117,16 @@ where
         let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
         let new_head = self.db.get(&root)?;
         *head = new_head;
-        *staging = head.subtree(true, vec![])?;
+        *staging = self.subtree(&mut head)?;
         Ok(())
+    }
+
+    fn subtree(&self, head: &mut RwLockWriteGuard<SparseMerkleTree>) -> Result<SparseMerkleTree> {
+        match self.options.strategy {
+            CopyStrategy::Partial => head.subtree(true, vec![]),
+            CopyStrategy::Full => Ok(head.clone()),
+            CopyStrategy::None => head.subtree(false, vec![]),
+        }
     }
 
     pub fn head(&self) -> Result<SparseMerkleTree> {
@@ -95,7 +157,7 @@ where
 
         let new_root = head.root();
         self.db.put(new_root, head.clone());
-        *staging = head.subtree(true, vec![])?;
+        *staging = self.subtree(&mut head)?;
         Ok(new_root)
     }
 
@@ -109,7 +171,7 @@ where
 
         self.db.put(staging.root(), staging.clone());
         *head = staging.clone();
-        *staging = head.subtree(true, vec![])?;
+        *staging = self.subtree(&mut head)?;
         Ok(head.root())
     }
 
@@ -127,13 +189,23 @@ where
         Ok(())
     }
 
-    pub fn get(&self, key: &K, descend: bool) -> Result<Option<V>> {
+    pub fn get(&self, key: &K) -> Result<Option<V>> {
+        let descend = match self.options.strategy {
+            CopyStrategy::Partial => true,
+            CopyStrategy::Full => false,
+            CopyStrategy::None => false,
+        };
+
+        self.get_descend(key, descend)
+    }
+
+    pub fn get_descend(&self, key: &K, descend: bool) -> Result<Option<V>> {
         let key = key.encode()?;
         let mut staging = self.staging.read().map_err(|e| Error::RWPoison)?;
         let mut head = self.head.read().map_err(|e| Error::RWPoison)?;
         let mut value = staging.get(&key)?;
         if value.is_empty() && descend {
-            let res = self.get_descend(&key, &head.root)?;
+            let res = self._get_descend(&key, &head.root)?;
             match res {
                 None => return Ok(None),
                 Some(encoded_value) => {
@@ -154,7 +226,7 @@ where
         };
     }
 
-    fn get_descend(&self, key: &[u8], root: &H256) -> Result<Option<Vec<u8>>> {
+    fn _get_descend(&self, key: &[u8], root: &H256) -> Result<Option<Vec<u8>>> {
         let mut root = *root;
         loop {
             let tree = self.db.get(&root)?;
@@ -274,7 +346,8 @@ mod tests {
         let root_2 = trie.commit().unwrap();
 
         assert_eq!(
-            trie.get(&H256::from_slice(&vec![3; 32]), true).unwrap(),
+            trie.get_descend(&H256::from_slice(&vec![3; 32]), true)
+                .unwrap(),
             Some(AccountState {
                 free_balance: 200,
                 reserve_balance: 200,
@@ -284,7 +357,8 @@ mod tests {
         trie.reset(root_1).unwrap();
 
         assert_eq!(
-            trie.get(&H256::from_slice(&vec![3; 32]), true).unwrap(),
+            trie.get_descend(&H256::from_slice(&vec![3; 32]), true)
+                .unwrap(),
             Some(AccountState {
                 free_balance: 10000,
                 reserve_balance: 1000,
@@ -307,7 +381,8 @@ mod tests {
         let root_3 = trie.commit().unwrap();
 
         assert_eq!(
-            trie.get(&H256::from_slice(&vec![3; 32]), false).unwrap(),
+            trie.get_descend(&H256::from_slice(&vec![3; 32]), false)
+                .unwrap(),
             Some(AccountState {
                 free_balance: 90000,
                 reserve_balance: 9000,
@@ -316,11 +391,13 @@ mod tests {
         );
 
         assert_eq!(
-            trie.get(&H256::from_slice(&vec![1; 32]), false).unwrap(),
+            trie.get_descend(&H256::from_slice(&vec![1; 32]), false)
+                .unwrap(),
             None
         );
         assert_eq!(
-            trie.get(&H256::from_slice(&vec![1; 32]), true).unwrap(),
+            trie.get_descend(&H256::from_slice(&vec![1; 32]), true)
+                .unwrap(),
             Some(AccountState {
                 free_balance: 30000,
                 reserve_balance: 3000,
