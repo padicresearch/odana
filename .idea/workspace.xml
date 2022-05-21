@@ -36,7 +36,7 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="fix `apply`: reset staging after applying changes">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="clean up + formatting">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/trie.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/trie.rs" afterDir="false" />
     </list>
@@ -466,14 +466,7 @@
       <workItem from="1652771597523" duration="1318000" />
       <workItem from="1652801999764" duration="5448000" />
       <workItem from="1652856913230" duration="32825000" />
-      <workItem from="1653033562920" duration="18343000" />
-    </task>
-    <task id="LOCAL-00119" summary="kademila discovery">
-      <created>1644078135348</created>
-      <option name="number" value="00119" />
-      <option name="presentableId" value="LOCAL-00119" />
-      <option name="project" value="LOCAL" />
-      <updated>1644078135348</updated>
+      <workItem from="1653033562920" duration="19814000" />
     </task>
     <task id="LOCAL-00120" summary="kademila discovery">
       <created>1644079038957</created>
@@ -811,7 +804,14 @@
       <option name="project" value="LOCAL" />
       <updated>1653120599730</updated>
     </task>
-    <option name="localTasksCounter" value="168" />
+    <task id="LOCAL-00168" summary="clean up + formatting">
+      <created>1653131743718</created>
+      <option name="number" value="00168" />
+      <option name="presentableId" value="LOCAL-00168" />
+      <option name="project" value="LOCAL" />
+      <updated>1653131743718</updated>
+    </task>
+    <option name="localTasksCounter" value="169" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -842,7 +842,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="* update to 2021&#10;* ecdsa KeyPair" />
     <MESSAGE value="implement miner" />
     <MESSAGE value="fix proof of work" />
     <MESSAGE value="migrate morph to merk" />
@@ -867,7 +866,8 @@
     <MESSAGE value="cargo fmt" />
     <MESSAGE value="improvement" />
     <MESSAGE value="fix `apply`: reset staging after applying changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix `apply`: reset staging after applying changes" />
+    <MESSAGE value="clean up + formatting" />
+    <option name="LAST_COMMIT_MESSAGE" value="clean up + formatting" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

@@ -121,6 +121,14 @@ where
         Ok(())
     }
 
+
+    pub fn rollback(&self) -> Result<()> {
+        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
+        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
+        *staging = self.subtree(&mut head)?;
+        Ok(())
+    }
+
     fn subtree(&self, head: &mut RwLockWriteGuard<SparseMerkleTree>) -> Result<SparseMerkleTree> {
         match self.options.strategy {
             CopyStrategy::Partial => head.subtree(true, vec![]),
