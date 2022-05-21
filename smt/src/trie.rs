@@ -29,7 +29,6 @@ pub struct Trie<K, V> {
     db: Arc<Database>,
     head: Arc<RwLock<SparseMerkleTree>>,
     staging: Arc<RwLock<SparseMerkleTree>>,
-    staging_keys: Arc<RwLock<Vec<Vec<u8>>>>,
     _data: PhantomData<(K, V)>,
 }
 
@@ -50,7 +49,6 @@ impl<K, V> Trie<K, V>
             db: Arc::new(db),
             head: Arc::new(RwLock::new(tree.clone())),
             staging: Arc::new(RwLock::new(staging_tree)),
-            staging_keys: Default::default(),
             _data: Default::default(),
         })
     }
@@ -62,14 +60,9 @@ impl<K, V> Trie<K, V>
     pub fn reset(&self, root: H256) -> Result<()> {
         let mut head = self.head.write().map_err(|e| anyhow::anyhow!("{}", e))?;
         let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut staging_keys = self
-            .staging_keys
-            .write()
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
         let new_head = self.db.get(&root)?;
         *head = new_head;
         *staging = head.subtree(true, vec![])?;
-        staging_keys.clear();
         Ok(())
     }
 
@@ -107,39 +100,23 @@ impl<K, V> Trie<K, V>
         let mut head = self.head.write().map_err(|e| anyhow::anyhow!("{}", e))?;
 
         let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut staging_keys = self
-            .staging_keys
-            .write()
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
-
         self.db.put(staging.root(), staging.clone());
         *head = staging.clone();
         *staging = head.subtree(true, vec![])?;
-        staging_keys.clear();
         Ok(head.root())
     }
 
     pub fn put(&self, key: K, value: V) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Value(value.encode()?).encode()?);
         let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut staging_keys = self
-            .staging_keys
-            .write()
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
         staging.update(key.clone(), value);
-        staging_keys.push(key);
         Ok(())
     }
 
     pub fn delete(&self, key: &K) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Deleted.encode()?);
         let mut staging = self.staging.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut staging_keys = self
-            .staging_keys
-            .write()
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
         staging.update(key.clone(), value);
-        staging_keys.push(key);
         Ok(())
     }
 
