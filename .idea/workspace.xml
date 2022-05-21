@@ -36,7 +36,7 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="clean up: remove `staging_keys`">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fmt">
       <change beforePath="$PROJECT_DIR$/smt/src/trie.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/trie.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -461,21 +461,7 @@
       <workItem from="1652771597523" duration="1318000" />
       <workItem from="1652801999764" duration="5448000" />
       <workItem from="1652856913230" duration="32825000" />
-      <workItem from="1653033562920" duration="12375000" />
-    </task>
-    <task id="LOCAL-00115" summary="kademila discovery">
-      <created>1644076770619</created>
-      <option name="number" value="00115" />
-      <option name="presentableId" value="LOCAL-00115" />
-      <option name="project" value="LOCAL" />
-      <updated>1644076770619</updated>
-    </task>
-    <task id="LOCAL-00116" summary="kademila discovery">
-      <created>1644077377773</created>
-      <option name="number" value="00116" />
-      <option name="presentableId" value="LOCAL-00116" />
-      <option name="project" value="LOCAL" />
-      <updated>1644077377773</updated>
+      <workItem from="1653033562920" duration="13124000" />
     </task>
     <task id="LOCAL-00117" summary="kademila discovery">
       <created>1644077481598</created>
@@ -806,7 +792,21 @@
       <option name="project" value="LOCAL" />
       <updated>1653118868335</updated>
     </task>
-    <option name="localTasksCounter" value="164" />
+    <task id="LOCAL-00164" summary="error formatting">
+      <created>1653119704824</created>
+      <option name="number" value="00164" />
+      <option name="presentableId" value="LOCAL-00164" />
+      <option name="project" value="LOCAL" />
+      <updated>1653119704824</updated>
+    </task>
+    <task id="LOCAL-00165" summary="cargo fmt">
+      <created>1653119731908</created>
+      <option name="number" value="00165" />
+      <option name="presentableId" value="LOCAL-00165" />
+      <option name="project" value="LOCAL" />
+      <updated>1653119731908</updated>
+    </task>
+    <option name="localTasksCounter" value="166" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -837,7 +837,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="* clean up&#10;* consensus re-implementation" />
     <MESSAGE value="merge txpool" />
     <MESSAGE value="implementing barossa consensus" />
     <MESSAGE value="* update to 2021&#10;* ecdsa KeyPair" />
@@ -859,10 +858,11 @@
     <MESSAGE value="inline functions" />
     <MESSAGE value="implemented sparse merkle tree" />
     <MESSAGE value="Implemented Trie with `reset`" />
-    <MESSAGE value="cargo fmt" />
     <MESSAGE value="cleanup imports" />
     <MESSAGE value="clean up: remove `staging_keys`" />
-    <option name="LAST_COMMIT_MESSAGE" value="clean up: remove `staging_keys`" />
+    <MESSAGE value="error formatting" />
+    <MESSAGE value="cargo fmt" />
+    <option name="LAST_COMMIT_MESSAGE" value="cargo fmt" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

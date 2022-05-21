@@ -34,9 +34,9 @@ pub struct Trie<K, V> {
 }
 
 impl<K, V> Trie<K, V>
-    where
-        K: Codec,
-        V: Codec,
+where
+    K: Codec,
+    V: Codec,
 {
     pub(crate) fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open(path)?;
@@ -87,6 +87,7 @@ impl<K, V> Trie<K, V>
         let batch = res?;
 
         let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
+        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
 
         for (key, value) in batch {
             head.update(key, value)?;
@@ -94,13 +95,18 @@ impl<K, V> Trie<K, V>
 
         let new_root = head.root();
         self.db.put(new_root, head.clone());
+        *staging = head.subtree(true, vec![])?;
         Ok(new_root)
     }
 
     pub fn commit(&self) -> Result<H256> {
         let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
-
         let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
+
+        if head.root == staging.root {
+            return Ok(head.root);
+        }
+
         self.db.put(staging.root(), staging.clone());
         *head = staging.clone();
         *staging = head.subtree(true, vec![])?;

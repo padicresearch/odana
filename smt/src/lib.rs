@@ -1,4 +1,3 @@
-
 pub mod error;
 mod persistent;
 pub mod proof;
