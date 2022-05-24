@@ -1,57 +1,39 @@
-use std::collections::{BTreeMap, HashMap};
-use std::env::temp_dir;
+use std::collections::{BTreeMap};
 use std::option::Option::Some;
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use std::sync::RwLockReadGuard;
-use std::sync::{Arc, RwLock};
-use std::time::SystemTime;
+use std::path::{Path};
+use std::sync::{Arc};
 
-use anyhow::{Error, Result};
-use chrono::Utc;
-use merk::proofs::Query;
-use merk::test_utils::TempMerk;
-use merk::{Merk, Op};
+use anyhow::{Result};
 use rand::RngCore;
-use rocksdb::checkpoint::Checkpoint;
-use rocksdb::ColumnFamily;
 use serde::{Deserialize, Serialize};
 use tempdir::TempDir;
-use tiny_keccak::{Hasher, Sha3};
+use tiny_keccak::{Hasher};
 
 use codec::impl_codec;
 use codec::{Codec, Decoder, Encoder};
-use crypto::SHA256;
 use primitive_types::{H160, H256};
+use smt::proof::Proof;
+use smt::Trie;
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
-use types::account::{get_address_from_pub_key, AccountState};
+use types::account::{AccountState};
 use types::tx::{Transaction, TransactionKind};
 use types::Hash;
-
-use crate::error::MorphError;
-use crate::kv::Schema;
-use crate::store::{
-    column_families, default_db_opts, AccountMetadataStorage, AccountStateStorage,
-    HistorySequenceStorage, HistoryStorage,
-};
+use crate::error::StateError;
 
 mod error;
-mod kv;
-mod snapshot;
-mod store;
 
 const GENESIS_ROOT: [u8; 32] = [0; 32];
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ReadProof {
-    proof: Vec<u8>,
-    root: Hash,
+    proof: Proof,
+    root: H256,
 }
 
 #[derive(Clone)]
 pub struct State {
-    db: Arc<RwLock<Merk>>,
+    trie: Arc<Trie<H160, AccountState>>,
 }
 
 unsafe impl Sync for State {}
@@ -60,30 +42,13 @@ unsafe impl Send for State {}
 
 impl StateDB for State {
     fn nonce(&self, address: &H160) -> u64 {
-        let db = self.db.clone();
-        let db = match db.read().map_err(|e| anyhow::anyhow!("{}", e)) {
-            Ok(db) => db,
-            Err(_) => return 0,
-        };
-        match self
-            .get_account_state(address, &db)
-            .map(|account_state| account_state.nonce as u64)
-        {
-            Ok(nonce) => nonce,
-            _ => 0,
-        }
+        self.trie.get(address).map(|account_state|
+            account_state.and_then(|account_state| Some(account_state.nonce))
+        ).unwrap_or_default().unwrap_or_default()
     }
 
     fn account_state(&self, address: &H160) -> AccountState {
-        let db = self.db.clone();
-        let db = match db.read().map_err(|e| anyhow::anyhow!("{}", e)) {
-            Ok(db) => db,
-            Err(_) => return AccountState::default(),
-        };
-        match self.get_account_state(address, &db) {
-            Ok(state) => state,
-            _ => AccountState::default(),
-        }
+        self.trie.get(address).unwrap_or_default().unwrap_or_default()
     }
 
     fn balance(&self, address: &H160) -> u128 {
@@ -111,12 +76,11 @@ impl StateDB for State {
     }
 
     fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
-        Ok(Arc::new(self.intermediate()?))
+        unimplemented!()
     }
 
     fn checkpoint(&self, path: String) -> Result<Arc<dyn StateDB>> {
-        let state = self.checkpoint(&path)?;
-        Ok(Arc::new(state))
+        unimplemented!()
     }
 
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
@@ -131,48 +95,36 @@ impl StateDB for State {
 
 impl State {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let merk = merk::Merk::open_opt(path, default_db_opts())?;
-        let morph = Self {
-            db: Arc::new(RwLock::new(merk)),
-        };
-        Ok(morph)
+        let trie = Trie::open(path)?;
+        Ok(Self {
+            trie: Arc::new(trie)
+        })
     }
 
     pub fn apply_txs(&self, txs: Vec<Transaction>) -> Result<()> {
-        let db = self.db.clone();
-        let mut db = db.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-
         let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
         for tx in txs {
-            let account = tx.origin();
-            let mut list = accounts
-                .entry(account)
-                .or_insert(TransactionsByNonceAndPrice::default());
-            list.insert(NoncePricedTransaction(tx));
+            let mut txs = accounts.entry(tx.from()).or_default();
+            txs.insert(NoncePricedTransaction(tx));
         }
 
         for (acc, _) in accounts.iter() {
-            let key = acc.to_fixed_bytes();
-            let value = db.get(&key)?;
-            let account_state = match value {
-                None => AccountState::default(),
-                Some(byte) => AccountState::decode(&byte).unwrap_or_default(),
-            };
-            states.insert(*acc, account_state);
+            let current_state = self.trie.get(&acc)?.unwrap_or_default();
+            states.insert(*acc, current_state);
         }
 
-        let mut state_transitions = Vec::new();
         for (_, txs) in accounts {
             for tx in txs {
                 self.apply_transaction(tx.0, &mut states)?;
             }
         }
+
         for (acc, state) in states {
-            state_transitions.push((acc, state))
+            self.trie.put(acc, state)?;
         }
-        self.commit(state_transitions, &mut db)
+        self.commit()
     }
 
     fn apply_transaction(
@@ -183,7 +135,7 @@ impl State {
         //TODO: verify transaction (probably)
         for action in get_operations(&transaction) {
             let address = action.get_address();
-            let account_state = states.get(&address).cloned().unwrap_or_default();
+            let account_state = states.get(&address).map(|state| state.clone()).unwrap_or_default();
             let new_account_state = self.apply_action(&action, account_state)?;
             states.insert(address, new_account_state);
         }
@@ -191,26 +143,16 @@ impl State {
     }
 
     fn apply_operation(&self, action: StateOperation) -> Result<()> {
-        let mut db = self.db.write().map_err(|e| anyhow::anyhow!("{}", e))?;
-
-        let current_account_state = self.get_account_state(&action.get_address(), &db)?;
+        let current_account_state = self.get_account_state(&action.get_address())?;
         let new_account_state = self.apply_action(&action, current_account_state)?;
-        let batch = vec![(action.get_address(), new_account_state)];
-        self.commit(batch, &mut db)
-    }
-
-    fn commit(&self, state_transitions: Vec<(H160, AccountState)>, db: &mut Merk) -> Result<()> {
-        let mut batch = Vec::with_capacity(state_transitions.len());
-        for (addr, state) in state_transitions {
-            let addr = addr.encode()?;
-            let state = state.encode()?;
-            batch.push((addr, Op::Put(state)))
-        }
-        db.apply(&batch, &[])?;
+        self.trie.put(action.get_address(), new_account_state)?;
         Ok(())
     }
 
-    //fn commit(&self, new_root : )
+    fn commit(&self) -> Result<()> {
+        self.trie.commit()?;
+        Ok(())
+    }
 
     pub fn check_transaction(&self, transaction: &Transaction) -> Result<()> {
         Ok(())
@@ -225,7 +167,7 @@ impl State {
         match action {
             StateOperation::DebitBalance { amount, .. } => {
                 if account_state.free_balance < *amount {
-                    return Err(MorphError::InsufficientFunds.into());
+                    return Err(StateError::InsufficientFunds.into());
                 }
                 account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
                 Ok(account_state)
@@ -236,7 +178,7 @@ impl State {
             }
             StateOperation::UpdateNonce { nonce, .. } => {
                 if *nonce <= account_state.nonce {
-                    return Err(MorphError::NonceIsLessThanCurrent.into());
+                    return Err(StateError::NonceIsLessThanCurrent.into());
                 }
                 account_state.nonce = *nonce;
                 Ok(account_state)
@@ -244,57 +186,25 @@ impl State {
         }
     }
 
-    fn get_account_state(&self, address: &H160, db: &Merk) -> Result<AccountState> {
-        let key = address.to_fixed_bytes();
-        let value = db.get(&key)?;
-        match value {
-            None => Ok(AccountState::default()),
-            Some(byte) => AccountState::decode(&byte),
-        }
+    fn get_account_state(&self, address: &H160) -> Result<AccountState> {
+        Ok(self.trie.get(address).unwrap_or_default().unwrap_or_default())
     }
 
     fn get_account_state_with_proof(
         &self,
         address: &H160,
-    ) -> Result<(Option<AccountState>, ReadProof)> {
-        let db = self.db.read().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let mut query = Query::new();
-        query.insert_key(address.encode()?);
-        let account_state = match db.get(&address.encode()?)? {
-            None => None,
-            Some(value) => Some(AccountState::decode(&value)?),
-        };
-
-        let root = db.root_hash();
-        let proof = db.prove(query)?;
+    ) -> Result<(AccountState, ReadProof)> {
+        let (account_state, proof) = self.trie.get_with_proof(&address)?;
+        let root = self.trie.root()?;
         Ok((account_state, ReadProof { proof, root }))
     }
 
     pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {
-        let db = self.db.read().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let merk = db.checkpoint(path)?;
-        Ok(Self {
-            db: Arc::new(RwLock::new(merk)),
-        })
-    }
-
-    pub fn intermediate(&self) -> Result<Self> {
-        let time = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let mut path = temp_dir();
-        path.push(format!("merk-temp–{}", time));
-        let db = self.db.read().map_err(|e| anyhow::anyhow!("{}", e))?;
-        let merk = db.checkpoint(path)?;
-        Ok(Self {
-            db: Arc::new(RwLock::new(merk)),
-        })
+        unimplemented!()
     }
 
     pub fn root_hash(&self) -> Result<Hash> {
-        let db = self.db.read().map_err(|e| anyhow::anyhow!("{}", e))?;
-        Ok(db.root_hash())
+        self.trie.root().map(|root| root.to_fixed_bytes())
     }
 }
 
@@ -375,11 +285,11 @@ mod tests {
     #[test]
     fn test_morph() {
         let path = TempDir::new("state").unwrap();
-        let mut morph = State::new(path.path()).unwrap();
+        let mut state = State::new(path.path()).unwrap();
         let alice = create_account();
         let bob = create_account();
         let jake = create_account();
-        morph.credit_balance(&alice.address, 1_000_000).unwrap();
+        state.credit_balance(&alice.address, 1_000_000).unwrap();
         let mut txs = Vec::new();
         for i in 0..100 {
             let amount = 100;
@@ -393,56 +303,12 @@ mod tests {
                     fee: (amount as f64 * 0.01) as u128,
                 },
             )
-            .unwrap();
+                .unwrap();
             txs.push(tx);
         }
-        morph.apply_txs(txs).unwrap();
+        state.apply_txs(txs).unwrap();
 
-        println!("Alice: {:#?}", morph.account_state(&alice.address));
-        println!("Bob: {:#?}", morph.account_state(&bob.address));
-        let s2 = path.into_path().join("s2");
-        let checkpoint_1 = morph.checkpoint(s2.as_path()).unwrap();
-        let mut intermediate = morph.intermediate().unwrap();
-        for i in 0..100 {
-            let amount = 100;
-            assert!(checkpoint_1
-                .apply_txs(vec![make_sign_transaction(
-                    &alice,
-                    i + 1000,
-                    TransactionKind::Transfer {
-                        from: alice.address.to_fixed_bytes(),
-                        to: bob.address.to_fixed_bytes(),
-                        amount,
-                        fee: (amount as f64 * 0.01) as u128,
-                    },
-                )
-                .unwrap(),])
-                .is_ok());
-        }
-        for i in 0..100 {
-            let amount = 100;
-            assert!(intermediate
-                .apply_txs(vec![make_sign_transaction(
-                    &alice,
-                    i + 1000,
-                    TransactionKind::Transfer {
-                        from: alice.address.to_fixed_bytes(),
-                        to: bob.address.to_fixed_bytes(),
-                        amount,
-                        fee: (amount as f64 * 0.01) as u128,
-                    },
-                )
-                .unwrap()])
-                .is_ok());
-        }
-
-        assert_eq!(
-            checkpoint_1.account_state(&alice.address),
-            intermediate.account_state(&alice.address)
-        );
-        assert_eq!(
-            checkpoint_1.root_hash().unwrap(),
-            intermediate.root_hash().unwrap()
-        );
+        println!("Alice: {:#?}", state.account_state(&alice.address));
+        println!("Bob: {:#?}", state.account_state(&bob.address));
     }
 }

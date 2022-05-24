@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::proof::{Proof, verify_proof_with_updates};
 use crate::store::Database;
 use crate::SparseMerkleTree;
 use anyhow::Result;
@@ -10,6 +11,8 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use hex::ToHex;
+
 #[derive(Copy, Clone)]
 pub enum CopyStrategy {
     Partial,
@@ -57,7 +60,7 @@ where
     K: Codec,
     V: Codec,
 {
-    pub(crate) fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open(path)?;
         let tree = match db.load_root() {
             Ok(tree) => tree,
@@ -75,7 +78,7 @@ where
         })
     }
 
-    pub(crate) fn open_with_options<P: AsRef<Path>>(path: P, options: Options) -> Result<Self> {
+    pub fn open_with_options<P: AsRef<Path>>(path: P, options: Options) -> Result<Self> {
         let db = Database::open(path)?;
         let tree = match db.load_root() {
             Ok(tree) => tree,
@@ -92,7 +95,7 @@ where
         })
     }
 
-    pub(crate) fn in_memory<P: AsRef<Path>>(options: Options) -> Result<Self> {
+    pub fn in_memory<P: AsRef<Path>>(options: Options) -> Result<Self> {
         let db = Database::in_memory();
         let tree = match db.load_root() {
             Ok(tree) => tree,
@@ -121,7 +124,6 @@ where
         *staging = head.subtree(self.options.strategy, vec![])?;
         Ok(())
     }
-
 
     pub fn rollback(&self) -> Result<()> {
         let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
@@ -200,6 +202,14 @@ where
         self.get_descend(key, descend)
     }
 
+    pub fn get_with_proof(&self, key: &K) -> Result<(V, Proof)> {
+        let mut head = self.head.read().map_err(|e| Error::RWPoison)?;
+        let raw_key = key.encode()?;
+        let value = self.get(key)?.ok_or(Error::InvalidKey(raw_key.encode_hex()))?;
+        let proof = head.proof(&raw_key)?;
+        Ok((value, proof))
+    }
+
     pub fn get_descend(&self, key: &K, descend: bool) -> Result<Option<V>> {
         let key = key.encode()?;
         let mut staging = self.staging.read().map_err(|e| Error::RWPoison)?;
@@ -241,11 +251,30 @@ where
             return Ok(Some(value));
         }
     }
+
+    pub fn root(&self) -> Result<H256> {
+        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
+        Ok(head.root())
+    }
+}
+
+pub struct Verifier;
+
+impl Verifier {
+    pub fn proof<K, V>(proof: &Proof, root: H256, key: K, value: V) -> Result<()>
+        where
+            K: Codec,
+            V: Codec,
+    {
+        let key = key.encode()?;
+        let value = IValue::Value(value.encode()?).encode()?;
+        return verify_proof_with_updates(proof, root, &key, &value).map(|_| ()).map_err(|e| e.into());
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::Trie;
+    use crate::{Trie, Verifier};
     use primitive_types::H256;
     use tempdir::TempDir;
     use types::account::AccountState;
@@ -405,5 +434,14 @@ mod tests {
                 nonce: 1,
             }, )
         );
+
+        let (value, proof) = trie
+            .get_with_proof(&H256::from_slice(&vec![1; 32]))
+            .unwrap();
+        println!("{:#?}", (&value, &proof));
+        println!(
+            "{:?}",
+            Verifier::proof(&proof, trie.root().unwrap(), H256::from_slice(&vec![1; 32]), value)
+        )
     }
 }

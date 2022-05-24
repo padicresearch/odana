@@ -5,6 +5,7 @@ use hex::ToHex;
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use codec::{Decoder, Encoder};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Proof {
@@ -12,6 +13,10 @@ pub struct Proof {
     pub non_membership_leaf_data: Option<Vec<u8>>,
     pub sibling_data: Option<Vec<u8>>,
 }
+
+impl Encoder for Proof {}
+
+impl Decoder for Proof {}
 
 #[derive(Serialize, Deserialize)]
 pub struct CompatProof {

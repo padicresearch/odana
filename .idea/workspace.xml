@@ -36,10 +36,16 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="add rollback">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="chore: code improvement">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/smt.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/proof.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/smt/src/trie.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/trie.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/state/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/kv.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/snapshot.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/store.rs" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -164,7 +170,7 @@
       <recent name="$PROJECT_DIR$/morph/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test trie::tests::basic_test">
+  <component name="RunManager" selected="Cargo.Test tests::txpool_test">
     <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build --package smt" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -245,22 +251,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test basic_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kernel --lib basic_test -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Test proof::tests::test_proof_basic" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package smt --lib proof::tests::test_proof_basic -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -277,8 +267,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test smt::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib smt::tests" />
+    <configuration name="Test smt::tests::basic_get_set_check_root_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package smt --lib smt::tests::basic_get_set_check_root_test -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -293,8 +283,24 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test smt::tests::basic_get_set_check_root_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib smt::tests::basic_get_set_check_root_test -- --exact" />
+    <configuration name="Test tests::test_morph" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package state --lib tests::test_morph -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::txpool_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package txpool --lib tests::txpool_test -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -348,19 +354,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
+      <item itemvalue="Cargo.Test tests::test_morph" />
+      <item itemvalue="Cargo.Test tests::txpool_test" />
       <item itemvalue="Cargo.Test trie::tests::basic_test" />
-      <item itemvalue="Cargo.Test basic_test" />
       <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
       <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
-      <item itemvalue="Cargo.Test smt::tests" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::txpool_test" />
+        <item itemvalue="Cargo.Test tests::test_morph" />
         <item itemvalue="Cargo.Test trie::tests::basic_test" />
         <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
         <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
-        <item itemvalue="Cargo.Test basic_test" />
-        <item itemvalue="Cargo.Test smt::tests" />
       </list>
     </recent_temporary>
   </component>
@@ -467,14 +473,8 @@
       <workItem from="1652771597523" duration="1318000" />
       <workItem from="1652801999764" duration="5448000" />
       <workItem from="1652856913230" duration="32825000" />
-      <workItem from="1653033562920" duration="21387000" />
-    </task>
-    <task id="LOCAL-00121" summary="kademila discovery">
-      <created>1644079427584</created>
-      <option name="number" value="00121" />
-      <option name="presentableId" value="LOCAL-00121" />
-      <option name="project" value="LOCAL" />
-      <updated>1644079427584</updated>
+      <workItem from="1653033562920" duration="38145000" />
+      <workItem from="1653348752652" duration="1445000" />
     </task>
     <task id="LOCAL-00122" summary="kademila discovery">
       <created>1644080931104</created>
@@ -812,7 +812,14 @@
       <option name="project" value="LOCAL" />
       <updated>1653144374317</updated>
     </task>
-    <option name="localTasksCounter" value="170" />
+    <task id="LOCAL-00170" summary="chore: code improvement">
+      <created>1653146324179</created>
+      <option name="number" value="00170" />
+      <option name="presentableId" value="LOCAL-00170" />
+      <option name="project" value="LOCAL" />
+      <updated>1653146324179</updated>
+    </task>
+    <option name="localTasksCounter" value="171" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -843,7 +850,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="fix proof of work" />
     <MESSAGE value="migrate morph to merk" />
     <MESSAGE value="add miner" />
     <MESSAGE value="mvp: test p2p communication" />
@@ -868,7 +874,8 @@
     <MESSAGE value="fix `apply`: reset staging after applying changes" />
     <MESSAGE value="clean up + formatting" />
     <MESSAGE value="add rollback" />
-    <option name="LAST_COMMIT_MESSAGE" value="add rollback" />
+    <MESSAGE value="chore: code improvement" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: code improvement" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
