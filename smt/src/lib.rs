@@ -4,8 +4,8 @@ pub mod proof;
 mod smt;
 mod store;
 mod treehasher;
-pub mod trie;
+pub mod tree;
 mod utils;
 
 pub use smt::*;
-pub use trie::*;
+pub use tree::*;

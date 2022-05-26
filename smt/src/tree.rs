@@ -47,7 +47,7 @@ pub enum Op<K: Codec, V: Codec> {
     Put(K, V),
 }
 
-pub struct Trie<K, V> {
+pub struct Tree<K, V> {
     db: Arc<Database>,
     head: Arc<RwLock<SparseMerkleTree>>,
     staging: Arc<RwLock<SparseMerkleTree>>,
@@ -55,10 +55,10 @@ pub struct Trie<K, V> {
     _data: PhantomData<(K, V)>,
 }
 
-impl<K, V> Trie<K, V>
-where
-    K: Codec,
-    V: Codec,
+impl<K, V> Tree<K, V>
+    where
+        K: Codec,
+        V: Codec,
 {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open(path)?;
@@ -274,7 +274,7 @@ impl Verifier {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Trie, Verifier};
+    use crate::{Tree, Verifier};
     use primitive_types::H256;
     use tempdir::TempDir;
     use types::account::AccountState;
@@ -282,8 +282,8 @@ mod tests {
     #[test]
     fn basic_test() {
         let tmp_dir = TempDir::new("test").unwrap();
-        let trie = Trie::open(tmp_dir.path()).unwrap();
-        trie.put(
+        let tree = Tree::open(tmp_dir.path()).unwrap();
+        tree.put(
             H256::from_slice(&vec![1; 32]),
             AccountState {
                 free_balance: 30000,
@@ -293,7 +293,7 @@ mod tests {
         )
             .unwrap();
 
-        trie.put(
+        tree.put(
             H256::from_slice(&vec![2; 32]),
             AccountState {
                 free_balance: 10000,
@@ -303,7 +303,7 @@ mod tests {
         )
             .unwrap();
 
-        trie.put(
+        tree.put(
             H256::from_slice(&vec![3; 32]),
             AccountState {
                 free_balance: 10000,
@@ -313,7 +313,7 @@ mod tests {
         )
             .unwrap();
 
-        trie.put(
+        tree.put(
             H256::from_slice(&vec![24; 32]),
             AccountState {
                 free_balance: 10000,
@@ -322,8 +322,8 @@ mod tests {
             },
         )
             .unwrap();
-        let root_1 = trie.commit().unwrap();
-        trie.put(
+        let root_1 = tree.commit().unwrap();
+        tree.put(
             H256::from_slice(&vec![24; 32]),
             AccountState {
                 free_balance: 20000,
@@ -333,7 +333,7 @@ mod tests {
         )
             .unwrap();
 
-        trie.put(
+        tree.put(
             H256::from_slice(&vec![44; 32]),
             AccountState {
                 free_balance: 10000,
@@ -343,7 +343,7 @@ mod tests {
         )
             .unwrap();
 
-        trie.put(
+        tree.put(
             H256::from_slice(&vec![32; 32]),
             AccountState {
                 free_balance: 10000,
@@ -353,7 +353,7 @@ mod tests {
         )
             .unwrap();
 
-        trie.put(
+        tree.put(
             H256::from_slice(&vec![50; 32]),
             AccountState {
                 free_balance: 10000,
@@ -363,7 +363,7 @@ mod tests {
         )
             .unwrap();
 
-        trie.put(
+        tree.put(
             H256::from_slice(&vec![3; 32]),
             AccountState {
                 free_balance: 200,
@@ -373,10 +373,10 @@ mod tests {
         )
             .unwrap();
 
-        let root_2 = trie.commit().unwrap();
+        let root_2 = tree.commit().unwrap();
 
         assert_eq!(
-            trie.get_descend(&H256::from_slice(&vec![3; 32]), true)
+            tree.get_descend(&H256::from_slice(&vec![3; 32]), true)
                 .unwrap(),
             Some(AccountState {
                 free_balance: 200,
@@ -384,10 +384,10 @@ mod tests {
                 nonce: 3,
             })
         );
-        trie.reset(root_1).unwrap();
+        tree.reset(root_1).unwrap();
 
         assert_eq!(
-            trie.get_descend(&H256::from_slice(&vec![3; 32]), true)
+            tree.get_descend(&H256::from_slice(&vec![3; 32]), true)
                 .unwrap(),
             Some(AccountState {
                 free_balance: 10000,
@@ -396,9 +396,9 @@ mod tests {
             })
         );
 
-        trie.reset(root_2).unwrap();
+        tree.reset(root_2).unwrap();
 
-        trie.put(
+        tree.put(
             H256::from_slice(&vec![3; 32]),
             AccountState {
                 free_balance: 90000,
@@ -408,10 +408,10 @@ mod tests {
         )
             .unwrap();
 
-        let root_3 = trie.commit().unwrap();
+        let root_3 = tree.commit().unwrap();
 
         assert_eq!(
-            trie.get_descend(&H256::from_slice(&vec![3; 32]), false)
+            tree.get_descend(&H256::from_slice(&vec![3; 32]), false)
                 .unwrap(),
             Some(AccountState {
                 free_balance: 90000,
@@ -421,12 +421,12 @@ mod tests {
         );
 
         assert_eq!(
-            trie.get_descend(&H256::from_slice(&vec![1; 32]), false)
+            tree.get_descend(&H256::from_slice(&vec![1; 32]), false)
                 .unwrap(),
             None
         );
         assert_eq!(
-            trie.get_descend(&H256::from_slice(&vec![1; 32]), true)
+            tree.get_descend(&H256::from_slice(&vec![1; 32]), true)
                 .unwrap(),
             Some(AccountState {
                 free_balance: 30000,
@@ -435,13 +435,13 @@ mod tests {
             }, )
         );
 
-        let (value, proof) = trie
+        let (value, proof) = tree
             .get_with_proof(&H256::from_slice(&vec![1; 32]))
             .unwrap();
         println!("{:#?}", (&value, &proof));
         println!(
             "{:?}",
-            Verifier::proof(&proof, trie.root().unwrap(), H256::from_slice(&vec![1; 32]), value)
+            Verifier::proof(&proof, tree.root().unwrap(), H256::from_slice(&vec![1; 32]), value)
         )
     }
 }

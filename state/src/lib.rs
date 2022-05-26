@@ -13,7 +13,7 @@ use codec::impl_codec;
 use codec::{Codec, Decoder, Encoder};
 use primitive_types::{H160, H256};
 use smt::proof::Proof;
-use smt::Trie;
+use smt::Tree;
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::{AccountState};
@@ -33,7 +33,7 @@ pub struct ReadProof {
 
 #[derive(Clone)]
 pub struct State {
-    trie: Arc<Trie<H160, AccountState>>,
+    trie: Arc<Tree<H160, AccountState>>,
 }
 
 unsafe impl Sync for State {}
@@ -95,7 +95,7 @@ impl StateDB for State {
 
 impl State {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let trie = Trie::open(path)?;
+        let trie = Tree::open(path)?;
         Ok(Self {
             trie: Arc::new(trie)
         })

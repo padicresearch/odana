@@ -36,16 +36,9 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="chore: code improvement">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="refactor: rename `Trie` to `Tree`">
+      <change afterPath="$PROJECT_DIR$/smt/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/proof.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/trie.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/trie.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/state/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/kv.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/snapshot.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/store.rs" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -474,21 +467,7 @@
       <workItem from="1652801999764" duration="5448000" />
       <workItem from="1652856913230" duration="32825000" />
       <workItem from="1653033562920" duration="38145000" />
-      <workItem from="1653348752652" duration="1445000" />
-    </task>
-    <task id="LOCAL-00122" summary="kademila discovery">
-      <created>1644080931104</created>
-      <option name="number" value="00122" />
-      <option name="presentableId" value="LOCAL-00122" />
-      <option name="project" value="LOCAL" />
-      <updated>1644080931104</updated>
-    </task>
-    <task id="LOCAL-00123" summary="kademila discovery">
-      <created>1644081155769</created>
-      <option name="number" value="00123" />
-      <option name="presentableId" value="LOCAL-00123" />
-      <option name="project" value="LOCAL" />
-      <updated>1644081155769</updated>
+      <workItem from="1653348752652" duration="4981000" />
     </task>
     <task id="LOCAL-00124" summary="kademila discovery">
       <created>1644084415457</created>
@@ -819,7 +798,21 @@
       <option name="project" value="LOCAL" />
       <updated>1653146324179</updated>
     </task>
-    <option name="localTasksCounter" value="171" />
+    <task id="LOCAL-00171" summary="change state">
+      <created>1653373695434</created>
+      <option name="number" value="00171" />
+      <option name="presentableId" value="LOCAL-00171" />
+      <option name="project" value="LOCAL" />
+      <updated>1653373695437</updated>
+    </task>
+    <task id="LOCAL-00172" summary="refactor: rename `Trie` to `Tree`">
+      <created>1653584576711</created>
+      <option name="number" value="00172" />
+      <option name="presentableId" value="LOCAL-00172" />
+      <option name="project" value="LOCAL" />
+      <updated>1653584576711</updated>
+    </task>
+    <option name="localTasksCounter" value="173" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -850,8 +843,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="migrate morph to merk" />
-    <MESSAGE value="add miner" />
     <MESSAGE value="mvp: test p2p communication" />
     <MESSAGE value="bootstrapping" />
     <MESSAGE value="kademila discovery" />
@@ -875,7 +866,9 @@
     <MESSAGE value="clean up + formatting" />
     <MESSAGE value="add rollback" />
     <MESSAGE value="chore: code improvement" />
-    <option name="LAST_COMMIT_MESSAGE" value="chore: code improvement" />
+    <MESSAGE value="change state" />
+    <MESSAGE value="refactor: rename `Trie` to `Tree`" />
+    <option name="LAST_COMMIT_MESSAGE" value="refactor: rename `Trie` to `Tree`" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
