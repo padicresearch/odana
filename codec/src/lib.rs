@@ -1,10 +1,10 @@
 use std::convert::TryInto;
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
-use primitive_types::H160;
+use primitive_types::{H160, H256};
 
 pub trait Encoder: Sized + Serialize + DeserializeOwned {
     fn encode(&self) -> Result<Vec<u8>> {
@@ -89,5 +89,20 @@ impl Encoder for H160 {
 impl Decoder for H160 {
     fn decode(buf: &[u8]) -> Result<Self> {
         Ok(H160::from_slice(buf))
+    }
+}
+
+impl Encoder for H256 {
+    fn encode(&self) -> Result<Vec<u8>> {
+        Ok(self.as_bytes().to_vec())
+    }
+    fn encoded_size(&self) -> Result<u64> {
+        Ok(20)
+    }
+}
+
+impl Decoder for H256 {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        Ok(H256::from_slice(buf))
     }
 }

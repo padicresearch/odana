@@ -10,7 +10,7 @@ traits = { path = "../common/traits" }
 types = { path = "../common/types" }
 primitive-types = { path = "../common/primitive-types" }
 txpool = { path = "../txpool" }
-morph = { path = "../morph" }
+state = { path = "../state" }
 miner = { path = "../miner" }
 consensus = { path = "../consensus" }
 anyhow = "1"

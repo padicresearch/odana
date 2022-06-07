@@ -32,7 +32,7 @@ impl Tuchain {
             consensus.clone(),
             block_storage,
             chain_state_storage,
-            lmpsc.clone()
+            lmpsc.clone(),
         )?);
         let txpool = Arc::new(RwLock::new(TxPool::new(
             None,

@@ -1,6 +1,6 @@
 use std::ops::Deref;
-use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicBool, AtomicI8, Ordering};
+use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use chrono::Utc;
@@ -11,10 +11,10 @@ use primitive_types::{H160, H256, U256};
 use tracing::{info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 use txpool::TxPool;
-use types::Address;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::Transaction;
+use types::Address;
 
 pub const SHUTDOWN: i8 = -1;
 pub const RESET: i8 = 0;

@@ -12,7 +12,6 @@
       <sourceFolder url="file://$MODULE_DIR$/codec/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/storage/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/common/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/morph/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/account/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/common/tracing/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/common/types/src" isTestSource="false" />
@@ -37,6 +36,9 @@
       <sourceFolder url="file://$MODULE_DIR$/miner/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/miner-test/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/p2p/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/kernel/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/state/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/smt/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/common/target" />

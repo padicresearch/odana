@@ -1,10 +1,10 @@
 use libp2p::{Multiaddr, PeerId};
 use serde::{Deserialize, Serialize};
 
-use codec::{Decoder, Encoder, impl_codec};
+use codec::{impl_codec, Decoder, Encoder};
 use types::block::{Block, BlockHeader};
-use types::Hash;
 use types::tx::Transaction;
+use types::Hash;
 
 use crate::identity::PeerNode;
 
@@ -112,12 +112,15 @@ impl GetBlockTransactionsMessage {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct ReAckMessage {
     pub node_info: PeerNode,
-    pub peers: Vec<String>,
+    pub current_header: BlockHeader,
 }
 
 impl ReAckMessage {
-    pub fn new(node_info: PeerNode, peers: Vec<String>) -> Self {
-        Self { node_info, peers }
+    pub fn new(node_info: PeerNode, current_header: BlockHeader) -> Self {
+        Self {
+            node_info,
+            current_header,
+        }
     }
 }
 

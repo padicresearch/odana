@@ -1,7 +1,6 @@
-use std::env;
 use std::env::temp_dir;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicI8, Ordering};
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use clap::Parser;
@@ -15,18 +14,18 @@ use p2p::identity::NodeIdentity;
 use p2p::message::*;
 use p2p::peer_manager::{NetworkState, PeerList};
 use p2p::start_p2p_server;
-use storage::{PersistentStorage, PersistentStorageBackend};
 use storage::memstore::MemStore;
+use storage::{PersistentStorage, PersistentStorageBackend};
 use tracing::info;
-use tracing::Level;
 use tracing::tracing_subscriber;
+use tracing::Level;
 use traits::Blockchain;
 use types::events::LocalEventMessage;
 use types::network::Network;
 
 pub mod environment;
 
-enum EventStream {
+enum Event {
     LocalMessage(LocalEventMessage),
     PeerMessage(PeerMessage),
     Unhandled,
@@ -60,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
     let (node_2_peer_sender, mut node_2_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_2_node_sender, mut peer_2_node_receiver) = tokio::sync::mpsc::unbounded_channel();
     let peers = Arc::new(PeerList::new());
-    let interrupt = Arc::new(AtomicI8::new(2)).clone();
+    let interrupt = Arc::new(AtomicI8::new(miner::worker::PAUSE)).clone();
     let time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
@@ -89,7 +88,6 @@ async fn main() -> anyhow::Result<()> {
     )
         .clone();
 
-
     let network_state = Arc::new(NetworkState::new(peers.clone(), local_mpsc_sender.clone()));
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
     start_p2p_server(
@@ -100,6 +98,7 @@ async fn main() -> anyhow::Result<()> {
         peers.clone(),
         NODE_POW_TARGET.into(),
         network_state.clone(),
+        blockchain.chain(),
     )
         .await
     .unwrap();
@@ -128,17 +127,17 @@ async fn main() -> anyhow::Result<()> {
             local_msg = local_mpsc_receiver.recv() => {
                 if let Some(msg) = local_msg {
                     //println!("Local Message : {:?}", msg);
-                    Some(EventStream::LocalMessage(msg))
+                    Some(Event::LocalMessage(msg))
                 }else {
-                    Some(EventStream::Unhandled)
+                    Some(Event::Unhandled)
                 }
             }
 
             peer_msg = peer_2_node_receiver.recv() => {
                 if let Some(peer) = peer_msg {
-                    Some(EventStream::PeerMessage(peer))
+                    Some(Event::PeerMessage(peer))
                 }else {
-                    Some(EventStream::Unhandled)
+                    Some(Event::Unhandled)
                 }
             }
 
@@ -146,7 +145,7 @@ async fn main() -> anyhow::Result<()> {
 
         if let Some(event) = event {
             match event {
-                EventStream::PeerMessage(msg) => {
+                Event::PeerMessage(msg) => {
                     match msg {
                         PeerMessage::GetCurrentHead(req) => {
                             if let Ok(Some(current_head)) = blockchain.chain().current_header() {
@@ -173,7 +172,7 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::ReAck(msg) => {}
                     };
                 }
-                EventStream::LocalMessage(local_msg) => {
+                Event::LocalMessage(local_msg) => {
                     match local_msg {
                         LocalEventMessage::MindedBlock(block) => {
                             blockchain
@@ -212,9 +211,16 @@ async fn main() -> anyhow::Result<()> {
                                 }
                             }
                         }
+                        LocalEventMessage::NetworkNewPeerConnection { stats } => {
+                            // if stats.1 > 0 {
+                            //     interrupt.fetch_update(Ordering::Acquire, Ordering::Release, |old| {
+                            //
+                            //     })
+                            // }
+                        }
                     }
                 }
-                EventStream::Unhandled => {}
+                Event::Unhandled => {}
             }
         }
     }

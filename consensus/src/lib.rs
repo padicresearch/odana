@@ -3,12 +3,12 @@ use std::sync::Arc;
 
 use anyhow::Result;
 
-use primitive_types::{Compact, endian, H160, H256, U256};
+use primitive_types::{endian, Compact, H160, H256, U256};
 use traits::{ChainHeadReader, Consensus, StateDB};
-use types::{Genesis, Hash};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader};
 use types::tx::Transaction;
+use types::{Genesis, Hash};
 
 use crate::constants::RETARGETING_INTERVAL;
 use crate::error::Error;

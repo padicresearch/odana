@@ -10,7 +10,7 @@ use core::{convert::TryInto, str::FromStr, u64::MAX};
 
 use crunchy::unroll;
 
-use uint::{construct_uint, FromDecStrErr, overflowing};
+use uint::{construct_uint, overflowing, FromDecStrErr};
 
 construct_uint! {
     pub struct U256(4);

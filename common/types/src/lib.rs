@@ -6,8 +6,8 @@ use hex::ToHex;
 use serde::{Deserialize, Serialize};
 use serde_big_array::big_array;
 
-use codec::{Decoder, Encoder};
 use codec::impl_codec;
+use codec::{Decoder, Encoder};
 use primitive_types::{H160, H256};
 
 use crate::account::AccountState;

@@ -1,7 +1,7 @@
 use codec::{Decoder, Encoder};
 
-use crate::{KVStore, Schema, StorageIterator};
 use crate::error::StorageError;
+use crate::{KVStore, Schema, StorageIterator};
 
 pub fn default_write_opts() -> rocksdb::WriteOptions {
     let mut opts = rocksdb::WriteOptions::default();

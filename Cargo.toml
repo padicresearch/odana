@@ -7,7 +7,7 @@ members = [
     "crypto",
     "blockchain",
     "storage",
-    "morph",
+    "state",
     "account",
     "common/traits",
     "common/uint",
@@ -23,5 +23,7 @@ members = [
     "consensus",
     "miner",
     "miner-test",
-    "p2p"
+    "p2p",
+    "kernel",
+    "smt"
 ]

@@ -97,8 +97,8 @@ mod test {
     use rocksdb::ColumnFamilyDescriptor;
     use tempdir::TempDir;
 
-    use crate::{KVStore, PersistentStorage, PersistentStorageBackend, Schema};
     use crate::sleddb::SledDB;
+    use crate::{KVStore, PersistentStorage, PersistentStorageBackend, Schema};
 
     pub type BlockStorageKV = dyn KVStore<BlockStorage> + Send + Sync;
 

@@ -1,5 +1,5 @@
 [package]
-name = "morph"
+name = "state"
 version = "0.1.0"
 edition = "2021"
 
@@ -22,8 +22,9 @@ commitlog = "0.2"
 primitive-types = { path = "../common/primitive-types" }
 tracing = { path = "../common/tracing" }
 transaction = { path = "../transaction" }
-merk = {git = "https://github.com/mambisi/merk.git", branch = "develop"}
-rocksdb = { version = "0.17.0"}
+merk = { git = "https://github.com/mambisi/merk.git", branch = "develop" }
+smt = { path = "../smt" }
+rocksdb = { version = "0.17.0" }
 num_cpus = "1.13.1"
 tempdir = "0.3.7"
 rand = "0.8.4"

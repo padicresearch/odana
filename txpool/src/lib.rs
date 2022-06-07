@@ -6,8 +6,8 @@ use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashMap};
 use std::option::Option::Some;
 use std::rc::Rc;
-use std::sync::{Arc, RwLock};
 use std::sync::atomic::AtomicI32;
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use anyhow::{Error, Result};
@@ -18,10 +18,10 @@ use account::GOVERNANCE_ACCOUNTID;
 use primitive_types::{H160, H256};
 use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};
-use types::{Hash, TxPoolConfig};
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::{Transaction, TransactionKind, TransactionStatus};
+use types::{Hash, TxPoolConfig};
 
 use crate::error::TxPoolError;
 use crate::prque::PriorityQueue;

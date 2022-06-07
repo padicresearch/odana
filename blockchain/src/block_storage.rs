@@ -23,9 +23,9 @@ impl BlockStorage {
     }
 
     pub fn put(&self, block: Block) -> Result<()> {
-        let block_key = self.primary.put_block(block)?;
-        self.block_by_hash.index(block_key.0, block_key.clone());
-        self.block_by_level.index(block_key.1, block_key.clone());
+        let block_key = self.primary.put(block)?;
+        self.block_by_hash.put(block_key.0, block_key.clone());
+        self.block_by_level.put(block_key.1, block_key.clone());
         Ok(())
     }
 }
@@ -90,7 +90,7 @@ impl BlockPrimaryStorage {
     pub fn new(kv: Arc<BlockPrimaryStorageKV>) -> Self {
         Self { kv }
     }
-    pub fn put_block(&self, block: Block) -> Result<BlockPrimaryKey> {
+    pub fn put(&self, block: Block) -> Result<BlockPrimaryKey> {
         let hash = block.hash();
         let level = block.level();
         let block_key = BlockPrimaryKey(hash, level);
@@ -122,7 +122,7 @@ impl BlockByLevel {
     pub fn new(kv: Arc<BlockByLevelStorageKV>) -> Self {
         Self { kv }
     }
-    pub fn index(&self, level: i32, primary_key: BlockPrimaryKey) -> Result<()> {
+    pub fn put(&self, level: i32, primary_key: BlockPrimaryKey) -> Result<()> {
         self.kv.put(level as u32, primary_key)
     }
     pub fn get(&self, level: i32) -> Result<Option<BlockPrimaryKey>> {
@@ -150,7 +150,7 @@ impl BlockByHash {
     pub fn new(kv: Arc<BlockByHashStorageKV>) -> Self {
         Self { kv }
     }
-    pub fn index(&self, hash: Hash, primary_key: BlockPrimaryKey) -> Result<()> {
+    pub fn put(&self, hash: Hash, primary_key: BlockPrimaryKey) -> Result<()> {
         self.kv.put(hash, primary_key)
     }
     pub fn get(&self, hash: &Hash) -> Result<Option<BlockPrimaryKey>> {

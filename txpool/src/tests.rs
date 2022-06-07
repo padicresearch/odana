@@ -6,8 +6,8 @@ use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use dashmap::DashMap;
 use dashmap::mapref::one::Ref;
+use dashmap::DashMap;
 
 use account::create_account;
 use primitive_types::{H160, H256};
@@ -15,11 +15,11 @@ use traits::{Blockchain, ChainHeadReader, ChainReader, StateDB};
 use transaction::make_sign_transaction;
 use types::account::{Account, AccountState};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
-use types::Hash;
 use types::tx::{Transaction, TransactionKind};
+use types::Hash;
 
-use crate::{ResetRequest, TransactionRef, TxPool};
 use crate::tx_lookup::AccountSet;
+use crate::{ResetRequest, TransactionRef, TxPool};
 
 #[derive(Clone)]
 struct DummyStateDB {

@@ -14,7 +14,7 @@ codec = { path = "../codec" }
 types = { path = "../common/types" }
 traits = { path = "../common/traits" }
 account = { path = "../account" }
-morph = { path = "../morph" }
+state = { path = "../state" }
 txpool = { path = "../txpool" }
 crypto = { path = "../crypto" }
 tokio = { version = "1", features = ["sync"] }

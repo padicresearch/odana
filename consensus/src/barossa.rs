@@ -6,10 +6,10 @@ use chrono::{Timelike, Utc};
 use crypto::is_valid_proof_of_work;
 use primitive_types::{Compact, H128, H160, H256, U256};
 use traits::{ChainHeadReader, Consensus, StateDB};
-use types::{Genesis, Hash};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 use types::tx::Transaction;
+use types::{Genesis, Hash};
 
 use crate::constants::{
     BLOCK_MAX_FUTURE, DOUBLE_SPACING_SECONDS, MAX_TIMESPAN, MIN_TIMESPAN, RETARGETING_INTERVAL,
@@ -377,7 +377,7 @@ impl Consensus for BarossaProtocol {
             &H160::from(header.coinbase),
             self.miner_reward(header.level),
         )?;
-        self.verify_header(chain, header);
+        self.verify_header(chain, header)?;
         Ok(())
     }
 

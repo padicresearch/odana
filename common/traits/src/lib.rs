@@ -4,10 +4,10 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use primitive_types::{Compact, H160, H256, U256};
-use types::{Genesis, Hash};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::Transaction;
+use types::{Genesis, Hash};
 
 pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;

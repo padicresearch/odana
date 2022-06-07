@@ -2,8 +2,8 @@ use anyhow::Result;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 
-use crypto::{RIPEMD160, SHA256};
 use crypto::ecdsa::{Keypair, PublicKey, Signature};
+use crypto::{RIPEMD160, SHA256};
 use primitive_types::H160;
 use types::account::Account;
 

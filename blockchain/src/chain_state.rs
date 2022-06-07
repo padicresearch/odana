@@ -6,14 +6,14 @@ use anyhow::Result;
 use lru::LruCache;
 use tokio::sync::mpsc::UnboundedSender;
 
-use morph::Morph;
 use primitive_types::H256;
+use state::State;
 use storage::{KVStore, Schema};
 use tracing::{error, info};
 use traits::{Blockchain, ChainReader, Consensus, StateDB};
-use types::{ChainStateValue, Hash};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
+use types::{ChainStateValue, Hash};
 
 use crate::block_storage::BlockStorage;
 use crate::errors::BlockChainError;
@@ -64,11 +64,11 @@ impl ChainStateStorage {
 }
 
 pub struct ChainState {
-    state_provider: Arc<Mutex<LruCache<Hash, Arc<Morph>>>>,
+    state_provider: Arc<Mutex<LruCache<Hash, Arc<State>>>>,
     state_dir: PathBuf,
     block_storage: Arc<BlockStorage>,
     chain_state: Arc<ChainStateStorage>,
-    sender: UnboundedSender<LocalEventMessage>
+    sender: UnboundedSender<LocalEventMessage>,
 }
 
 const CURR_STATE_ROOT: Hash = [0; 32];
@@ -79,12 +79,12 @@ impl ChainState {
         consensus: Arc<dyn Consensus>,
         block_storage: Arc<BlockStorage>,
         chain_state_storage: Arc<ChainStateStorage>,
-        sender: UnboundedSender<LocalEventMessage>
+        sender: UnboundedSender<LocalEventMessage>,
     ) -> Result<Self> {
         let mut state_provider = LruCache::new(10);
 
         if let Some(current_head) = chain_state_storage.get_current_header()? {
-            let state = Arc::new(Morph::new(
+            let state = Arc::new(State::new(
                 state_dir.join(format!("{:?}", H256::from(current_head.state_root))),
             )?);
             state_provider.put(current_head.state_root, state.clone());
@@ -95,7 +95,7 @@ impl ChainState {
             let block = Block::new(genesis.clone(), vec![]);
             block_storage.put(block)?;
             chain_state_storage.set_current_header(genesis)?;
-            let state = Arc::new(Morph::new(
+            let state = Arc::new(State::new(
                 state_dir.join(format!("{:?}", H256::from(genesis.state_root))),
             )?);
             state_provider.put(genesis.state_root, state.clone());
@@ -107,7 +107,7 @@ impl ChainState {
             state_dir,
             block_storage,
             chain_state: chain_state_storage,
-            sender
+            sender,
         })
     }
 
@@ -129,7 +129,9 @@ impl ChainState {
                     provider.put(header.state_root, new_state.clone());
                     provider.put(CURR_STATE_ROOT, new_state);
                     self.chain_state.set_current_header(header.clone())?;
-                    self.sender.send(LocalEventMessage::StateChanged { current_head: self.current_header().unwrap().unwrap().raw });
+                    self.sender.send(LocalEventMessage::StateChanged {
+                        current_head: self.current_header().unwrap().unwrap().raw,
+                    });
                     info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Applied new block");
                 }
                 Err(e) => {
@@ -145,7 +147,7 @@ impl ChainState {
         &self,
         consensus: Arc<dyn Consensus>,
         block: Block,
-    ) -> Result<(Block, Arc<Morph>)> {
+    ) -> Result<(Block, Arc<State>)> {
         let current_state = self.state()?;
         let new_state_path = self
             .state_dir
@@ -166,7 +168,7 @@ impl ChainState {
         Ok((block, state_intermediate))
     }
 
-    pub fn load_state(&self, root_hash: &Hash) -> Result<Arc<Morph>> {
+    pub fn load_state(&self, root_hash: &Hash) -> Result<Arc<State>> {
         let mut provider = self
             .state_provider
             .lock()
@@ -174,7 +176,7 @@ impl ChainState {
         match provider.get(root_hash) {
             None => {
                 let state =
-                    Morph::new(self.state_dir.join(format!("{:?}", H256::from(root_hash))))?;
+                    State::new(self.state_dir.join(format!("{:?}", H256::from(root_hash))))?;
                 return Ok(Arc::new(state));
             }
             Some(state) => Ok(state.clone()),
@@ -185,7 +187,7 @@ impl ChainState {
         self.block_storage.clone()
     }
 
-    pub fn state(&self) -> anyhow::Result<Arc<Morph>> {
+    pub fn state(&self) -> anyhow::Result<Arc<State>> {
         let mut provider = self
             .state_provider
             .lock()
