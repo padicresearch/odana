@@ -5,16 +5,12 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashMap};
 use std::option::Option::Some;
-use std::rc::Rc;
-use std::sync::atomic::AtomicI32;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
 use std::time::{Duration, Instant};
 
-use anyhow::{Error, Result};
-use dashmap::DashMap;
+use anyhow::{Result};
 use tokio::sync::mpsc::UnboundedSender;
 
-use account::GOVERNANCE_ACCOUNTID;
 use primitive_types::{H160, H256};
 use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};

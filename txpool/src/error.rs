@@ -10,8 +10,6 @@ pub enum TxPoolError {
     CompositeErrors(Vec<String>),
     #[error("`{0}`")]
     GenericError(#[from] anyhow::Error),
-    #[error("`{0}`")]
-    SqliteError(#[from] rusqlite::Error),
     #[error("`Transaction is already known`")]
     TransactionAlreadyKnown,
     #[error("`Transaction nonce too low`")]
