@@ -16,6 +16,7 @@ p2p = { path = "../p2p" }
 storage = { path = "../storage" }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0.45"
+indexmap = "1.8.2"
 types = { path = "../common/types" }
 txpool = { path = "../txpool" }
 state = { path = "../state" }
@@ -24,4 +25,5 @@ miner = { path = "../miner" }
 account = { path = "../account" }
 traits = { path = "../common/traits" }
 tracing = { path = "../common/tracing" }
+rocksdb = { version = "0.17.0" }
 clap = { version = "3.0.13", features = ["derive"] }

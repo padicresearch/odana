@@ -37,8 +37,32 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="refactor: rename `Trie` to `Tree`">
-      <change afterPath="$PROJECT_DIR$/smt/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/node/src/download_manager.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/bootstrap.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel/Cargo.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel/src/lib.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/environment.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/environment.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/tree.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/tree.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/state/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/rocks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/rocks.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/sleddb.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/sleddb.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,7 +82,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="state-kernel" />
+        <entry key="$PROJECT_DIR$" value="master" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -81,6 +105,14 @@
               <option name="branches">
                 <list>
                   <RecentBranch>
+                    <option name="branchName" value="kernel-actors" />
+                    <option name="lastUsedInstant" value="1654636514" />
+                  </RecentBranch>
+                  <RecentBranch>
+                    <option name="branchName" value="master" />
+                    <option name="lastUsedInstant" value="1654636430" />
+                  </RecentBranch>
+                  <RecentBranch>
                     <option name="branchName" value="feature/sparse-merkle-tree" />
                     <option name="lastUsedInstant" value="1653130744" />
                   </RecentBranch>
@@ -91,14 +123,6 @@
                   <RecentBranch>
                     <option name="branchName" value="consensus" />
                     <option name="lastUsedInstant" value="1642582383" />
-                  </RecentBranch>
-                  <RecentBranch>
-                    <option name="branchName" value="txpool" />
-                    <option name="lastUsedInstant" value="1642192592" />
-                  </RecentBranch>
-                  <RecentBranch>
-                    <option name="branchName" value="master" />
-                    <option name="lastUsedInstant" value="1642192591" />
                   </RecentBranch>
                 </list>
               </option>
@@ -163,7 +187,7 @@
       <recent name="$PROJECT_DIR$/morph/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::txpool_test">
+  <component name="RunManager" selected="Cargo.Test tests::test_morph">
     <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build --package smt" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -244,24 +268,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test proof::tests::test_proof_basic" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib proof::tests::test_proof_basic -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test smt::tests::basic_get_set_check_root_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib smt::tests::basic_get_set_check_root_test -- --exact" />
+    <configuration name="Test prque::test::test_prque" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package txpool --lib prque::test::test_prque -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -292,6 +300,22 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test tests::txpool_processing_speed_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package txpool --lib tests::txpool_processing_speed_test -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test tests::txpool_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package txpool --lib tests::txpool_test -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -308,8 +332,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test trie::tests::basic_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib trie::tests::basic_test -- --exact" />
+    <configuration name="Test tx_list::tests::test_txlist" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package txpool --lib tx_list::tests::test_txlist -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -348,18 +372,18 @@
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Test tests::test_morph" />
+      <item itemvalue="Cargo.Test prque::test::test_prque" />
+      <item itemvalue="Cargo.Test tests::txpool_processing_speed_test" />
+      <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
       <item itemvalue="Cargo.Test tests::txpool_test" />
-      <item itemvalue="Cargo.Test trie::tests::basic_test" />
-      <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
-      <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test tests::txpool_test" />
         <item itemvalue="Cargo.Test tests::test_morph" />
-        <item itemvalue="Cargo.Test trie::tests::basic_test" />
-        <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
-        <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
+        <item itemvalue="Cargo.Test tests::txpool_processing_speed_test" />
+        <item itemvalue="Cargo.Test tests::txpool_test" />
+        <item itemvalue="Cargo.Test prque::test::test_prque" />
+        <item itemvalue="Cargo.Test tx_list::tests::test_txlist" />
       </list>
     </recent_temporary>
   </component>
@@ -468,6 +492,9 @@
       <workItem from="1652856913230" duration="32825000" />
       <workItem from="1653033562920" duration="38145000" />
       <workItem from="1653348752652" duration="4981000" />
+      <workItem from="1654722426221" duration="33465000" />
+      <workItem from="1654933364125" duration="29619000" />
+      <workItem from="1655546626848" duration="23356000" />
     </task>
     <task id="LOCAL-00124" summary="kademila discovery">
       <created>1644084415457</created>

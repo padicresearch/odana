@@ -78,6 +78,23 @@ impl<K, V> Tree<K, V>
         })
     }
 
+    pub fn open_read_only_at_root<P: AsRef<Path>>(path: P, root: &H256) -> Result<Self> {
+        let db = Database::open_read_only(path)?;
+        let tree = match db.get(root) {
+            Ok(tree) => tree,
+            Err(_) => SparseMerkleTree::new(),
+        };
+        let options = Options::default();
+        // let staging_tree = tree.subtree(options.strategy, vec![])?;
+        Ok(Self {
+            db: Arc::new(db),
+            head: Arc::new(RwLock::new(tree.clone())),
+            staging: Arc::new(RwLock::new(tree.clone())),
+            options,
+            _data: Default::default(),
+        })
+    }
+
     pub fn open_with_options<P: AsRef<Path>>(path: P, options: Options) -> Result<Self> {
         let db = Database::open(path)?;
         let tree = match db.load_root() {
@@ -261,7 +278,7 @@ impl<K, V> Tree<K, V>
 pub struct Verifier;
 
 impl Verifier {
-    pub fn proof<K, V>(proof: &Proof, root: H256, key: K, value: V) -> Result<()>
+    pub fn verify_proof<K, V>(proof: &Proof, root: H256, key: K, value: V) -> Result<()>
         where
             K: Codec,
             V: Codec,
@@ -441,7 +458,7 @@ mod tests {
         println!("{:#?}", (&value, &proof));
         println!(
             "{:?}",
-            Verifier::proof(&proof, tree.root().unwrap(), H256::from_slice(&vec![1; 32]), value)
+            Verifier::verify_proof(&proof, tree.root().unwrap(), H256::from_slice(&vec![1; 32]), value)
         )
     }
 }

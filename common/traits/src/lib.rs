@@ -21,10 +21,11 @@ pub trait StateDB: Send + Sync {
     fn balance(&self, address: &H160) -> u128;
     fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
     fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
-    fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
-    fn checkpoint(&self, path: String) -> Result<Arc<dyn StateDB>>;
+    fn reset(&self, root: H256) -> Result<()>;
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash>;
-    fn root_hash(&self) -> Hash;
+    fn root(&self) -> Hash;
+    fn commit(&self) -> Result<()>;
+    fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
 }
 
 pub trait StateIntermediate {}

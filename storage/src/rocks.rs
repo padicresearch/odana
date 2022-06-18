@@ -63,4 +63,15 @@ impl<S: Schema> KVStore<S> for rocksdb::DB {
             iter.map(|(k, v)| (S::Key::decode(&k), S::Value::decode(&v))),
         ))
     }
+
+    fn prefix_iter(&self, start: &S::Key) -> anyhow::Result<StorageIterator<S>> {
+        let cf = self
+            .cf_handle(S::column())
+            .ok_or(StorageError::ColumnFamilyMissing(S::column()))?;
+        let start = start.encode()?;
+        let iter = self.prefix_iterator_cf(&cf, start);
+        Ok(Box::new(
+            iter.map(|(k, v)| (S::Key::decode(&k), S::Value::decode(&v))),
+        ))
+    }
 }

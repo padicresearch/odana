@@ -20,7 +20,29 @@ use super::*;
 #[derive(Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize)]
 pub struct BlockPrimaryKey(pub Hash, pub i32);
 
-impl_codec!(BlockPrimaryKey);
+impl Encoder for BlockPrimaryKey {
+    fn encode(&self) -> Result<Vec<u8>> {
+        let mut encoded = Vec::with_capacity(36);
+        encoded.extend(self.1.to_be_bytes());
+        encoded.extend(self.0.iter());
+
+        return Ok(encoded)
+    }
+    fn encoded_size(&self) -> Result<u64> {
+        return Ok(36)
+    }
+}
+
+impl Decoder for BlockPrimaryKey {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        let mut level: [u8; 4] = [0; 4];
+        level.copy_from_slice(&buf[..4]);
+        let level = i32::from_be_bytes(level);
+        let mut hash: [u8; 32] = [0; 32];
+        hash.copy_from_slice(&buf[4..]);
+        Ok(Self(hash, level))
+    }
+}
 
 #[derive(Serialize, Deserialize, Copy, Clone, Getters)]
 pub struct BlockHeader {

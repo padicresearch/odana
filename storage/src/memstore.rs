@@ -8,7 +8,7 @@ use anyhow::{Error, Result};
 use codec::{Codec, Decoder, Encoder};
 
 use crate::error::StorageError;
-use crate::KVStore;
+use crate::{KVStore, StorageIterator};
 use crate::Schema;
 
 #[derive(Debug)]
@@ -110,12 +110,16 @@ impl<S: Schema> KVStore<S> for MemStore {
 
     fn iter<'a>(
         &'a self,
-    ) -> Result<Box<dyn 'a + Send + Iterator<Item = (Result<S::Key>, Result<S::Value>)>>> {
+    ) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<S::Key>, Result<S::Value>)>>> {
         Ok(Box::new(
             self.column(S::column())?
                 .iter()
                 .map(|(k, v)| (S::Key::decode(&k), S::Value::decode(&v))),
         ))
+    }
+
+    fn prefix_iter(&self, start: &S::Key) -> Result<StorageIterator<S>> {
+        todo!()
     }
 }
 
