@@ -155,9 +155,7 @@ impl NetworkState {
             let current_highest_peer_id = highest_know_head.as_ref().cloned().unwrap();
             let current_highest_block_header = self
                 .peer_state
-                .get(&current_highest_peer_id)
-                .unwrap()
-                .value();
+                .get(&current_highest_peer_id).unwrap();
             if head.level > current_highest_block_header.level {
                 std::mem::swap(&mut *highest_know_head, &mut new_highest);
                 self.peer_state.insert(peer.clone(), head.clone());

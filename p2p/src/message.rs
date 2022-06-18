@@ -21,31 +21,23 @@ impl CurrentHeadMessage {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct BroadcastTransactionMessage {
-    tx: Transaction,
+    pub tx: Transaction,
 }
 
 impl BroadcastTransactionMessage {
     pub fn new(tx: Transaction) -> Self {
         Self { tx }
     }
-
-    pub fn tx(self) -> Transaction {
-        self.tx
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct BroadcastBlockMessage {
-    block: Block,
+    pub block: Block,
 }
 
 impl BroadcastBlockMessage {
     pub fn new(block: Block) -> Self {
         Self { block }
-    }
-
-    pub fn block(self) -> Block {
-        self.block
     }
 }
 
@@ -63,11 +55,11 @@ impl GetCurrentHeadMessage {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct GetBlockHeaderMessage {
     pub from: Hash,
-    pub to: Hash,
+    pub to: Option<Hash>,
 }
 
 impl GetBlockHeaderMessage {
-    pub fn new(from: Hash, to: Hash) -> Self {
+    pub fn new(from: Hash, to: Option<Hash>) -> Self {
         Self { from, to }
     }
 }
@@ -83,6 +75,18 @@ impl BlockTransactionsMessage {
     }
 }
 
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct BlocksMessage {
+    pub blocks: Vec<Block>,
+}
+
+impl BlocksMessage {
+    pub fn new(blocks: Vec<Block>) -> Self {
+        Self { blocks }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct BlockHeaderMessage {
     pub block_headers: Vec<BlockHeader>,
@@ -91,6 +95,17 @@ pub struct BlockHeaderMessage {
 impl BlockHeaderMessage {
     pub fn new(block_headers: Vec<BlockHeader>) -> Self {
         Self { block_headers }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct BlocksToDownloadMessage {
+    pub block_hashes: Vec<Hash>,
+}
+
+impl BlocksToDownloadMessage {
+    pub fn new(block_hashes: Vec<Hash>) -> Self {
+        Self { block_hashes }
     }
 }
 
@@ -140,9 +155,9 @@ pub enum PeerMessage {
     GetCurrentHead(GetCurrentHeadMessage),
     CurrentHead(CurrentHeadMessage),
     GetBlockHeader(GetBlockHeaderMessage),
+    GetBlocks(BlocksToDownloadMessage),
     BlockHeader(BlockHeaderMessage),
-    GetBlock(Block),
-    Block(Block),
+    Blocks(BlocksMessage),
     BroadcastTransaction(BroadcastTransactionMessage),
     BroadcastBlock(BroadcastBlockMessage),
     Ack(Multiaddr),

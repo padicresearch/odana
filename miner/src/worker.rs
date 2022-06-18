@@ -32,7 +32,7 @@ pub fn start_worker(
 ) -> Result<()> {
     let is_running: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
     let mut current_block_template: Option<(BlockHeader, Vec<Transaction>)> = None;
-    info!(miner = ?coinbase, "👷 mine worker started running");
+    info!(miner = ?coinbase, "mine worker started running");
     loop {
         let mut running = is_running.load(Ordering::Acquire);
         let i = interrupt.load(Ordering::Acquire);
@@ -92,7 +92,7 @@ pub fn start_worker(
             {
                 let hash = block_template.hash();
                 let level = block_template.level;
-                info!(level = level, hash = ?hex::encode(hash), parent_hash = ?format!("{}", H256::from(block_template.parent_hash)), "⛏ mined potential block");
+                info!(level = level, hash = ?hex::encode(hash), parent_hash = ?format!("{}", H256::from(block_template.parent_hash)), "⛏ mined new block");
                 let block = Block::new(block_template, txs);
                 lmpsc.send(LocalEventMessage::MindedBlock(block));
                 interrupt.store(PAUSE, Ordering::Release);

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use lru::LruCache;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -64,8 +64,7 @@ impl ChainStateStorage {
 }
 
 pub struct ChainState {
-    state_provider: Arc<Mutex<LruCache<Hash, Arc<State>>>>,
-    state_dir: PathBuf,
+    state: Arc<State>,
     block_storage: Arc<BlockStorage>,
     chain_state: Arc<ChainStateStorage>,
     sender: UnboundedSender<LocalEventMessage>,
@@ -81,30 +80,21 @@ impl ChainState {
         chain_state_storage: Arc<ChainStateStorage>,
         sender: UnboundedSender<LocalEventMessage>,
     ) -> Result<Self> {
-        let mut state_provider = LruCache::new(10);
-
+        let state = Arc::new(State::new(
+            state_dir,
+        )?);
         if let Some(current_head) = chain_state_storage.get_current_header()? {
-            let state = Arc::new(State::new(
-                state_dir.join(format!("{:?}", H256::from(current_head.state_root))),
-            )?);
-            state_provider.put(current_head.state_root, state.clone());
-            state_provider.put(CURR_STATE_ROOT, state.clone());
             info!(current_head = ?current_head, "restore from blockchain state");
         } else {
             let genesis = consensus.get_genesis_header();
             let block = Block::new(genesis.clone(), vec![]);
             block_storage.put(block)?;
             chain_state_storage.set_current_header(genesis)?;
-            let state = Arc::new(State::new(
-                state_dir.join(format!("{:?}", H256::from(genesis.state_root))),
-            )?);
-            state_provider.put(genesis.state_root, state.clone());
             info!(current_head = ?genesis, "blockchain state started from genesis");
         }
 
         Ok(Self {
-            state_provider: Arc::new(Mutex::new(state_provider)),
-            state_dir,
+            state,
             block_storage,
             chain_state: chain_state_storage,
             sender,
@@ -115,19 +105,11 @@ impl ChainState {
         for block in blocks {
             match self
                 .update_chain(consensus.clone(), block)
-                .and_then(|(block, state)| {
+                .map(|block| {
                     let header = block.header().clone();
-                    self.block_storage
-                        .put(block.clone())
-                        .and_then(|_| Ok((header, state)))
+                    header
                 }) {
-                Ok((header, new_state)) => {
-                    let mut provider = self
-                        .state_provider
-                        .lock()
-                        .map_err(|e| anyhow::anyhow!("{:?}", e))?;
-                    provider.put(header.state_root, new_state.clone());
-                    provider.put(CURR_STATE_ROOT, new_state);
+                Ok(header) => {
                     self.chain_state.set_current_header(header.clone())?;
                     self.sender.send(LocalEventMessage::StateChanged {
                         current_head: self.current_header().unwrap().unwrap().raw,
@@ -147,61 +129,34 @@ impl ChainState {
         &self,
         consensus: Arc<dyn Consensus>,
         block: Block,
-    ) -> Result<(Block, Arc<State>)> {
-        let current_state = self.state()?;
-        let new_state_path = self
-            .state_dir
-            .join(format!("{:?}", H256::from(block.header().state_root)));
-        let state_intermediate = Arc::new(current_state.checkpoint(new_state_path)?);
+    ) -> Result<Block> {
         let mut header = block.header().clone();
         consensus.prepare_header(self.block_storage.clone(), &mut header)?;
         consensus.finalize(
             self.block_storage.clone(),
             &mut header,
-            state_intermediate.clone(),
+            self.state.clone(),
             block.transactions().clone(),
         )?;
         consensus.verify_header(self.block_storage.clone(), &header)?;
         if header.hash() != block.hash() {
             return Err(BlockChainError::InvalidBlock.into());
         }
-        Ok((block, state_intermediate))
-    }
-
-    pub fn load_state(&self, root_hash: &Hash) -> Result<Arc<State>> {
-        let mut provider = self
-            .state_provider
-            .lock()
-            .map_err(|e| anyhow::anyhow!("{:?}", e))?;
-        match provider.get(root_hash) {
-            None => {
-                let state =
-                    State::new(self.state_dir.join(format!("{:?}", H256::from(root_hash))))?;
-                return Ok(Arc::new(state));
-            }
-            Some(state) => Ok(state.clone()),
-        }
+        Ok(block)
     }
 
     pub fn block_storage(&self) -> Arc<BlockStorage> {
         self.block_storage.clone()
     }
 
-    pub fn state(&self) -> anyhow::Result<Arc<State>> {
-        let mut provider = self
-            .state_provider
-            .lock()
-            .map_err(|e| anyhow::anyhow!("{:?}", e))?;
-        provider
-            .get(&CURR_STATE_ROOT)
-            .ok_or(anyhow::anyhow!("No state found"))
-            .map(|value| value.clone())
+    pub fn state(&self) -> Arc<State> {
+        self.state.clone()
     }
 }
 
 impl Blockchain for ChainState {
     fn get_current_state(&self) -> anyhow::Result<Arc<dyn StateDB>> {
-        Ok(self.state()?)
+        Ok(self.state())
     }
 
     fn current_header(&self) -> anyhow::Result<Option<IndexedBlockHeader>> {
@@ -211,7 +166,7 @@ impl Blockchain for ChainState {
     }
 
     fn get_state_at(&self, root: &Hash) -> anyhow::Result<Arc<dyn StateDB>> {
-        Ok(self.load_state(root)?)
+        Ok(self.state.get_sate_at(H256::from(root))?)
     }
 }
 

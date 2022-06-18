@@ -60,4 +60,13 @@ impl<S: Schema> KVStore<S> for SledDB {
             (S::Key::decode(k.as_ref()), S::Value::decode(v.as_ref()))
         })))
     }
+
+    fn prefix_iter(&self, start: &S::Key) -> Result<StorageIterator<S>> {
+        let start = start.encode()?;
+        let iter = self.column(S::column())?.scan_prefix(start);
+        Ok(Box::new(iter.map(|result| {
+            let (k, v) = result.unwrap();
+            (S::Key::decode(k.as_ref()), S::Value::decode(v.as_ref()))
+        })))
+    }
 }
