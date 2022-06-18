@@ -5,6 +5,7 @@ use std::time::SystemTime;
 
 use clap::Parser;
 
+use crate::environment::default_db_opts;
 use account::create_account;
 use blockchain::blockchain::Tuchain;
 use blockchain::{column_families, column_family_names};
@@ -22,10 +23,9 @@ use tracing::Level;
 use traits::{Blockchain, ChainHeadReader, ChainReader};
 use types::events::LocalEventMessage;
 use types::network::Network;
-use crate::environment::default_db_opts;
 
-pub mod environment;
 mod download_manager;
+pub mod environment;
 
 enum Event {
     LocalMessage(LocalEventMessage),
@@ -40,6 +40,8 @@ struct Args {
     /// Name of the person to greet
     #[clap(short, long)]
     peer: Option<String>,
+    #[clap(short, long)]
+    miner: bool,
 }
 
 enum NodeState {
@@ -61,7 +63,12 @@ async fn main() -> anyhow::Result<()> {
     let (node_to_peer_sender, mut node_to_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_to_node_sender, mut peer_to_node_receiver) = tokio::sync::mpsc::unbounded_channel();
     let peers = Arc::new(PeerList::new());
-    let interrupt = Arc::new(AtomicI8::new(miner::worker::PAUSE)).clone();
+    let interrupt = Arc::new(AtomicI8::new(if args.miner {
+        miner::worker::START
+    } else {
+        miner::worker::PAUSE
+    }))
+        .clone();
     let time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
@@ -74,17 +81,17 @@ async fn main() -> anyhow::Result<()> {
 
     // let mut tempdir = temp_dir();
     // tempdir.push("tuchain");
-    let database = Arc::new(rocksdb::DB::open_cf_descriptors(&default_db_opts(), path.join("context"), column_families())?);
-    let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::RocksDB(database)));
+    let database = Arc::new(rocksdb::DB::open_cf_descriptors(
+        &default_db_opts(),
+        path.join("context"),
+        column_families(),
+    )?);
+    let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::RocksDB(
+        database,
+    )));
     let consensus = Arc::new(BarossaProtocol::new(Network::Testnet));
     let blockchain = Arc::new(
-        Tuchain::initialize(
-            path,
-            consensus.clone(),
-            storage,
-            local_mpsc_sender.clone(),
-        )
-            .unwrap(),
+        Tuchain::initialize(path, consensus.clone(), storage, local_mpsc_sender.clone()).unwrap(),
     )
         .clone();
 
@@ -184,13 +191,14 @@ async fn main() -> anyhow::Result<()> {
 
                                 if Some(header.hash()) == msg.to {
                                     headers.push(header);
-                                    break
+                                    break;
                                 }
                                 headers.push(header);
                                 level += 1;
                             }
 
-                            node_to_peer_sender.send(PeerMessage::BlockHeader(BlockHeaderMessage::new(headers)));
+                            node_to_peer_sender
+                                .send(PeerMessage::BlockHeader(BlockHeaderMessage::new(headers)));
                         }
                         PeerMessage::BlockHeader(msg) => {
                             println!("{:#?}", msg.block_headers);
@@ -216,9 +224,7 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::Blocks(msg) => {
                             // TODO: Verify Blocks
                             // TODO: Store Blocks
-                            blockchain
-                                .chain()
-                                .put_chain(consensus.clone(), msg.blocks);
+                            blockchain.chain().put_chain(consensus.clone(), msg.blocks);
                         }
                         PeerMessage::BroadcastTransaction(msg) => {
                             println!("{:?}", msg.tx)
