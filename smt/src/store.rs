@@ -70,8 +70,21 @@ impl Database {
     pub(crate) fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Arc::new(rocksdb::DB::open_cf_descriptors(
             &default_db_opts(),
-            path,
+            path.as_ref(),
             cfs(),
+        )?);
+
+        Ok(Self {
+            inner: Arc::new(RocksDB::new(db))
+        })
+    }
+
+    pub(crate) fn open_read_only<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let db = Arc::new(rocksdb::DB::open_cf_for_read_only(
+            &default_db_opts(),
+            path,
+            vec![COLUMN_ROOT, COLUMN_TREES],
+            false,
         )?);
         Ok(Self {
             inner: Arc::new(RocksDB::new(db)),
@@ -109,7 +122,7 @@ impl Database {
 
     pub(crate) fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Database> {
         Ok(Database {
-            inner: self.inner.checkpoint(PathBuf::new().join(path))?,
+            inner: self.inner.checkpoint(PathBuf::new().join(path.as_ref()))?,
         })
     }
 }

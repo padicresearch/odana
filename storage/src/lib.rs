@@ -84,6 +84,7 @@ where
     fn delete(&self, key: &Entry::Key) -> Result<()>;
     fn contains(&self, key: &Entry::Key) -> Result<bool>;
     fn iter(&self) -> Result<StorageIterator<Entry>>;
+    fn prefix_iter(&self, start: &Entry::Key) -> anyhow::Result<StorageIterator<Entry>>;
 }
 
 pub type StorageIterator<'a, Entry: Schema> =

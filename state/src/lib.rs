@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap};
 use std::option::Option::Some;
-use std::path::{Path};
+use std::path::{Path, PathBuf};
 use std::sync::{Arc};
 
 use anyhow::{Result};
@@ -34,6 +34,8 @@ pub struct ReadProof {
 #[derive(Clone)]
 pub struct State {
     trie: Arc<Tree<H160, AccountState>>,
+    path: PathBuf,
+    read_only: bool,
 }
 
 unsafe impl Sync for State {}
@@ -75,29 +77,36 @@ impl StateDB for State {
         Ok(self.root_hash().unwrap())
     }
 
-    fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
-        unimplemented!()
+    fn reset(&self, root: H256) -> Result<()> {
+        self.trie.reset(root)
     }
 
-    fn checkpoint(&self, path: String) -> Result<Arc<dyn StateDB>> {
-        unimplemented!()
-    }
 
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
         self.apply_txs(txs)?;
         self.root_hash()
     }
 
-    fn root_hash(&self) -> Hash {
+    fn root(&self) -> Hash {
         self.root_hash().unwrap()
+    }
+
+    fn commit(&self) -> Result<()> {
+        self.trie.commit().map(|_| ())
+    }
+
+    fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
+        Ok(self.get_sate_at(H256::from(self.root()))?)
     }
 }
 
 impl State {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let trie = Tree::open(path)?;
+        let trie = Tree::open(path.as_ref())?;
         Ok(Self {
-            trie: Arc::new(trie)
+            trie: Arc::new(trie),
+            path: PathBuf::from(path.as_ref()),
+            read_only: false,
         })
     }
 
@@ -124,7 +133,7 @@ impl State {
         for (acc, state) in states {
             self.trie.put(acc, state)?;
         }
-        self.commit()
+        Ok(())
     }
 
     fn apply_transaction(
@@ -150,7 +159,9 @@ impl State {
     }
 
     fn commit(&self) -> Result<()> {
-        self.trie.commit()?;
+        if !self.read_only {
+            self.trie.commit()?;
+        }
         Ok(())
     }
 
@@ -188,6 +199,14 @@ impl State {
 
     fn get_account_state(&self, address: &H160) -> Result<AccountState> {
         Ok(self.trie.get(address).unwrap_or_default().unwrap_or_default())
+    }
+
+    pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
+        Ok(Arc::new(State {
+            trie: Arc::new(Tree::open_read_only_at_root(self.path.as_path(), &root)?),
+            path: self.path.clone(),
+            read_only: true,
+        }))
     }
 
     fn get_account_state_with_proof(
@@ -310,5 +329,9 @@ mod tests {
 
         println!("Alice: {:#?}", state.account_state(&alice.address));
         println!("Bob: {:#?}", state.account_state(&bob.address));
+
+        let read_state = state.snapshot().unwrap();
+        println!("Read Alice: {:#?}", read_state.account_state(&alice.address));
+        println!("Read Bob: {:#?}", read_state.account_state(&bob.address));
     }
 }

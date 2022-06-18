@@ -10,7 +10,6 @@ use crate::chain_state::ChainStateStorage;
 
 pub mod block_storage;
 pub mod blockchain;
-pub mod bootstrap;
 pub mod chain_state;
 pub mod errors;
 

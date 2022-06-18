@@ -182,7 +182,7 @@ impl StateDB for DummyStateDB {
         todo!()
     }
 
-    fn root_hash(&self) -> Hash {
+    fn root(&self) -> Hash {
         todo!()
     }
 }

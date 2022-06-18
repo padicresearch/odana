@@ -24,6 +24,5 @@ members = [
     "miner",
     "miner-test",
     "p2p",
-    "kernel",
     "smt"
 ]
