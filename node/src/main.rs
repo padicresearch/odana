@@ -61,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
     let (node_to_peer_sender, mut node_to_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_to_node_sender, mut peer_to_node_receiver) = tokio::sync::mpsc::unbounded_channel();
     let peers = Arc::new(PeerList::new());
-    let interrupt = Arc::new(AtomicI8::new(miner::worker::START)).clone();
+    let interrupt = Arc::new(AtomicI8::new(miner::worker::PAUSE)).clone();
     let time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
@@ -271,7 +271,7 @@ async fn main() -> anyhow::Result<()> {
                             }
                         }
                         LocalEventMessage::NetworkNewPeerConnection { stats } => {
-                            todo!();
+                            info!(peer_stats = ?stats, "New peer connection");
                         }
                     }
                 }
