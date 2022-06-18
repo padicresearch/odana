@@ -37,8 +37,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="refactor: rename `Trie` to `Tree`">
-      <change afterPath="$PROJECT_DIR$/smt/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/Cargo.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -347,11 +347,11 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test tests::test_morph" />
-      <item itemvalue="Cargo.Test tests::txpool_test" />
-      <item itemvalue="Cargo.Test trie::tests::basic_test" />
-      <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
       <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
+      <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
+      <item itemvalue="Cargo.Test tests::test_morph" />
+      <item itemvalue="Cargo.Test trie::tests::basic_test" />
+      <item itemvalue="Cargo.Test tests::txpool_test" />
     </list>
     <recent_temporary>
       <list>
