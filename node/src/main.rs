@@ -197,7 +197,7 @@ async fn main() -> anyhow::Result<()> {
                                 headers.push(header);
                                 level += 1;
                             }
-
+                            println!("Sending BlockHeader {:?}", headers);
                             node_to_peer_sender
                                 .send(PeerMessage::BlockHeader(BlockHeaderMessage::new(headers)));
                         }
