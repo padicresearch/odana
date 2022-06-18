@@ -166,6 +166,7 @@ async fn main() -> anyhow::Result<()> {
                             println!("Network State {:?}", msg);
                         }
                         PeerMessage::GetBlockHeader(msg) => {
+                            println!("Received GetBlockHeader {:?}", msg);
                             let mut headers = Vec::with_capacity(2000);
                             let res = blockchain
                                 .chain()
@@ -232,8 +233,7 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::BroadcastBlock(msg) => {
                             println!("Received Block {:?}", msg)
                         }
-                        PeerMessage::Ack(_) => {}
-                        PeerMessage::ReAck(_) => {}
+                        _ => {}
                     };
                 }
                 Event::LocalMessage(local_msg) => {
@@ -269,15 +269,15 @@ async fn main() -> anyhow::Result<()> {
                                 if node_current_head.raw.level < current_head.level {
                                     // Start downloading blocks from the Peer
                                     let msg = GetBlockHeaderMessage::new(
-                                        current_head.hash(),
-                                        Some(node_current_head.hash.to_fixed_bytes()),
+                                        node_current_head.hash.0,
+                                        None,
                                     );
                                     info!("Send message block download {:?}", msg);
                                 }
                             }
                         }
                         LocalEventMessage::NetworkNewPeerConnection { stats } => {
-                            info!(peer_stats = ?stats, "New peer connection");
+                            info!(pending = ?stats.0, connected = ?stats.1, "Peer connection");
                         }
                     }
                 }

@@ -38,6 +38,7 @@
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="p2p hot fix">
       <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -468,13 +469,6 @@
       <workItem from="1653033562920" duration="38145000" />
       <workItem from="1653348752652" duration="4981000" />
     </task>
-    <task id="LOCAL-00127" summary="kademila discovery">
-      <created>1644086006084</created>
-      <option name="number" value="00127" />
-      <option name="presentableId" value="LOCAL-00127" />
-      <option name="project" value="LOCAL" />
-      <updated>1644086006084</updated>
-    </task>
     <task id="LOCAL-00128" summary="kademila discovery">
       <created>1644086470084</created>
       <option name="number" value="00128" />
@@ -811,7 +805,14 @@
       <option name="project" value="LOCAL" />
       <updated>1655584750688</updated>
     </task>
-    <option name="localTasksCounter" value="176" />
+    <task id="LOCAL-00176" summary="p2p hot fix">
+      <created>1655585167070</created>
+      <option name="number" value="00176" />
+      <option name="presentableId" value="LOCAL-00176" />
+      <option name="project" value="LOCAL" />
+      <updated>1655585167070</updated>
+    </task>
+    <option name="localTasksCounter" value="177" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

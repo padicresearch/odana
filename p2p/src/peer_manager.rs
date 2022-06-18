@@ -142,28 +142,38 @@ impl NetworkState {
             });
         let mut highest_know_head = self.highest_know_head.write().unwrap();
         if highest_know_head.is_none() {
+            println!(" highest_know_head.is_none");
             let mut new_highest = Some(peer.clone());
             std::mem::swap(&mut *highest_know_head, &mut new_highest);
+            println!("peer_state.insert");
             self.peer_state.insert(peer.clone(), head.clone());
+            println!("sending NetworkHighestHeadChanged");
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
                     current_head: head,
                 });
         } else {
+            println!(" highest_know_head is some");
             let mut new_highest = Some(peer.clone());
             let current_highest_peer_id = highest_know_head.as_ref().cloned().unwrap();
             let current_highest_block_header = self
                 .peer_state
                 .get(&current_highest_peer_id).unwrap();
             if head.level > current_highest_block_header.level {
+                println!("Mem swap");
                 std::mem::swap(&mut *highest_know_head, &mut new_highest);
-                self.peer_state.insert(peer.clone(), head.clone());
+                println!("peer_state.insert");
+                //self.peer_state.insert(peer.clone(), head.clone());
+                println!("sending NetworkHighestHeadChanged");
                 self.sender
                     .send(LocalEventMessage::NetworkHighestHeadChanged {
                         peer_id: peer.to_string(),
                         current_head: head,
                     });
+            } else {
+                println!("current_highest_block_header {:#?}, head : ", current_highest_block_header.value());
+                println!("head : {:#?} ", head)
             }
         }
         Ok(())
