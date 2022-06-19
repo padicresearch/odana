@@ -154,8 +154,7 @@ async fn config_network(
 
 async fn handle_send_message_to_peer(swarm: &mut Swarm<ChainNetworkBehavior>, peer_id: String, message: PeerMessage) -> Result<()> {
     let peer = PeerId::from_str(&peer_id).unwrap();
-    let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer, message);
-    println!("Handle Peer Request {:?} Peer ID : {:?}", request_id, peer);
+    let _ = swarm.behaviour_mut().requestresponse.send_request(&peer, message);
     Ok(())
 }
 
@@ -344,15 +343,19 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 message => {
                     let res = request_handler.handle(message);
 
+
                     match res {
                         Ok(Some(resp)) => {
+                            println!("Sending response to peer");
                             let chain_network = swarm.behaviour_mut();
                             chain_network.requestresponse.send_response(channel, resp);
+                        }
+                        Ok(None) => {
+                            swarm.behaviour_mut().p2p_to_node.send(request);
                         }
                         Err(error) => {
                             println!("Error responding to request {}", error);
                         }
-                        _ => {}
                     }
                 }
             },

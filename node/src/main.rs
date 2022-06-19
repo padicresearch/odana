@@ -228,7 +228,7 @@ async fn main() -> anyhow::Result<()> {
                                         node_current_head.hash.0,
                                         None,
                                     );
-                                    info!("Send message block download {:?}", msg);
+                                    //info!("Send message block download {:?}", msg);
                                     //node_to_peer_sender.send(PeerMessage::GetBlockHeader(msg));
                                 }
                             }
