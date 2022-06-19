@@ -174,11 +174,9 @@ async fn main() -> anyhow::Result<()> {
                 Event::PeerMessage(msg) => {
                     match msg {
                         PeerMessage::CurrentHead(msg) => {
-                            println!("Received CurrentHead {:?}", msg);
-                            println!("Network State {:?}", msg);
                         }
                         PeerMessage::BlockHeader(msg) => {
-                            println!("{:#?}", msg.block_headers);
+                            println!("Received BlockHeaders {}", msg.block_headers.len());
                         }
                         PeerMessage::Blocks(msg) => {
                             // TODO: Verify Blocks
