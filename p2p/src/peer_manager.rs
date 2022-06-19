@@ -139,6 +139,7 @@ impl NetworkState {
         self.sender
             .send(LocalEventMessage::NetworkNewPeerConnection {
                 stats: self.peer_list.stats(),
+                peer_id: peer_id.to_string()
             });
         let mut highest_know_head = self.highest_know_head.write().unwrap();
         if highest_know_head.is_none() {

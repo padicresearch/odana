@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::iter;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -29,7 +30,6 @@ use libp2p::tcp::TokioTcpConfig;
 use libp2p::NetworkBehaviour;
 use libp2p::{Multiaddr, PeerId, Swarm, Transport};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-
 use codec::{Decoder, Encoder};
 use primitive_types::Compact;
 use tracing::{info, warn};
@@ -39,10 +39,12 @@ use types::config::{EnvironmentConfig, NodeIdentityConfig};
 use crate::identity::*;
 use crate::message::*;
 use crate::peer_manager::{NetworkState, PeerList};
+use crate::request_handler::RequestHandler;
 
 pub mod identity;
 pub mod message;
 pub mod peer_manager;
+pub mod request_handler;
 
 trait P2pEnvironment {
     fn node_identity(&self) -> NodeIdentity;
@@ -150,15 +152,22 @@ async fn config_network(
     Ok(swarm)
 }
 
+async fn handle_send_message_to_peer(swarm: &mut Swarm<ChainNetworkBehavior>, peer_id: String, message: PeerMessage) -> Result<()> {
+    let peer = PeerId::from_str(&peer_id)?;
+    let _ = swarm.behaviour_mut().requestresponse.send_request(&peer, message);
+    Ok(())
+}
+
 pub async fn start_p2p_server(
     node_identity: NodeIdentity,
-    mut node_to_p2p: UnboundedReceiver<PeerMessage>,
+    mut node_to_p2p: UnboundedReceiver<NodeToPeerMessage>,
     p2p_to_node: UnboundedSender<PeerMessage>,
     peer_arg: Option<String>,
     peer_list: Arc<PeerList>,
     pow_target: Compact,
     network_state: Arc<NetworkState>,
     blockchain: Arc<dyn Blockchain>,
+    request_handler: Arc<RequestHandler>,
 ) -> Result<()> {
     let mut swarm =
         config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
@@ -186,26 +195,33 @@ pub async fn start_p2p_server(
     tokio::task::spawn(async move {
         let state = network_state.clone();
         let blockchain = blockchain.clone();
+        let request_handler = request_handler.clone();
         loop {
             tokio::select! {
-            msg = node_to_p2p.recv() => {handle_publish_message(msg, &mut swarm).await}
-            event = swarm.select_next_some() => {handle_swam_event(event, &mut swarm, &state, &blockchain).await}}
+            msg = node_to_p2p.recv() => {
+                    if let Some(msg) = msg {
+                        if let Some(peer_id) = msg.peer_id {
+                            handle_send_message_to_peer(&mut swarm, peer_id, msg.message);
+                        }else {
+                            handle_publish_message(msg.message, &mut swarm).await;
+                        }
+                    }
+                }
+            event = swarm.select_next_some() => {handle_swam_event(event, &mut swarm, &state, &blockchain, &request_handler).await}}
         }
     });
     Ok(())
 }
 
-async fn handle_publish_message(msg: Option<PeerMessage>, swarm: &mut Swarm<ChainNetworkBehavior>) {
-    if let Some(msg) = msg {
-        if let Ok(encoded_msg) = msg.encode() {
-            let network_topic = swarm.behaviour_mut().topic.clone();
-            swarm
-                .behaviour_mut()
-                .gossipsub
-                .publish(network_topic, encoded_msg);
-        } else {
-            println!("Failed to encode message {:?}", msg)
-        }
+async fn handle_publish_message(msg: PeerMessage, swarm: &mut Swarm<ChainNetworkBehavior>) {
+    if let Ok(encoded_msg) = msg.encode() {
+        let network_topic = swarm.behaviour_mut().topic.clone();
+        swarm
+            .behaviour_mut()
+            .gossipsub
+            .publish(network_topic, encoded_msg);
+    } else {
+        println!("Failed to encode message {:?}", msg)
     }
 }
 
@@ -214,6 +230,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
     swarm: &mut Swarm<ChainNetworkBehavior>,
     network_state: &Arc<NetworkState>,
     blockchain: &Arc<dyn Blockchain>,
+    request_handler: &RequestHandler
 ) {
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
@@ -323,7 +340,18 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         )),
                     );
                 }
-                _ => {}
+                message => {
+                    use tokio::sync::oneshot;
+                    let (tx, rx) = oneshot::channel::<PeerMessage>();
+                    request_handler.handle(tx, message);
+                    match rx.await {
+                        Ok(resp) => {
+                            let chain_network = swarm.behaviour_mut();
+                            chain_network.requestresponse.send_response(channel, resp);
+                        }
+                        Err(_) => {}
+                    }
+                }
             },
 
             RequestResponseMessage::Response {

@@ -15,6 +15,7 @@ libp2p = { version = "0.41.0", features = ["tcp-tokio"] }
 storage = { path = "../storage" }
 codec = { path = "../codec" }
 crypto = { path = "../crypto" }
+blockchain = { path = "../blockchain" }
 types = { path = "../common/types" }
 primitive-types = { path = "../common/primitive-types" }
 hex = "0.4.3"

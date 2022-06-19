@@ -4,18 +4,20 @@ use std::sync::Arc;
 use std::time::SystemTime;
 
 use clap::Parser;
+use tokio::sync::mpsc::error::SendError;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::environment::default_db_opts;
 use account::create_account;
 use blockchain::blockchain::Tuchain;
-use blockchain::{column_families, column_family_names};
+use blockchain::column_families;
 use consensus::barossa::{BarossaProtocol, NODE_POW_TARGET};
 use miner::worker::start_worker;
 use p2p::identity::NodeIdentity;
 use p2p::message::*;
 use p2p::peer_manager::{NetworkState, PeerList};
-use p2p::start_p2p_server;
-use storage::memstore::MemStore;
+use p2p::request_handler::RequestHandler;
+use p2p::{start_p2p_server};
 use storage::{PersistentStorage, PersistentStorageBackend};
 use tracing::info;
 use tracing::tracing_subscriber;
@@ -48,6 +50,21 @@ enum NodeState {
     Idle,
     Bootstrapping,
     Synced,
+}
+
+fn broadcast_message(sender: &UnboundedSender<NodeToPeerMessage>, message: PeerMessage) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
+    sender.send(NodeToPeerMessage {
+        peer_id: None,
+        message,
+    })
+}
+
+
+fn send_message_to_peer(peer_id: String, sender: &UnboundedSender<NodeToPeerMessage>, message: PeerMessage) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
+    sender.send(NodeToPeerMessage {
+        peer_id: Some(peer_id),
+        message,
+    })
 }
 
 ///tmp/tuchain
@@ -96,6 +113,7 @@ async fn main() -> anyhow::Result<()> {
         .clone();
 
     let network_state = Arc::new(NetworkState::new(peers.clone(), local_mpsc_sender.clone()));
+    let handler = Arc::new(RequestHandler::new(blockchain.clone()));
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
     start_p2p_server(
         node_id,
@@ -106,6 +124,7 @@ async fn main() -> anyhow::Result<()> {
         NODE_POW_TARGET.into(),
         network_state.clone(),
         blockchain.chain(),
+        handler
     )
         .await
     .unwrap();
@@ -154,73 +173,12 @@ async fn main() -> anyhow::Result<()> {
             match event {
                 Event::PeerMessage(msg) => {
                     match msg {
-                        PeerMessage::GetCurrentHead(req) => {
-                            if let Ok(Some(current_head)) = blockchain.chain().current_header() {
-                                node_to_peer_sender.send(PeerMessage::CurrentHead(
-                                    CurrentHeadMessage::new(current_head.raw),
-                                ));
-                            }
-                        }
                         PeerMessage::CurrentHead(msg) => {
                             println!("Received CurrentHead {:?}", msg);
                             println!("Network State {:?}", msg);
                         }
-                        PeerMessage::GetBlockHeader(msg) => {
-                            println!("Received GetBlockHeader {:?}", msg);
-                            let mut headers = Vec::with_capacity(2000);
-                            let res = blockchain
-                                .chain()
-                                .block_storage()
-                                .get_block_by_hash(&msg.from);
-                            let mut level = match res {
-                                Ok(Some(block)) => block.level(),
-                                _ => -1,
-                            };
-                            loop {
-                                let res = blockchain
-                                    .chain()
-                                    .block_storage()
-                                    .get_header_by_level(level);
-                                let header = match res {
-                                    Ok(Some(block)) => block.raw,
-                                    _ => break,
-                                };
-
-                                if headers.len() >= 2000 {
-                                    break;
-                                }
-
-                                if Some(header.hash()) == msg.to {
-                                    headers.push(header);
-                                    break;
-                                }
-                                headers.push(header);
-                                level += 1;
-                            }
-                            println!("Sending BlockHeader {:?}", headers);
-                            node_to_peer_sender
-                                .send(PeerMessage::BlockHeader(BlockHeaderMessage::new(headers)));
-                        }
                         PeerMessage::BlockHeader(msg) => {
                             println!("{:#?}", msg.block_headers);
-                        }
-                        PeerMessage::GetBlocks(msg) => {
-                            let mut blocks = Vec::with_capacity(msg.block_hashes.len());
-                            for hash in msg.block_hashes.iter() {
-                                let res =
-                                    blockchain.chain().block_storage().get_block_by_hash(hash);
-                                match res {
-                                    Ok(Some(block)) => blocks.push(block),
-                                    _ => break,
-                                }
-                            }
-
-                            if blocks.len() != msg.block_hashes.len() {
-                                blocks.clear();
-                            } else {
-                                node_to_peer_sender
-                                    .send(PeerMessage::Blocks(BlocksMessage::new(blocks)));
-                            }
                         }
                         PeerMessage::Blocks(msg) => {
                             // TODO: Verify Blocks
@@ -245,19 +203,17 @@ async fn main() -> anyhow::Result<()> {
                                 .put_chain(consensus.clone(), vec![block.clone()])
                                 .unwrap();
                             interrupt.store(miner::worker::RESET, Ordering::Release);
-                            node_to_peer_sender.send(PeerMessage::BroadcastBlock(
+                            broadcast_message(&node_to_peer_sender, PeerMessage::BroadcastBlock(
                                 BroadcastBlockMessage::new(block.clone()),
                             ));
                         }
                         LocalEventMessage::BroadcastTx(tx) => {
-                            node_to_peer_sender.send(PeerMessage::BroadcastTransaction(
+                            broadcast_message(&node_to_peer_sender, PeerMessage::BroadcastTransaction(
                                 BroadcastTransactionMessage::new(tx),
                             ));
                         }
                         LocalEventMessage::StateChanged { current_head } => {
-                            node_to_peer_sender.send(PeerMessage::CurrentHead(
-                                CurrentHeadMessage::new(current_head),
-                            ));
+                            broadcast_message(&node_to_peer_sender, PeerMessage::CurrentHead(CurrentHeadMessage::new(current_head)));
                         }
                         LocalEventMessage::TxPoolPack(_) => {}
                         LocalEventMessage::NetworkHighestHeadChanged {
@@ -273,11 +229,22 @@ async fn main() -> anyhow::Result<()> {
                                         None,
                                     );
                                     info!("Send message block download {:?}", msg);
+                                    //node_to_peer_sender.send(PeerMessage::GetBlockHeader(msg));
                                 }
                             }
                         }
-                        LocalEventMessage::NetworkNewPeerConnection { stats } => {
+                        LocalEventMessage::NetworkNewPeerConnection { stats, peer_id } => {
                             info!(pending = ?stats.0, connected = ?stats.1, "Peer connection");
+                            // Send get headers to peer
+                            if let Ok(Some(node_current_head)) = blockchain.chain().current_header()
+                            {
+                                let msg = GetBlockHeaderMessage::new(
+                                    node_current_head.hash.0,
+                                    None,
+                                );
+                                info!("Send message block header to peer {:?}", msg);
+                                send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlockHeader(msg)).unwrap();
+                            }
                         }
                     }
                 }

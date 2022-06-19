@@ -15,5 +15,6 @@ pub enum LocalEventMessage {
     },
     NetworkNewPeerConnection {
         stats: (usize, usize),
+        peer_id: String
     },
 }

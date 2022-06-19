@@ -164,4 +164,11 @@ pub enum PeerMessage {
     ReAck(ReAckMessage),
 }
 
+#[derive(Debug)]
+pub struct NodeToPeerMessage {
+    pub peer_id: Option<String>,
+    pub message: PeerMessage,
+}
+
+
 impl_codec!(PeerMessage);
