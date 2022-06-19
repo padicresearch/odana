@@ -153,8 +153,9 @@ async fn config_network(
 }
 
 async fn handle_send_message_to_peer(swarm: &mut Swarm<ChainNetworkBehavior>, peer_id: String, message: PeerMessage) -> Result<()> {
-    let peer = PeerId::from_str(&peer_id)?;
-    let _ = swarm.behaviour_mut().requestresponse.send_request(&peer, message);
+    let peer = PeerId::from_str(&peer_id).unwrap();
+    let request_id = swarm.behaviour_mut().requestresponse.send_request(&peer, message);
+    println!("Handle Peer Request {:?} Peer ID : {:?}", request_id, peer);
     Ok(())
 }
 
@@ -201,7 +202,7 @@ pub async fn start_p2p_server(
             msg = node_to_p2p.recv() => {
                     if let Some(msg) = msg {
                         if let Some(peer_id) = msg.peer_id {
-                            handle_send_message_to_peer(&mut swarm, peer_id, msg.message);
+                            handle_send_message_to_peer(&mut swarm, peer_id, msg.message).await;
                         }else {
                             handle_publish_message(msg.message, &mut swarm).await;
                         }
@@ -341,15 +342,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     );
                 }
                 message => {
-                    use tokio::sync::oneshot;
-                    let (tx, rx) = oneshot::channel::<PeerMessage>();
-                    request_handler.handle(tx, message);
-                    match rx.await {
-                        Ok(resp) => {
+                    let res = request_handler.handle(message);
+
+                    match res {
+                        Ok(Some(resp)) => {
                             let chain_network = swarm.behaviour_mut();
                             chain_network.requestresponse.send_response(channel, resp);
                         }
-                        Err(_) => {}
+                        Err(error) => {
+                            println!("Error responding to request {}", error);
+                        }
+                        _ => {}
                     }
                 }
             },

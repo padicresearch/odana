@@ -242,7 +242,7 @@ async fn main() -> anyhow::Result<()> {
                                     node_current_head.hash.0,
                                     None,
                                 );
-                                info!("Send message block header to peer {:?}", msg);
+                                info!("Send message get block header to peer {:?}", peer_id);
                                 send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlockHeader(msg)).unwrap();
                             }
                         }

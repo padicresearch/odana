@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::io::AsyncReadExt;
 use traits::{Blockchain, ChainHeadReader, ChainReader};
-use tokio::sync::oneshot::{Sender};
+use anyhow::Result;
 use blockchain::blockchain::Tuchain;
 use crate::message::{BlockHeaderMessage, BlocksMessage, CurrentHeadMessage, PeerMessage};
 
@@ -15,15 +15,16 @@ impl RequestHandler {
             blockchain
         }
     }
-    pub fn handle(&self, channel: Sender<PeerMessage>, request: &PeerMessage) {
+    pub fn handle(&self, request: &PeerMessage) -> Result<Option<PeerMessage>> {
         match request {
             PeerMessage::GetCurrentHead(_) => {
                 let blockchain = self.blockchain.clone();
                 if let Ok(Some(current_head)) = blockchain.chain().current_header() {
-                    channel.send(PeerMessage::CurrentHead(
+                    return Ok(Some(PeerMessage::CurrentHead(
                         CurrentHeadMessage::new(current_head.raw),
-                    ));
+                    )))
                 }
+                return Ok(None)
             }
             PeerMessage::GetBlockHeader(msg) => {
                 println!("Received GetBlockHeader {:?}", msg);
@@ -58,9 +59,9 @@ impl RequestHandler {
                     headers.push(header);
                     level += 1;
                 }
-                println!("Sending BlockHeader {:?}", headers.len());
+                println!("Sending BlockHeaders {:?}", headers.len());
                 let msg = PeerMessage::BlockHeader(BlockHeaderMessage::new(headers));
-                channel.send(msg);
+                Ok(Some(msg))
             }
             PeerMessage::GetBlocks(msg) => {
                 println!("Received Blocks {:?}", msg);
@@ -77,11 +78,12 @@ impl RequestHandler {
 
                 if blocks.len() != msg.block_hashes.len() {
                     blocks.clear();
-                } else {
-                    channel.send(PeerMessage::Blocks(BlocksMessage::new(blocks)));
                 }
+                return Ok(Some(PeerMessage::Blocks(BlocksMessage::new(blocks))))
             }
-            _ => {}
+            _ => {
+                return Ok(None)
+            }
         }
     }
 }
