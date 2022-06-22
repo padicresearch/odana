@@ -153,9 +153,8 @@ impl NetworkState {
             println!(" highest_know_head is some");
             let mut new_highest = Some(peer.clone());
             let current_highest_peer_id = highest_know_head.as_ref().cloned().unwrap();
-            let current_highest_block_header = self
-                .peer_state
-                .get(&current_highest_peer_id).unwrap();
+            let current_highest_block_header =
+                self.peer_state.get(&current_highest_peer_id).unwrap();
             if head.level > current_highest_block_header.level {
                 println!("Mem swap");
                 std::mem::swap(&mut *highest_know_head, &mut new_highest);
@@ -168,11 +167,28 @@ impl NetworkState {
                         current_head: head,
                     });
             } else {
-                println!("current_highest_block_header {:#?}, head : ", current_highest_block_header.value());
+                println!(
+                    "current_highest_block_header {:#?}, head : ",
+                    current_highest_block_header.value()
+                );
                 println!("head : {:#?} ", head)
             }
         }
         Ok(())
+    }
+
+    pub fn handle_new_peer_connected(&self, peer_id: &PeerId) -> Result<()> {
+        anyhow::ensure!(
+            self.peer_list.is_peer_connected(peer_id),
+            "Peer is not connected"
+        );
+
+        self.sender
+            .send(LocalEventMessage::NetworkNewPeerConnection {
+                stats: self.peer_list.stats(),
+                peer_id: peer_id.to_string(),
+            })
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
 

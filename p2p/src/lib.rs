@@ -342,20 +342,16 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 }
                 message => {
                     let res = request_handler.handle(message);
-
-
                     match res {
                         Ok(Some(resp)) => {
                             println!("Sending response to peer");
                             let chain_network = swarm.behaviour_mut();
                             chain_network.requestresponse.send_response(channel, resp);
                         }
-                        Ok(None) => {
-                            swarm.behaviour_mut().p2p_to_node.send(request);
-                        }
                         Err(error) => {
                             println!("Error responding to request {}", error);
                         }
+                        _ => {}
                     }
                 }
             },
@@ -375,6 +371,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                             swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
                             network_state.update_peer_current_head(&peer, msg.current_header);
                             info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
+                            network_state.handle_new_peer_connected(&peer).unwrap()
                         }
                         Err(error) => {
                             warn!(peer = ?&peer, error = ?error,"Failed to promote peer");
@@ -382,7 +379,9 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         }
                     }
                 }
-                _ => {}
+                _ => {
+                    swarm.behaviour_mut().p2p_to_node.send(response);
+                }
             },
         },
 
