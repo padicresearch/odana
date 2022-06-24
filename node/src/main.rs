@@ -1,3 +1,5 @@
+#![feature(map_first_last)]
+
 use std::env::temp_dir;
 use std::sync::atomic::{AtomicI8, Ordering};
 use std::sync::Arc;
@@ -25,8 +27,9 @@ use tracing::Level;
 use traits::{Blockchain, ChainHeadReader, ChainReader};
 use types::events::LocalEventMessage;
 use types::network::Network;
+use crate::downloader::Downloader;
 
-mod download_manager;
+mod downloader;
 pub mod environment;
 
 enum Event {
@@ -94,7 +97,6 @@ async fn main() -> anyhow::Result<()> {
     path.push("tuchain");
 
     let node_id = NodeIdentity::generate(NODE_POW_TARGET.into());
-    println!("{:#?}", node_id);
 
     // let mut tempdir = temp_dir();
     // tempdir.push("tuchain");
@@ -114,6 +116,7 @@ async fn main() -> anyhow::Result<()> {
 
     let network_state = Arc::new(NetworkState::new(peers.clone(), local_mpsc_sender.clone()));
     let handler = Arc::new(RequestHandler::new(blockchain.clone()));
+    let downloader = Arc::new(Downloader::new());
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
     start_p2p_server(
         node_id,
@@ -148,6 +151,7 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
+
     loop {
         let event = tokio::select! {
             local_msg = local_mpsc_receiver.recv() => {
@@ -176,18 +180,41 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::CurrentHead(msg) => {
                         }
                         PeerMessage::BlockHeader(msg) => {
-                            println!("Received BlockHeaders {}", msg.block_headers.len());
+                            info!(count = ?msg.block_headers.len(), "Imported headers");
+                            downloader.enqueue(msg.block_headers);
+                            let next_blocks = downloader.next_blocks_to_download();
+                            match network_state.highest_peer() {
+                                None => {}
+                                Some(peer_id) => {
+                                    send_message_to_peer(peer_id.clone(), &node_to_peer_sender, PeerMessage::GetBlocks(BlocksToDownloadMessage::new(next_blocks)));
+                                    send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlockHeader(GetBlockHeaderMessage::new(downloader.last_header_in_queue().unwrap(), None)));
+                                }
+                            }
                         }
                         PeerMessage::Blocks(msg) => {
                             // TODO: Verify Blocks
                             // TODO: Store Blocks
-                            blockchain.chain().put_chain(consensus.clone(), msg.blocks);
+                            interrupt.store(miner::worker::PAUSE, Ordering::Release);
+                            for block in msg.blocks.iter() {
+                                blockchain.chain().block_storage().put(block.clone())?;
+                                downloader.finish_download(&block.hash());
+                            }
+                            blockchain
+                                .chain()
+                                .put_chain(consensus.clone(), msg.blocks)
+                                .unwrap();
+
+                            let next_blocks = downloader.next_blocks_to_download();
+                            match network_state.highest_peer() {
+                                None => {}
+                                Some(peer_id) => {
+                                    send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlocks(BlocksToDownloadMessage::new(next_blocks)));
+                                }
+                            }
                         }
                         PeerMessage::BroadcastTransaction(msg) => {
-                            println!("{:?}", msg.tx)
                         }
                         PeerMessage::BroadcastBlock(msg) => {
-                            println!("Received Block {:?}", msg)
                         }
                         _ => {}
                     };
@@ -222,12 +249,6 @@ async fn main() -> anyhow::Result<()> {
                             {
                                 if node_current_head.raw.level < current_head.level {
                                     // Start downloading blocks from the Peer
-                                    let msg = GetBlockHeaderMessage::new(
-                                        node_current_head.hash.0,
-                                        None,
-                                    );
-                                    //info!("Send message block download {:?}", msg);
-                                    //node_to_peer_sender.send(PeerMessage::GetBlockHeader(msg));
                                 }
                             }
                         }
@@ -240,7 +261,6 @@ async fn main() -> anyhow::Result<()> {
                                     node_current_head.hash.0,
                                     None,
                                 );
-                                info!("Send message get block header to peer {:?}", peer_id);
                                 send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlockHeader(msg)).unwrap();
                             }
                         }

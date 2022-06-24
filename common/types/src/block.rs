@@ -1,4 +1,5 @@
 use core::cmp;
+use std::cmp::Ordering;
 use std::fmt::Formatter;
 use std::io;
 use std::sync::{Arc, RwLock};
@@ -199,3 +200,38 @@ impl cmp::PartialEq for IndexedBlockHeader {
         self.hash == other.hash
     }
 }
+
+pub struct HeightSortedBlockHeader(pub BlockHeader);
+
+impl AsRef<BlockHeader> for HeightSortedBlockHeader {
+    fn as_ref(&self) -> &BlockHeader {
+        &self.0
+    }
+}
+
+impl HeightSortedBlockHeader {
+    pub fn hash(&self) -> Hash {
+        self.0.hash()
+    }
+}
+
+impl PartialEq for HeightSortedBlockHeader {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl Eq for HeightSortedBlockHeader {}
+
+impl PartialOrd for HeightSortedBlockHeader {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.0.level.cmp(&other.0.level))
+    }
+}
+
+impl Ord for HeightSortedBlockHeader {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.level.cmp(&other.0.level)
+    }
+}
+

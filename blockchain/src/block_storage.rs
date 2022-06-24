@@ -157,3 +157,8 @@ impl BlockByHash {
         self.kv.get(hash)
     }
 }
+
+
+pub struct BlockHeadersStorage {
+    primary: Arc<BlockPrimaryStorage>,
+}

@@ -26,7 +26,7 @@ impl Default for ColumnMemStore {
 
 #[derive(Debug)]
 pub struct MemStore {
-    inner: Arc<HashMap<&'static str, Arc<ColumnMemStore>>>,
+    inner: Arc<BTreeMap<&'static str, Arc<ColumnMemStore>>>,
 }
 
 pub struct MemStoreIterator {
@@ -64,7 +64,7 @@ impl Iterator for MemStoreIterator {
 
 impl MemStore {
     pub fn new(columns: Vec<&'static str>) -> Self {
-        let columns: HashMap<_, _> = columns
+        let columns: BTreeMap<_, _> = columns
             .iter()
             .map(|name| (*name, Arc::new(ColumnMemStore::default())))
             .collect();

@@ -88,7 +88,12 @@ where
 }
 
 pub type StorageIterator<'a, Entry: Schema> =
-    Box<dyn 'a + Send + Iterator<Item = (Result<Entry::Key>, Result<Entry::Value>)>>;
+Box<dyn 'a + Send + Iterator<Item=(Result<Entry::Key>, Result<Entry::Value>)>>;
+
+pub enum IteratorMode {
+    Start,
+    End,
+}
 
 #[cfg(test)]
 mod test {

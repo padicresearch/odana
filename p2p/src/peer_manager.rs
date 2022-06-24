@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
 use anyhow::bail;
@@ -115,7 +116,7 @@ impl PeerList {
 
 pub struct NetworkState {
     peer_list: Arc<PeerList>,
-    peer_state: DashMap<Arc<PeerId>, BlockHeader>,
+    peer_state: Arc<DashMap<Arc<PeerId>, BlockHeader>>,
     highest_know_head: RwLock<Option<Arc<PeerId>>>,
     sender: UnboundedSender<LocalEventMessage>,
 }
@@ -135,43 +136,33 @@ impl NetworkState {
             self.peer_list.is_peer_connected(peer_id),
             "Peer is not connected"
         );
+        let peer_state = self.peer_state.clone();
         let peer = self.peer_list.get_peer(peer_id).unwrap();
         let mut highest_know_head = self.highest_know_head.write().unwrap();
         if highest_know_head.is_none() {
-            println!(" highest_know_head.is_none");
             let mut new_highest = Some(peer.clone());
             std::mem::swap(&mut *highest_know_head, &mut new_highest);
-            println!("peer_state.insert");
-            self.peer_state.insert(peer.clone(), head.clone());
-            println!("sending NetworkHighestHeadChanged");
+            peer_state.insert(peer.clone(), head.clone());
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
                     current_head: head,
                 });
         } else {
-            println!(" highest_know_head is some");
             let mut new_highest = Some(peer.clone());
-            let current_highest_peer_id = highest_know_head.as_ref().cloned().unwrap();
+            let current_highest_peer_id = highest_know_head.as_ref().cloned().ok_or(anyhow::anyhow!("Highest know head not set"))?;
             let current_highest_block_header =
-                self.peer_state.get(&current_highest_peer_id).unwrap();
+                peer_state.get(&current_highest_peer_id).ok_or(anyhow::anyhow!("Current highest peer not found"))?;
             if head.level > current_highest_block_header.level {
-                println!("Mem swap");
                 std::mem::swap(&mut *highest_know_head, &mut new_highest);
-                println!("peer_state.insert");
-                //self.peer_state.insert(peer.clone(), head.clone());
-                println!("sending NetworkHighestHeadChanged");
+                peer_state.insert(peer.clone(), head.clone());
                 self.sender
                     .send(LocalEventMessage::NetworkHighestHeadChanged {
                         peer_id: peer.to_string(),
                         current_head: head,
                     });
             } else {
-                println!(
-                    "current_highest_block_header {:#?}, head : ",
-                    current_highest_block_header.value()
-                );
-                println!("head : {:#?} ", head)
+
             }
         }
         Ok(())
@@ -189,6 +180,18 @@ impl NetworkState {
                 peer_id: peer_id.to_string(),
             })
             .map_err(|e| anyhow::anyhow!("{}", e))
+    }
+
+    pub fn highest_peer(&self) -> Option<String> {
+        let mut highest_know_head = self.highest_know_head.read().unwrap();
+        match highest_know_head.clone() {
+            None => {
+                None
+            }
+            Some(peer_id) => {
+                Some(peer_id.to_string())
+            }
+        }
     }
 }
 

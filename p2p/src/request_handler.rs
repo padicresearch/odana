@@ -27,7 +27,6 @@ impl RequestHandler {
                 return Ok(None)
             }
             PeerMessage::GetBlockHeader(msg) => {
-                println!("Received GetBlockHeader {:?}", msg);
                 let blockchain = self.blockchain.clone();
                 let mut headers = Vec::with_capacity(2000);
                 let res = blockchain
@@ -35,7 +34,7 @@ impl RequestHandler {
                     .block_storage()
                     .get_block_by_hash(&msg.from);
                 let mut level = match res {
-                    Ok(Some(block)) => block.level(),
+                    Ok(Some(block)) => block.level() + 1,
                     _ => -1,
                 };
                 loop {
@@ -59,12 +58,10 @@ impl RequestHandler {
                     headers.push(header);
                     level += 1;
                 }
-                println!("Sending BlockHeaders {:?}", headers.len());
                 let msg = PeerMessage::BlockHeader(BlockHeaderMessage::new(headers));
                 Ok(Some(msg))
             }
             PeerMessage::GetBlocks(msg) => {
-                println!("Received Blocks {:?}", msg);
                 let blockchain = self.blockchain.clone();
                 let mut blocks = Vec::with_capacity(msg.block_hashes.len());
                 for hash in msg.block_hashes.iter() {

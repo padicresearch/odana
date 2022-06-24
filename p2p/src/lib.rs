@@ -221,7 +221,6 @@ async fn handle_publish_message(msg: PeerMessage, swarm: &mut Swarm<ChainNetwork
             .gossipsub
             .publish(network_topic, encoded_msg);
     } else {
-        println!("Failed to encode message {:?}", msg)
     }
 }
 
@@ -303,7 +302,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         })) => {
             if is_new_peer {
                 for address in addresses.iter() {
-                    println!("Sending Ack to {}", address);
                     let addr = swarm.behaviour_mut().public_address.clone();
                     let request_id = swarm
                         .behaviour_mut()
@@ -331,7 +329,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
-                    println!("Sending ReAck to {}", addr);
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(
@@ -344,7 +341,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     let res = request_handler.handle(message);
                     match res {
                         Ok(Some(resp)) => {
-                            println!("Sending response to peer");
                             let chain_network = swarm.behaviour_mut();
                             chain_network.requestresponse.send_response(channel, resp);
                         }

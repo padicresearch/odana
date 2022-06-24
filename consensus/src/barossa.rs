@@ -120,15 +120,12 @@ impl BarossaProtocol {
             let mut debug = [0; 32];
             let max_bit: U256 = max_work_bits.into();
             max_bit.to_big_endian(&mut debug);
-            println!("Retarget Max{:?}", H256::from(debug));
             let mut debug = [0; 32];
             retarget.to_big_endian(&mut debug);
-            println!("Retarget {:?}", H256::from(debug));
             max_work_bits
         } else {
             let mut debug = [0; 32];
             retarget.to_big_endian(&mut debug);
-            println!("Retarget {:?}", H256::from(debug));
             retarget.into()
         }
     }
