@@ -36,19 +36,7 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="p2p hot fix">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/download_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/downloader.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/request_handler.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/request_handler.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
-    </list>
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implement sync" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -479,14 +467,7 @@
       <workItem from="1653348752652" duration="4981000" />
       <workItem from="1655630063717" duration="17483000" />
       <workItem from="1655884932334" duration="619000" />
-      <workItem from="1655896051459" duration="23715000" />
-    </task>
-    <task id="LOCAL-00136" summary="debug node discovery">
-      <created>1644137651889</created>
-      <option name="number" value="00136" />
-      <option name="presentableId" value="LOCAL-00136" />
-      <option name="project" value="LOCAL" />
-      <updated>1644137651889</updated>
+      <workItem from="1655896051459" duration="24108000" />
     </task>
     <task id="LOCAL-00137" summary="debug node discovery">
       <created>1644138194574</created>
@@ -824,7 +805,14 @@
       <option name="project" value="LOCAL" />
       <updated>1655890877577</updated>
     </task>
-    <option name="localTasksCounter" value="185" />
+    <task id="LOCAL-00185" summary="implement sync">
+      <created>1656033150762</created>
+      <option name="number" value="00185" />
+      <option name="presentableId" value="LOCAL-00185" />
+      <option name="project" value="LOCAL" />
+      <updated>1656033150763</updated>
+    </task>
+    <option name="localTasksCounter" value="186" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -855,7 +843,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="kademila discovery" />
     <MESSAGE value="debug node discovery" />
     <MESSAGE value="tweaks" />
     <MESSAGE value="begin sparse merkle tree" />
@@ -880,7 +867,8 @@
     <MESSAGE value="refactor: rename `Trie` to `Tree`" />
     <MESSAGE value="remove sqlite" />
     <MESSAGE value="p2p hot fix" />
-    <option name="LAST_COMMIT_MESSAGE" value="p2p hot fix" />
+    <MESSAGE value="implement sync" />
+    <option name="LAST_COMMIT_MESSAGE" value="implement sync" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

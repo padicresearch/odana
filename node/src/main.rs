@@ -26,6 +26,7 @@ use tracing::tracing_subscriber;
 use tracing::Level;
 use traits::{Blockchain, ChainHeadReader, ChainReader};
 use types::events::LocalEventMessage;
+use types::Hash;
 use types::network::Network;
 use crate::downloader::Downloader;
 
@@ -187,7 +188,12 @@ async fn main() -> anyhow::Result<()> {
                                 None => {}
                                 Some(peer_id) => {
                                     send_message_to_peer(peer_id.clone(), &node_to_peer_sender, PeerMessage::GetBlocks(BlocksToDownloadMessage::new(next_blocks)));
-                                    send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlockHeader(GetBlockHeaderMessage::new(downloader.last_header_in_queue().unwrap(), None)));
+                                    match downloader.last_header_in_queue() {
+                                        None => {}
+                                        Some(from) => {
+                                            send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlockHeader(GetBlockHeaderMessage::new(from, None)));
+                                        }
+                                    }
                                 }
                             }
                         }
