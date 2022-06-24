@@ -34,7 +34,7 @@ impl RequestHandler {
                     .block_storage()
                     .get_block_by_hash(&msg.from);
                 let mut level = match res {
-                    Ok(Some(block)) => block.level() + 1,
+                    Ok(Some(block)) => block.level(),
                     _ => -1,
                 };
                 loop {

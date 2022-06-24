@@ -155,7 +155,7 @@ impl NetworkState {
                 peer_state.get(&current_highest_peer_id).ok_or(anyhow::anyhow!("Current highest peer not found"))?;
             if head.level > current_highest_block_header.level {
                 std::mem::swap(&mut *highest_know_head, &mut new_highest);
-                peer_state.insert(peer.clone(), head.clone());
+                //peer_state.insert(peer.clone(), head.clone());
                 self.sender
                     .send(LocalEventMessage::NetworkHighestHeadChanged {
                         peer_id: peer.to_string(),

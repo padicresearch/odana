@@ -104,7 +104,7 @@ impl ChainState {
     pub fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()> {
         for block in blocks {
             match self
-                .update_chain(consensus.clone(), block)
+                .update_chain(consensus.clone(), block.clone())
                 .map(|block| {
                     let header = block.header().clone();
                     header
@@ -117,7 +117,7 @@ impl ChainState {
                     info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Applied new block");
                 }
                 Err(e) => {
-                    error!(error = ?e, "Error updating chain state")
+                    error!(header = ?H256::from(block.hash()), level = block.level(), error = ?e, "Error updating chain state")
                     // Todo: clean up opened states
                 }
             }
