@@ -117,7 +117,7 @@ impl ChainState {
                     info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Applied new block");
                 }
                 Err(e) => {
-                    error!(header = ?H256::from(block.hash()), level = block.level(), error = ?e, "Error updating chain state")
+                    error!(header = ?H256::from(block.hash()), parent_hash = ?format!("{}", H256::from(block.parent_hash())), level = block.level(), error = ?e, "Error updating chain state")
                     // Todo: clean up opened states
                 }
             }
@@ -177,5 +177,9 @@ impl ChainReader for ChainState {
 
     fn get_block_by_hash(&self, hash: &Hash) -> Result<Option<Block>> {
         self.block_storage.get_block_by_hash(hash)
+    }
+
+    fn get_block_by_level(&self, level: i32) -> Result<Option<Block>> {
+        self.block_storage.get_block_by_level(level)
     }
 }

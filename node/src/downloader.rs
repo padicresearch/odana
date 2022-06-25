@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::sync::{Arc, LockResult, RwLock};
 use types::block::{BlockHeader, HeightSortedBlockHeader};
 use types::Hash;
 
 pub struct Downloader {
-    queue: Arc<RwLock<BTreeSet<HeightSortedBlockHeader>>>,
+    queue: Arc<RwLock<BTreeMap<i32, BlockHeader>>>,
     requested: Arc<RwLock<HashSet<Hash>>>,
 }
 
@@ -24,7 +24,7 @@ impl Downloader {
                 queue.extend(
                     headers
                         .into_iter()
-                        .map(|header| HeightSortedBlockHeader(header)));
+                        .map(|header| (header.level, header)));
             }
             Err(_) => {}
         }
@@ -48,17 +48,20 @@ impl Downloader {
         let requested = self.requested.write();
         match (queue, requested) {
             (Ok(mut queue), Ok(mut requested)) => {
-                while let Some(header) = queue.pop_first() {
+                while let Some((_, header)) = queue.pop_first() {
+                    next.push(header);
+                    requested.insert(header.hash());
+
                     if next.len() >= 20 {
                         break;
                     }
-                    next.push(header.hash());
-                    requested.insert(header.hash());
                 }
             }
             _ => {}
         }
-        next
+
+        //println!("Downloading next block {:?} - {:?}", next.first().map(|header| header.level), next.last().map(|header| header.level));
+        next.into_iter().map(|header| header.hash()).collect()
     }
 
     pub fn last_header_in_queue(&self) -> Option<Hash> {
@@ -66,7 +69,7 @@ impl Downloader {
         let queue = queue.read();
         match queue {
             Ok(queue) => {
-                queue.last().map(|header| header.hash())
+                queue.last_key_value().map(|(_, header)| header.hash())
             }
             Err(_) => {
                 None

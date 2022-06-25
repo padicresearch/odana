@@ -68,6 +68,14 @@ impl ChainReader for BlockStorage {
         }
         return Ok(None);
     }
+
+    fn get_block_by_level(&self, level: i32) -> Result<Option<Block>> {
+        let primary_key = self.block_by_level.get(level)?;
+        if let Some(primary_key) = primary_key {
+            return self.get_block(&primary_key.0, primary_key.1);
+        }
+        return Ok(None)
+    }
 }
 
 /// Primary block storage

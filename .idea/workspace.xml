@@ -37,8 +37,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implement sync">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/downloader.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/downloader.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -470,14 +474,8 @@
       <workItem from="1653348752652" duration="4981000" />
       <workItem from="1655630063717" duration="17483000" />
       <workItem from="1655884932334" duration="619000" />
-      <workItem from="1655896051459" duration="24647000" />
-    </task>
-    <task id="LOCAL-00138" summary="debug node discovery">
-      <created>1644140550672</created>
-      <option name="number" value="00138" />
-      <option name="presentableId" value="LOCAL-00138" />
-      <option name="project" value="LOCAL" />
-      <updated>1644140550672</updated>
+      <workItem from="1655896051459" duration="27746000" />
+      <workItem from="1656140100828" duration="2777000" />
     </task>
     <task id="LOCAL-00139" summary="debug node discovery">
       <created>1644141243845</created>
@@ -815,7 +813,14 @@
       <option name="project" value="LOCAL" />
       <updated>1656033531020</updated>
     </task>
-    <option name="localTasksCounter" value="187" />
+    <task id="LOCAL-00187" summary="implement sync">
+      <created>1656034127850</created>
+      <option name="number" value="00187" />
+      <option name="presentableId" value="LOCAL-00187" />
+      <option name="project" value="LOCAL" />
+      <updated>1656034127850</updated>
+    </task>
+    <option name="localTasksCounter" value="188" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

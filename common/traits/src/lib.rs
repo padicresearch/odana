@@ -47,6 +47,7 @@ pub trait ChainHeadReader: Send + Sync {
 pub trait ChainReader: Send + Sync {
     fn get_block(&self, hash: &Hash, level: i32) -> Result<Option<Block>>;
     fn get_block_by_hash(&self, hash: &Hash) -> Result<Option<Block>>;
+    fn get_block_by_level(&self, level: i32) -> Result<Option<Block>>;
 }
 
 pub trait Consensus: Send + Sync {
