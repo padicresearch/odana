@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 use storage::{KVStore, PersistentStorage, Schema};
 use traits::{ChainHeadReader, ChainReader};
@@ -102,6 +102,9 @@ impl BlockPrimaryStorage {
         let hash = block.hash();
         let level = block.level();
         let block_key = BlockPrimaryKey(hash, level);
+        if self.kv.contains(&block_key)? {
+            bail!("Block already present")
+        }
         self.kv.put(block_key.clone(), block)?;
         Ok(block_key)
     }
