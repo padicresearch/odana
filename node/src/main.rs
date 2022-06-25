@@ -246,8 +246,15 @@ async fn main() -> anyhow::Result<()> {
                             }
                         }
                         PeerMessage::BroadcastTransaction(msg) => {
+                            let txpool = blockchain.txpool();
+                            let mut txpool = txpool.write().unwrap();
+                            txpool.add_remote(msg.tx).unwrap()
                         }
                         PeerMessage::BroadcastBlock(msg) => {
+                            let block = msg.block;
+                            // TODO: validate block
+                            // TODO: Check if future block is not further than 3 days
+                            blockchain.chain().block_storage().put(block.clone())?;
                         }
                         _ => {}
                     };
