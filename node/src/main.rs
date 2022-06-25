@@ -265,10 +265,6 @@ async fn main() -> anyhow::Result<()> {
                     match local_msg {
                         LocalEventMessage::MindedBlock(block) => {
                             blockchain.chain().block_storage().put(block.clone())?;
-                            blockchain
-                                .chain()
-                                .put_chain(consensus.clone(), vec![block.clone()])
-                                .unwrap();
                             interrupt.store(miner::worker::RESET, Ordering::Release);
                             broadcast_message(&node_to_peer_sender, PeerMessage::BroadcastBlock(
                                 BroadcastBlockMessage::new(block.clone()),
