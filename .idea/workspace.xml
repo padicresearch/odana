@@ -38,7 +38,6 @@
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implement sync">
       <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -471,14 +470,7 @@
       <workItem from="1655630063717" duration="17483000" />
       <workItem from="1655884932334" duration="619000" />
       <workItem from="1655896051459" duration="27746000" />
-      <workItem from="1656140100828" duration="6302000" />
-    </task>
-    <task id="LOCAL-00144" summary="debug node discovery">
-      <created>1644146436047</created>
-      <option name="number" value="00144" />
-      <option name="presentableId" value="LOCAL-00144" />
-      <option name="project" value="LOCAL" />
-      <updated>1644146436047</updated>
+      <workItem from="1656140100828" duration="6789000" />
     </task>
     <task id="LOCAL-00145" summary="cargo fmt">
       <created>1644152541664</created>
@@ -816,7 +808,14 @@
       <option name="project" value="LOCAL" />
       <updated>1656146365979</updated>
     </task>
-    <option name="localTasksCounter" value="193" />
+    <task id="LOCAL-00193" summary="implement sync">
+      <created>1656147574615</created>
+      <option name="number" value="00193" />
+      <option name="presentableId" value="LOCAL-00193" />
+      <option name="project" value="LOCAL" />
+      <updated>1656147574615</updated>
+    </task>
+    <option name="localTasksCounter" value="194" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

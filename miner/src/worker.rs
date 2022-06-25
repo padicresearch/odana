@@ -80,9 +80,11 @@ pub fn start_worker(
             }
             if U256::from(block_template.nonce) + U256::one() > U256::from(u128::MAX) {
                 let nonce = U256::from(block_template.nonce) + U256::one();
-                let mut mix_nonce = [0_u8; 32];
-                nonce.to_big_endian(&mut mix_nonce);
-                block_template.mix_nonce += mix_nonce;
+                let mut mix_nonce = U256::from(block_template.mix_nonce);
+                mix_nonce += nonce;
+                let mut out = [0; 32];
+                mix_nonce.to_big_endian(&mut out);
+                block_template.mix_nonce = out;
                 block_template.nonce = 0
             }
             block_template.nonce += 1;
