@@ -173,7 +173,9 @@ async fn main() -> anyhow::Result<()> {
                             if downloader.is_downloading() {
                                 interrupt.store(miner::worker::PAUSE, Ordering::Release);
                             } else if !downloader.is_downloading() && args.miner {
-                                interrupt.store(miner::worker::RESET, Ordering::Release);
+                                if interrupt.load(Ordering::Acquire) == miner::worker::PAUSE {
+                                    interrupt.store(miner::worker::RESET, Ordering::Release);
+                                }
                             }
                         }
                     }
