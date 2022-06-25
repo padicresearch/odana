@@ -110,7 +110,7 @@ async fn main() -> anyhow::Result<()> {
     let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::RocksDB(
         database,
     )));
-    let consensus = Arc::new(BarossaProtocol::new(Network::Alphanet));
+    let consensus = Arc::new(BarossaProtocol::new(Network::Testnet));
     let blockchain = Arc::new(
         Tuchain::initialize(path, consensus.clone(), storage, local_mpsc_sender.clone()).unwrap(),
     )
