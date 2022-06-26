@@ -134,7 +134,10 @@ impl BlockByLevel {
         Self { kv }
     }
     pub fn put(&self, level: i32, primary_key: BlockPrimaryKey) -> Result<()> {
-        self.kv.put(level as u32, primary_key)
+        if !self.kv.contains(&(level as u32)) {
+            self.kv.put(level as u32, primary_key)
+        }
+        Ok(())
     }
     pub fn get(&self, level: i32) -> Result<Option<BlockPrimaryKey>> {
         self.kv.get(&(level as u32))

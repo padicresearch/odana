@@ -39,8 +39,6 @@
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implement sync">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/downloader.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/downloader.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -473,21 +471,7 @@
       <workItem from="1655630063717" duration="17483000" />
       <workItem from="1655884932334" duration="619000" />
       <workItem from="1655896051459" duration="27746000" />
-      <workItem from="1656140100828" duration="9811000" />
-    </task>
-    <task id="LOCAL-00147" summary="tweaks">
-      <created>1648286969048</created>
-      <option name="number" value="00147" />
-      <option name="presentableId" value="LOCAL-00147" />
-      <option name="project" value="LOCAL" />
-      <updated>1648286969048</updated>
-    </task>
-    <task id="LOCAL-00148" summary="refactor">
-      <created>1648289800003</created>
-      <option name="number" value="00148" />
-      <option name="presentableId" value="LOCAL-00148" />
-      <option name="project" value="LOCAL" />
-      <updated>1648289800005</updated>
+      <workItem from="1656140100828" duration="11324000" />
     </task>
     <task id="LOCAL-00149" summary="begin sparse merkle tree">
       <created>1648908717038</created>
@@ -818,7 +802,21 @@
       <option name="project" value="LOCAL" />
       <updated>1656148950837</updated>
     </task>
-    <option name="localTasksCounter" value="196" />
+    <task id="LOCAL-00196" summary="implement sync">
+      <created>1656239545938</created>
+      <option name="number" value="00196" />
+      <option name="presentableId" value="LOCAL-00196" />
+      <option name="project" value="LOCAL" />
+      <updated>1656239545938</updated>
+    </task>
+    <task id="LOCAL-00197" summary="implement sync">
+      <created>1656239634336</created>
+      <option name="number" value="00197" />
+      <option name="presentableId" value="LOCAL-00197" />
+      <option name="project" value="LOCAL" />
+      <updated>1656239634336</updated>
+    </task>
+    <option name="localTasksCounter" value="198" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
