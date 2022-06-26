@@ -22,7 +22,7 @@ use p2p::peer_manager::{NetworkState, PeerList};
 use p2p::request_handler::RequestHandler;
 use p2p::{start_p2p_server};
 use storage::{PersistentStorage, PersistentStorageBackend};
-use tracing::info;
+use tracing::{error, info};
 use tracing::tracing_subscriber;
 use tracing::Level;
 use traits::{Blockchain, ChainHeadReader, ChainReader};
@@ -233,9 +233,14 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::Blocks(msg) => {
                             // TODO: Verify Blocks
                             // TODO: Store Blocks
-
+                            info!(count = ?msg.blocks.len(), "Imported Blocks");
                             for block in msg.blocks.iter() {
-                                blockchain.chain().block_storage().put(block.clone())?;
+                                match blockchain.chain().block_storage().put(block.clone()) {
+                                    Ok(_) => {}
+                                    Err(error) => {
+                                        error!(error = ?error "Error storing block")
+                                    }
+                                };
                                 downloader.finish_download(&block.hash());
                             }
 

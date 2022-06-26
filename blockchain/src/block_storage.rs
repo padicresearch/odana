@@ -103,7 +103,7 @@ impl BlockPrimaryStorage {
         let level = block.level();
         let block_key = BlockPrimaryKey(hash, level);
         if self.kv.contains(&block_key)? {
-            bail!("Block already present")
+            return Ok(block_key);
         }
         self.kv.put(block_key.clone(), block)?;
         Ok(block_key)

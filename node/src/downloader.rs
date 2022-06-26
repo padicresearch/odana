@@ -60,6 +60,7 @@ impl Downloader {
             _ => {}
         }
 
+
         //println!("Downloading next block {:?} - {:?}", next.first().map(|header| header.level), next.last().map(|header| header.level));
         next.into_iter().map(|header| header.hash()).collect()
     }
