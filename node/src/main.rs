@@ -238,7 +238,7 @@ async fn main() -> anyhow::Result<()> {
                                 match blockchain.chain().block_storage().put(block.clone()) {
                                     Ok(_) => {}
                                     Err(error) => {
-                                        error!(error = ?error "Error storing block")
+                                        error!(error = ?error, "Error storing block")
                                     }
                                 };
                                 downloader.finish_download(&block.hash());
