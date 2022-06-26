@@ -214,6 +214,9 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::CurrentHead(msg) => {
                         }
                         PeerMessage::BlockHeader(msg) => {
+                            if msg.block_headers.is_empty() {
+                                continue
+                            }
                             info!(count = ?msg.block_headers.len(), "Imported headers");
                             downloader.enqueue(msg.block_headers);
                             let next_blocks = downloader.next_blocks_to_download();
