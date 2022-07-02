@@ -80,10 +80,7 @@ impl<K, V> Tree<K, V>
 
     pub fn open_read_only_at_root<P: AsRef<Path>>(path: P, root: &H256) -> Result<Self> {
         let db = Database::open_read_only(path)?;
-        let tree = match db.get(root) {
-            Ok(tree) => tree,
-            Err(_) => SparseMerkleTree::new(),
-        };
+        let tree = db.get(root)?;
         let options = Options::default();
         // let staging_tree = tree.subtree(options.strategy, vec![])?;
         Ok(Self {
@@ -179,6 +176,27 @@ impl<K, V> Tree<K, V>
         self.db.put(new_root, head.clone());
         *staging = head.subtree(self.options.strategy, vec![])?;
         Ok(new_root)
+    }
+
+    pub fn apply_non_commit(&self, at_root: &H256, batch: Vec<Op<K, V>>) -> Result<H256> {
+        let mut tree = self.db.get(at_root)?;
+        let res: Result<HashMap<_, _>> = batch
+            .into_iter()
+            .map(|op| match op {
+                Op::Delete(key) => Ok((key.encode()?, IValue::Deleted.encode()?)),
+                Op::Put(key, value) => {
+                    Ok((key.encode()?, IValue::Value(value.encode()?).encode()?))
+                }
+            })
+            .collect();
+
+        let batch = res?;
+        for (key, value) in batch {
+            tree.update(key, value)?;
+        }
+        let new_root = tree.root();
+        self.db.put(new_root, tree)?;
+        return Ok(new_root)
     }
 
     pub fn commit(&self) -> Result<H256> {
@@ -292,7 +310,7 @@ impl Verifier {
 #[cfg(test)]
 mod tests {
     use crate::{Tree, Verifier};
-    use primitive_types::H256;
+    use primitive_types::{H160, H256};
     use tempdir::TempDir;
     use types::account::AccountState;
 
@@ -460,5 +478,23 @@ mod tests {
             "{:?}",
             Verifier::verify_proof(&proof, tree.root().unwrap(), H256::from_slice(&vec![1; 32]), value)
         )
+    }
+
+    #[test]
+    fn basic_test_genesis_root() {
+        let tmp_dir = TempDir::new("test").unwrap();
+        let tree = Tree::open(tmp_dir.path()).unwrap();
+        tree.put(
+            H160::from_slice(&vec![0; 20]),
+            AccountState {
+                free_balance: 1_000_000_000,
+                reserve_balance: 0,
+                nonce: 1,
+            },
+        )
+            .unwrap();
+        tree.commit();
+        println!("{:#?}", tree.root().unwrap());
+        println!("{:?}", tree.root().unwrap().0);
     }
 }

@@ -137,10 +137,7 @@ impl BarossaProtocol {
         height: u32,
         chain: Arc<dyn ChainHeadReader>,
     ) -> Compact {
-        assert!(
-            height != 0,
-            "cannot calculate required work for genesis block"
-        );
+        assert_ne!(height, 0, "cannot calculate required work for genesis block");
 
         let mut bits = Vec::new();
         let mut block_ref: Hash = parent_hash.into();
@@ -354,7 +351,7 @@ impl Consensus for BarossaProtocol {
         header.difficulty = self
             .work_required(
                 parent.hash,
-                Utc::now().timestamp() as u32,
+                header.time,
                 (header.level + 1) as u32,
                 chain,
             )
@@ -415,7 +412,7 @@ impl Consensus for BarossaProtocol {
         BlockHeader {
             parent_hash: [0; 32],
             merkle_root: [0; 32],
-            state_root: [0; 32],
+            state_root: [167, 166, 177, 200, 75, 77, 145, 25, 149, 154, 251, 233, 94, 46, 215, 162, 118, 43, 119, 114, 196, 232, 42, 88, 209, 4, 27, 184, 193, 138, 143, 109],
             mix_nonce: [0; 32],
             coinbase: [0; 20],
             difficulty: self.network.max_difficulty_compact().into(),
@@ -504,7 +501,7 @@ mod tests {
         header_provider.insert(BlockHeader {
             parent_hash: [0; 32],
             merkle_root: [0; 32],
-            state_root: [0; 32],
+            state_root: [167, 166, 177, 200, 75, 77, 145, 25, 149, 154, 251, 233, 94, 46, 215, 162, 118, 43, 119, 114, 196, 232, 42, 88, 209, 4, 27, 184, 193, 138, 143, 109],
             mix_nonce: [0; 32],
             coinbase: [0; 20],
             difficulty: initial_bits.into(),

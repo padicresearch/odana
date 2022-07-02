@@ -18,3 +18,4 @@ account = { path = "../account" }
 tempdir = "0.3.7"
 tokio = { version = "1", features = ["full"] }
 hex = "0.4.3"
+blockchain = { path = "../blockchain" }

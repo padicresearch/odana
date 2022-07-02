@@ -13,6 +13,7 @@ pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
     fn current_header(&self) -> Result<Option<IndexedBlockHeader>>;
     fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
+    fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()>;
 }
 
 pub trait StateDB: Send + Sync {
@@ -26,6 +27,7 @@ pub trait StateDB: Send + Sync {
     fn root(&self) -> Hash;
     fn commit(&self) -> Result<()>;
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
+    fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;
 }
 
 pub trait StateIntermediate {}

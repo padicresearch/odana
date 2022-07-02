@@ -37,7 +37,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implement sync">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner-test/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner-test/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/miner/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/tree.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/tree.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -162,7 +174,7 @@
       <recent name="$PROJECT_DIR$/morph/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::txpool_test">
+  <component name="RunManager" selected="Cargo.Test tree::tests::basic_test_genesis_root">
     <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build --package smt" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -243,24 +255,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test proof::tests::test_proof_basic" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib proof::tests::test_proof_basic -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test smt::tests::basic_get_set_check_root_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib smt::tests::basic_get_set_check_root_test -- --exact" />
+    <configuration name="Test config::test::test_config" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package types --lib config::test::test_config -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -293,6 +289,22 @@
     </configuration>
     <configuration name="Test tests::txpool_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package txpool --lib tests::txpool_test -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tree::tests::basic_test_genesis_root" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package smt --lib tree::tests::basic_test_genesis_root -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -346,19 +358,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
+      <item itemvalue="Cargo.Test tree::tests::basic_test_genesis_root" />
+      <item itemvalue="Cargo.Test config::test::test_config" />
       <item itemvalue="Cargo.Test tests::test_morph" />
       <item itemvalue="Cargo.Test tests::txpool_test" />
       <item itemvalue="Cargo.Test trie::tests::basic_test" />
-      <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
-      <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tree::tests::basic_test_genesis_root" />
+        <item itemvalue="Cargo.Test config::test::test_config" />
         <item itemvalue="Cargo.Test tests::txpool_test" />
         <item itemvalue="Cargo.Test tests::test_morph" />
         <item itemvalue="Cargo.Test trie::tests::basic_test" />
-        <item itemvalue="Cargo.Test smt::tests::basic_get_set_check_root_test" />
-        <item itemvalue="Cargo.Test proof::tests::test_proof_basic" />
       </list>
     </recent_temporary>
   </component>
@@ -470,14 +482,12 @@
       <workItem from="1655630063717" duration="17483000" />
       <workItem from="1655884932334" duration="619000" />
       <workItem from="1655896051459" duration="27746000" />
-      <workItem from="1656140100828" duration="11850000" />
-    </task>
-    <task id="LOCAL-00152" summary="refactor">
-      <created>1650283512662</created>
-      <option name="number" value="00152" />
-      <option name="presentableId" value="LOCAL-00152" />
-      <option name="project" value="LOCAL" />
-      <updated>1650283512662</updated>
+      <workItem from="1656140100828" duration="13150000" />
+      <workItem from="1656574899994" duration="235000" />
+      <workItem from="1656584729695" duration="6478000" />
+      <workItem from="1656681363550" duration="22280000" />
+      <workItem from="1656718763983" duration="2000" />
+      <workItem from="1656749248828" duration="8280000" />
     </task>
     <task id="LOCAL-00153" summary="refactor">
       <created>1650283593984</created>
@@ -815,7 +825,14 @@
       <option name="project" value="LOCAL" />
       <updated>1656241589761</updated>
     </task>
-    <option name="localTasksCounter" value="201" />
+    <task id="LOCAL-00201" summary="implement sync">
+      <created>1656241923917</created>
+      <option name="number" value="00201" />
+      <option name="presentableId" value="LOCAL-00201" />
+      <option name="project" value="LOCAL" />
+      <updated>1656241923917</updated>
+    </task>
+    <option name="localTasksCounter" value="202" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

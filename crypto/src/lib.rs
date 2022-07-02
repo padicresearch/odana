@@ -64,6 +64,7 @@ pub fn is_valid_proof_of_work(max_work_bits: Compact, bits: Compact, hash: &H256
         _err => return false,
     };
     let value = U256::from(hash.as_fixed_bytes());
+
     target <= maximum && value <= target
 }
 

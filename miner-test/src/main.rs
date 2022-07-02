@@ -101,6 +101,10 @@ impl ChainReader for DummyChain {
         let block = chain.get(index).cloned();
         Ok(block)
     }
+
+    fn get_block_by_level(&self, level: i32) -> Result<Option<Block>> {
+        todo!()
+    }
 }
 
 impl ChainHeadReader for DummyChain {

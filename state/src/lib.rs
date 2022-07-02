@@ -13,7 +13,7 @@ use codec::impl_codec;
 use codec::{Codec, Decoder, Encoder};
 use primitive_types::{H160, H256};
 use smt::proof::Proof;
-use smt::Tree;
+use smt::{Op, Tree};
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::{AccountState};
@@ -98,6 +98,10 @@ impl StateDB for State {
     fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
         Ok(self.get_sate_at(H256::from(self.root()))?)
     }
+
+    fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>> {
+        Ok(self.get_sate_at(root)?)
+    }
 }
 
 impl State {
@@ -134,6 +138,42 @@ impl State {
             self.trie.put(acc, state)?;
         }
         Ok(())
+    }
+
+    pub fn apply_txs_no_commit(&self, at_root: H256, reward: u128, coinbase: H160, txs: Vec<Transaction>) -> Result<Hash> {
+        let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
+        let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
+
+        for tx in txs {
+            let mut txs = accounts.entry(tx.from()).or_default();
+            txs.insert(NoncePricedTransaction(tx));
+        }
+
+        for (acc, _) in accounts.iter() {
+            let current_state = self.trie.get(&acc)?.unwrap_or_default();
+            states.insert(*acc, current_state);
+        }
+
+        for (_, txs) in accounts {
+            for tx in txs {
+                self.apply_transaction(tx.0, &mut states)?;
+            }
+        }
+
+        let mut batch: Vec<_> = states.into_iter().map(|(k, v)| {
+            Op::Put(k, v)
+        }).collect();
+
+        let coinbase_account_state = self.get_account_state(&coinbase)?;
+        let coinbase_account_state = self.apply_action(&StateOperation::CreditBalance {
+            account: coinbase,
+            amount: reward,
+            tx_hash: [0; 32],
+        }, coinbase_account_state)?;
+
+        batch.push(Op::Put(coinbase, coinbase_account_state));
+
+        self.trie.apply_non_commit(&at_root, batch).map(|hash| hash.to_fixed_bytes())
     }
 
     fn apply_transaction(

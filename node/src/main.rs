@@ -21,6 +21,7 @@ use p2p::message::*;
 use p2p::peer_manager::{NetworkState, PeerList};
 use p2p::request_handler::RequestHandler;
 use p2p::{start_p2p_server};
+use primitive_types::H256;
 use storage::{PersistentStorage, PersistentStorageBackend};
 use tracing::{error, info};
 use tracing::tracing_subscriber;
@@ -136,6 +137,7 @@ async fn main() -> anyhow::Result<()> {
 
     {
         let blockchain = blockchain.clone();
+        let block_storage = blockchain.chain().block_storage();
         let consensus = consensus.clone();
         let interrupt = interrupt.clone();
         tokio::spawn(async move {
@@ -146,6 +148,7 @@ async fn main() -> anyhow::Result<()> {
                 consensus,
                 blockchain.txpool(),
                 blockchain.chain(),
+                block_storage,
                 blockchain.chain().block_storage(),
                 interrupt,
             )
@@ -160,26 +163,12 @@ async fn main() -> anyhow::Result<()> {
         let downloader = downloader.clone();
         tokio::spawn(async move {
             loop {
-                if let Ok(Some(node_current_head)) = blockchain.chain().current_header()
-                {
-                    match blockchain.chain().block_storage().get_block_by_level(node_current_head.raw.level + 1) {
-                        Ok(Some(block)) => {
-                            blockchain
-                                .chain()
-                                .put_chain(consensus.clone(), vec![block])
-                                .unwrap();
-                        }
-                        _ => {
-                            if downloader.is_downloading() {
-                                interrupt.store(miner::worker::PAUSE, Ordering::Release);
-                            } else if !downloader.is_downloading() && args.miner {
-                                if interrupt.load(Ordering::Acquire) == miner::worker::PAUSE {
-                                    interrupt.store(miner::worker::RESET, Ordering::Release);
-                                }
-                            }
-                        }
+                if downloader.is_downloading() {
+                    interrupt.store(miner::worker::PAUSE, Ordering::Release);
+                } else if !downloader.is_downloading() && args.miner {
+                    if interrupt.load(Ordering::Acquire) == miner::worker::PAUSE {
+                        interrupt.store(miner::worker::RESET, Ordering::Release);
                     }
-                    std::thread::sleep(Duration::from_millis(10))
                 }
             }
         });
@@ -236,6 +225,9 @@ async fn main() -> anyhow::Result<()> {
                         PeerMessage::Blocks(msg) => {
                             // TODO: Verify Blocks
                             // TODO: Store Blocks
+                            if msg.blocks.is_empty() {
+                                continue
+                            }
                             info!(count = ?msg.blocks.len(), "Imported Blocks");
                             for block in msg.blocks.iter() {
                                 match blockchain.chain().block_storage().put(block.clone()) {
@@ -272,7 +264,6 @@ async fn main() -> anyhow::Result<()> {
                 Event::LocalMessage(local_msg) => {
                     match local_msg {
                         LocalEventMessage::MindedBlock(block) => {
-                            blockchain.chain().block_storage().put(block.clone())?;
                             broadcast_message(&node_to_peer_sender, PeerMessage::BroadcastBlock(
                                 BroadcastBlockMessage::new(block.clone()),
                             ));

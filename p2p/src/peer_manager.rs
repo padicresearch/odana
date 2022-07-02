@@ -1,6 +1,6 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::ops::Deref;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use anyhow::bail;
 use anyhow::Result;
@@ -10,6 +10,7 @@ use libp2p::{Multiaddr, PeerId};
 use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::Compact;
+use tracing::level_enabled;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
 
@@ -116,7 +117,7 @@ impl PeerList {
 
 pub struct NetworkState {
     peer_list: Arc<PeerList>,
-    peer_state: Arc<DashMap<Arc<PeerId>, BlockHeader>>,
+    peer_state: Arc<Mutex<HashMap<Arc<PeerId>, BlockHeader>>>,
     highest_know_head: RwLock<Option<Arc<PeerId>>>,
     sender: UnboundedSender<LocalEventMessage>,
 }
@@ -137,12 +138,22 @@ impl NetworkState {
             "Peer is not connected"
         );
         let peer_state = self.peer_state.clone();
+        let mut peer_state = peer_state.lock().unwrap();
         let peer = self.peer_list.get_peer(peer_id).unwrap();
         let mut highest_know_head = self.highest_know_head.write().unwrap();
-        if highest_know_head.is_none() {
-            let mut new_highest = Some(peer.clone());
-            std::mem::swap(&mut *highest_know_head, &mut new_highest);
-            peer_state.insert(peer.clone(), head.clone());
+        if let Some(highest_know_head) = highest_know_head.as_mut() {
+            if *highest_know_head != peer {
+                let current_highest_peer_id = highest_know_head.clone();
+                let current_highest_block_header = peer_state
+                    .get(&current_highest_peer_id)
+                    .ok_or(anyhow::anyhow!("Current highest peer not found"))?;
+                let mut new_highest = peer.clone();
+                if head.level > current_highest_block_header.level {
+                    *highest_know_head = new_highest;
+                    peer_state.insert(peer.clone(), head.clone());
+                }
+            }
+
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
@@ -150,20 +161,13 @@ impl NetworkState {
                 });
         } else {
             let mut new_highest = Some(peer.clone());
-            let current_highest_peer_id = highest_know_head.as_ref().cloned().ok_or(anyhow::anyhow!("Highest know head not set"))?;
-            let current_highest_block_header =
-                peer_state.get(&current_highest_peer_id).ok_or(anyhow::anyhow!("Current highest peer not found"))?;
-            if head.level > current_highest_block_header.level {
-                std::mem::swap(&mut *highest_know_head, &mut new_highest);
-                //peer_state.insert(peer.clone(), head.clone());
-                self.sender
-                    .send(LocalEventMessage::NetworkHighestHeadChanged {
-                        peer_id: peer.to_string(),
-                        current_head: head,
-                    });
-            } else {
-
-            }
+            *highest_know_head = new_highest;
+            peer_state.insert(peer.clone(), head.clone());
+            self.sender
+                .send(LocalEventMessage::NetworkHighestHeadChanged {
+                    peer_id: peer.to_string(),
+                    current_head: head,
+                });
         }
         Ok(())
     }
@@ -185,12 +189,8 @@ impl NetworkState {
     pub fn highest_peer(&self) -> Option<String> {
         let mut highest_know_head = self.highest_know_head.read().unwrap();
         match highest_know_head.clone() {
-            None => {
-                None
-            }
-            Some(peer_id) => {
-                Some(peer_id.to_string())
-            }
+            None => None,
+            Some(peer_id) => Some(peer_id.to_string()),
         }
     }
 }

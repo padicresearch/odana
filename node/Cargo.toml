@@ -25,5 +25,6 @@ miner = { path = "../miner" }
 account = { path = "../account" }
 traits = { path = "../common/traits" }
 tracing = { path = "../common/tracing" }
+primitive-types = { path = "../common/primitive-types" }
 rocksdb = { version = "0.17.0" }
 clap = { version = "3.0.13", features = ["derive"] }
