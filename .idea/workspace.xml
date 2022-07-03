@@ -36,7 +36,7 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="implement sync">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="delete miner-test">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -478,14 +478,7 @@
       <workItem from="1656718763983" duration="2000" />
       <workItem from="1656749248828" duration="8280000" />
       <workItem from="1656839164281" duration="595000" />
-      <workItem from="1656839767739" duration="47000" />
-    </task>
-    <task id="LOCAL-00153" summary="refactor">
-      <created>1650283593984</created>
-      <option name="number" value="00153" />
-      <option name="presentableId" value="LOCAL-00153" />
-      <option name="project" value="LOCAL" />
-      <updated>1650283593984</updated>
+      <workItem from="1656839767739" duration="960000" />
     </task>
     <task id="LOCAL-00154" summary="fixes">
       <created>1650614593368</created>
@@ -823,7 +816,14 @@
       <option name="project" value="LOCAL" />
       <updated>1656241923917</updated>
     </task>
-    <option name="localTasksCounter" value="202" />
+    <task id="LOCAL-00202" summary="delete miner-test">
+      <created>1656840146320</created>
+      <option name="number" value="00202" />
+      <option name="presentableId" value="LOCAL-00202" />
+      <option name="project" value="LOCAL" />
+      <updated>1656840146320</updated>
+    </task>
+    <option name="localTasksCounter" value="203" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -854,7 +854,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="debug node discovery" />
     <MESSAGE value="tweaks" />
     <MESSAGE value="begin sparse merkle tree" />
     <MESSAGE value="persistence refactor" />
@@ -879,7 +878,8 @@
     <MESSAGE value="remove sqlite" />
     <MESSAGE value="p2p hot fix" />
     <MESSAGE value="implement sync" />
-    <option name="LAST_COMMIT_MESSAGE" value="implement sync" />
+    <MESSAGE value="delete miner-test" />
+    <option name="LAST_COMMIT_MESSAGE" value="delete miner-test" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
