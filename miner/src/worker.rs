@@ -9,7 +9,7 @@ use blockchain::block_storage::BlockStorage;
 
 use merkle::Merkle;
 use primitive_types::{H160, H256, U256};
-use tracing::{info, warn};
+use tracing::{info, warn, debug};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 use txpool::TxPool;
 use types::block::{Block, BlockHeader};
@@ -65,7 +65,7 @@ pub fn start_worker(
                     chain_header_reader.clone(),
                 )?;
                 current_block_template = Some((head.clone(), txs.clone()));
-                info!(coinbase = ?coinbase, txs_count = txs.len(), "🚧 mining a new block");
+                debug!(coinbase = ?coinbase, txs_count = txs.len(), "🚧 mining a new block");
                 (head, txs)
             }
             Some((head, txs)) => (head.clone(), txs.clone()),

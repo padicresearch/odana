@@ -259,7 +259,7 @@ async fn main() -> anyhow::Result<()> {
                                         PeerMessage::GetBlocks(BlocksToDownloadMessage::new(
                                             next_blocks,
                                         )),
-                                    );
+                                    ).unwrap();
                                     match downloader.last_header_in_queue() {
                                         None => {}
                                         Some(from) => {
@@ -269,7 +269,7 @@ async fn main() -> anyhow::Result<()> {
                                                 PeerMessage::GetBlockHeader(
                                                     GetBlockHeaderMessage::new(from, None),
                                                 ),
-                                            );
+                                            ).unwrap();
                                         }
                                     }
                                 }
@@ -345,8 +345,7 @@ async fn main() -> anyhow::Result<()> {
                             broadcast_message(
                                 &node_to_peer_sender,
                                 PeerMessage::CurrentHead(CurrentHeadMessage::new(current_head)),
-                            )
-                                .unwrap();
+                            ).unwrap();
                         }
                         LocalEventMessage::TxPoolPack(_) => {}
                         LocalEventMessage::NetworkHighestHeadChanged {
@@ -359,15 +358,25 @@ async fn main() -> anyhow::Result<()> {
                                     //stop mining
                                     interrupt.store(miner::worker::PAUSE, Ordering::Release);
                                     // Start downloading blocks from the Peer
-                                    send_message_to_peer(
-                                        peer_id,
-                                        &node_to_peer_sender,
-                                        PeerMessage::GetBlockHeader(GetBlockHeaderMessage::new(
-                                            current_head.hash(),
-                                            None,
-                                        )),
-                                    )
-                                        .unwrap();
+                                    if let Some(last_req_header) = downloader.last_header() {
+                                        send_message_to_peer(
+                                            peer_id,
+                                            &node_to_peer_sender,
+                                            PeerMessage::GetBlockHeader(GetBlockHeaderMessage::new(
+                                                last_req_header.hash(),
+                                                None,
+                                            )),
+                                        ).unwrap();
+                                    } else {
+                                        send_message_to_peer(
+                                            peer_id,
+                                            &node_to_peer_sender,
+                                            PeerMessage::GetBlockHeader(GetBlockHeaderMessage::new(
+                                                node_current_head.raw.hash(),
+                                                None,
+                                            )),
+                                        ).unwrap();
+                                    }
                                 }
                             }
                         }

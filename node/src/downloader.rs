@@ -78,6 +78,19 @@ impl Downloader {
         }
     }
 
+    pub fn last_header(&self) -> Option<BlockHeader> {
+        let queue = self.queue.clone();
+        let queue = queue.read();
+        match queue {
+            Ok(queue) => {
+                queue.last_key_value().map(|(_, header)| header.clone())
+            }
+            Err(_) => {
+                None
+            }
+        }
+    }
+
     pub fn is_downloading(&self) -> bool {
         let queue = self.queue.clone();
         let queue = queue.read().unwrap();
