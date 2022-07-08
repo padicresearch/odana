@@ -1,12 +1,14 @@
 #![feature(map_first_last)]
 
 use std::env::temp_dir;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicI8, Ordering};
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 
 use clap::Parser;
+use temp_dir::TempDir;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -49,6 +51,8 @@ struct Args {
     /// Name of the person to greet
     #[clap(short, long)]
     peer: Option<String>,
+    #[clap(short, long)]
+    datadir: Option<PathBuf>,
     #[clap(short, long)]
     miner: bool,
 }
@@ -103,8 +107,10 @@ async fn main() -> anyhow::Result<()> {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let mut path = temp_dir();
+    let mut path = PathBuf::from("/tmp");
     path.push("tuchain");
+
+    println!("datadir {:?}", path);
 
     let node_id = NodeIdentity::generate(NODE_POW_TARGET.into());
 
@@ -354,7 +360,16 @@ async fn main() -> anyhow::Result<()> {
                             if let Ok(Some(node_current_head)) = blockchain.chain().current_header()
                             {
                                 if node_current_head.raw.level < current_head.level {
+                                    //stop mining
+                                    interrupt.store(miner::worker::PAUSE, Ordering::Release);
                                     // Start downloading blocks from the Peer
+                                    send_message_to_peer(
+                                        peer_id,
+                                        &node_to_peer_sender,
+                                        PeerMessage::GetBlockHeader(
+                                            GetBlockHeaderMessage::new(current_head.hash(), None),
+                                        ),
+                                    ).unwrap();
                                 }
                             }
                         }

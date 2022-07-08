@@ -36,11 +36,9 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="delete miner-test">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite sync">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -486,14 +484,7 @@
       <workItem from="1656843272705" duration="30000" />
       <workItem from="1656843322011" duration="10439000" />
       <workItem from="1657032439521" duration="1196000" />
-      <workItem from="1657298738734" duration="1000" />
-    </task>
-    <task id="LOCAL-00155" summary="bug fixes: proof now working">
-      <created>1650672248203</created>
-      <option name="number" value="00155" />
-      <option name="presentableId" value="LOCAL-00155" />
-      <option name="project" value="LOCAL" />
-      <updated>1650672248203</updated>
+      <workItem from="1657298738734" duration="2026000" />
     </task>
     <task id="LOCAL-00156" summary="export functions">
       <created>1650672426266</created>
@@ -831,7 +822,14 @@
       <option name="project" value="LOCAL" />
       <updated>1656840803721</updated>
     </task>
-    <option name="localTasksCounter" value="204" />
+    <task id="LOCAL-00204" summary="rewrite sync">
+      <created>1657298875723</created>
+      <option name="number" value="00204" />
+      <option name="presentableId" value="LOCAL-00204" />
+      <option name="project" value="LOCAL" />
+      <updated>1657298875723</updated>
+    </task>
+    <option name="localTasksCounter" value="205" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -862,7 +860,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="tweaks" />
     <MESSAGE value="begin sparse merkle tree" />
     <MESSAGE value="persistence refactor" />
     <MESSAGE value="refactor" />
@@ -887,7 +884,8 @@
     <MESSAGE value="p2p hot fix" />
     <MESSAGE value="implement sync" />
     <MESSAGE value="delete miner-test" />
-    <option name="LAST_COMMIT_MESSAGE" value="delete miner-test" />
+    <MESSAGE value="rewrite sync" />
+    <option name="LAST_COMMIT_MESSAGE" value="rewrite sync" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
