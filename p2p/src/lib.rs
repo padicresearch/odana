@@ -338,7 +338,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     );
                 }
                 message => {
-                    let res = request_handler.handle(message);
+                    let res = request_handler.handle(&peer, message);
                     match res {
                         Ok(Some(resp)) => {
                             let chain_network = swarm.behaviour_mut();

@@ -4,18 +4,21 @@ use traits::{Blockchain, ChainHeadReader, ChainReader};
 use anyhow::Result;
 use blockchain::blockchain::Tuchain;
 use crate::message::{BlockHeaderMessage, BlocksMessage, CurrentHeadMessage, PeerMessage};
+use crate::{NetworkState, PeerId};
 
 pub struct RequestHandler {
     blockchain: Arc<Tuchain>,
+    network_state: Arc<NetworkState>
 }
 
 impl RequestHandler {
-    pub fn new(blockchain: Arc<Tuchain>) -> Self {
+    pub fn new(blockchain: Arc<Tuchain>, network_state: Arc<NetworkState>) -> Self {
         Self {
-            blockchain
+            blockchain,
+            network_state,
         }
     }
-    pub fn handle(&self, request: &PeerMessage) -> Result<Option<PeerMessage>> {
+    pub fn handle(&self, peer_id: &PeerId, request: &PeerMessage) -> Result<Option<PeerMessage>> {
         match request {
             PeerMessage::GetCurrentHead(_) => {
                 let blockchain = self.blockchain.clone();
@@ -35,7 +38,20 @@ impl RequestHandler {
                     .get_block_by_hash(&msg.from);
                 let mut level = match res {
                     Ok(Some(block)) => block.level(),
-                    _ => -1,
+                    _ => {
+                        //find common block
+                        let peer_current_state = self.network_state.get_peer_state(peer_id).unwrap();
+                        let res = blockchain
+                            .chain()
+                            .block_storage()
+                            .get_block_by_hash(&peer_current_state.parent_hash);
+                        match res {
+                            Ok(Some(block)) => block.level(),
+                            _ => {
+                                -1
+                            },
+                        }
+                    },
                 };
                 loop {
                     let res = blockchain

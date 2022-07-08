@@ -186,6 +186,11 @@ impl NetworkState {
             .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
+    pub fn get_peer_state(&self, peer_id: &PeerId) -> Option<BlockHeader> {
+        let peer_state = self.peer_state.lock().unwrap();
+        return peer_state.get(peer_id).map(|value| value.clone())
+    }
+
     pub fn highest_peer(&self) -> Option<String> {
         let mut highest_know_head = self.highest_know_head.read().unwrap();
         match highest_know_head.clone() {

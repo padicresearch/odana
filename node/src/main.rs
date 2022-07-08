@@ -131,7 +131,7 @@ async fn main() -> anyhow::Result<()> {
         .clone();
 
     let network_state = Arc::new(NetworkState::new(peers.clone(), local_mpsc_sender.clone()));
-    let handler = Arc::new(RequestHandler::new(blockchain.clone()));
+    let handler = Arc::new(RequestHandler::new(blockchain.clone(), network_state.clone()));
     let downloader = Arc::new(Downloader::new());
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
     start_p2p_server(
