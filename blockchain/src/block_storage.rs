@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use anyhow::{bail, Result};
 
-use storage::{KVStore, PersistentStorage, Schema};
+use storage::{KVStore, PersistentStorage, Schema, StorageIterator};
+use tracing::tracing_subscriber::fmt::writer::EitherWriter::B;
 use traits::{ChainHeadReader, ChainReader};
 use types::block::{Block, BlockPrimaryKey, IndexedBlockHeader};
 use types::Hash;
@@ -27,6 +28,13 @@ impl BlockStorage {
         self.block_by_hash.put(block_key.0, block_key.clone());
         self.block_by_level.put(block_key.1, block_key.clone());
         Ok(())
+    }
+
+    pub fn get_blocks<'a>(&'a self, hash: &'a Hash, level: i32) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<Block>)>>> {
+        let primary_key = BlockPrimaryKey(*hash, level);
+        Ok(Box::new(self.primary.get_blocks(&primary_key)?.map(|(k, v)| {
+            v
+        })))
     }
 }
 
@@ -110,6 +118,10 @@ impl BlockPrimaryStorage {
     }
     pub fn get_block(&self, block_key: &BlockPrimaryKey) -> Result<Option<Block>> {
         self.kv.get(block_key)
+    }
+
+    pub fn get_blocks(&self, start_at: &BlockPrimaryKey) -> Result<StorageIterator<BlockPrimaryStorage>> {
+        self.kv.prefix_iter(&start_at)
     }
 }
 

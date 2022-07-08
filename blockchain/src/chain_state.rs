@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::sync::Mutex;
 
 use anyhow::{anyhow, bail, Result};
@@ -64,6 +64,7 @@ impl ChainStateStorage {
 }
 
 pub struct ChainState {
+    lock: RwLock<()>,
     state: Arc<State>,
     block_storage: Arc<BlockStorage>,
     chain_state: Arc<ChainStateStorage>,
@@ -95,6 +96,7 @@ impl ChainState {
         }
 
         Ok(Self {
+            lock: Default::default(),
             state,
             block_storage,
             chain_state: chain_state_storage,
@@ -103,6 +105,7 @@ impl ChainState {
     }
 
     pub fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()> {
+        let _ = self.lock.write().map_err(|e| anyhow!("{}", e))?;
         for block in blocks {
             let header = block.header().clone();
             match self
@@ -195,6 +198,7 @@ impl Blockchain for ChainState {
     }
 
     fn current_header(&self) -> anyhow::Result<Option<IndexedBlockHeader>> {
+        let _ = self.lock.read().map_err(|e| anyhow!("{}", e))?;
         self.chain_state
             .get_current_header()
             .map(|header| header.map(|header| header.into()))

@@ -10,6 +10,7 @@ use clap::Parser;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::UnboundedSender;
 
+use crate::downloader::Downloader;
 use crate::environment::default_db_opts;
 use account::create_account;
 use blockchain::blockchain::Tuchain;
@@ -20,17 +21,17 @@ use p2p::identity::NodeIdentity;
 use p2p::message::*;
 use p2p::peer_manager::{NetworkState, PeerList};
 use p2p::request_handler::RequestHandler;
-use p2p::{start_p2p_server};
+use p2p::start_p2p_server;
 use primitive_types::H256;
 use storage::{PersistentStorage, PersistentStorageBackend};
-use tracing::{error, info};
 use tracing::tracing_subscriber;
 use tracing::Level;
+use tracing::{error, info};
 use traits::{Blockchain, ChainHeadReader, ChainReader};
+use types::block::Block;
 use types::events::LocalEventMessage;
-use types::Hash;
 use types::network::Network;
-use crate::downloader::Downloader;
+use types::Hash;
 
 mod downloader;
 pub mod environment;
@@ -58,15 +59,21 @@ enum NodeState {
     Synced,
 }
 
-fn broadcast_message(sender: &UnboundedSender<NodeToPeerMessage>, message: PeerMessage) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
+fn broadcast_message(
+    sender: &UnboundedSender<NodeToPeerMessage>,
+    message: PeerMessage,
+) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
     sender.send(NodeToPeerMessage {
         peer_id: None,
         message,
     })
 }
 
-
-fn send_message_to_peer(peer_id: String, sender: &UnboundedSender<NodeToPeerMessage>, message: PeerMessage) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
+fn send_message_to_peer(
+    peer_id: String,
+    sender: &UnboundedSender<NodeToPeerMessage>,
+    message: PeerMessage,
+) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
     sender.send(NodeToPeerMessage {
         peer_id: Some(peer_id),
         message,
@@ -130,7 +137,7 @@ async fn main() -> anyhow::Result<()> {
         NODE_POW_TARGET.into(),
         network_state.clone(),
         blockchain.chain(),
-        handler
+        handler,
     )
         .await
     .unwrap();
@@ -158,9 +165,11 @@ async fn main() -> anyhow::Result<()> {
 
     {
         let blockchain = blockchain.clone();
+        let block_storage = blockchain.chain().block_storage();
+        let chain_state = blockchain.chain();
         let consensus = consensus.clone();
-        let interrupt = interrupt.clone();
         let downloader = downloader.clone();
+
         tokio::spawn(async move {
             loop {
                 if downloader.is_downloading() {
@@ -170,10 +179,41 @@ async fn main() -> anyhow::Result<()> {
                         interrupt.store(miner::worker::RESET, Ordering::Release);
                     }
                 }
+                if let Ok(Some(node_current_head)) = blockchain.chain().current_header() {
+                    let mut blocks_to_apply: Vec<Block> = Vec::with_capacity(10000);
+                    for block in block_storage
+                        .get_blocks(&[0; 32], node_current_head.raw.level + 1)
+                        .unwrap()
+                        .take(10000)
+                    {
+                        match block {
+                            Ok(block) => {
+                                let previous_block_hash = match blocks_to_apply.last() {
+                                    None => {
+                                        node_current_head.raw.hash()
+                                    }
+                                    Some(b) => {
+                                        b.hash()
+                                    }
+                                };
+                                if *block.parent_hash() == previous_block_hash {
+                                    blocks_to_apply.push(block)
+                                } else {
+                                    break
+                                }
+                            }
+                            Err(_) => {
+                                break
+                            }
+                        }
+                    }
+                    if !blocks_to_apply.is_empty() {
+                        chain_state.put_chain(consensus.clone(), blocks_to_apply).unwrap()
+                    }
+                }
             }
         });
     }
-
 
     loop {
         let event = tokio::select! {
@@ -200,11 +240,10 @@ async fn main() -> anyhow::Result<()> {
             match event {
                 Event::PeerMessage(msg) => {
                     match msg {
-                        PeerMessage::CurrentHead(msg) => {
-                        }
+                        PeerMessage::CurrentHead(msg) => {}
                         PeerMessage::BlockHeader(msg) => {
                             if msg.block_headers.is_empty() {
-                                continue
+                                continue;
                             }
                             info!(count = ?msg.block_headers.len(), "Imported headers");
                             downloader.enqueue(msg.block_headers);
@@ -212,11 +251,23 @@ async fn main() -> anyhow::Result<()> {
                             match network_state.highest_peer() {
                                 None => {}
                                 Some(peer_id) => {
-                                    send_message_to_peer(peer_id.clone(), &node_to_peer_sender, PeerMessage::GetBlocks(BlocksToDownloadMessage::new(next_blocks)));
+                                    send_message_to_peer(
+                                        peer_id.clone(),
+                                        &node_to_peer_sender,
+                                        PeerMessage::GetBlocks(BlocksToDownloadMessage::new(
+                                            next_blocks,
+                                        )),
+                                    );
                                     match downloader.last_header_in_queue() {
                                         None => {}
                                         Some(from) => {
-                                            send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlockHeader(GetBlockHeaderMessage::new(from, None)));
+                                            send_message_to_peer(
+                                                peer_id,
+                                                &node_to_peer_sender,
+                                                PeerMessage::GetBlockHeader(
+                                                    GetBlockHeaderMessage::new(from, None),
+                                                ),
+                                            );
                                         }
                                     }
                                 }
@@ -226,7 +277,7 @@ async fn main() -> anyhow::Result<()> {
                             // TODO: Verify Blocks
                             // TODO: Store Blocks
                             if msg.blocks.is_empty() {
-                                continue
+                                continue;
                             }
                             info!(count = ?msg.blocks.len(), "Imported Blocks");
                             for block in msg.blocks.iter() {
@@ -243,7 +294,14 @@ async fn main() -> anyhow::Result<()> {
                             match network_state.highest_peer() {
                                 None => {}
                                 Some(peer_id) => {
-                                    send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlocks(BlocksToDownloadMessage::new(next_blocks)));
+                                    send_message_to_peer(
+                                        peer_id,
+                                        &node_to_peer_sender,
+                                        PeerMessage::GetBlocks(BlocksToDownloadMessage::new(
+                                            next_blocks,
+                                        )),
+                                    )
+                                        .unwrap();
                                 }
                             }
                         }
@@ -264,17 +322,29 @@ async fn main() -> anyhow::Result<()> {
                 Event::LocalMessage(local_msg) => {
                     match local_msg {
                         LocalEventMessage::MindedBlock(block) => {
-                            broadcast_message(&node_to_peer_sender, PeerMessage::BroadcastBlock(
-                                BroadcastBlockMessage::new(block.clone()),
-                            ));
+                            broadcast_message(
+                                &node_to_peer_sender,
+                                PeerMessage::BroadcastBlock(BroadcastBlockMessage::new(
+                                    block.clone(),
+                                )),
+                            )
+                                .unwrap();
                         }
                         LocalEventMessage::BroadcastTx(tx) => {
-                            broadcast_message(&node_to_peer_sender, PeerMessage::BroadcastTransaction(
-                                BroadcastTransactionMessage::new(tx),
-                            ));
+                            broadcast_message(
+                                &node_to_peer_sender,
+                                PeerMessage::BroadcastTransaction(
+                                    BroadcastTransactionMessage::new(tx),
+                                ),
+                            )
+                                .unwrap();
                         }
                         LocalEventMessage::StateChanged { current_head } => {
-                            broadcast_message(&node_to_peer_sender, PeerMessage::CurrentHead(CurrentHeadMessage::new(current_head)));
+                            broadcast_message(
+                                &node_to_peer_sender,
+                                PeerMessage::CurrentHead(CurrentHeadMessage::new(current_head)),
+                            )
+                                .unwrap();
                         }
                         LocalEventMessage::TxPoolPack(_) => {}
                         LocalEventMessage::NetworkHighestHeadChanged {
@@ -293,11 +363,14 @@ async fn main() -> anyhow::Result<()> {
                             // Send get headers to peer
                             if let Ok(Some(node_current_head)) = blockchain.chain().current_header()
                             {
-                                let msg = GetBlockHeaderMessage::new(
-                                    node_current_head.hash.0,
-                                    None,
-                                );
-                                send_message_to_peer(peer_id, &node_to_peer_sender, PeerMessage::GetBlockHeader(msg)).unwrap();
+                                let msg =
+                                    GetBlockHeaderMessage::new(node_current_head.hash.0, None);
+                                send_message_to_peer(
+                                    peer_id,
+                                    &node_to_peer_sender,
+                                    PeerMessage::GetBlockHeader(msg),
+                                )
+                                    .unwrap();
                             }
                         }
                     }
