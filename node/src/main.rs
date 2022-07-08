@@ -175,7 +175,7 @@ async fn main() -> anyhow::Result<()> {
         let chain_state = blockchain.chain();
         let consensus = consensus.clone();
         let downloader = downloader.clone();
-
+        let interrupt = interrupt.clone();
         tokio::spawn(async move {
             loop {
                 if downloader.is_downloading() {
@@ -195,26 +195,22 @@ async fn main() -> anyhow::Result<()> {
                         match block {
                             Ok(block) => {
                                 let previous_block_hash = match blocks_to_apply.last() {
-                                    None => {
-                                        node_current_head.raw.hash()
-                                    }
-                                    Some(b) => {
-                                        b.hash()
-                                    }
+                                    None => node_current_head.raw.hash(),
+                                    Some(b) => b.hash(),
                                 };
                                 if *block.parent_hash() == previous_block_hash {
                                     blocks_to_apply.push(block)
                                 } else {
-                                    break
+                                    break;
                                 }
                             }
-                            Err(_) => {
-                                break
-                            }
+                            Err(_) => break,
                         }
                     }
                     if !blocks_to_apply.is_empty() {
-                        chain_state.put_chain(consensus.clone(), blocks_to_apply).unwrap()
+                        chain_state
+                            .put_chain(consensus.clone(), blocks_to_apply)
+                            .unwrap()
                     }
                 }
             }
@@ -366,10 +362,12 @@ async fn main() -> anyhow::Result<()> {
                                     send_message_to_peer(
                                         peer_id,
                                         &node_to_peer_sender,
-                                        PeerMessage::GetBlockHeader(
-                                            GetBlockHeaderMessage::new(current_head.hash(), None),
-                                        ),
-                                    ).unwrap();
+                                        PeerMessage::GetBlockHeader(GetBlockHeaderMessage::new(
+                                            current_head.hash(),
+                                            None,
+                                        )),
+                                    )
+                                        .unwrap();
                                 }
                             }
                         }
