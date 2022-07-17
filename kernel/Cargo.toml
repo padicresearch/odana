@@ -1,0 +1,23 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix = "0.13"
+anyhow = "1.0.45"
+thiserror = "1.0.30"
+# local deps
+blockchain = { path = "../blockchain" }
+p2p = { path = "../p2p" }
+types = { path = "../common/types" }
+txpool = { path = "../txpool" }
+state = { path = "../state" }
+consensus = { path = "../consensus" }
+miner = { path = "../miner" }
+account = { path = "../account" }
+traits = { path = "../common/traits" }
+tracing = { path = "../common/tracing" }
+primitive-types = { path = "../common/primitive-types" }

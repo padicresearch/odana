@@ -9,7 +9,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use primitive_types::{H160, H256};
 use state::State;
 use storage::{KVStore, Schema};
-use tracing::{error, info, trace};
+use tracing::{error, info, trace, debug};
 use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
@@ -104,8 +104,11 @@ impl ChainState {
         })
     }
 
-    pub fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()> {
+    pub fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Box<dyn Iterator<Item=Block>>) -> Result<()> {
         let _ = self.lock.write().map_err(|e| anyhow!("{}", e))?;
+        let mut blocks = blocks;
+
+
         for block in blocks {
             let header = block.header().clone();
             match self
@@ -178,6 +181,12 @@ impl ChainState {
                 block.transactions().clone(),
             )?;
             info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Accepted block No Commit");
+            if block.level() > current_head.raw.level {
+                debug!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Resetting state");
+                self.state.reset(H256::from(header.state_root))?;
+                self.chain_state.set_current_header(header.clone())?;
+                info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Chain changed, network fork");
+            }
         }
 
         Ok(())
@@ -209,7 +218,7 @@ impl Blockchain for ChainState {
     }
 
     fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()> {
-        self.put_chain(consensus, blocks)
+        self.put_chain(consensus, Box::new(blocks.iter()))
     }
 }
 

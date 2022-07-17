@@ -157,8 +157,8 @@ impl NetworkState {
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
-                    current_head: head,
-                });
+                    tip: head,
+                })?;
         } else {
             let mut new_highest = Some(peer.clone());
             *highest_know_head = new_highest;
@@ -166,8 +166,8 @@ impl NetworkState {
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
-                    current_head: head,
-                });
+                    tip: head,
+                })?;
         }
         Ok(())
     }

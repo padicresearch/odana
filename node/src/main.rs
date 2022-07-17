@@ -350,7 +350,7 @@ async fn main() -> anyhow::Result<()> {
                         LocalEventMessage::TxPoolPack(_) => {}
                         LocalEventMessage::NetworkHighestHeadChanged {
                             peer_id,
-                            current_head,
+                            tip: current_head,
                         } => {
                             if let Ok(Some(node_current_head)) = blockchain.chain().current_header()
                             {

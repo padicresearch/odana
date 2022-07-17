@@ -120,6 +120,10 @@ impl BlockPrimaryStorage {
         self.kv.get(block_key)
     }
 
+    pub fn has_block(&self, block_key: &BlockPrimaryKey) -> Result<bool> {
+        self.kv.contains(block_key)
+    }
+
     pub fn get_blocks(&self, start_at: &BlockPrimaryKey) -> Result<StorageIterator<BlockPrimaryStorage>> {
         self.kv.prefix_iter(&start_at)
     }

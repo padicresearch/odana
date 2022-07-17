@@ -37,11 +37,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite sync">
+      <change afterPath="$PROJECT_DIR$/kernel/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel/src/messages.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel/src/miner.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/kernel/src/sync.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/request_handler.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/request_handler.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,7 +69,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="state-kernel" />
+        <entry key="$PROJECT_DIR$" value="master" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -486,14 +494,10 @@
       <workItem from="1656843272705" duration="30000" />
       <workItem from="1656843322011" duration="10439000" />
       <workItem from="1657032439521" duration="1196000" />
-      <workItem from="1657298738734" duration="5185000" />
-    </task>
-    <task id="LOCAL-00159" summary="implemented sparse merkle tree">
-      <created>1652805116068</created>
-      <option name="number" value="00159" />
-      <option name="presentableId" value="LOCAL-00159" />
-      <option name="project" value="LOCAL" />
-      <updated>1652805116069</updated>
+      <workItem from="1657298738734" duration="5870000" />
+      <workItem from="1657485625540" duration="598000" />
+      <workItem from="1657581288548" duration="4926000" />
+      <workItem from="1657735229817" duration="35019000" />
     </task>
     <task id="LOCAL-00160" summary="Implemented Trie with `reset`">
       <created>1653117795250</created>
@@ -831,7 +835,14 @@
       <option name="project" value="LOCAL" />
       <updated>1657304685249</updated>
     </task>
-    <option name="localTasksCounter" value="208" />
+    <task id="LOCAL-00208" summary="rewrite sync">
+      <created>1657307715192</created>
+      <option name="number" value="00208" />
+      <option name="presentableId" value="LOCAL-00208" />
+      <option name="project" value="LOCAL" />
+      <updated>1657307715192</updated>
+    </task>
+    <option name="localTasksCounter" value="209" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

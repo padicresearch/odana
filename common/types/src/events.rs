@@ -11,7 +11,7 @@ pub enum LocalEventMessage {
     },
     NetworkHighestHeadChanged {
         peer_id: String,
-        current_head: BlockHeader,
+        tip: BlockHeader,
     },
     NetworkNewPeerConnection {
         stats: (usize, usize),

@@ -65,6 +65,18 @@ impl GetBlockHeaderMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct FindBlocksMessage {
+    pub from: i32,
+    pub size: i32,
+}
+
+impl FindBlocksMessage {
+    pub fn new(from: i32, size: i32) -> Self {
+        Self { from, size }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct BlockTransactionsMessage {
     pub txs: Vec<Transaction>,
 }
@@ -156,6 +168,7 @@ pub enum PeerMessage {
     CurrentHead(CurrentHeadMessage),
     GetBlockHeader(GetBlockHeaderMessage),
     GetBlocks(BlocksToDownloadMessage),
+    FindBlocks(FindBlocksMessage),
     BlockHeader(BlockHeaderMessage),
     Blocks(BlocksMessage),
     BroadcastTransaction(BroadcastTransactionMessage),
