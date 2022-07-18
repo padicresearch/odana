@@ -1,8 +1,9 @@
 #![feature(map_first_last)]
-#![feature(map_first_last)]
 
 mod sync;
-mod messages;
+pub mod messages;
 mod miner;
 
 pub(crate) struct KernelContext {}
+
+pub use sync::*;

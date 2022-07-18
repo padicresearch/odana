@@ -37,19 +37,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite sync">
-      <change afterPath="$PROJECT_DIR$/kernel/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel/src/messages.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel/src/miner.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kernel/src/sync.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/kernel/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel/src/messages.rs" beforeDir="false" afterPath="$PROJECT_DIR$/kernel/src/messages.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kernel/src/sync.rs" beforeDir="false" afterPath="$PROJECT_DIR$/kernel/src/sync.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -497,14 +494,7 @@
       <workItem from="1657298738734" duration="5870000" />
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
-      <workItem from="1657735229817" duration="35019000" />
-    </task>
-    <task id="LOCAL-00160" summary="Implemented Trie with `reset`">
-      <created>1653117795250</created>
-      <option name="number" value="00160" />
-      <option name="presentableId" value="LOCAL-00160" />
-      <option name="project" value="LOCAL" />
-      <updated>1653117795251</updated>
+      <workItem from="1657735229817" duration="53429000" />
     </task>
     <task id="LOCAL-00161" summary="cargo fmt">
       <created>1653118604745</created>
@@ -842,7 +832,14 @@
       <option name="project" value="LOCAL" />
       <updated>1657307715192</updated>
     </task>
-    <option name="localTasksCounter" value="209" />
+    <task id="LOCAL-00209" summary="rewrite sync">
+      <created>1658059409418</created>
+      <option name="number" value="00209" />
+      <option name="presentableId" value="LOCAL-00209" />
+      <option name="project" value="LOCAL" />
+      <updated>1658059409419</updated>
+    </task>
+    <option name="localTasksCounter" value="210" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

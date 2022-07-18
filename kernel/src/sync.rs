@@ -9,7 +9,6 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::intrinsics::fabsf32;
 use std::path::Component::Normal;
 use std::sync::Arc;
 use std::time::Duration;
@@ -43,11 +42,19 @@ impl PartialOrd for OrderedBlock {
     }
 }
 
+impl Ord for OrderedBlock {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.level().cmp(&other.0.level())
+    }
+}
+
 impl PartialEq for OrderedBlock {
     fn eq(&self, other: &Self) -> bool {
         self.0.hash().eq(&other.0.hash())
     }
 }
+
+impl Eq for OrderedBlock {}
 
 impl AsRef<Block> for OrderedBlock {
     fn as_ref(&self) -> &Block {
@@ -55,12 +62,13 @@ impl AsRef<Block> for OrderedBlock {
     }
 }
 
-struct SyncManager {
+pub struct SyncManager {
     chain: Arc<ChainState>,
     consensus: Arc<dyn Consensus>,
     block_storage: Arc<BlockStorage>,
-    sync_mode: SyncMode,
-    last_request_index: i32,
+    sync_mode: Arc<SyncMode>,
+    last_request_index: u32,
+    network_tip: BlockHeader,
     last_tip_before_sync: Option<(String, BlockHeader)>,
 }
 
@@ -68,207 +76,169 @@ impl Actor for SyncManager {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        ctx.run_interval(Duration::from_millis(10), |_| {});
+        //ctx.run_interval(Duration::from_millis(100), |_| {});
     }
 }
 
 impl Handler<KPeerMessage> for SyncManager {
     type Result = ();
 
-
     fn handle(&mut self, msg: KPeerMessage, ctx: &mut Self::Context) -> Self::Result {
-        let mode = self.sync_mode.clone();
-        match msg.as_ref() {
-            PeerMessage::Blocks(msg) => {
-                // TODO: Clean up very rough work
-                let mut common_ancestor: Option<[u8; 32]> = None;
-                let block_count = msg.blocks.len();
-                for block in msg.blocks {
-                    match self
-                        .block_storage
-                        .get_block(block.parent_hash(), block.level() - 1)
-                    {
-                        Ok(Some(block)) => common_ancestor = Some(block.hash()),
-                        _ => {}
-                    };
-                    self.block_storage.put(block.clone()).unwrap();
-                }
+        if let PeerMessage::Blocks(msg) = msg.as_ref() {
+            let blocks_to_import = &msg.blocks;
 
-                match mode {
-                    SyncMode::Forward => {
-                        if let Some(common_ancestor) = common_ancestor {
-                            self.sync_mode = SyncMode::Forward;
-                            let (_, last_tip) = self.last_tip_before_sync.unwrap();
-                            // Gather all block before tip and apply
-                            let mut ordered_blocks = BTreeSet::new();
-                            let mut cursor = last_tip.hash();
-
-                            if block_count > 0 {
-                                self.sync_mode = SyncMode::Normal;
-                            }
-
-                            loop {
-                                let curr_block = match self.block_storage.get_block_by_hash(&cursor)
-                                {
-                                    Ok(Some(block)) => block,
-                                    _ => break,
-                                };
-                                cursor = *curr_block.parent_hash();
-                                ordered_blocks.insert(OrderedBlock(curr_block));
-                                if cursor == common_ancestor {
-                                    break;
-                                }
-                            }
-                            self.last_request_index = self.last_request_index.saturating_add(24);
-                            self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                                self.last_request_index,
-                                24,
-                            )))
-                        } else {
-                            self.sync_mode = SyncMode::Backward;
-                            self.last_request_index = self.last_request_index.saturating_sub(24);
-                            self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                                self.last_request_index,
-                                24,
-                            )))
-                        }
-                    }
-                    SyncMode::Backward => {
-                        if let Some(common_ancestor) = common_ancestor {
-                            let (_, last_tip) = self.last_tip_before_sync.unwrap();
-                            // Gather all block before tip and apply
-                            let mut ordered_blocks = BTreeSet::new();
-                            let mut cursor = last_tip.hash();
-
-                            loop {
-                                let curr_block = match self.block_storage.get_block_by_hash(&cursor)
-                                {
-                                    Ok(Some(block)) => block,
-                                    _ => break,
-                                };
-                                cursor = *curr_block.parent_hash();
-                                ordered_blocks.insert(OrderedBlock(curr_block));
-                                if cursor == common_ancestor {
-                                    break;
-                                }
-                            }
-
-                            self.chain
-                                .put_chain(
-                                    self.consensus.clone(),
-                                    Box::new(
-                                        ordered_blocks.into_iter().map(|ob| ob.as_ref().clone()),
-                                    ),
-                                )
-                                .unwrap()
-                        } else {
-                            self.last_request_index = self.last_request_index.saturating_sub(24);
-                            self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                                self.last_request_index,
-                                24,
-                            )))
-                        }
-                    }
-                    SyncMode::Normal => {}
-                }
+            if blocks_to_import.is_empty() {
+                self.sync_mode = Arc::new(SyncMode::Normal);
+                return;
             }
-            _ => {}
+
+            if !self.validate_chain(blocks_to_import) {
+                println!("Chain validation failed");
+                return;
+            }
+
+            let ordered_blocks: BTreeSet<_> = msg
+                .blocks
+                .clone()
+                .into_iter()
+                .map(|block| OrderedBlock(block))
+                .collect();
+            let start_block = ordered_blocks.first().unwrap();
+            let has_common_ancestor = self
+                .block_storage
+                .get_block_by_hash(start_block.as_ref().parent_hash())
+                .map_or_else(|_| false, |block| block.is_some());
+            if has_common_ancestor {
+                self.chain
+                    .put_chain(
+                        self.consensus.clone(),
+                        Box::new(ordered_blocks.into_iter().map(|ob| ob.0)),
+                    )
+                    .unwrap();
+                self.sync_mode = Arc::new(SyncMode::Forward);
+                let node_head = self.chain.current_header().unwrap();
+                let node_level = node_head.map(|block| block.raw.level).unwrap();
+                if self.network_tip.level > node_level {
+                    self.last_request_index = node_level as u32;
+                    self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                        self.last_request_index as i32,
+                        24,
+                    )));
+                } else if self.network_tip.level < node_level {} else if self.network_tip.level == node_level {}
+            } else {
+                self.sync_mode = Arc::new(SyncMode::Backward);
+
+                if self.last_request_index == 0 {
+                    // If we are already at zero, lets give up
+                    return;
+                }
+                self.last_request_index = self.last_request_index.saturating_sub(24);
+                self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                    self.last_request_index as i32,
+                    24,
+                )));
+            }
         }
     }
 }
 
 impl Handler<KLocalMessage> for SyncManager {
-    type Result = anyhow::Result<()>;
+    type Result = Result<()>;
 
     fn handle(&mut self, msg: KLocalMessage, ctx: &mut Self::Context) -> Self::Result {
         match msg.as_ref() {
             LocalEventMessage::NetworkHighestHeadChanged { peer_id, tip } => {
-                let local_tip = self.local_tip()?;
-                if tip.level > local_tip.level {
-                    //TODO stop miner
-                    if self.last_tip_before_sync.is_none() {
-                        self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                            local_tip.level,
-                            24,
-                        )))
-                            .unwrap();
-                        self.last_request_index = local_tip.level;
-                        self.last_tip_before_sync = Some((peer_id.clone(), local_tip))
-                    }
+                let node_height = self.chain.current_header()?;
+                let node_height = node_height.map(|block| block.raw.level).unwrap();
+                self.network_tip = tip.clone();
+                if self.last_tip_before_sync.is_none() && tip.level > node_height {
+                    // TODO; stop mining
+                    self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                        node_height,
+                        24,
+                    )));
+                    self.last_request_index = tip.level as u32;
+                    self.last_tip_before_sync = Some((peer_id.clone(), tip.clone()));
                 }
             }
             _ => {}
         }
-
         Ok(())
     }
 }
 
 impl SyncManager {
+    pub fn new(
+        chain: Arc<ChainState>,
+        consensus: Arc<dyn Consensus>,
+        block_storage: Arc<BlockStorage>,
+        sync_mode: Arc<SyncMode>,
+    ) -> Self {
+        let node_height = chain.current_header().unwrap();
+        let node_height = node_height.map(|block| block.raw.level).unwrap();
+        let network_tip = consensus.get_genesis_header();
+        Self {
+            chain,
+            consensus,
+            block_storage,
+            sync_mode,
+            last_request_index: node_height as u32,
+            network_tip,
+            last_tip_before_sync: None,
+        }
+    }
+
     fn local_tip(&self) -> Result<BlockHeader> {
         self.chain.current_header().map(|head| head.unwrap().raw)
     }
 
-    fn can_apply_blocks(&self, blocks: &[Block]) -> bool {
-        if blocks.is_empty() {
-            return false;
+    fn validate_chain(&self, blocks: &[Block]) -> bool {
+        let mut blocks_to_apply: BTreeMap<i32, HashMap<[u8; 32], &Block>> = BTreeMap::new();
+        for block in blocks {
+            let mut map = blocks_to_apply
+                .entry(block.level())
+                .or_insert(HashMap::new());
+            map.insert(block.hash(), block);
         }
-        let pblock = &blocks[0];
-        return match self
-            .block_storage
-            .get_block(pblock.parent_hash(), pblock.level() - 1)
-        {
-            Ok(block) => block.is_some(),
-            Err(_) => false,
-        };
-    }
 
-    // fn pending_chain_valid(&mut self) -> bool {
-    //     if self.blocks_to_apply.is_empty() {
-    //         return false;
-    //     }
-    //     let highest_block_level = self
-    //         .blocks_to_apply
-    //         .last_entry()
-    //         .map(|entry| *entry.key())
-    //         .unwrap_or_default();
-    //     let lowest_block_level = self
-    //         .blocks_to_apply
-    //         .first_entry()
-    //         .map(|entry| *entry.key())
-    //         .unwrap_or_default();
-    //
-    //     // Make sure we have a continuous chain
-    //     'l: for level in highest_block_level..lowest_block_level {
-    //         let blocks = match self.blocks_to_apply.get(&level) {
-    //             None => return false,
-    //             Some(blocks) => blocks,
-    //         };
-    //         let prev_blocks = match self.blocks_to_apply.get(&(level - 1)) {
-    //             None => return false,
-    //             Some(blocks) => blocks,
-    //         };
-    //
-    //         let mut t = false;
-    //         for (_,b) in blocks.iter() {
-    //             t |= prev_blocks.contains_key(b.parent_hash());
-    //             if t  {
-    //                 continue 'l;
-    //             }
-    //         }
-    //         if !t {
-    //             break
-    //         }
-    //     };
-    //
-    //     match self
-    //         .block_storage
-    //         .get_block(start_block.parent_hash(), start_block.level() - 1)
-    //     {
-    //         Ok(block) => block.is_some(),
-    //         Err(_) => false,
-    //     }
-    // }
+        if blocks_to_apply.len() <= 1 {
+            return true;
+        }
+
+        let highest_block_level = blocks_to_apply
+            .last_entry()
+            .map(|entry| *entry.key())
+            .unwrap_or_default();
+        let lowest_block_level = blocks_to_apply
+            .first_entry()
+            .map(|entry| *entry.key())
+            .unwrap_or_default();
+
+        // Make sure we have a continuous chain
+        'l: for level in highest_block_level..lowest_block_level {
+            let blocks = match blocks_to_apply.get(&level) {
+                None => return false,
+                Some(blocks) => blocks,
+            };
+            let prev_blocks = match blocks_to_apply.get(&(level - 1)) {
+                None => return false,
+                Some(blocks) => blocks,
+            };
+
+            let mut t = false;
+            for (_, b) in blocks.iter() {
+                t |= prev_blocks.contains_key(b.parent_hash());
+                if t {
+                    continue 'l;
+                }
+            }
+            if !t {
+                break;
+            }
+        }
+
+        true
+    }
 
     pub(crate) fn send_peer_message(&self, msg: PeerMessage) {
         todo!()

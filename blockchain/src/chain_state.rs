@@ -218,7 +218,7 @@ impl Blockchain for ChainState {
     }
 
     fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()> {
-        self.put_chain(consensus, Box::new(blocks.iter()))
+        self.put_chain(consensus, Box::new(blocks.into_iter()))
     }
 }
 

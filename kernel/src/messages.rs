@@ -1,10 +1,19 @@
 use p2p::message::PeerMessage;
 use types::events::LocalEventMessage;
+use actix::Message;
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub(crate) struct KPeerMessage {
+pub struct KPeerMessage {
     msg: PeerMessage,
+}
+
+impl From<PeerMessage> for KPeerMessage {
+    fn from(msg: PeerMessage) -> Self {
+        Self {
+            msg
+        }
+    }
 }
 
 impl AsRef<PeerMessage> for KPeerMessage {
@@ -16,8 +25,16 @@ impl AsRef<PeerMessage> for KPeerMessage {
 
 #[derive(Message)]
 #[rtype(result = "anyhow::Result<()>")]
-pub(crate) struct KLocalMessage {
+pub struct KLocalMessage {
     msg: LocalEventMessage,
+}
+
+impl From<LocalEventMessage> for KLocalMessage {
+    fn from(msg: LocalEventMessage) -> Self {
+        Self {
+            msg
+        }
+    }
 }
 
 impl AsRef<LocalEventMessage> for KLocalMessage {

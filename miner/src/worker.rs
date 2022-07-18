@@ -111,6 +111,8 @@ pub fn start_worker(
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
                 block_storage.put(block.clone());
+                let blocks = vec![block.clone()];
+                chain.put_chain(consensus.clone(), blocks).unwrap();
                 lmpsc.send(LocalEventMessage::MindedBlock(block));
                 break;
             }
