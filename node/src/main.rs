@@ -217,14 +217,12 @@ async fn main() -> anyhow::Result<()> {
                             txpool.add_remote(msg.tx).unwrap()
                         }
                         PeerMessage::BroadcastBlock(msg) => {
-                            println!("Got BroadcastBlock");
                             let block = msg.block;
                             // TODO: validate block
                             // TODO: Check if future block is not further than 3 days
                             blockchain.chain().block_storage().put(block.clone())?;
                         }
                         msg => {
-                            println!("Sending peer message to sync service");
                             sync_service.handle_peer(msg);
                         }
                     };
@@ -258,7 +256,6 @@ async fn main() -> anyhow::Result<()> {
                             info!(pending = ?stats.0, connected = ?stats.1, "Peer connection");
                         }
                         msg => {
-                            println!("Sending local message to sync service");
                             sync_service.handle_local(msg);
                         }
                     }

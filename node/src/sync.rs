@@ -141,6 +141,9 @@ impl SyncManager {
                     return;
                 }
                 self.last_request_index = self.last_request_index.saturating_sub(24);
+                if self.last_request_index == 0 {
+                    self.last_request_index = 1
+                }
                 self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index as i32,
                     24,
@@ -163,7 +166,6 @@ impl SyncManager {
 
                     self.last_request_index = tip.level as u32;
                     self.last_tip_before_sync = Some((peer_id.clone(), tip.clone()));
-                    println!("last_tip_before_sync {:#?}", &self.last_tip_before_sync);
                     self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                         node_height + 1,
                         24,
@@ -254,7 +256,6 @@ impl SyncManager {
 
     pub fn send_peer_message(&self, msg: PeerMessage) {
         if let Some((peer, _)) = &self.last_tip_before_sync {
-            println!("send_peer_message");
             self.sender.send(NodeToPeerMessage {
                 peer_id: Some(peer.clone()),
                 message: msg,
