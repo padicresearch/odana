@@ -1,5 +1,6 @@
 use std::collections::{BTreeSet, HashMap};
 use std::ops::Deref;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock};
 
 use anyhow::bail;
@@ -7,6 +8,7 @@ use anyhow::Result;
 use dashmap::DashMap;
 use libp2p::request_response::RequestId;
 use libp2p::{Multiaddr, PeerId};
+use libp2p::swarm::KeepAlive::No;
 use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::Compact;
@@ -117,7 +119,7 @@ impl PeerList {
 
 pub struct NetworkState {
     peer_list: Arc<PeerList>,
-    peer_state: Arc<Mutex<HashMap<Arc<PeerId>, BlockHeader>>>,
+    peer_state: Arc<RwLock<HashMap<Arc<PeerId>, BlockHeader>>>,
     highest_know_head: RwLock<Option<Arc<PeerId>>>,
     sender: UnboundedSender<LocalEventMessage>,
 }
@@ -138,7 +140,7 @@ impl NetworkState {
             "Peer is not connected"
         );
         let peer_state = self.peer_state.clone();
-        let mut peer_state = peer_state.lock().unwrap();
+        let mut peer_state = peer_state.write().unwrap();
         let peer = self.peer_list.get_peer(peer_id).unwrap();
         let mut highest_know_head = self.highest_know_head.write().unwrap();
         if let Some(highest_know_head) = highest_know_head.as_mut() {
@@ -187,7 +189,7 @@ impl NetworkState {
     }
 
     pub fn get_peer_state(&self, peer_id: &PeerId) -> Option<BlockHeader> {
-        let peer_state = self.peer_state.lock().unwrap();
+        let peer_state = self.peer_state.read().unwrap();
         return peer_state.get(peer_id).map(|value| value.clone())
     }
 
@@ -196,6 +198,28 @@ impl NetworkState {
         match highest_know_head.clone() {
             None => None,
             Some(peer_id) => Some(peer_id.to_string()),
+        }
+    }
+
+    pub fn highest_peer_raw(&self) -> Option<Arc<PeerId>> {
+        let mut highest_know_head = self.highest_know_head.read().unwrap();
+        match highest_know_head.clone() {
+            None => None,
+            Some(peer_id) => Some(peer_id.clone()),
+        }
+    }
+
+    pub fn network_head(&self) -> Option<BlockHeader> {
+        let mut highest_peer = self.highest_peer_raw();
+        match highest_peer {
+            None => {
+                None
+            }
+            Some(peer_id) => {
+                let peer_state = self.peer_state.clone();
+                let mut peer_state = peer_state.read().unwrap();
+                peer_state.get(&peer_id).cloned()
+            }
         }
     }
 }

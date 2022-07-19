@@ -110,6 +110,7 @@ impl ChainState {
 
 
         for block in blocks {
+            self.block_storage.put(block.clone()).unwrap();
             let header = block.header().clone();
             match self
                 .process_block(consensus.clone(), block)

@@ -166,9 +166,9 @@ async fn main() -> anyhow::Result<()> {
 
     {
         let blockchain = blockchain.clone();
-        let block_storage = blockchain.chain().block_storage();
         let consensus = consensus.clone();
         let interrupt = interrupt.clone();
+        let network_state = network_state.clone();
         tokio::spawn(async move {
             let miner = create_account();
             start_worker(
@@ -177,7 +177,7 @@ async fn main() -> anyhow::Result<()> {
                 consensus,
                 blockchain.txpool(),
                 blockchain.chain(),
-                block_storage,
+                network_state,
                 blockchain.chain().block_storage(),
                 interrupt,
             )

@@ -70,6 +70,7 @@ pub struct SyncManager {
     sync_mode: Arc<SyncMode>,
     last_request_index: u32,
     network_tip: BlockHeader,
+    highest_peer: String,
     sender: Arc<UnboundedSender<NodeToPeerMessage>>,
     last_tip_before_sync: Option<(String, BlockHeader)>,
 }
@@ -78,9 +79,10 @@ impl SyncManager {
     pub fn handle_peer(&mut self, msg: PeerMessage) {
         if let PeerMessage::Blocks(msg) = msg {
             let blocks_to_import = &msg.blocks;
-            println!("Block to import {}", blocks_to_import.len());
+            let node_head = self.chain.current_header().unwrap();
+            let node_level = node_head.map(|block| block.raw.level).unwrap();
 
-            if blocks_to_import.is_empty() {
+            if blocks_to_import.is_empty() && node_level >= self.network_tip.level {
                 self.sync_mode = Arc::new(SyncMode::Normal);
                 return;
             }
@@ -100,7 +102,7 @@ impl SyncManager {
             let has_common_ancestor = self
                 .block_storage
                 .get_block_by_hash(start_block.as_ref().parent_hash())
-                .map_or_else(|_| false, |block| block.is_some());
+                .map_or_else(|_| false, |block| block.is_some()) || start_block.0.level() == 0;
             if has_common_ancestor {
                 self.chain
                     .put_chain(
@@ -111,13 +113,26 @@ impl SyncManager {
                 self.sync_mode = Arc::new(SyncMode::Forward);
                 let node_head = self.chain.current_header().unwrap();
                 let node_level = node_head.map(|block| block.raw.level).unwrap();
-                if self.network_tip.level > node_level {
-                    self.last_request_index = node_level as u32;
+
+                let (_, sync_point) = self.last_tip_before_sync.as_ref().unwrap();
+
+                if sync_point.level > node_level {
+                    self.last_request_index = node_level as u32 + 1;
                     self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                         self.last_request_index as i32,
                         24,
                     )));
-                } else if self.network_tip.level < node_level {} else if self.network_tip.level == node_level {}
+                } else if sync_point.level <= node_level {
+                    self.last_tip_before_sync = None;
+                    if node_level < self.network_tip.level {
+                        self.last_request_index = node_level as u32 + 1;
+                        self.last_tip_before_sync = Some((self.highest_peer.clone(), self.network_tip.clone()));
+                        self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                            self.last_request_index as i32,
+                            24,
+                        )));
+                    }
+                }
             } else {
                 self.sync_mode = Arc::new(SyncMode::Backward);
 
@@ -142,14 +157,17 @@ impl SyncManager {
                 let node_height = self.chain.current_header()?;
                 let node_height = node_height.map(|block| block.raw.level).unwrap();
                 self.network_tip = tip.clone();
+                self.highest_peer = peer_id.clone();
                 if self.last_tip_before_sync.is_none() && tip.level > node_height {
                     // TODO; stop mining
-                    self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                        node_height,
-                        24,
-                    )));
+
                     self.last_request_index = tip.level as u32;
                     self.last_tip_before_sync = Some((peer_id.clone(), tip.clone()));
+                    println!("last_tip_before_sync {:#?}", &self.last_tip_before_sync);
+                    self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                        node_height + 1,
+                        24,
+                    )));
                 }
             }
             _ => {}
@@ -176,6 +194,7 @@ impl SyncManager {
             sync_mode,
             last_request_index: node_height as u32,
             network_tip,
+            highest_peer: "".to_string(),
             sender,
             last_tip_before_sync: None,
         }
@@ -235,6 +254,7 @@ impl SyncManager {
 
     pub fn send_peer_message(&self, msg: PeerMessage) {
         if let Some((peer, _)) = &self.last_tip_before_sync {
+            println!("send_peer_message");
             self.sender.send(NodeToPeerMessage {
                 peer_id: Some(peer.clone()),
                 message: msg,
