@@ -379,7 +379,10 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         Ok(_) => {
                             swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
                             network_state.update_peer_current_head(&peer, msg.current_header);
-                            swarm.dial(msg.addr.clone()).unwrap();
+                            swarm
+                                .behaviour_mut()
+                                .kad
+                                .add_address(&peer, msg.addr.clone());
                             info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
                             network_state.handle_new_peer_connected(&peer).unwrap()
                         }
