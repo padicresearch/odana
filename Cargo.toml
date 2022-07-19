@@ -22,7 +22,6 @@ members = [
     "txpool",
     "consensus",
     "miner",
-    "kernel",
     "p2p",
     "smt"
 ]

@@ -1,5 +1,3 @@
-use kernel::messages::{KLocalMessage, KPeerMessage};
-use actix::prelude::*;
 use anyhow::{anyhow, Result};
 use blockchain::block_storage::BlockStorage;
 use blockchain::chain_state::ChainState;
@@ -63,7 +61,7 @@ impl AsRef<Block> for OrderedBlock {
     }
 }
 
-pub struct SyncManager {
+pub struct SyncService {
     chain: Arc<ChainState>,
     consensus: Arc<dyn Consensus>,
     block_storage: Arc<BlockStorage>,
@@ -75,7 +73,7 @@ pub struct SyncManager {
     last_tip_before_sync: Option<(String, BlockHeader)>,
 }
 
-impl SyncManager {
+impl SyncService {
     pub fn handle_peer(&mut self, msg: PeerMessage) {
         if let PeerMessage::Blocks(msg) = msg {
             let blocks_to_import = &msg.blocks;
@@ -153,7 +151,7 @@ impl SyncManager {
     }
 }
 
-impl SyncManager {
+impl SyncService {
     pub fn handle_local(&mut self, msg: LocalEventMessage) -> Result<()> {
         match msg {
             LocalEventMessage::NetworkHighestHeadChanged { peer_id, tip } => {
@@ -178,7 +176,7 @@ impl SyncManager {
     }
 }
 
-impl SyncManager {
+impl SyncService {
     pub fn new(
         chain: Arc<ChainState>,
         sender: Arc<UnboundedSender<NodeToPeerMessage>>,

@@ -6,20 +6,15 @@ use std::sync::atomic::{AtomicI8, Ordering};
 use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
-use actix::{Actor, System};
-
 use clap::Parser;
 use temp_dir::TempDir;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::UnboundedSender;
-
-use crate::downloader::Downloader;
 use crate::environment::default_db_opts;
 use account::create_account;
 use blockchain::blockchain::Tuchain;
 use blockchain::column_families;
 use consensus::barossa::{BarossaProtocol, NODE_POW_TARGET};
-use kernel::messages::{KLocalMessage, KPeerMessage};
 use miner::worker::start_worker;
 use p2p::identity::NodeIdentity;
 use p2p::message::*;
@@ -36,9 +31,8 @@ use types::block::Block;
 use types::events::LocalEventMessage;
 use types::network::Network;
 use types::Hash;
-use crate::sync::{SyncManager, SyncMode};
+use crate::sync::{SyncService, SyncMode};
 
-mod downloader;
 pub mod environment;
 pub mod sync;
 
@@ -138,14 +132,13 @@ async fn main() -> anyhow::Result<()> {
 
     let network_state = Arc::new(NetworkState::new(peers.clone(), local_mpsc_sender.clone()));
     let handler = Arc::new(RequestHandler::new(blockchain.clone(), network_state.clone()));
-    let downloader = Arc::new(Downloader::new());
 
     let mut sync_service = {
         let blockchain = blockchain.clone();
         let block_storage = blockchain.chain().block_storage();
         let consensus = consensus.clone();
         //let system = System::new();
-        SyncManager::new(blockchain.chain(), node_to_peer_sender.clone(), consensus, block_storage, Arc::new(SyncMode::Normal))
+        SyncService::new(blockchain.chain(), node_to_peer_sender.clone(), consensus, block_storage, Arc::new(SyncMode::Normal))
     };
 
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);

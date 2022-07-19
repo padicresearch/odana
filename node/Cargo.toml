@@ -26,7 +26,6 @@ txpool = { path = "../txpool" }
 state = { path = "../state" }
 consensus = { path = "../consensus" }
 miner = { path = "../miner" }
-kernel = { path = "../kernel" }
 account = { path = "../account" }
 traits = { path = "../common/traits" }
 tracing = { path = "../common/tracing" }
