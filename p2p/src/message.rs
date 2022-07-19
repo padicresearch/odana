@@ -140,13 +140,15 @@ impl GetBlockTransactionsMessage {
 pub struct ReAckMessage {
     pub node_info: PeerNode,
     pub current_header: BlockHeader,
+    pub addr: Multiaddr,
 }
 
 impl ReAckMessage {
-    pub fn new(node_info: PeerNode, current_header: BlockHeader) -> Self {
+    pub fn new(node_info: PeerNode, current_header: BlockHeader, addr: Multiaddr) -> Self {
         Self {
             node_info,
             current_header,
+            addr,
         }
     }
 }

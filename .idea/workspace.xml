@@ -38,11 +38,8 @@
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite sync">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/sync.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/sync.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/request_handler.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/request_handler.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -490,14 +487,7 @@
       <workItem from="1657298738734" duration="5870000" />
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
-      <workItem from="1657735229817" duration="86524000" />
-    </task>
-    <task id="LOCAL-00170" summary="chore: code improvement">
-      <created>1653146324179</created>
-      <option name="number" value="00170" />
-      <option name="presentableId" value="LOCAL-00170" />
-      <option name="project" value="LOCAL" />
-      <updated>1653146324179</updated>
+      <workItem from="1657735229817" duration="96592000" />
     </task>
     <task id="LOCAL-00171" summary="change state">
       <created>1653373695434</created>
@@ -835,7 +825,14 @@
       <option name="project" value="LOCAL" />
       <updated>1658219263798</updated>
     </task>
-    <option name="localTasksCounter" value="219" />
+    <task id="LOCAL-00219" summary="rewrite sync">
+      <created>1658242422219</created>
+      <option name="number" value="00219" />
+      <option name="presentableId" value="LOCAL-00219" />
+      <option name="project" value="LOCAL" />
+      <updated>1658242422219</updated>
+    </task>
+    <option name="localTasksCounter" value="220" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

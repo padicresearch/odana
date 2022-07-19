@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::fs::File;
 use std::iter;
 use std::str::FromStr;
@@ -13,13 +14,10 @@ use libp2p::core::transport::upgrade::Version;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed};
 use libp2p::core::ProtocolName;
 use libp2p::futures::{AsyncRead, AsyncWrite, AsyncWriteExt, SinkExt, StreamExt};
-use libp2p::gossipsub::{
-    Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic,
-    ValidationMode,
-};
+use libp2p::gossipsub::{Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, MessageId, Sha256Topic, ValidationMode};
 use libp2p::kad::record::store::MemoryStore;
 use libp2p::kad::{Kademlia, KademliaConfig, KademliaEvent, QueryResult};
-use libp2p::mdns::{Mdns, MdnsEvent};
+use libp2p::mdns::{Mdns, MdnsConfig, MdnsEvent};
 use libp2p::noise::{NoiseConfig, X25519Spec};
 use libp2p::request_response::{
     ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseConfig,
@@ -29,10 +27,11 @@ use libp2p::swarm::{NetworkBehaviour, SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::NetworkBehaviour;
 use libp2p::{Multiaddr, PeerId, Swarm, Transport};
+use libp2p::gossipsub::error::PublishError;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use codec::{Decoder, Encoder};
 use primitive_types::Compact;
-use tracing::{info, warn};
+use tracing::{debug, error, info, warn};
 use traits::Blockchain;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 
@@ -93,7 +92,6 @@ async fn config_network(
         .boxed();
 
     let network_topic = Sha256Topic::new("testnet");
-
     let mdns = Mdns::new(Default::default())
         .await
         .expect("Cannot create mdns");
@@ -105,7 +103,7 @@ async fn config_network(
         cfg,
     );
 
-    let max_transmit_size = 500;
+    let max_transmit_size = 1_000_000;
     let config = GossipsubConfigBuilder::default()
         .max_transmit_size(max_transmit_size)
         .protocol_id_prefix("tuchain")
@@ -214,13 +212,25 @@ pub async fn start_p2p_server(
 }
 
 async fn handle_publish_message(msg: PeerMessage, swarm: &mut Swarm<ChainNetworkBehavior>) {
-    if let Ok(encoded_msg) = msg.encode() {
-        let network_topic = swarm.behaviour_mut().topic.clone();
-        swarm
-            .behaviour_mut()
-            .gossipsub
-            .publish(network_topic, encoded_msg);
-    } else {
+    match msg.encode() {
+        Ok(encoded_msg) => {
+            let network_topic = swarm.behaviour_mut().topic.clone();
+            let res = swarm
+                .behaviour_mut()
+                .gossipsub
+                .publish(network_topic, encoded_msg);
+            match res {
+                Ok(message_id) => {
+                    debug!("Publish gossip message_id {}", message_id);
+                }
+                Err(error) => {
+                    debug!(error = ?error, "Publish gossip message");
+                }
+            }
+        }
+        Err(error) => {
+            debug!(error = ?error, "Publish gossip message");
+        }
     }
 }
 
@@ -244,6 +254,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             message_id,
             message,
         })) => {
+
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 match &peer_message {
                     PeerMessage::CurrentHead(msg) => {
@@ -329,11 +340,13 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
+
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(
                             chain_network.node,
                             blockchain.current_header().unwrap().unwrap().raw,
+                            chain_network.public_address.clone()
                         )),
                     );
                 }
@@ -366,6 +379,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         Ok(_) => {
                             swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
                             network_state.update_peer_current_head(&peer, msg.current_header);
+                            swarm.dial(msg.addr.clone()).unwrap();
                             info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
                             network_state.handle_new_peer_connected(&peer).unwrap()
                         }
