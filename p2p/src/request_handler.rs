@@ -78,7 +78,7 @@ impl RequestHandler {
                 Ok(Some(msg))
             }
             PeerMessage::FindBlocks(msg) => {
-                let res: Result<Vec<_>> = self.blockchain.chain().block_storage().get_blocks(&[0; 32], msg.from).unwrap().take(msg.size as usize).collect();
+                let res: Result<Vec<_>> = self.blockchain.chain().block_storage().get_blocks(&[0; 32], msg.from).unwrap().take(msg.limit as usize).collect();
                 match res {
                     Ok(blocks) => {
                         Ok(Some(PeerMessage::Blocks(BlocksMessage::new(blocks))))

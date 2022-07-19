@@ -43,7 +43,17 @@ impl PartialOrd for OrderedBlock {
 
 impl Ord for OrderedBlock {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0.level().cmp(&other.0.level())
+        match self.0.level().cmp(&other.0.level()) {
+            Ordering::Less => {
+                Ordering::Less
+            }
+            Ordering::Equal => {
+                self.0.hash().cmp(&other.0.hash())
+            }
+            Ordering::Greater => {
+                Ordering::Greater
+            }
+        }
     }
 }
 
@@ -70,7 +80,7 @@ pub struct SyncService {
     network_tip: BlockHeader,
     highest_peer: String,
     sender: Arc<UnboundedSender<NodeToPeerMessage>>,
-    last_tip_before_sync: Option<(String, BlockHeader)>,
+    tip_before_sync: Option<(String, BlockHeader)>,
 }
 
 impl SyncService {
@@ -112,7 +122,7 @@ impl SyncService {
                 let node_head = self.chain.current_header().unwrap();
                 let node_level = node_head.map(|block| block.raw.level).unwrap();
 
-                let (_, sync_point) = self.last_tip_before_sync.as_ref().unwrap();
+                let (_, sync_point) = self.tip_before_sync.as_ref().unwrap();
 
                 if sync_point.level > node_level {
                     self.last_request_index = node_level as u32 + 1;
@@ -121,10 +131,10 @@ impl SyncService {
                         24,
                     )));
                 } else if sync_point.level <= node_level {
-                    self.last_tip_before_sync = None;
+                    self.tip_before_sync = None;
                     if node_level < self.network_tip.level {
                         self.last_request_index = node_level as u32 + 1;
-                        self.last_tip_before_sync = Some((self.highest_peer.clone(), self.network_tip.clone()));
+                        self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip.clone()));
                         self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                             self.last_request_index as i32,
                             24,
@@ -159,11 +169,11 @@ impl SyncService {
                 let node_height = node_height.map(|block| block.raw.level).unwrap();
                 self.network_tip = tip.clone();
                 self.highest_peer = peer_id.clone();
-                if self.last_tip_before_sync.is_none() && tip.level > node_height {
+                if self.tip_before_sync.is_none() && tip.level > node_height {
                     // TODO; stop mining
 
                     self.last_request_index = tip.level as u32;
-                    self.last_tip_before_sync = Some((peer_id.clone(), tip.clone()));
+                    self.tip_before_sync = Some((peer_id.clone(), tip.clone()));
                     self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                         node_height + 1,
                         24,
@@ -196,7 +206,7 @@ impl SyncService {
             network_tip,
             highest_peer: "".to_string(),
             sender,
-            last_tip_before_sync: None,
+            tip_before_sync: None,
         }
     }
 
@@ -253,7 +263,7 @@ impl SyncService {
     }
 
     pub fn send_peer_message(&self, msg: PeerMessage) {
-        if let Some((peer, _)) = &self.last_tip_before_sync {
+        if let Some((peer, _)) = &self.tip_before_sync {
             self.sender.send(NodeToPeerMessage {
                 peer_id: Some(peer.clone()),
                 message: msg,
