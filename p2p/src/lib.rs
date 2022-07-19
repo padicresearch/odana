@@ -407,20 +407,24 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint: ConnectedPoint::Dialer { address },
             ..
         } => {
-            let addr = swarm.behaviour_mut().public_address.clone();
-            let request_id = swarm
-                .behaviour_mut()
-                .requestresponse
-                .send_request(&peer_id, PeerMessage::Ack(addr));
-            swarm
+            if !swarm
                 .behaviour()
-                .peers
-                .add_potential_peer(peer_id, request_id);
-            swarm
-                .behaviour()
-                .peers
-                .set_peer_address(peer_id, address.clone());
-            info!(peer = ?address,"Connection established");
+                .peers.is_peer_connected(&peer_id) {
+                let addr = swarm.behaviour_mut().public_address.clone();
+                let request_id = swarm
+                    .behaviour_mut()
+                    .requestresponse
+                    .send_request(&peer_id, PeerMessage::Ack(addr));
+                swarm
+                    .behaviour()
+                    .peers
+                    .add_potential_peer(peer_id, request_id);
+                swarm
+                    .behaviour()
+                    .peers
+                    .set_peer_address(peer_id, address.clone());
+                info!(peer = ?address,"Connection established");
+            }
         }
         SwarmEvent::ConnectionClosed {
             endpoint: ConnectedPoint::Dialer { address },

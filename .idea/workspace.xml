@@ -36,7 +36,9 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite sync" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite sync">
+      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -483,14 +485,7 @@
       <workItem from="1657298738734" duration="5870000" />
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
-      <workItem from="1657735229817" duration="98021000" />
-    </task>
-    <task id="LOCAL-00174" summary="remove sqlite">
-      <created>1655584050604</created>
-      <option name="number" value="00174" />
-      <option name="presentableId" value="LOCAL-00174" />
-      <option name="project" value="LOCAL" />
-      <updated>1655584050604</updated>
+      <workItem from="1657735229817" duration="98387000" />
     </task>
     <task id="LOCAL-00175" summary="p2p hot fix">
       <created>1655584750688</created>
@@ -828,7 +823,14 @@
       <option name="project" value="LOCAL" />
       <updated>1658273629092</updated>
     </task>
-    <option name="localTasksCounter" value="223" />
+    <task id="LOCAL-00223" summary="rewrite sync">
+      <created>1658273799042</created>
+      <option name="number" value="00223" />
+      <option name="presentableId" value="LOCAL-00223" />
+      <option name="project" value="LOCAL" />
+      <updated>1658273799042</updated>
+    </task>
+    <option name="localTasksCounter" value="224" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
