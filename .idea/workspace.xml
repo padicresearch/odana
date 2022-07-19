@@ -41,6 +41,7 @@
       <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/node/src/sync.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/sync.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p2p/src/request_handler.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/request_handler.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -489,14 +490,7 @@
       <workItem from="1657298738734" duration="5870000" />
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
-      <workItem from="1657735229817" duration="67790000" />
-    </task>
-    <task id="LOCAL-00167" summary="fix `apply`: reset staging after applying changes">
-      <created>1653120599730</created>
-      <option name="number" value="00167" />
-      <option name="presentableId" value="LOCAL-00167" />
-      <option name="project" value="LOCAL" />
-      <updated>1653120599730</updated>
+      <workItem from="1657735229817" duration="68093000" />
     </task>
     <task id="LOCAL-00168" summary="clean up + formatting">
       <created>1653131743718</created>
@@ -834,7 +828,14 @@
       <option name="project" value="LOCAL" />
       <updated>1658199055260</updated>
     </task>
-    <option name="localTasksCounter" value="216" />
+    <task id="LOCAL-00216" summary="rewrite sync">
+      <created>1658200909734</created>
+      <option name="number" value="00216" />
+      <option name="presentableId" value="LOCAL-00216" />
+      <option name="project" value="LOCAL" />
+      <updated>1658200909734</updated>
+    </task>
+    <option name="localTasksCounter" value="217" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

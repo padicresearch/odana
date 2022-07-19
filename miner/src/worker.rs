@@ -105,20 +105,12 @@ pub fn start_worker(
                 let hash = block_template.hash();
                 let level = block_template.level;
 
-                let network_head = network
-                    .network_head()
-                    .map(|block| block.level)
-                    .unwrap_or_default();
                 let node_head = chain
                     .current_header()
                     .map(|block| block.map(|block| block.raw.level).unwrap_or_default())
                     .unwrap_or_default();
 
-                if network_head > node_head {
-                    break;
-                }
-
-                if node_head > level {
+                if node_head >= level {
                     break;
                 }
 
