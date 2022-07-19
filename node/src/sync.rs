@@ -1,9 +1,9 @@
-use crate::messages::{KLocalMessage, KPeerMessage};
+use kernel::messages::{KLocalMessage, KPeerMessage};
 use actix::prelude::*;
 use anyhow::{anyhow, Result};
 use blockchain::block_storage::BlockStorage;
 use blockchain::chain_state::ChainState;
-use p2p::message::{FindBlocksMessage, PeerMessage};
+use p2p::message::{FindBlocksMessage, NodeToPeerMessage, PeerMessage};
 use primitive_types::H256;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -12,6 +12,7 @@ use std::hash::Hash;
 use std::path::Component::Normal;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::tracing_subscriber::reload::Handle;
 use traits::{Blockchain, ChainReader, Consensus};
 use types::block::{Block, BlockHeader};
@@ -34,7 +35,7 @@ impl Default for SyncMode {
     }
 }
 
-pub(crate) struct OrderedBlock(Block);
+pub struct OrderedBlock(Block);
 
 impl PartialOrd for OrderedBlock {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -69,6 +70,7 @@ pub struct SyncManager {
     sync_mode: Arc<SyncMode>,
     last_request_index: u32,
     network_tip: BlockHeader,
+    sender: UnboundedSender<NodeToPeerMessage>,
     last_tip_before_sync: Option<(String, BlockHeader)>,
 }
 
@@ -160,6 +162,7 @@ impl SyncManager {
 impl SyncManager {
     pub fn new(
         chain: Arc<ChainState>,
+        sender: UnboundedSender<NodeToPeerMessage>,
         consensus: Arc<dyn Consensus>,
         block_storage: Arc<BlockStorage>,
         sync_mode: Arc<SyncMode>,
@@ -174,6 +177,7 @@ impl SyncManager {
             sync_mode,
             last_request_index: node_height as u32,
             network_tip,
+            sender,
             last_tip_before_sync: None,
         }
     }
@@ -230,7 +234,12 @@ impl SyncManager {
         true
     }
 
-    pub(crate) fn send_peer_message(&self, msg: PeerMessage) {
-        todo!()
+    pub fn send_peer_message(&self, msg: PeerMessage) {
+        if let Some((peer_id)) = &self.last_tip_before_sync {
+            self.sender.send(NodeToPeerMessage {
+                peer_id: Some(peer_id.clone()),
+                message: msg,
+            })
+        }
     }
 }

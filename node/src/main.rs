@@ -40,6 +40,7 @@ use types::Hash;
 
 mod downloader;
 pub mod environment;
+pub mod sync;
 
 enum Event {
     LocalMessage(LocalEventMessage),
