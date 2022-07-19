@@ -79,9 +79,11 @@ impl RequestHandler {
             }
             PeerMessage::FindBlocks(msg) => {
                 //let mut blocks = Vec::with_capacity(msg.size as usize);
+                println!("Handling Request {:?}", msg);
                 let res: Result<Vec<_>> = self.blockchain.chain().block_storage().get_blocks(&[0; 32], msg.from).unwrap().take(msg.size as usize).collect();
                 match res {
                     Ok(blocks) => {
+                        println!("Handling Response {:?}", blocks.len());
                         Ok(Some(PeerMessage::Blocks(BlocksMessage::new(blocks))))
                     }
                     Err(_) => {
