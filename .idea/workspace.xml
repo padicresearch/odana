@@ -483,14 +483,7 @@
       <workItem from="1657298738734" duration="5870000" />
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
-      <workItem from="1657735229817" duration="97606000" />
-    </task>
-    <task id="LOCAL-00173" summary="remove sqlite">
-      <created>1655583895644</created>
-      <option name="number" value="00173" />
-      <option name="presentableId" value="LOCAL-00173" />
-      <option name="project" value="LOCAL" />
-      <updated>1655583895644</updated>
+      <workItem from="1657735229817" duration="98021000" />
     </task>
     <task id="LOCAL-00174" summary="remove sqlite">
       <created>1655584050604</created>
@@ -828,7 +821,14 @@
       <option name="project" value="LOCAL" />
       <updated>1658273084714</updated>
     </task>
-    <option name="localTasksCounter" value="222" />
+    <task id="LOCAL-00222" summary="rewrite sync">
+      <created>1658273629092</created>
+      <option name="number" value="00222" />
+      <option name="presentableId" value="LOCAL-00222" />
+      <option name="project" value="LOCAL" />
+      <updated>1658273629092</updated>
+    </task>
+    <option name="localTasksCounter" value="223" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

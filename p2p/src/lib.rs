@@ -337,10 +337,10 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 channel,
             } => match &request {
                 PeerMessage::Ack(addr) => {
+                    swarm.dial(addr.clone()).unwrap();
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
-                    swarm.dial(addr.clone()).unwrap();
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(
