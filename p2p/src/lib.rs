@@ -340,13 +340,13 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
-
+                    swarm.dial(addr.clone()).unwrap();
                     chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(
                             chain_network.node,
                             blockchain.current_header().unwrap().unwrap().raw,
-                            chain_network.public_address.clone()
+                            chain_network.public_address.clone(),
                         )),
                     );
                 }
@@ -379,10 +379,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         Ok(_) => {
                             swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
                             network_state.update_peer_current_head(&peer, msg.current_header);
-                            swarm
-                                .behaviour_mut()
-                                .kad
-                                .add_address(&peer, msg.addr.clone());
                             info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
                             network_state.handle_new_peer_connected(&peer).unwrap()
                         }
