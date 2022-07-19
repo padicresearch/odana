@@ -19,7 +19,6 @@ use account::create_account;
 use blockchain::blockchain::Tuchain;
 use blockchain::column_families;
 use consensus::barossa::{BarossaProtocol, NODE_POW_TARGET};
-use kernel::{SyncManager, SyncMode};
 use kernel::messages::{KLocalMessage, KPeerMessage};
 use miner::worker::start_worker;
 use p2p::identity::NodeIdentity;
@@ -37,6 +36,7 @@ use types::block::Block;
 use types::events::LocalEventMessage;
 use types::network::Network;
 use types::Hash;
+use crate::sync::{SyncManager, SyncMode};
 
 mod downloader;
 pub mod environment;
@@ -101,6 +101,7 @@ async fn main() -> anyhow::Result<()> {
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (node_to_peer_sender, mut node_to_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_to_node_sender, mut peer_to_node_receiver) = tokio::sync::mpsc::unbounded_channel();
+    let node_to_peer_sender = Arc::new(node_to_peer_sender);
     let peers = Arc::new(PeerList::new());
     let interrupt = Arc::new(AtomicI8::new(if args.miner {
         miner::worker::START
@@ -144,7 +145,7 @@ async fn main() -> anyhow::Result<()> {
         let block_storage = blockchain.chain().block_storage();
         let consensus = consensus.clone();
         //let system = System::new();
-        SyncManager::new(blockchain.chain(), consensus, block_storage, Arc::new(SyncMode::Normal))
+        SyncManager::new(blockchain.chain(), node_to_peer_sender.clone(), consensus, block_storage, Arc::new(SyncMode::Normal))
     };
 
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);

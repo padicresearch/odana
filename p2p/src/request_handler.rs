@@ -77,6 +77,18 @@ impl RequestHandler {
                 let msg = PeerMessage::BlockHeader(BlockHeaderMessage::new(headers));
                 Ok(Some(msg))
             }
+            PeerMessage::FindBlocks(msg) => {
+                //let mut blocks = Vec::with_capacity(msg.size as usize);
+                let res: Result<Vec<_>> = self.blockchain.chain().block_storage().get_blocks(&[0; 32], msg.from).unwrap().take(msg.size as usize).collect();
+                match res {
+                    Ok(blocks) => {
+                        Ok(Some(PeerMessage::Blocks(BlocksMessage::new(blocks))))
+                    }
+                    Err(_) => {
+                        Ok(Some(PeerMessage::Blocks(BlocksMessage::new(Vec::new()))))
+                    }
+                }
+            }
             PeerMessage::GetBlocks(msg) => {
                 let blockchain = self.blockchain.clone();
                 let mut blocks = Vec::with_capacity(msg.block_hashes.len());

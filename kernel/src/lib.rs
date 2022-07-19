@@ -4,5 +4,3 @@ pub mod messages;
 mod miner;
 
 pub(crate) struct KernelContext {}
-
-pub use node::sync::*;

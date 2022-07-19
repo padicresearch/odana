@@ -70,15 +70,15 @@ pub struct SyncManager {
     sync_mode: Arc<SyncMode>,
     last_request_index: u32,
     network_tip: BlockHeader,
-    sender: UnboundedSender<NodeToPeerMessage>,
+    sender: Arc<UnboundedSender<NodeToPeerMessage>>,
     last_tip_before_sync: Option<(String, BlockHeader)>,
 }
 
 impl SyncManager {
     pub fn handle_peer(&mut self, msg: PeerMessage) {
-        println!("Handle Message {:#?}", msg);
         if let PeerMessage::Blocks(msg) = msg {
             let blocks_to_import = &msg.blocks;
+            println!("Block to import {}", blocks_to_import.len());
 
             if blocks_to_import.is_empty() {
                 self.sync_mode = Arc::new(SyncMode::Normal);
@@ -137,7 +137,6 @@ impl SyncManager {
 
 impl SyncManager {
     pub fn handle_local(&mut self, msg: LocalEventMessage) -> Result<()> {
-        println!("Handle Message {:#?}", msg);
         match msg {
             LocalEventMessage::NetworkHighestHeadChanged { peer_id, tip } => {
                 let node_height = self.chain.current_header()?;
@@ -162,7 +161,7 @@ impl SyncManager {
 impl SyncManager {
     pub fn new(
         chain: Arc<ChainState>,
-        sender: UnboundedSender<NodeToPeerMessage>,
+        sender: Arc<UnboundedSender<NodeToPeerMessage>>,
         consensus: Arc<dyn Consensus>,
         block_storage: Arc<BlockStorage>,
         sync_mode: Arc<SyncMode>,
@@ -235,11 +234,11 @@ impl SyncManager {
     }
 
     pub fn send_peer_message(&self, msg: PeerMessage) {
-        if let Some((peer_id)) = &self.last_tip_before_sync {
+        if let Some((peer, _)) = &self.last_tip_before_sync {
             self.sender.send(NodeToPeerMessage {
-                peer_id: Some(peer_id.clone()),
+                peer_id: Some(peer.clone()),
                 message: msg,
-            })
+            }).unwrap();
         }
     }
 }
