@@ -72,19 +72,10 @@ pub struct SyncManager {
     last_tip_before_sync: Option<(String, BlockHeader)>,
 }
 
-impl Actor for SyncManager {
-    type Context = Context<Self>;
-
-    fn started(&mut self, ctx: &mut Self::Context) {
-        //ctx.run_interval(Duration::from_millis(100), |_| {});
-    }
-}
-
-impl Handler<KPeerMessage> for SyncManager {
-    type Result = ();
-
-    fn handle(&mut self, msg: KPeerMessage, ctx: &mut Self::Context) -> Self::Result {
-        if let PeerMessage::Blocks(msg) = msg.as_ref() {
+impl SyncManager {
+    pub fn handle_peer(&mut self, msg: PeerMessage) {
+        println!("Handle Message {:#?}", msg);
+        if let PeerMessage::Blocks(msg) = msg {
             let blocks_to_import = &msg.blocks;
 
             if blocks_to_import.is_empty() {
@@ -142,11 +133,10 @@ impl Handler<KPeerMessage> for SyncManager {
     }
 }
 
-impl Handler<KLocalMessage> for SyncManager {
-    type Result = Result<()>;
-
-    fn handle(&mut self, msg: KLocalMessage, ctx: &mut Self::Context) -> Self::Result {
-        match msg.as_ref() {
+impl SyncManager {
+    pub fn handle_local(&mut self, msg: LocalEventMessage) -> Result<()> {
+        println!("Handle Message {:#?}", msg);
+        match msg {
             LocalEventMessage::NetworkHighestHeadChanged { peer_id, tip } => {
                 let node_height = self.chain.current_header()?;
                 let node_height = node_height.map(|block| block.raw.level).unwrap();

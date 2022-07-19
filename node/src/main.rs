@@ -3,7 +3,7 @@
 use std::env::temp_dir;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicI8, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 use actix::{Actor, System};
@@ -88,7 +88,7 @@ fn send_message_to_peer(
 }
 
 ///tmp/tuchain
-#[actix::main]
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args: Args = Args::parse();
 
@@ -138,15 +138,16 @@ async fn main() -> anyhow::Result<()> {
     let handler = Arc::new(RequestHandler::new(blockchain.clone(), network_state.clone()));
     let downloader = Arc::new(Downloader::new());
 
-    let sync_service = {
+    let mut sync_service = {
         let blockchain = blockchain.clone();
         let block_storage = blockchain.chain().block_storage();
         let consensus = consensus.clone();
         //let system = System::new();
-        SyncManager::new(blockchain.chain(), consensus, block_storage, Arc::new(SyncMode::Normal)).start()
+        SyncManager::new(blockchain.chain(), consensus, block_storage, Arc::new(SyncMode::Normal))
     };
 
     //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
+
     start_p2p_server(
         node_id,
         node_to_peer_receiver,
@@ -183,6 +184,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     loop {
+
         let event = tokio::select! {
             local_msg = local_mpsc_receiver.recv() => {
                 if let Some(msg) = local_msg {
@@ -213,13 +215,15 @@ async fn main() -> anyhow::Result<()> {
                             txpool.add_remote(msg.tx).unwrap()
                         }
                         PeerMessage::BroadcastBlock(msg) => {
+                            println!("Got BroadcastBlock");
                             let block = msg.block;
                             // TODO: validate block
                             // TODO: Check if future block is not further than 3 days
                             blockchain.chain().block_storage().put(block.clone())?;
                         }
                         msg => {
-                            sync_service.send(KPeerMessage::from(msg)).await.unwrap();
+                            println!("Sending peer message to sync service");
+                            sync_service.handle_peer(msg);
                         }
                     };
                 }
@@ -252,7 +256,8 @@ async fn main() -> anyhow::Result<()> {
                             info!(pending = ?stats.0, connected = ?stats.1, "Peer connection");
                         }
                         msg => {
-                            sync_service.send(KLocalMessage::from(msg)).await.unwrap();
+                            println!("Sending local message to sync service");
+                            sync_service.handle_local(msg);
                         }
                     }
                 }

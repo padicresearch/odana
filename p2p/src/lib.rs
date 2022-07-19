@@ -247,6 +247,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 match &peer_message {
                     PeerMessage::CurrentHead(msg) => {
+                        println!("Received current head");
                         network_state.update_peer_current_head(
                             &propagation_source,
                             msg.block_header.clone(),
@@ -326,6 +327,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 channel,
             } => match &request {
                 PeerMessage::Ack(addr) => {
+                    println!("Rvd Ack");
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
@@ -357,6 +359,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 response,
             } => match &response {
                 PeerMessage::ReAck(msg) => {
+                    println!("Rvd ReAck");
                     match swarm.behaviour().peers.promote_peer(
                         &peer,
                         request_id,
