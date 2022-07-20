@@ -118,6 +118,7 @@ async fn config_network(
         .with(Protocol::Tcp(9020))
         .with(Protocol::P2p(local_peer_id.into()));
 
+
     let mut behaviour = ChainNetworkBehavior {
         gossipsub: Gossipsub::new(
             MessageAuthenticity::Author(node_identity.peer_id().clone()),
@@ -129,7 +130,7 @@ async fn config_network(
         requestresponse: RequestResponse::new(
             ChainP2pExchangeCodec,
             iter::once((ChainP2pExchangeProtocol, ProtocolSupport::Full)),
-            RequestResponseConfig::default(),
+            RequestResponseConfig::default().set_connection_keep_alive(Duration::from_secs(3600)).clone(),
         ),
         p2p_to_node,
         topic: network_topic.clone(),
@@ -316,17 +317,16 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         })) => {
             if is_new_peer {
                 for address in addresses.iter() {
-                    swarm.dial(address.clone()).unwrap();
-                    //let addr = swarm.behaviour_mut().public_address.clone();
-                    // let request_id = swarm
-                    //     .behaviour_mut()
-                    //     .requestresponse
-                    //     .send_request(&peer, PeerMessage::Ack(addr));
-                    // swarm.behaviour().peers.add_potential_peer(peer, request_id);
-                    // swarm
-                    //     .behaviour()
-                    //     .peers
-                    //     .set_peer_address(peer, address.clone());
+                    let addr = swarm.behaviour_mut().public_address.clone();
+                    let request_id = swarm
+                        .behaviour_mut()
+                        .requestresponse
+                        .send_request(&peer, PeerMessage::Ack(addr));
+                    swarm.behaviour().peers.add_potential_peer(peer, request_id);
+                    swarm
+                        .behaviour()
+                        .peers
+                        .set_peer_address(peer, address.clone());
                 }
             }
         }
@@ -345,7 +345,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
-                    chain_network.requestresponse.send_response(
+                    let _ = chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(
                             chain_network.node,
