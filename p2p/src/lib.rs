@@ -282,7 +282,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             for (peer, addr) in list {
                 info!(peer = ?addr, "New Peer discovered");
                 if !swarm.is_connected(&peer) {
-                    swarm.dial(address.clone()).unwrap();
+                    swarm.dial(addr.clone()).unwrap();
                 }
                 //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
             }
