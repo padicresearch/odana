@@ -413,7 +413,9 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint: ConnectedPoint::Dialer { address },
             ..
         } => {
-            if !swarm.is_connected(&peer_id) {
+            if !swarm
+                .behaviour()
+                .peers.is_peer_connected(&peer_id) {
                 let addr = swarm.behaviour_mut().public_address.clone();
                 let request_id = swarm
                     .behaviour_mut()
