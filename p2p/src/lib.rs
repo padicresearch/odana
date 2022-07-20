@@ -281,14 +281,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Discovered(list))) => {
             for (peer, addr) in list {
                 info!(peer = ?addr, "New Peer discovered");
-                swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
+                if !swarm.is_connected(&peer) {
+                    swarm.dial(address.clone()).unwrap();
+                }
+                //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
             }
         }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Expired(list))) => {
             for (peer, addr) in list {
                 warn!(peer = ?addr, "Peer expired");
                 if !swarm.behaviour_mut().mdns.has_node(&peer) {
-                    swarm.behaviour_mut().gossipsub.remove_explicit_peer(&peer);
+                    swarm.disconnect_peer_id(peer).unwrap();
                 }
             }
         }
@@ -313,16 +316,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         })) => {
             if is_new_peer {
                 for address in addresses.iter() {
-                    let addr = swarm.behaviour_mut().public_address.clone();
-                    let request_id = swarm
-                        .behaviour_mut()
-                        .requestresponse
-                        .send_request(&peer, PeerMessage::Ack(addr));
-                    swarm.behaviour().peers.add_potential_peer(peer, request_id);
-                    swarm
-                        .behaviour()
-                        .peers
-                        .set_peer_address(peer, address.clone());
+                    swarm.dial(address.clone()).unwrap();
+                    //let addr = swarm.behaviour_mut().public_address.clone();
+                    // let request_id = swarm
+                    //     .behaviour_mut()
+                    //     .requestresponse
+                    //     .send_request(&peer, PeerMessage::Ack(addr));
+                    // swarm.behaviour().peers.add_potential_peer(peer, request_id);
+                    // swarm
+                    //     .behaviour()
+                    //     .peers
+                    //     .set_peer_address(peer, address.clone());
                 }
             }
         }
@@ -337,7 +341,9 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 channel,
             } => match &request {
                 PeerMessage::Ack(addr) => {
-                    swarm.dial(addr.clone()).unwrap();
+                    if !swarm.is_connected(&peer) {
+                        swarm.dial(addr.clone()).unwrap();
+                    }
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
@@ -407,9 +413,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint: ConnectedPoint::Dialer { address },
             ..
         } => {
-            if !swarm
-                .behaviour()
-                .peers.is_peer_connected(&peer_id) {
+            if !swarm.is_connected(&peer_id) {
                 let addr = swarm.behaviour_mut().public_address.clone();
                 let request_id = swarm
                     .behaviour_mut()
