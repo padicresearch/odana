@@ -32,8 +32,6 @@ impl BlockStorage {
 
     pub fn delete(&self, hash: Hash, level: i32) -> Result<()> {
         let block_key = BlockPrimaryKey(hash, level);
-        self.primary.delete_block(&block_key)?;
-        self.block_by_hash.delete(&block_key.0)?;
         self.block_by_level.delete(block_key.1)?;
         Ok(())
     }

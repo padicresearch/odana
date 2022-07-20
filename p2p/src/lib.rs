@@ -106,6 +106,7 @@ async fn config_network(
     let max_transmit_size = 1_000_000;
     let config = GossipsubConfigBuilder::default()
         .max_transmit_size(max_transmit_size)
+        .idle_timeout(Duration::from_secs(3600))
         .protocol_id_prefix("tuchain")
         .validation_mode(ValidationMode::Permissive)
         .build()
