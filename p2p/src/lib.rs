@@ -341,9 +341,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 channel,
             } => match &request {
                 PeerMessage::Ack(addr) => {
-                    if !swarm.is_connected(&peer) {
-                        swarm.dial(addr.clone()).unwrap();
-                    }
+                    swarm.dial(addr.clone()).unwrap();
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
@@ -429,8 +427,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     .behaviour()
                     .peers
                     .set_peer_address(peer_id, address.clone());
-                info!(peer = ?address,"Connection established");
             }
+            info!(peer = ?address,"Connection established");
         }
         SwarmEvent::ConnectionClosed {
             endpoint: ConnectedPoint::Dialer { address },
