@@ -320,7 +320,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 swarm
                     .behaviour_mut()
                     .kad
-                    .get_closest_peers(peer_id.clone());
+                    .get_closest_peers(peer.clone());
                 for address in addresses.iter() {
                     swarm.dial(address.clone()).unwrap()
                 }
