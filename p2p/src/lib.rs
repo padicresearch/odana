@@ -106,7 +106,6 @@ async fn config_network(
     let max_transmit_size = 1_000_000;
     let config = GossipsubConfigBuilder::default()
         .max_transmit_size(max_transmit_size)
-        .idle_timeout(Duration::from_secs(3600))
         .protocol_id_prefix("tuchain")
         .validation_mode(ValidationMode::Permissive)
         .build()
@@ -317,17 +316,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             old_peer,
         })) => {
             if is_new_peer {
+                info!(peer = ?peer,"RoutingUpdated Peers");
                 for address in addresses.iter() {
-                    let addr = swarm.behaviour_mut().public_address.clone();
-                    let request_id = swarm
-                        .behaviour_mut()
-                        .requestresponse
-                        .send_request(&peer, PeerMessage::Ack(addr));
-                    swarm.behaviour().peers.add_potential_peer(peer, request_id);
-                    swarm
-                        .behaviour()
-                        .peers
-                        .set_peer_address(peer, address.clone());
                 }
             }
         }
@@ -342,7 +332,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 channel,
             } => match &request {
                 PeerMessage::Ack(addr) => {
-                    swarm.dial(addr.clone()).unwrap();
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network.peers.set_peer_address(peer, addr.clone());
