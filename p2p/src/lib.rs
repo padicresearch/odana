@@ -317,7 +317,12 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         })) => {
             if is_new_peer {
                 info!(peer = ?peer,"RoutingUpdated Peers");
+                swarm
+                    .behaviour_mut()
+                    .kad
+                    .get_closest_peers(peer_id.clone());
                 for address in addresses.iter() {
+                    swarm.dial(address.clone()).unwrap()
                 }
             }
         }
