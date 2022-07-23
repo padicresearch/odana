@@ -183,7 +183,7 @@ pub async fn start_p2p_server(
         swarm
             .behaviour_mut()
             .kad
-            .add_address(&peer_id, addr.with(Protocol::P2p(peer_id.into())));
+            .add_address(&peer_id, addr.clone().with(Protocol::P2p(peer_id.into())));
         swarm
             .behaviour_mut()
             .kad
@@ -316,12 +316,13 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             old_peer,
         })) => {
             if is_new_peer {
-                info!(peer = ?peer,"RoutingUpdated Peers");
+                info!(peer = ?peer,"New Peer");
                 swarm
                     .behaviour_mut()
                     .kad
                     .get_closest_peers(peer.clone());
                 for address in addresses.iter() {
+                    info!(address = ?address,"Dialing new peer");
                     swarm.dial(address.clone()).unwrap()
                 }
             }
