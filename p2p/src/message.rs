@@ -87,7 +87,6 @@ impl BlockTransactionsMessage {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct BlocksMessage {
     pub blocks: Vec<Block>,
@@ -184,6 +183,5 @@ pub struct NodeToPeerMessage {
     pub peer_id: Option<String>,
     pub message: PeerMessage,
 }
-
 
 impl_codec!(PeerMessage);

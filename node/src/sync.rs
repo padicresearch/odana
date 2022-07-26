@@ -1,7 +1,8 @@
-use anyhow::{anyhow, Result};
+use crate::error::NodeError;
+use anyhow::{anyhow, ensure, Result};
 use blockchain::block_storage::BlockStorage;
 use blockchain::chain_state::ChainState;
-use p2p::message::{FindBlocksMessage, NodeToPeerMessage, PeerMessage};
+use p2p::message::{BlocksMessage, FindBlocksMessage, NodeToPeerMessage, PeerMessage};
 use primitive_types::H256;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -12,7 +13,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::tracing_subscriber::reload::Handle;
-use traits::{Blockchain, ChainReader, Consensus};
+use tracing::warn;
+use traits::{Blockchain, ChainReader, Consensus, Handler};
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 
@@ -44,15 +46,9 @@ impl PartialOrd for OrderedBlock {
 impl Ord for OrderedBlock {
     fn cmp(&self, other: &Self) -> Ordering {
         match self.0.level().cmp(&other.0.level()) {
-            Ordering::Less => {
-                Ordering::Less
-            }
-            Ordering::Equal => {
-                self.0.hash().cmp(&other.0.hash())
-            }
-            Ordering::Greater => {
-                Ordering::Greater
-            }
+            Ordering::Less => Ordering::Less,
+            Ordering::Equal => self.0.hash().cmp(&other.0.hash()),
+            Ordering::Greater => Ordering::Greater,
         }
     }
 }
@@ -84,85 +80,121 @@ pub struct SyncService {
 }
 
 impl SyncService {
-    pub fn handle_peer(&mut self, msg: PeerMessage) {
-        if let PeerMessage::Blocks(msg) = msg {
-            let blocks_to_import = &msg.blocks;
+    pub fn handle_remote_message(&mut self, msg: PeerMessage) -> Result<()> {
+        return match msg {
+            PeerMessage::Blocks(msg) => {
+                self.handle_import_blocks(&msg)
+            }
+            PeerMessage::BroadcastTransaction(_) => {
+                Ok(())
+            }
+            PeerMessage::BroadcastBlock(_) => {
+                Ok(())
+            }
+            _ => {
+                Ok(())
+            }
+        }
+    }
+
+    fn handle_import_blocks(&mut self, msg: &BlocksMessage) -> Result<()> {
+        let blocks_to_import = &msg.blocks;
+        let node_head = self.chain.current_header().unwrap();
+        let node_level = node_head.map(|block| block.raw.level).unwrap();
+
+        if blocks_to_import.is_empty() && node_level >= self.network_tip.level {
+            self.sync_mode = Arc::new(SyncMode::Normal);
+            return Ok(());
+        }
+
+        ensure!(self.validate_chain(blocks_to_import), NodeError::ChainValidationFailed);
+
+        let ordered_blocks: BTreeSet<_> = msg
+            .blocks
+            .clone()
+            .into_iter()
+            .map(|block| OrderedBlock(block))
+            .collect();
+        let start_block = ordered_blocks.first().unwrap();
+        let has_common_ancestor = self
+            .block_storage
+            .get_block_by_hash(start_block.as_ref().parent_hash())
+            .map_or_else(|_| false, |block| block.is_some())
+            || start_block.0.level() == 0;
+        if has_common_ancestor {
+            self.chain.put_chain(
+                self.consensus.clone(),
+                Box::new(ordered_blocks.into_iter().map(|ob| ob.0)),
+            )?;
+            self.sync_mode = Arc::new(SyncMode::Forward);
             let node_head = self.chain.current_header().unwrap();
             let node_level = node_head.map(|block| block.raw.level).unwrap();
 
-            if blocks_to_import.is_empty() && node_level >= self.network_tip.level {
-                self.sync_mode = Arc::new(SyncMode::Normal);
-                return;
-            }
+            let (_, sync_point) = self.tip_before_sync.as_ref().unwrap();
 
-            if !self.validate_chain(blocks_to_import) {
-                println!("Chain validation failed");
-                return;
-            }
-
-            let ordered_blocks: BTreeSet<_> = msg
-                .blocks
-                .clone()
-                .into_iter()
-                .map(|block| OrderedBlock(block))
-                .collect();
-            let start_block = ordered_blocks.first().unwrap();
-            let has_common_ancestor = self
-                .block_storage
-                .get_block_by_hash(start_block.as_ref().parent_hash())
-                .map_or_else(|_| false, |block| block.is_some()) || start_block.0.level() == 0;
-            if has_common_ancestor {
-                self.chain
-                    .put_chain(
-                        self.consensus.clone(),
-                        Box::new(ordered_blocks.into_iter().map(|ob| ob.0)),
-                    )
-                    .unwrap();
-                self.sync_mode = Arc::new(SyncMode::Forward);
-                let node_head = self.chain.current_header().unwrap();
-                let node_level = node_head.map(|block| block.raw.level).unwrap();
-
-                let (_, sync_point) = self.tip_before_sync.as_ref().unwrap();
-
-                if sync_point.level > node_level {
-                    self.last_request_index = node_level as u32 + 1;
-                    self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                        self.last_request_index as i32,
-                        24,
-                    )));
-                } else if sync_point.level <= node_level {
-                    self.tip_before_sync = None;
-                    if node_level < self.network_tip.level {
-                        self.last_request_index = node_level as u32 + 1;
-                        self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip.clone()));
-                        self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                            self.last_request_index as i32,
-                            24,
-                        )));
-                    }
-                }
-            } else {
-                self.sync_mode = Arc::new(SyncMode::Backward);
-
-                if self.last_request_index == 0 {
-                    // If we are already at zero, lets give up
-                    return;
-                }
-                self.last_request_index = self.last_request_index.saturating_sub(24);
-                if self.last_request_index == 0 {
-                    self.last_request_index = 1
-                }
+            if sync_point.level > node_level {
+                self.last_request_index = node_level as u32 + 1;
                 self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index as i32,
                     24,
                 )));
+            } else if sync_point.level <= node_level {
+                self.tip_before_sync = None;
+                if node_level < self.network_tip.level {
+                    self.last_request_index = node_level as u32 + 1;
+                    self.tip_before_sync =
+                        Some((self.highest_peer.clone(), self.network_tip.clone()));
+                    self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                        self.last_request_index as i32,
+                        24,
+                    )));
+                }
+            }
+        } else {
+            self.sync_mode = Arc::new(SyncMode::Backward);
+
+            if self.last_request_index == 0 {
+                // If we are already at zero, lets give up
+                return Ok(());
+            }
+            self.last_request_index = self.last_request_index.saturating_sub(24);
+            if self.last_request_index == 0 {
+                self.last_request_index = 1
+            }
+            self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                self.last_request_index as i32,
+                24,
+            )));
+        }
+
+        Ok(())
+    }
+}
+
+impl Handler<LocalEventMessage> for SyncService {
+    fn handle(&mut self, msg: LocalEventMessage) {
+        match self.handle_local_message(msg) {
+            Ok(_) => {}
+            Err(error) => {
+                warn!(target: "sync", error = ?error, "failed to handle local message");
+            }
+        }
+    }
+}
+
+impl Handler<PeerMessage> for SyncService {
+    fn handle(&mut self, msg: PeerMessage) {
+        match self.handle_remote_message(msg) {
+            Ok(_) => {}
+            Err(error) => {
+                warn!(target: "sync", error = ?error, "failed to handle remote message");
             }
         }
     }
 }
 
 impl SyncService {
-    pub fn handle_local(&mut self, msg: LocalEventMessage) -> Result<()> {
+    pub fn handle_local_message(&mut self, msg: LocalEventMessage) -> Result<()> {
         match msg {
             LocalEventMessage::NetworkHighestHeadChanged { peer_id, tip } => {
                 let node_height = self.chain.current_header()?;
@@ -264,10 +296,12 @@ impl SyncService {
 
     pub fn send_peer_message(&self, msg: PeerMessage) {
         if let Some((peer, _)) = &self.tip_before_sync {
-            self.sender.send(NodeToPeerMessage {
-                peer_id: Some(peer.clone()),
-                message: msg,
-            }).unwrap();
+            self.sender
+                .send(NodeToPeerMessage {
+                    peer_id: Some(peer.clone()),
+                    message: msg,
+                })
+                .unwrap();
         }
     }
 }

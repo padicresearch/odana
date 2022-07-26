@@ -37,8 +37,42 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="networking refactor">
+      <change afterPath="$PROJECT_DIR$/node/src/error.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/node/src/node.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/p2p/src/util.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/account/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/account.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/config.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/config.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/network.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/network.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/environment.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/environment.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/sync.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/sync.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/identity.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/identity.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/request_handler.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/request_handler.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/proof.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/smt.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/tree.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/tree.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -161,7 +195,7 @@
       <recent name="$PROJECT_DIR$/common/types/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Build">
+  <component name="RunManager" selected="Cargo.Test identity::test_generate_identity">
     <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build --package smt" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -247,6 +281,23 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Expand types::config [tuchain]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="expand --lib --color=always --theme=Dracula --tests config" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/common/types" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test config::test::test_config" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package types --lib config::test::test_config -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -264,8 +315,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::test_morph" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package state --lib tests::test_morph -- --exact" />
+    <configuration name="Test identity::test_generate_identity" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package p2p --lib identity::test_generate_identity -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -281,25 +332,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::txpool_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package txpool --lib tests::txpool_test -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test tree::tests::basic_test_genesis_root" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib tree::tests::basic_test_genesis_root -- --exact" />
+    <configuration name="Test tests::print_difficulty" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package primitive-types --lib tests::print_difficulty -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -356,12 +390,20 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test tree::tests::basic_test_genesis_root" />
+      <item itemvalue="Cargo.Expand types::config [tuchain]" />
+      <item itemvalue="Cargo.Test identity::test_generate_identity" />
+      <item itemvalue="Cargo.Test tests::print_difficulty" />
       <item itemvalue="Cargo.Test config::test::test_config" />
-      <item itemvalue="Cargo.Test tests::test_morph" />
-      <item itemvalue="Cargo.Test tests::txpool_test" />
       <item itemvalue="Cargo.Test trie::tests::basic_test" />
     </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Cargo.Test identity::test_generate_identity" />
+        <item itemvalue="Cargo.Test tests::print_difficulty" />
+        <item itemvalue="Cargo.Expand types::config [tuchain]" />
+        <item itemvalue="Cargo.Test config::test::test_config" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
@@ -488,14 +530,7 @@
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
       <workItem from="1657735229817" duration="98387000" />
-      <workItem from="1658343253983" duration="13950000" />
-    </task>
-    <task id="LOCAL-00184" summary="p2p hot fix">
-      <created>1655890877576</created>
-      <option name="number" value="00184" />
-      <option name="presentableId" value="LOCAL-00184" />
-      <option name="project" value="LOCAL" />
-      <updated>1655890877577</updated>
+      <workItem from="1658343253983" duration="92428000" />
     </task>
     <task id="LOCAL-00185" summary="implement sync">
       <created>1656033150762</created>
@@ -833,7 +868,14 @@
       <option name="project" value="LOCAL" />
       <updated>1658526506100</updated>
     </task>
-    <option name="localTasksCounter" value="233" />
+    <task id="LOCAL-00233" summary="networking refactor">
+      <created>1658536401088</created>
+      <option name="number" value="00233" />
+      <option name="presentableId" value="LOCAL-00233" />
+      <option name="project" value="LOCAL" />
+      <updated>1658536401088</updated>
+    </task>
+    <option name="localTasksCounter" value="234" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

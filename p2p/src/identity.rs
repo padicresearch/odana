@@ -6,7 +6,7 @@ use libp2p::{Multiaddr, PeerId};
 use serde::{Deserialize, Serialize};
 
 use crypto::{generate_pow_from_pub_key, SHA256};
-use primitive_types::Compact;
+use primitive_types::{Compact, H192, H448, U256};
 use primitive_types::{H256, U192};
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 
@@ -54,7 +54,7 @@ pub struct NodeIdentity {
 }
 
 impl NodeIdentity {
-    pub fn generate(target: Compact) -> Self {
+    pub fn generate(target: U256) -> Self {
         let keys = libp2p::identity::ed25519::Keypair::generate();
 
         let pub_key = keys.public();
@@ -102,6 +102,7 @@ impl NodeIdentity {
             secret_key: H256::from_slice(self.secret_key.as_ref()),
             peer_id: self.peer_id.to_base58(),
             nonce: self.nonce,
+            pow_stamp: self.stamp()
         }
     }
 
@@ -115,7 +116,20 @@ impl NodeIdentity {
         })
     }
 
+    pub fn stamp(&self) -> H256 {
+        let mut pow_stamp = [0_u8; 56];
+        pow_stamp[..24].copy_from_slice(&self.nonce.to_le_bytes());
+        pow_stamp[24..].copy_from_slice(&self.pub_key.encode());
+        SHA256::digest(pow_stamp)
+    }
+
     pub fn to_p2p_node(&self) -> PeerNode {
         PeerNode::new(H256::from(self.pub_key.encode()), self.nonce)
     }
+}
+
+#[test]
+fn test_generate_identity() {
+    let identity = NodeIdentity::generate(crypto::make_target(20.0));
+    println!("{:#?}", identity)
 }

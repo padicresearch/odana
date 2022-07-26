@@ -1,14 +1,15 @@
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 use std::option::Option::Some;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc};
+use std::sync::Arc;
 
-use anyhow::{Result};
+use anyhow::Result;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use tempdir::TempDir;
-use tiny_keccak::{Hasher};
+use tiny_keccak::Hasher;
 
+use crate::error::StateError;
 use codec::impl_codec;
 use codec::{Codec, Decoder, Encoder};
 use primitive_types::{H160, H256};
@@ -16,10 +17,9 @@ use smt::proof::Proof;
 use smt::{Op, Tree};
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
-use types::account::{AccountState};
+use types::account::AccountState;
 use types::tx::{Transaction, TransactionKind};
 use types::Hash;
-use crate::error::StateError;
 
 mod error;
 
@@ -44,13 +44,18 @@ unsafe impl Send for State {}
 
 impl StateDB for State {
     fn nonce(&self, address: &H160) -> u64 {
-        self.trie.get(address).map(|account_state|
-            account_state.and_then(|account_state| Some(account_state.nonce))
-        ).unwrap_or_default().unwrap_or_default()
+        self.trie
+            .get(address)
+            .map(|account_state| account_state.and_then(|account_state| Some(account_state.nonce)))
+            .unwrap_or_default()
+            .unwrap_or_default()
     }
 
     fn account_state(&self, address: &H160) -> AccountState {
-        self.trie.get(address).unwrap_or_default().unwrap_or_default()
+        self.trie
+            .get(address)
+            .unwrap_or_default()
+            .unwrap_or_default()
     }
 
     fn balance(&self, address: &H160) -> u128 {
@@ -80,7 +85,6 @@ impl StateDB for State {
     fn reset(&self, root: H256) -> Result<()> {
         self.trie.reset(root)
     }
-
 
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
         self.apply_txs(txs)?;
@@ -140,7 +144,13 @@ impl State {
         Ok(())
     }
 
-    pub fn apply_txs_no_commit(&self, at_root: H256, reward: u128, coinbase: H160, txs: Vec<Transaction>) -> Result<Hash> {
+    pub fn apply_txs_no_commit(
+        &self,
+        at_root: H256,
+        reward: u128,
+        coinbase: H160,
+        txs: Vec<Transaction>,
+    ) -> Result<Hash> {
         let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
@@ -160,20 +170,23 @@ impl State {
             }
         }
 
-        let mut batch: Vec<_> = states.into_iter().map(|(k, v)| {
-            Op::Put(k, v)
-        }).collect();
+        let mut batch: Vec<_> = states.into_iter().map(|(k, v)| Op::Put(k, v)).collect();
 
         let coinbase_account_state = self.get_account_state(&coinbase)?;
-        let coinbase_account_state = self.apply_action(&StateOperation::CreditBalance {
-            account: coinbase,
-            amount: reward,
-            tx_hash: [0; 32],
-        }, coinbase_account_state)?;
+        let coinbase_account_state = self.apply_action(
+            &StateOperation::CreditBalance {
+                account: coinbase,
+                amount: reward,
+                tx_hash: [0; 32],
+            },
+            coinbase_account_state,
+        )?;
 
         batch.push(Op::Put(coinbase, coinbase_account_state));
 
-        self.trie.apply_non_commit(&at_root, batch).map(|hash| hash.to_fixed_bytes())
+        self.trie
+            .apply_non_commit(&at_root, batch)
+            .map(|hash| hash.to_fixed_bytes())
     }
 
     fn apply_transaction(
@@ -184,7 +197,10 @@ impl State {
         //TODO: verify transaction (probably)
         for action in get_operations(&transaction) {
             let address = action.get_address();
-            let account_state = states.get(&address).map(|state| state.clone()).unwrap_or_default();
+            let account_state = states
+                .get(&address)
+                .map(|state| state.clone())
+                .unwrap_or_default();
             let new_account_state = self.apply_action(&action, account_state)?;
             states.insert(address, new_account_state);
         }
@@ -238,7 +254,11 @@ impl State {
     }
 
     fn get_account_state(&self, address: &H160) -> Result<AccountState> {
-        Ok(self.trie.get(address).unwrap_or_default().unwrap_or_default())
+        Ok(self
+            .trie
+            .get(address)
+            .unwrap_or_default()
+            .unwrap_or_default())
     }
 
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
@@ -249,10 +269,7 @@ impl State {
         }))
     }
 
-    fn get_account_state_with_proof(
-        &self,
-        address: &H160,
-    ) -> Result<(AccountState, ReadProof)> {
+    fn get_account_state_with_proof(&self, address: &H160) -> Result<(AccountState, ReadProof)> {
         let (account_state, proof) = self.trie.get_with_proof(&address)?;
         let root = self.trie.root()?;
         Ok((account_state, ReadProof { proof, root }))
@@ -371,7 +388,10 @@ mod tests {
         println!("Bob: {:#?}", state.account_state(&bob.address));
 
         let read_state = state.snapshot().unwrap();
-        println!("Read Alice: {:#?}", read_state.account_state(&alice.address));
+        println!(
+            "Read Alice: {:#?}",
+            read_state.account_state(&alice.address)
+        );
         println!("Read Bob: {:#?}", read_state.account_state(&bob.address));
     }
 }

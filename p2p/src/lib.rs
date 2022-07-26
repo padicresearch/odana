@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use codec::{Decoder, Encoder};
 use colored::Colorize;
 use libp2p::core::connection::ConnectedPoint;
 use libp2p::core::multiaddr::Protocol;
@@ -14,7 +15,11 @@ use libp2p::core::transport::upgrade::Version;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed};
 use libp2p::core::ProtocolName;
 use libp2p::futures::{AsyncRead, AsyncWrite, AsyncWriteExt, SinkExt, StreamExt};
-use libp2p::gossipsub::{Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, MessageId, Sha256Topic, ValidationMode};
+use libp2p::gossipsub::error::PublishError;
+use libp2p::gossipsub::{
+    Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, MessageId, Sha256Topic,
+    ValidationMode,
+};
 use libp2p::kad::record::store::MemoryStore;
 use libp2p::kad::{Kademlia, KademliaConfig, KademliaEvent, QueryResult};
 use libp2p::mdns::{Mdns, MdnsConfig, MdnsEvent};
@@ -26,11 +31,9 @@ use libp2p::request_response::{
 use libp2p::swarm::{NetworkBehaviour, SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::NetworkBehaviour;
-use libp2p::{Multiaddr, PeerId, Swarm, Transport};
-use libp2p::gossipsub::error::PublishError;
+use libp2p::{Swarm, Transport};
+use primitive_types::{Compact, U256};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use codec::{Decoder, Encoder};
-use primitive_types::Compact;
 use tracing::{debug, error, info, warn};
 use traits::Blockchain;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
@@ -44,34 +47,29 @@ pub mod identity;
 pub mod message;
 pub mod peer_manager;
 pub mod request_handler;
+pub mod util;
+
+pub use libp2p::core::{Multiaddr, PeerId};
 
 trait P2pEnvironment {
-    fn node_identity(&self) -> NodeIdentity;
     fn p2p_address(&self) -> Multiaddr;
     fn topic(&self) -> Sha256Topic;
     fn p2p_pow_target(&self) -> Compact;
 }
 
 impl P2pEnvironment for EnvironmentConfig {
-    fn node_identity(&self) -> NodeIdentity {
-        let file = File::open(&self.identity_file).unwrap();
-        let identity_config: NodeIdentityConfig = serde_json::from_reader(file).unwrap();
-        return NodeIdentity::from_config(identity_config).unwrap();
-        //NodeIdentity::generate(self.network.max_difficulty_compact())
-    }
-
     fn p2p_address(&self) -> Multiaddr {
         Multiaddr::empty()
-            .with(Protocol::Ip4(self.host.parse().unwrap()))
-            .with(Protocol::Tcp(self.p2p_port))
+            .with(Protocol::Ip4(self.host().parse().unwrap()))
+            .with(Protocol::Tcp(self.p2p_port()))
     }
 
     fn topic(&self) -> Sha256Topic {
-        Sha256Topic::new(self.network)
+        Sha256Topic::new(self.network())
     }
 
     fn p2p_pow_target(&self) -> Compact {
-        self.network.max_difficulty_compact()
+        self.network().max_difficulty_compact()
     }
 }
 
@@ -79,7 +77,7 @@ async fn config_network(
     node_identity: NodeIdentity,
     p2p_to_node: UnboundedSender<PeerMessage>,
     peer_list: Arc<PeerList>,
-    pow_target: Compact,
+    pow_target: U256,
 ) -> Result<Swarm<ChainNetworkBehavior>> {
     let auth_keys = libp2p::noise::Keypair::<X25519Spec>::new()
         .into_authentic(&node_identity.identity_keys())
@@ -118,7 +116,6 @@ async fn config_network(
         .with(Protocol::Tcp(9020))
         .with(Protocol::P2p(local_peer_id.into()));
 
-
     let mut behaviour = ChainNetworkBehavior {
         gossipsub: Gossipsub::new(
             MessageAuthenticity::Author(node_identity.peer_id().clone()),
@@ -130,7 +127,9 @@ async fn config_network(
         requestresponse: RequestResponse::new(
             ChainP2pExchangeCodec,
             iter::once((ChainP2pExchangeProtocol, ProtocolSupport::Full)),
-            RequestResponseConfig::default().set_connection_keep_alive(Duration::from_secs(3600)).clone(),
+            RequestResponseConfig::default()
+                .set_connection_keep_alive(Duration::from_secs(60))
+                .clone(),
         ),
         p2p_to_node,
         topic: network_topic.clone(),
@@ -151,19 +150,27 @@ async fn config_network(
     Ok(swarm)
 }
 
-async fn handle_send_message_to_peer(swarm: &mut Swarm<ChainNetworkBehavior>, peer_id: String, message: PeerMessage) -> Result<()> {
+async fn handle_send_message_to_peer(
+    swarm: &mut Swarm<ChainNetworkBehavior>,
+    peer_id: String,
+    message: PeerMessage,
+) -> Result<()> {
     let peer = PeerId::from_str(&peer_id).unwrap();
-    let _ = swarm.behaviour_mut().requestresponse.send_request(&peer, message);
+    let _ = swarm
+        .behaviour_mut()
+        .requestresponse
+        .send_request(&peer, message);
     Ok(())
 }
 
 pub async fn start_p2p_server(
+    config: Arc<EnvironmentConfig>,
     node_identity: NodeIdentity,
     mut node_to_p2p: UnboundedReceiver<NodeToPeerMessage>,
     p2p_to_node: UnboundedSender<PeerMessage>,
-    peer_arg: Option<String>,
+    peer_arg: Vec<String>,
     peer_list: Arc<PeerList>,
-    pow_target: Compact,
+    pow_target: U256,
     network_state: Arc<NetworkState>,
     blockchain: Arc<dyn Blockchain>,
     request_handler: Arc<RequestHandler>,
@@ -171,10 +178,10 @@ pub async fn start_p2p_server(
     let mut swarm =
         config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
 
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
+    Swarm::listen_on(&mut swarm, format!("/ip4/{}/tcp/{}", config.host, config.p2p_port).parse()?)
         .expect("Error connecting to p2p");
 
-    if let Some(to_dial) = peer_arg {
+    for to_dial in peer_arg {
         let addr: Multiaddr = to_dial.parse()?;
         let peer_id = match addr.iter().last() {
             Some(Protocol::P2p(hash)) => PeerId::from_multihash(hash).expect("Valid hash."),
@@ -188,7 +195,6 @@ pub async fn start_p2p_server(
             .behaviour_mut()
             .kad
             .get_closest_peers(node_identity.peer_id().clone());
-        //swarm.dial(addr.with(Protocol::P2p(peer_id.into())))?;
     }
 
     tokio::task::spawn(async move {
@@ -240,7 +246,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
     swarm: &mut Swarm<ChainNetworkBehavior>,
     network_state: &Arc<NetworkState>,
     blockchain: &Arc<dyn Blockchain>,
-    request_handler: &RequestHandler
+    request_handler: &RequestHandler,
 ) {
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
@@ -255,7 +261,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             message_id,
             message,
         })) => {
-
             if let Ok(peer_message) = PeerMessage::decode(&message.data) {
                 match &peer_message {
                     PeerMessage::CurrentHead(msg) => {
@@ -317,10 +322,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         })) => {
             if is_new_peer {
                 info!(peer = ?peer,"New Peer");
-                swarm
-                    .behaviour_mut()
-                    .kad
-                    .get_closest_peers(peer.clone());
+                swarm.behaviour_mut().kad.get_closest_peers(peer.clone());
                 for address in addresses.iter() {
                     info!(address = ?address,"Dialing new peer");
                     swarm.dial(address.clone()).unwrap()
@@ -407,9 +409,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint: ConnectedPoint::Dialer { address },
             ..
         } => {
-            if !swarm
-                .behaviour()
-                .peers.is_peer_connected(&peer_id) {
+            if !swarm.behaviour().peers.is_peer_connected(&peer_id) {
                 let addr = swarm.behaviour_mut().public_address.clone();
                 let request_id = swarm
                     .behaviour_mut()
@@ -464,7 +464,7 @@ struct ChainNetworkBehavior {
     #[behaviour(ignore)]
     peers: Arc<PeerList>,
     #[behaviour(ignore)]
-    pow_target: Compact,
+    pow_target: U256,
 }
 
 #[derive(Debug)]

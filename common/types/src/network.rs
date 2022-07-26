@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-
+use clap::{ArgEnum};
 use primitive_types::{Compact, U256};
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize, ArgEnum)]
 #[serde(rename_all = "lowercase")]
 pub enum Network {
     Testnet,

@@ -50,6 +50,10 @@ construct_fixed_hash! {
 construct_fixed_hash! {
     pub struct H160(20);
 }
+
+construct_fixed_hash! {
+    pub struct H192(24);
+}
 construct_fixed_hash! {
     pub struct H256(32);
 }
@@ -72,6 +76,7 @@ impl_uint_serde!(U512, 8);
 
 impl_fixed_hash_serde!(H128, 16);
 impl_fixed_hash_serde!(H160, 20);
+impl_fixed_hash_serde!(H192, 24);
 impl_fixed_hash_serde!(H256, 32);
 impl_fixed_hash_serde!(H448, 56);
 impl_fixed_hash_serde!(H512, 64);
@@ -376,5 +381,28 @@ mod tests {
             Compact::new(0x12345678).to_f64(),
             5913134931067755359633408.0,
         ));
+    }
+
+    #[test]
+    fn print_difficulty() {
+        pub const NODE_POW_TARGET: U256 = U256([
+            0x0000000000000000u64,
+            0x0000000000000000u64,
+            0x0000000000000000u64,
+            0x00000fffff000000u64,
+        ]);
+        let pow = U256::from_f64_lossy(26.0);
+        let t = make_target(26.0);
+        let c = Compact::from_u256(NODE_POW_TARGET);
+        let tc = Compact::from_u256(t);
+        println!("Compact {}", c.to_f64());
+        println!("Compact {}", pow.as_u32());
+        println!("Compact P {:#?}", pow.0);
+        println!("Compact J {:#?}", NODE_POW_TARGET.0);
+        println!("Compact T {}", t);
+        println!("Compact T {:#?}", t.0);
+        println!("Compact T {}", tc.0);
+        println!("Compact T {}", tc.to_f64());
+        println!("Compact {}", c.0);
     }
 }

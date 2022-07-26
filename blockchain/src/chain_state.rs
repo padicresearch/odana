@@ -1,6 +1,6 @@
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
 use std::sync::Mutex;
+use std::sync::{Arc, RwLock};
 
 use anyhow::{anyhow, bail, Result};
 use lru::LruCache;
@@ -9,7 +9,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use primitive_types::{H160, H256};
 use state::State;
 use storage::{KVStore, Schema};
-use tracing::{error, info, trace, debug, warn};
+use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
@@ -83,7 +83,7 @@ impl ChainState {
     ) -> Result<Self> {
         let state = Arc::new(State::new(state_dir)?);
         if let Some(current_head) = chain_state_storage.get_current_header()? {
-            info!(current_head = ?current_head, "restore from blockchain state");
+            info!(current_head = ?H256::from(current_head.hash()), level = ?current_head.level, "restore from blockchain state");
         } else {
             let mut genesis = consensus.get_genesis_header();
             state.credit_balance(&H160::from(&[0; 20]), 1_000_000_000_000);
@@ -92,7 +92,7 @@ impl ChainState {
             let block = Block::new(genesis.clone(), vec![]);
             block_storage.put(block)?;
             chain_state_storage.set_current_header(genesis)?;
-            info!(current_head = ?genesis, "blockchain state started from genesis");
+            info!(current_head = ?H256::from(genesis.hash()), level = ?genesis.level, "blockchain state started from genesis");
         }
 
         Ok(Self {
@@ -104,7 +104,11 @@ impl ChainState {
         })
     }
 
-    pub fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Box<dyn Iterator<Item=Block>>) -> Result<()> {
+    pub fn put_chain(
+        &self,
+        consensus: Arc<dyn Consensus>,
+        blocks: Box<dyn Iterator<Item=Block>>,
+    ) -> Result<()> {
         let _ = self.lock.write().map_err(|e| anyhow!("{}", e))?;
         let mut blocks = blocks.peekable();
         let current_head = self.current_header()?;
@@ -112,7 +116,9 @@ impl ChainState {
             current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
 
         let first_block = blocks.peek().unwrap();
-        if first_block.parent_hash() != current_head.hash.as_fixed_bytes() && current_head.raw.level > first_block.level() - 1 {
+        if first_block.parent_hash() != current_head.hash.as_fixed_bytes()
+            && current_head.raw.level > first_block.level() - 1
+        {
             // Reset header to common head
             let header = first_block.header();
             let block_storage = self.block_storage();
@@ -124,7 +130,8 @@ impl ChainState {
             let parent_state_root = H256::from(parent_header_raw.state_root);
             debug!(header = ?H256::from(parent_header_raw.hash()), level = parent_header_raw.level, "Resetting state to");
             self.state.reset(parent_state_root)?;
-            self.chain_state.set_current_header(parent_header_raw.clone())?;
+            self.chain_state
+                .set_current_header(parent_header_raw.clone())?;
             info!(header = ?H256::from(parent_header_raw.hash()), level = parent_header_raw.level, "Rolled back chain to previous");
             debug!(chain_head = ?current_head.hash, chain_tail = ?parent_header.hash, level = current_head.raw.level, "Removing stale chain");
             // Remove current chain
@@ -133,16 +140,10 @@ impl ChainState {
                 let mut head = current_head.raw.hash();
                 let mut remove_count = 0;
                 loop {
-                    let (next, level) = match block_storage
-                        .get_header_by_hash(&head) {
-                        Ok(Some(block)) => {
-                            (block.raw.parent_hash, block.raw.level)
-                        }
-                        _ => {
-                            break
-                        }
+                    let (next, level) = match block_storage.get_header_by_hash(&head) {
+                        Ok(Some(block)) => (block.raw.parent_hash, block.raw.level),
+                        _ => break,
                     };
-
 
                     // Delete Head from storage
                     block_storage.delete(head, level)?;
@@ -151,7 +152,7 @@ impl ChainState {
                     head = next;
 
                     if next == *parent_header.hash.as_fixed_bytes() {
-                        break
+                        break;
                     }
                 }
 
@@ -160,7 +161,6 @@ impl ChainState {
         }
 
         for block in blocks {
-
             let header = block.header().clone();
             match self
                 .process_block(consensus.clone(), block)

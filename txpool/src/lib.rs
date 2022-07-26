@@ -5,10 +5,10 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashMap};
 use std::option::Option::Some;
-use std::sync::{Arc};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use anyhow::{Result};
+use anyhow::Result;
 use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::{H160, H256};

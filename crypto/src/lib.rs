@@ -69,17 +69,12 @@ pub fn is_valid_proof_of_work(max_work_bits: Compact, bits: Compact, hash: &H256
 }
 
 /// Returns true if hash is lower or equal than target represented by compact bits
-pub fn is_valid_proof_of_work_hash(bits: Compact, hash: &H256) -> bool {
-    let target = match bits.to_u256() {
-        Ok(target) => target,
-        _err => return false,
-    };
-
+pub fn is_valid_proof_of_work_hash(target: U256, hash: &H256) -> bool {
     let value = U256::from(hash.as_fixed_bytes());
     value <= target
 }
 
-pub fn generate_pow_from_pub_key(pub_key: H256, target: Compact) -> (U192, H448) {
+pub fn generate_pow_from_pub_key(pub_key: H256, target: U256) -> (U192, H448) {
     let mut nonce = U192::zero();
     let mut pow_stamp = [0_u8; 56];
     pow_stamp[24..].copy_from_slice(pub_key.as_bytes());
@@ -92,3 +87,20 @@ pub fn generate_pow_from_pub_key(pub_key: H256, target: Compact) -> (U192, H448)
         nonce += U192::one();
     }
 }
+
+pub fn make_target(target: f64) -> U256 {
+    assert!((0.0..256.0).contains(&target));
+    let (frac, shift) = (target.fract(), target.floor() as u64);
+    let m = if frac.abs() < std::f64::EPSILON {
+        (1 << 54) - 1
+    } else {
+        2.0f64.powf(54.0 - frac) as u64
+    };
+    let m = U256::from(m);
+    if shift < 202 {
+        (m << (202 - shift)) | ((U256::from(1u64) << (202 - shift)) - U256::from(1u64))
+    } else {
+        m >> (shift - 202)
+    }
+}
+

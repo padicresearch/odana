@@ -1,260 +1,350 @@
 #![feature(map_first_last)]
 
-use std::env::temp_dir;
+use std::collections::BTreeSet;
+use std::env::args;
+use std::f32::consts::E;
+use std::fs::OpenOptions;
+use clap::{ArgEnum, Args, Parser, Subcommand};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicI8, Ordering};
-use std::sync::{Arc, RwLock};
-use std::thread::sleep;
-use std::time::{Duration, SystemTime};
-use clap::Parser;
-use temp_dir::TempDir;
-use tokio::sync::mpsc::error::SendError;
-use tokio::sync::mpsc::UnboundedSender;
-use crate::environment::default_db_opts;
-use account::create_account;
-use blockchain::blockchain::Tuchain;
-use blockchain::column_families;
-use consensus::barossa::{BarossaProtocol, NODE_POW_TARGET};
-use miner::worker::start_worker;
+use std::str::FromStr;
+use std::time::Duration;
+use directories::UserDirs;
+use indicatif::{ProgressBar, ProgressStyle};
 use p2p::identity::NodeIdentity;
-use p2p::message::*;
-use p2p::peer_manager::{NetworkState, PeerList};
-use p2p::request_handler::RequestHandler;
-use p2p::start_p2p_server;
-use primitive_types::H256;
-use storage::{PersistentStorage, PersistentStorageBackend};
-use tracing::tracing_subscriber;
-use tracing::Level;
-use tracing::{error, info};
-use traits::{Blockchain, ChainHeadReader, ChainReader};
-use types::block::Block;
-use types::events::LocalEventMessage;
+use primitive_types::{H160, U256};
+use tracing::{tracing_subscriber, Level, span};
+use anyhow::Result;
+use serde_json::json;
+use types::config::EnvironmentConfig;
 use types::network::Network;
-use types::Hash;
-use crate::sync::{SyncService, SyncMode};
+use crate::Commands::Config;
 
 pub mod environment;
+mod error;
+mod node;
 pub mod sync;
 
-enum Event {
-    LocalMessage(LocalEventMessage),
-    PeerMessage(PeerMessage),
-    Unhandled,
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ArgEnum)]
+enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
+impl Into<Level> for LogLevel {
+    fn into(self) -> Level {
+        match self {
+            LogLevel::Trace => Level::TRACE,
+            LogLevel::Debug => Level::DEBUG,
+            LogLevel::Info => Level::INFO,
+            LogLevel::Warn => Level::WARN,
+            LogLevel::Error => Level::ERROR,
+        }
+    }
 }
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
-struct Args {
-    /// Name of the person to greet
-    #[clap(short, long)]
-    peer: Option<String>,
+struct Cli {
+    #[clap(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    Run(RunArgs),
+    Identity(IdentityArgs),
+    Config(ConfigArgs),
+    Account(AccountArgs),
+}
+
+#[derive(Args, Debug)]
+struct RunArgs {
+    #[clap(long)]
+    host: Option<String>,
+    #[clap(short, long, value_parser = parse_multaddr)]
+    peer: Vec<String>,
     #[clap(short, long)]
     datadir: Option<PathBuf>,
     #[clap(short, long)]
-    miner: bool,
+    config_file: Option<PathBuf>,
+    #[clap(short, long)]
+    identity_file: Option<PathBuf>,
+    #[clap(arg_enum, default_value_t = LogLevel::Info)]
+    log_level: LogLevel,
+    #[clap(long)]
+    expected_pow: Option<f64>,
+    #[clap(long, value_parser = parse_miner_address)]
+    miner: Option<H160>,
+    #[clap(arg_enum, long)]
+    network: Option<Network>,
+    #[clap(long)]
+    p2p_port: Option<u16>,
+    #[clap(long)]
+    rpc_port: Option<u16>,
 }
 
-enum NodeState {
-    Idle,
-    Bootstrapping,
-    Synced,
+#[derive(Args, Debug)]
+struct IdentityArgs {
+    #[clap(subcommand)]
+    command: IdentityCommands,
 }
 
-fn broadcast_message(
-    sender: &UnboundedSender<NodeToPeerMessage>,
-    message: PeerMessage,
-) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
-    sender.send(NodeToPeerMessage {
-        peer_id: None,
-        message,
-    })
+#[derive(Subcommand, Debug)]
+enum IdentityCommands {
+    Generate(IdentityGenerateArgs),
 }
 
-fn send_message_to_peer(
-    peer_id: String,
-    sender: &UnboundedSender<NodeToPeerMessage>,
-    message: PeerMessage,
-) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
-    sender.send(NodeToPeerMessage {
-        peer_id: Some(peer_id),
-        message,
-    })
+
+#[derive(Args, Debug)]
+struct IdentityGenerateArgs {
+    #[clap(default_value_t = 20.0)]
+    difficulty: f64,
+    #[clap(short, long)]
+    datadir: Option<PathBuf>,
 }
 
-///tmp/tuchain
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let args: Args = Args::parse();
+#[derive(Args, Debug)]
+struct ConfigArgs {
+    #[clap(subcommand)]
+    command: ConfigCommands,
+}
 
-    //logging
-    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+#[derive(Subcommand, Debug)]
+enum ConfigCommands {
+    Init(SetConfigArgs),
+    Update(SetConfigArgs),
+    Show,
+}
+
+#[derive(Args, Debug)]
+struct SetConfigArgs {
+    #[clap(long)]
+    host: Option<String>,
+    #[clap(long, value_parser = parse_miner_address)]
+    miner: Option<H160>,
+    #[clap(long)]
+    datadir: Option<PathBuf>,
+    #[clap(long)]
+    identity_file: Option<PathBuf>,
+    #[clap(arg_enum, long)]
+    log_level: Option<LogLevel>,
+    #[clap(long, value_parser = parse_multaddr)]
+    peer: Vec<String>,
+    #[clap(long)]
+    expected_pow: Option<f64>,
+    #[clap(long)]
+    p2p_port: Option<u16>,
+    #[clap(long)]
+    rpc_port: Option<u16>,
+    #[clap(arg_enum, long)]
+    network: Option<Network>,
+}
 
 
-    // Communications
-    let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
-    let (node_to_peer_sender, mut node_to_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
-    let (peer_to_node_sender, mut peer_to_node_receiver) = tokio::sync::mpsc::unbounded_channel();
-    let node_to_peer_sender = Arc::new(node_to_peer_sender);
-    let peers = Arc::new(PeerList::new());
-    let interrupt = Arc::new(AtomicI8::new(if args.miner {
-        miner::worker::START
-    } else {
-        miner::worker::PAUSE
-    }))
-        .clone();
-    let time = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let mut path = PathBuf::from("/tmp");
-    path.push("tuchain");
+#[derive(Args, Debug)]
+struct AccountArgs {
+    #[clap(subcommand)]
+    command: AccountCommands,
+}
 
-    println!("datadir {:?}", path);
+#[derive(Subcommand, Debug)]
+enum AccountCommands {
+    New
+}
 
-    let node_id = NodeIdentity::generate(NODE_POW_TARGET.into());
-
-    // let mut tempdir = temp_dir();
-    // tempdir.push("tuchain");
-    let database = Arc::new(rocksdb::DB::open_cf_descriptors(
-        &default_db_opts(),
-        path.join("context"),
-        column_families(),
-    )?);
-    let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::RocksDB(
-        database,
-    )));
-    let consensus = Arc::new(BarossaProtocol::new(Network::Testnet));
-    let blockchain = Arc::new(
-        Tuchain::initialize(path, consensus.clone(), storage, local_mpsc_sender.clone()).unwrap(),
-    )
-        .clone();
-
-    let network_state = Arc::new(NetworkState::new(peers.clone(), local_mpsc_sender.clone()));
-    let handler = Arc::new(RequestHandler::new(blockchain.clone(), network_state.clone()));
-
-    let mut sync_service = {
-        let blockchain = blockchain.clone();
-        let block_storage = blockchain.chain().block_storage();
-        let consensus = consensus.clone();
-        //let system = System::new();
-        SyncService::new(blockchain.chain(), node_to_peer_sender.clone(), consensus, block_storage, Arc::new(SyncMode::Normal))
-    };
-
-    //start_mining(blockchain.miner(), blockchain.state(), local_mpsc_sender);
-
-    start_p2p_server(
-        node_id,
-        node_to_peer_receiver,
-        peer_to_node_sender,
-        args.peer,
-        peers.clone(),
-        NODE_POW_TARGET.into(),
-        network_state.clone(),
-        blockchain.chain(),
-        handler,
-    )
-        .await
-    .unwrap();
-
-    {
-        let blockchain = blockchain.clone();
-        let consensus = consensus.clone();
-        let interrupt = interrupt.clone();
-        let network_state = network_state.clone();
-        tokio::spawn(async move {
-            let miner = create_account();
-            start_worker(
-                miner.address,
-                local_mpsc_sender,
-                consensus,
-                blockchain.txpool(),
-                blockchain.chain(),
-                network_state,
-                blockchain.chain().block_storage(),
-                interrupt,
-            )
-                .unwrap();
-        });
+fn main() -> Result<()> {
+    let args: Cli = Cli::parse();
+    match &args.command {
+        Commands::Run(args) => {
+            let log_level: Level = args.log_level.into();
+            tracing_subscriber::fmt()
+                .with_max_level(log_level)
+                .init();
+            node::run(args)?;
+        }
+        Commands::Identity(args) => {
+            match &args.command {
+                IdentityCommands::Generate(args) => {
+                    generate_identity_file(args)?;
+                }
+            }
+        }
+        Commands::Config(args) => {
+            handle_config_commands(&args.command)?;
+        }
+        Commands::Account(args) => {
+            match args.command {
+                AccountCommands::New => {
+                    let account = account::create_account();
+                    println!("{}", serde_json::to_string_pretty(&account).unwrap());
+                    // println!("You can share your public address with anyone. Others need it to interact with you.");
+                    // println!("You must NEVER share the secret key with anyone. Copy secret key a safe place");
+                    // println!("Secret key is not recoverable once it lost");
+                }
+            }
+        }
     }
 
-    loop {
+    Ok(())
+}
 
-        let event = tokio::select! {
-            local_msg = local_mpsc_receiver.recv() => {
-                if let Some(msg) = local_msg {
-                    //println!("Local Message : {:?}", msg);
-                    Some(Event::LocalMessage(msg))
-                }else {
-                    Some(Event::Unhandled)
+fn create_file_path(datadir: Option<PathBuf>, filename: &str) -> Result<PathBuf> {
+    let user_dirs = UserDirs::new().ok_or(anyhow::anyhow!("user dir not found"))?;
+    let path = datadir.clone().unwrap_or(PathBuf::from(user_dirs.home_dir()).join("tuchain"));
+    fs_extra::dir::create_all(path.as_path(), false)?;
+    Ok(path.join(filename))
+}
+
+fn generate_identity_file(args: &IdentityGenerateArgs) -> Result<()> {
+    let identity_file_path = create_file_path(args.datadir.clone(), "identity.json")?;
+    let identity_file = OpenOptions::new().write(true).read(true).create_new(true).open(identity_file_path.as_path())?;
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(Duration::from_millis(120));
+    pb.set_style(
+        ProgressStyle::with_template("{spinner:.blue} {msg}")?.tick_strings(&[
+            "▫▫▫▫",
+            "▪▫▫▫",
+            "▫▪▫▫",
+            "▫▫▪▫",
+            "▫▫▫▪",
+            "▪▪▪▪",
+        ]),
+    );
+    pb.set_message(format!("Generating node identity... difficulty({})", args.difficulty));
+    let identity = NodeIdentity::generate(crypto::make_target(args.difficulty));
+    serde_json::to_writer(&identity_file, &identity.export_as_config())?;
+    identity_file.sync_all()?;
+    pb.finish_with_message(format!("Created {:?}", identity_file_path));
+    Ok(())
+}
+
+
+fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
+    match args {
+        ConfigCommands::Init(args) => {
+            let mut config = EnvironmentConfig::default();
+            if let Some(network) = args.network {
+                config.network = network;
+            }
+
+            config.peers = args.peer.clone();
+
+            if let Some(network) = args.network {
+                config.network = network;
+            }
+
+            if let Some(coinbase) = args.miner {
+                config.miner = Some(coinbase)
+            }
+
+            if let Some(expected_pow) = args.expected_pow {
+                config.expected_pow = expected_pow
+            }
+
+            if let Some(host) = &args.host {
+                config.host = host.clone()
+            }
+
+            if let Some(p2p_port) = args.p2p_port {
+                config.p2p_port = p2p_port
+            }
+
+            if let Some(rpc_port) = args.rpc_port {
+                config.rpc_port = rpc_port
+            }
+
+            if let Some(identity_file) = &args.identity_file {
+                config.identity_file = Some(identity_file.clone())
+            }
+
+            let config_file_path = create_file_path(args.datadir.clone(), "config.json")?;
+            let config_file = OpenOptions::new().write(true).read(true).create_new(true).open(config_file_path.as_path())?;
+            serde_json::to_writer(&config_file, &config)?;
+            config_file.sync_all()?;
+
+            println!("Created {:?}", config_file_path);
+        }
+        ConfigCommands::Update(args) => {
+            let config_file_path = create_file_path(args.datadir.clone(), "config.json")?;
+            let mut config: EnvironmentConfig = EnvironmentConfig::default();
+            {
+                let config_file = OpenOptions::new().read(true).open(config_file_path.as_path())?;
+                config = serde_json::from_reader(config_file)?;
+
+                if let Some(network) = args.network {
+                    config.network = network;
+                }
+
+                let mut peers: BTreeSet<_> = config.peers.iter().collect();
+                peers.extend(args.peer.iter());
+
+                config.peers = peers.into_iter().cloned().collect();
+
+                if let Some(network) = args.network {
+                    config.network = network;
+                }
+
+                if let Some(coinbase) = args.miner {
+                    config.miner = Some(coinbase)
+                }
+
+                if let Some(expected_pow) = args.expected_pow {
+                    config.expected_pow = expected_pow
+                }
+
+                if let Some(host) = &args.host {
+                    config.host = host.clone()
+                }
+
+                if let Some(p2p_port) = args.p2p_port {
+                    config.p2p_port = p2p_port
+                }
+
+                if let Some(rpc_port) = args.rpc_port {
+                    config.rpc_port = rpc_port
                 }
             }
 
-            peer_msg = peer_to_node_receiver.recv() => {
-                if let Some(peer) = peer_msg {
-                    Some(Event::PeerMessage(peer))
-                }else {
-                    Some(Event::Unhandled)
-                }
-            }
+            // TODO; Make update safer by using temp file renaming
+            let config_file = OpenOptions::new().write(true).truncate(true).open(config_file_path.as_path())?;
+            serde_json::to_writer(&config_file, &config)?;
+            config_file.sync_all()?;
+            println!("Updated {:?}", config_file_path);
+        }
+        ConfigCommands::Show => {
+            let config_file_path = create_file_path(None, "config.json")?;
+            let config_file = OpenOptions::new().read(true).open(config_file_path.as_path())?;
+            let mut config: EnvironmentConfig = serde_json::from_reader(&config_file)?;
+            let json_string = serde_json::to_string_pretty(&config)?;
+            println!("{}", json_string)
+        }
+    }
+    Ok(())
+}
 
-        };
 
-        if let Some(event) = event {
-            match event {
-                Event::PeerMessage(msg) => {
-                    match msg {
-                        PeerMessage::BroadcastTransaction(msg) => {
-                            let txpool = blockchain.txpool();
-                            let mut txpool = txpool.write().unwrap();
-                            txpool.add_remote(msg.tx).unwrap()
-                        }
-                        PeerMessage::BroadcastBlock(msg) => {
-                            let block = msg.block;
-                            // TODO: validate block
-                            // TODO: Check if future block is not further than 3 days
-                            blockchain.chain().block_storage().put(block.clone())?;
-                        }
-                        msg => {
-                            sync_service.handle_peer(msg);
-                        }
-                    };
-                }
-                Event::LocalMessage(local_msg) => {
-                    match local_msg {
-                        LocalEventMessage::MindedBlock(block) => {
-                            broadcast_message(
-                                &node_to_peer_sender,
-                                PeerMessage::BroadcastBlock(BroadcastBlockMessage::new(
-                                    block.clone(),
-                                )),
-                            ).unwrap();
-                        }
-                        LocalEventMessage::BroadcastTx(tx) => {
-                            broadcast_message(
-                                &node_to_peer_sender,
-                                PeerMessage::BroadcastTransaction(
-                                    BroadcastTransactionMessage::new(tx),
-                                ),
-                            )
-                                .unwrap();
-                        }
-                        LocalEventMessage::StateChanged { current_head } => {
-                            broadcast_message(
-                                &node_to_peer_sender,
-                                PeerMessage::CurrentHead(CurrentHeadMessage::new(current_head)),
-                            ).unwrap();
-                        }
-                        LocalEventMessage::NetworkNewPeerConnection { stats, peer_id } => {
-                            info!(pending = ?stats.0, connected = ?stats.1, "Peer connection");
-                        }
-                        msg => {
-                            sync_service.handle_local(msg);
-                        }
-                    }
-                }
-                Event::Unhandled => {}
-            }
+pub(crate) fn parse_multaddr(s: &str) -> Result<String, String> {
+    match p2p::util::validate_multiaddr(s) {
+        Ok(_) => {
+            Ok(s.to_string())
+        }
+        Err(error) => {
+            Err(format!("{}", error))
+        }
+    }
+}
+
+pub(crate) fn parse_miner_address(s: &str) -> Result<H160, String> {
+    match H160::from_str(s) {
+        Ok(s) => {
+            Ok(s)
+        }
+        Err(error) => {
+            Err(format!("{}", error))
         }
     }
 }

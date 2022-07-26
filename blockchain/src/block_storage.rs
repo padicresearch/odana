@@ -36,11 +36,15 @@ impl BlockStorage {
         Ok(())
     }
 
-    pub fn get_blocks<'a>(&'a self, hash: &'a Hash, level: i32) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<Block>)>>> {
+    pub fn get_blocks<'a>(
+        &'a self,
+        hash: &'a Hash,
+        level: i32,
+    ) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<Block>)>>> {
         let primary_key = BlockPrimaryKey(*hash, level);
-        Ok(Box::new(self.primary.get_blocks(&primary_key)?.map(|(k, v)| {
-            v
-        })))
+        Ok(Box::new(
+            self.primary.get_blocks(&primary_key)?.map(|(k, v)| v),
+        ))
     }
 }
 
@@ -88,7 +92,7 @@ impl ChainReader for BlockStorage {
         if let Some(primary_key) = primary_key {
             return self.get_block(&primary_key.0, primary_key.1);
         }
-        return Ok(None)
+        return Ok(None);
     }
 }
 
@@ -134,7 +138,10 @@ impl BlockPrimaryStorage {
         self.kv.contains(block_key)
     }
 
-    pub fn get_blocks(&self, start_at: &BlockPrimaryKey) -> Result<StorageIterator<BlockPrimaryStorage>> {
+    pub fn get_blocks(
+        &self,
+        start_at: &BlockPrimaryKey,
+    ) -> Result<StorageIterator<BlockPrimaryStorage>> {
         self.kv.prefix_iter(&start_at)
     }
 }
@@ -204,7 +211,6 @@ impl BlockByHash {
         self.kv.get(hash)
     }
 }
-
 
 pub struct BlockHeadersStorage {
     primary: Arc<BlockPrimaryStorage>,

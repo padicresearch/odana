@@ -7,11 +7,11 @@ use anyhow::bail;
 use anyhow::Result;
 use dashmap::DashMap;
 use libp2p::request_response::RequestId;
-use libp2p::{Multiaddr, PeerId};
 use libp2p::swarm::KeepAlive::No;
+use libp2p::{Multiaddr, PeerId};
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::Compact;
+use primitive_types::{Compact, U256};
 use tracing::level_enabled;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
@@ -49,7 +49,7 @@ impl PeerList {
         peer: &PeerId,
         request_id: RequestId,
         node: PeerNode,
-        pow_target: Compact,
+        pow_target: U256,
     ) -> Result<()> {
         if self.connected_peers.contains_key(peer) {
             return Ok(());
@@ -190,7 +190,17 @@ impl NetworkState {
 
     pub fn get_peer_state(&self, peer_id: &PeerId) -> Option<BlockHeader> {
         let peer_state = self.peer_state.read().unwrap();
-        return peer_state.get(peer_id).map(|value| value.clone())
+        return peer_state.get(peer_id).map(|value| value.clone());
+    }
+
+    pub fn remove_peer(&self, peer_id: &PeerId) {
+        let mut highest_know_head = self.highest_know_head.write().unwrap();
+        let peer_state = self.peer_state.clone();
+        if highest_know_head.as_ref().map(|highest_know_head| highest_know_head.as_ref().eq(peer_id)).unwrap_or(false) {
+            *highest_know_head = None;
+        }
+        let mut peer_state = peer_state.write().unwrap();
+        peer_state.remove(peer_id);
     }
 
     pub fn highest_peer(&self) -> Option<String> {
@@ -212,9 +222,7 @@ impl NetworkState {
     pub fn network_head(&self) -> Option<BlockHeader> {
         let mut highest_peer = self.highest_peer_raw();
         match highest_peer {
-            None => {
-                None
-            }
+            None => None,
             Some(peer_id) => {
                 let peer_state = self.peer_state.clone();
                 let mut peer_state = peer_state.read().unwrap();
@@ -229,7 +237,6 @@ mod test {
     use primitive_types::U256;
 
     use crate::identity::NodeIdentity;
-    use crate::p2p::NodeIdentity;
 
     pub const NODE_POW_TARGET: U256 = U256([
         0x0000000000000000u64,
@@ -240,7 +247,7 @@ mod test {
 
     #[test]
     fn check_pow() {
-        let node_iden = NodeIdentity::generate(NODE_POW_TARGET.into());
-        println!("Stramp {:#?}", node_iden.to_p2p_node());
+        let node_identity = NodeIdentity::generate(NODE_POW_TARGET.into());
+        println!("Stramp {:#?}", node_identity.to_p2p_node());
     }
 }

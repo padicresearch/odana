@@ -16,7 +16,7 @@ use txpool::TxPool;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::Transaction;
-use types::{Address};
+use types::Address;
 
 pub const SHUTDOWN: i8 = -1;
 pub const RESET: i8 = 0;

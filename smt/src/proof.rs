@@ -1,11 +1,11 @@
 use crate::error::Error;
 use crate::treehasher::TreeHasher;
 use crate::utils::get_bits_at_from_msb;
+use codec::{Decoder, Encoder};
 use hex::ToHex;
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use codec::{Decoder, Encoder};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Proof {

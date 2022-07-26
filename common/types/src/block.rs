@@ -27,10 +27,10 @@ impl Encoder for BlockPrimaryKey {
         encoded.extend(self.1.to_be_bytes());
         encoded.extend(self.0.iter());
 
-        return Ok(encoded)
+        return Ok(encoded);
     }
     fn encoded_size(&self) -> Result<u64> {
-        return Ok(36)
+        return Ok(36);
     }
 }
 
@@ -234,4 +234,3 @@ impl Ord for HeightSortedBlockHeader {
         self.0.level.cmp(&other.0.level)
     }
 }
-
