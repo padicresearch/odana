@@ -82,19 +82,11 @@ pub struct SyncService {
 impl SyncService {
     pub fn handle_remote_message(&mut self, msg: PeerMessage) -> Result<()> {
         return match msg {
-            PeerMessage::Blocks(msg) => {
-                self.handle_import_blocks(&msg)
-            }
-            PeerMessage::BroadcastTransaction(_) => {
-                Ok(())
-            }
-            PeerMessage::BroadcastBlock(_) => {
-                Ok(())
-            }
-            _ => {
-                Ok(())
-            }
-        }
+            PeerMessage::Blocks(msg) => self.handle_import_blocks(&msg),
+            PeerMessage::BroadcastTransaction(_) => Ok(()),
+            PeerMessage::BroadcastBlock(_) => Ok(()),
+            _ => Ok(()),
+        };
     }
 
     fn handle_import_blocks(&mut self, msg: &BlocksMessage) -> Result<()> {
@@ -107,7 +99,10 @@ impl SyncService {
             return Ok(());
         }
 
-        ensure!(self.validate_chain(blocks_to_import), NodeError::ChainValidationFailed);
+        ensure!(
+            self.validate_chain(blocks_to_import),
+            NodeError::ChainValidationFailed
+        );
 
         let ordered_blocks: BTreeSet<_> = msg
             .blocks

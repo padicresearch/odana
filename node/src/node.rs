@@ -145,11 +145,15 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
 
     // TODO; Refactor [Directory]
 
-    let node_id = NodeIdentity::from_config(NodeIdentityConfig::open(
-        env.identity_file
-            .clone()
-            .unwrap_or(datadir.join("identity.json")),
-    ).expect("identity file not found")).expect("failed to read identity file");
+    let node_id = NodeIdentity::from_config(
+        NodeIdentityConfig::open(
+            env.identity_file
+                .clone()
+                .unwrap_or(datadir.join("identity.json")),
+        )
+            .expect("identity file not found"),
+    )
+        .expect("failed to read identity file");
 
     let database = Arc::new(rocksdb::DB::open_cf_descriptors(
         &default_db_opts(),

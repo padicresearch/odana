@@ -178,7 +178,10 @@ pub async fn start_p2p_server(
     let mut swarm =
         config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
 
-    Swarm::listen_on(&mut swarm, format!("/ip4/{}/tcp/{}", config.host, config.p2p_port).parse()?)
+    Swarm::listen_on(
+        &mut swarm,
+        format!("/ip4/{}/tcp/{}", config.host, config.p2p_port).parse()?,
+    )
         .expect("Error connecting to p2p");
 
     for to_dial in peer_arg {

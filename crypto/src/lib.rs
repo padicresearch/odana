@@ -103,4 +103,3 @@ pub fn make_target(target: f64) -> U256 {
         m >> (shift - 202)
     }
 }
-

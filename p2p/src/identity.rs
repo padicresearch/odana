@@ -102,7 +102,7 @@ impl NodeIdentity {
             secret_key: H256::from_slice(self.secret_key.as_ref()),
             peer_id: self.peer_id.to_base58(),
             nonce: self.nonce,
-            pow_stamp: self.stamp()
+            pow_stamp: self.stamp(),
         }
     }
 

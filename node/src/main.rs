@@ -1,23 +1,23 @@
 #![feature(map_first_last)]
 
-use std::collections::BTreeSet;
-use std::env::args;
-use std::f32::consts::E;
-use std::fs::OpenOptions;
+use crate::Commands::Config;
+use anyhow::Result;
 use clap::{ArgEnum, Args, Parser, Subcommand};
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::time::Duration;
 use directories::UserDirs;
 use indicatif::{ProgressBar, ProgressStyle};
 use p2p::identity::NodeIdentity;
 use primitive_types::{H160, U256};
-use tracing::{tracing_subscriber, Level, span};
-use anyhow::Result;
 use serde_json::json;
+use std::collections::BTreeSet;
+use std::env::args;
+use std::f32::consts::E;
+use std::fs::OpenOptions;
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::time::Duration;
+use tracing::{span, tracing_subscriber, Level};
 use types::config::EnvironmentConfig;
 use types::network::Network;
-use crate::Commands::Config;
 
 pub mod environment;
 mod error;
@@ -98,7 +98,6 @@ enum IdentityCommands {
     Generate(IdentityGenerateArgs),
 }
 
-
 #[derive(Args, Debug)]
 struct IdentityGenerateArgs {
     #[clap(default_value_t = 20.0)]
@@ -144,7 +143,6 @@ struct SetConfigArgs {
     network: Option<Network>,
 }
 
-
 #[derive(Args, Debug)]
 struct AccountArgs {
     #[clap(subcommand)]
@@ -153,7 +151,7 @@ struct AccountArgs {
 
 #[derive(Subcommand, Debug)]
 enum AccountCommands {
-    New
+    New,
 }
 
 fn main() -> Result<()> {
@@ -161,18 +159,14 @@ fn main() -> Result<()> {
     match &args.command {
         Commands::Run(args) => {
             let log_level: Level = args.log_level.into();
-            tracing_subscriber::fmt()
-                .with_max_level(log_level)
-                .init();
+            tracing_subscriber::fmt().with_max_level(log_level).init();
             node::run(args)?;
         }
-        Commands::Identity(args) => {
-            match &args.command {
-                IdentityCommands::Generate(args) => {
-                    generate_identity_file(args)?;
-                }
+        Commands::Identity(args) => match &args.command {
+            IdentityCommands::Generate(args) => {
+                generate_identity_file(args)?;
             }
-        }
+        },
         Commands::Config(args) => {
             handle_config_commands(&args.command)?;
         }
@@ -194,14 +188,20 @@ fn main() -> Result<()> {
 
 fn create_file_path(datadir: Option<PathBuf>, filename: &str) -> Result<PathBuf> {
     let user_dirs = UserDirs::new().ok_or(anyhow::anyhow!("user dir not found"))?;
-    let path = datadir.clone().unwrap_or(PathBuf::from(user_dirs.home_dir()).join("tuchain"));
+    let path = datadir
+        .clone()
+        .unwrap_or(PathBuf::from(user_dirs.home_dir()).join("tuchain"));
     fs_extra::dir::create_all(path.as_path(), false)?;
     Ok(path.join(filename))
 }
 
 fn generate_identity_file(args: &IdentityGenerateArgs) -> Result<()> {
     let identity_file_path = create_file_path(args.datadir.clone(), "identity.json")?;
-    let identity_file = OpenOptions::new().write(true).read(true).create_new(true).open(identity_file_path.as_path())?;
+    let identity_file = OpenOptions::new()
+        .write(true)
+        .read(true)
+        .create_new(true)
+        .open(identity_file_path.as_path())?;
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(120));
     pb.set_style(
@@ -214,14 +214,16 @@ fn generate_identity_file(args: &IdentityGenerateArgs) -> Result<()> {
             "▪▪▪▪",
         ]),
     );
-    pb.set_message(format!("Generating node identity... difficulty({})", args.difficulty));
+    pb.set_message(format!(
+        "Generating node identity... difficulty({})",
+        args.difficulty
+    ));
     let identity = NodeIdentity::generate(crypto::make_target(args.difficulty));
     serde_json::to_writer(&identity_file, &identity.export_as_config())?;
     identity_file.sync_all()?;
     pb.finish_with_message(format!("Created {:?}", identity_file_path));
     Ok(())
 }
-
 
 fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
     match args {
@@ -262,7 +264,11 @@ fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
             }
 
             let config_file_path = create_file_path(args.datadir.clone(), "config.json")?;
-            let config_file = OpenOptions::new().write(true).read(true).create_new(true).open(config_file_path.as_path())?;
+            let config_file = OpenOptions::new()
+                .write(true)
+                .read(true)
+                .create_new(true)
+                .open(config_file_path.as_path())?;
             serde_json::to_writer(&config_file, &config)?;
             config_file.sync_all()?;
 
@@ -272,7 +278,9 @@ fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
             let config_file_path = create_file_path(args.datadir.clone(), "config.json")?;
             let mut config: EnvironmentConfig = EnvironmentConfig::default();
             {
-                let config_file = OpenOptions::new().read(true).open(config_file_path.as_path())?;
+                let config_file = OpenOptions::new()
+                    .read(true)
+                    .open(config_file_path.as_path())?;
                 config = serde_json::from_reader(config_file)?;
 
                 if let Some(network) = args.network {
@@ -310,14 +318,19 @@ fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
             }
 
             // TODO; Make update safer by using temp file renaming
-            let config_file = OpenOptions::new().write(true).truncate(true).open(config_file_path.as_path())?;
+            let config_file = OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(config_file_path.as_path())?;
             serde_json::to_writer(&config_file, &config)?;
             config_file.sync_all()?;
             println!("Updated {:?}", config_file_path);
         }
         ConfigCommands::Show => {
             let config_file_path = create_file_path(None, "config.json")?;
-            let config_file = OpenOptions::new().read(true).open(config_file_path.as_path())?;
+            let config_file = OpenOptions::new()
+                .read(true)
+                .open(config_file_path.as_path())?;
             let mut config: EnvironmentConfig = serde_json::from_reader(&config_file)?;
             let json_string = serde_json::to_string_pretty(&config)?;
             println!("{}", json_string)
@@ -326,25 +339,16 @@ fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
     Ok(())
 }
 
-
 pub(crate) fn parse_multaddr(s: &str) -> Result<String, String> {
     match p2p::util::validate_multiaddr(s) {
-        Ok(_) => {
-            Ok(s.to_string())
-        }
-        Err(error) => {
-            Err(format!("{}", error))
-        }
+        Ok(_) => Ok(s.to_string()),
+        Err(error) => Err(format!("{}", error)),
     }
 }
 
 pub(crate) fn parse_miner_address(s: &str) -> Result<H160, String> {
     match H160::from_str(s) {
-        Ok(s) => {
-            Ok(s)
-        }
-        Err(error) => {
-            Err(format!("{}", error))
-        }
+        Ok(s) => Ok(s),
+        Err(error) => Err(format!("{}", error)),
     }
 }

@@ -18,8 +18,5 @@ pub fn create_account() -> Account {
     let secret = H256::from(keypair.secret.to_bytes());
     let pubkey = hex::encode(keypair.public.to_bytes());
     let mut address = RIPEMD160::digest(SHA256::digest(&pubkey).as_bytes());
-    Account {
-        address,
-        secret,
-    }
+    Account { address, secret }
 }

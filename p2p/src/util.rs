@@ -1,6 +1,6 @@
 use anyhow::Result;
-use libp2p::{Multiaddr, PeerId};
 use libp2p::multiaddr::Protocol;
+use libp2p::{Multiaddr, PeerId};
 
 pub fn validate_multiaddr(addr: &str) -> Result<()> {
     let addr: Multiaddr = addr.parse()?;

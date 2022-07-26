@@ -1,9 +1,9 @@
+use anyhow::Result;
+use derive_getters::Getters;
 use std::env::temp_dir;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use anyhow::Result;
-use derive_getters::Getters;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

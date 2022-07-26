@@ -56,9 +56,9 @@ pub struct Tree<K, V> {
 }
 
 impl<K, V> Tree<K, V>
-    where
-        K: Codec,
-        V: Codec,
+where
+    K: Codec,
+    V: Codec,
 {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open(path)?;

@@ -196,7 +196,11 @@ impl NetworkState {
     pub fn remove_peer(&self, peer_id: &PeerId) {
         let mut highest_know_head = self.highest_know_head.write().unwrap();
         let peer_state = self.peer_state.clone();
-        if highest_know_head.as_ref().map(|highest_know_head| highest_know_head.as_ref().eq(peer_id)).unwrap_or(false) {
+        if highest_know_head
+            .as_ref()
+            .map(|highest_know_head| highest_know_head.as_ref().eq(peer_id))
+            .unwrap_or(false)
+        {
             *highest_know_head = None;
         }
         let mut peer_state = peer_state.write().unwrap();
