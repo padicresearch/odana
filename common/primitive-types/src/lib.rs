@@ -231,7 +231,7 @@ impl<'a> TryFrom<&'a U512> for U256 {
 }
 
 /// Compact representation of `U256`
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Compact(u32);
 
 impl From<u32> for Compact {
@@ -319,7 +319,7 @@ impl Compact {
             shift += 1;
         }
         while shift > 29 {
-            diff /= f64::from(256.0);
+            diff /= 256.0;
             shift -= 1;
         }
         diff

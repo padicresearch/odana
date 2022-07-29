@@ -118,14 +118,14 @@ impl<H: HashFunction> Merkle<H> {
         if chucks.len() == 1 {
             let c = chucks.into_iter().next().unwrap();
             let left = &c[0];
-            let right = c.get(1).unwrap_or(&left);
+            let right = c.get(1).unwrap_or(left);
             let p = hash_pair(&self.hasher, (left.as_ref(), right.as_ref()));
             return Some(p);
         }
         let mut next = Vec::with_capacity(leaves.len() / 2);
         for c in chucks {
             let left = &c[0];
-            let right = c.get(1).unwrap_or(&left);
+            let right = c.get(1).unwrap_or(left);
             let hash = hash_pair(&self.hasher, (left.as_ref(), right.as_ref()));
             next.push(Leave(hash))
         }
@@ -157,7 +157,7 @@ impl<H: HashFunction> Merkle<H> {
         let mut item = item;
         for c in chucks {
             let left = &c[0];
-            let right = c.get(1).unwrap_or(&left);
+            let right = c.get(1).unwrap_or(left);
             let hash = hash_pair(&self.hasher, (left.as_ref(), right.as_ref()));
             if &item == left {
                 proof.push((0, (left.clone(), right.clone())));
@@ -184,9 +184,9 @@ impl<H: HashFunction> Merkle<H> {
 
         let root = proof.iter().fold(valid_leaf, |root, (idx, pair)| {
             if *idx == 1 {
-                hash_pair(&self.hasher, (&pair.0.as_ref(), &root))
+                hash_pair(&self.hasher, (pair.0.as_ref(), &root))
             } else {
-                hash_pair(&self.hasher, (&root, &pair.1.as_ref()))
+                hash_pair(&self.hasher, (&root, pair.1.as_ref()))
             }
         });
 

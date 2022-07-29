@@ -36,16 +36,12 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fmt">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="general improvement">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/fixed-hash/src/hash.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/src/hash.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/node.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/node.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/sync.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/sync.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/src/uint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/src/uint.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/src/crypto.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/crypto.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -168,7 +164,7 @@
       <recent name="$PROJECT_DIR$/common/types/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test identity::test_generate_identity">
+  <component name="RunManager" selected="Cargo.Clippy">
     <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build --package smt" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -503,14 +499,7 @@
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
       <workItem from="1657735229817" duration="98387000" />
-      <workItem from="1658343253983" duration="105366000" />
-    </task>
-    <task id="LOCAL-00187" summary="implement sync">
-      <created>1656034127850</created>
-      <option name="number" value="00187" />
-      <option name="presentableId" value="LOCAL-00187" />
-      <option name="project" value="LOCAL" />
-      <updated>1656034127850</updated>
+      <workItem from="1658343253983" duration="106957000" />
     </task>
     <task id="LOCAL-00188" summary="implement sync">
       <created>1656143965928</created>
@@ -848,7 +837,14 @@
       <option name="project" value="LOCAL" />
       <updated>1658877427185</updated>
     </task>
-    <option name="localTasksCounter" value="236" />
+    <task id="LOCAL-00236" summary="general improvement">
+      <created>1659086122093</created>
+      <option name="number" value="00236" />
+      <option name="presentableId" value="LOCAL-00236" />
+      <option name="project" value="LOCAL" />
+      <updated>1659086122093</updated>
+    </task>
+    <option name="localTasksCounter" value="237" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -879,7 +875,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="refactor" />
     <MESSAGE value="fixes" />
     <MESSAGE value="bug fixes: proof now working" />
     <MESSAGE value="export functions" />
@@ -904,7 +899,8 @@
     <MESSAGE value="networking refactor" />
     <MESSAGE value="- networking refactor&#10;- cli commands implementation" />
     <MESSAGE value="cargo fmt" />
-    <option name="LAST_COMMIT_MESSAGE" value="cargo fmt" />
+    <MESSAGE value="general improvement" />
+    <option name="LAST_COMMIT_MESSAGE" value="general improvement" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
