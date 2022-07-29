@@ -192,8 +192,10 @@ impl SyncService {
     pub fn handle_local_message(&mut self, msg: LocalEventMessage) -> Result<()> {
         match msg {
             LocalEventMessage::NetworkHighestHeadChanged { peer_id, tip } => {
-                let node_height = self.chain.current_header()?;
-                let node_height = node_height.map(|block| block.raw.level).unwrap();
+                let current_header = self.chain.current_header()?;
+                let current_header = current_header.unwrap();
+                let tip = tip.unwrap_or(current_header.raw.clone());
+                let node_height = current_header.raw.level;
                 self.network_tip = tip.clone();
                 self.highest_peer = peer_id.clone();
                 if self.tip_before_sync.is_none() && tip.level > node_height {

@@ -156,7 +156,7 @@ impl ChainState {
                     }
                 }
 
-                warn!( removed_blocks_count = ?remove_count, "Chain ReOrg");
+                warn!( staled_blocks_count = ?remove_count, "Chain ReOrg");
             }
         }
 

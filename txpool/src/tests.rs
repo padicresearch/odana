@@ -11,7 +11,7 @@ use dashmap::DashMap;
 
 use account::create_account;
 use primitive_types::{H160, H256};
-use traits::{Blockchain, ChainHeadReader, ChainReader, StateDB};
+use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
 use transaction::make_sign_transaction;
 use types::account::{Account, AccountState};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
@@ -174,15 +174,23 @@ impl StateDB for DummyStateDB {
         todo!()
     }
 
-    fn checkpoint(&self, path: String) -> Result<Arc<dyn StateDB>> {
-        todo!()
-    }
-
     fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
         todo!()
     }
 
     fn root(&self) -> Hash {
+        todo!()
+    }
+
+    fn reset(&self, root: H256) -> Result<()> {
+        todo!()
+    }
+
+    fn commit(&self) -> Result<()> {
+        todo!()
+    }
+
+    fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>> {
         todo!()
     }
 }
@@ -211,6 +219,10 @@ impl Blockchain for DummyChain {
             .map(|r| r.value().clone())?;
         Ok(d)
     }
+
+    fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()> {
+        todo!()
+    }
 }
 
 impl ChainReader for DummyChain {
@@ -232,6 +244,10 @@ impl ChainReader for DummyChain {
         let chain = self.chain.read().map_err(|e| anyhow::anyhow!("RW error"))?;
         let block = chain.get(index).cloned();
         Ok(block)
+    }
+
+    fn get_block_by_level(&self, level: i32) -> Result<Option<Block>> {
+        todo!()
     }
 }
 

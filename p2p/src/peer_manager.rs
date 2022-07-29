@@ -125,13 +125,17 @@ pub struct NetworkState {
 }
 
 impl NetworkState {
-    pub fn new(peer_list: Arc<PeerList>, sender: UnboundedSender<LocalEventMessage>) -> Self {
+    pub fn new(sender: UnboundedSender<LocalEventMessage>) -> Self {
         Self {
-            peer_list,
+            peer_list: Arc::new(PeerList::new()),
             peer_state: Default::default(),
             highest_know_head: RwLock::default(),
             sender,
         }
+    }
+
+    pub fn peer_list(&self) -> Arc<PeerList> {
+        self.peer_list.clone()
     }
 
     pub fn update_peer_current_head(&self, peer_id: &PeerId, head: BlockHeader) -> Result<()> {
@@ -159,7 +163,7 @@ impl NetworkState {
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
-                    tip: head,
+                    tip: Some(head),
                 })?;
         } else {
             let mut new_highest = Some(peer.clone());
@@ -168,7 +172,7 @@ impl NetworkState {
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
-                    tip: head,
+                    tip: Some(head),
                 })?;
         }
         Ok(())
@@ -193,18 +197,28 @@ impl NetworkState {
         return peer_state.get(peer_id).map(|value| value.clone());
     }
 
-    pub fn remove_peer(&self, peer_id: &PeerId) {
-        let mut highest_know_head = self.highest_know_head.write().unwrap();
-        let peer_state = self.peer_state.clone();
-        if highest_know_head
-            .as_ref()
-            .map(|highest_know_head| highest_know_head.as_ref().eq(peer_id))
-            .unwrap_or(false)
+    pub fn remove_peer(&self, peer_id: &PeerId) -> Result<()> {
         {
-            *highest_know_head = None;
+            let mut highest_know_head = self.highest_know_head.write().unwrap();
+            let peer_state = self.peer_state.clone();
+            if highest_know_head
+                .as_ref()
+                .map(|highest_know_head| highest_know_head.as_ref().eq(peer_id))
+                .unwrap_or(false)
+            {
+                *highest_know_head = None;
+            }
+            let mut peer_state = peer_state.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+            peer_state.remove(peer_id);
+            self.peer_list.remove_peer(peer_id);
         }
-        let mut peer_state = peer_state.write().unwrap();
-        peer_state.remove(peer_id);
+
+        self.sender
+            .send(LocalEventMessage::NetworkHighestHeadChanged {
+                peer_id: peer_id.to_string(),
+                tip: self.network_head(),
+            })
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     pub fn highest_peer(&self) -> Option<String> {

@@ -36,43 +36,16 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="networking refactor">
-      <change afterPath="$PROJECT_DIR$/node/src/error.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/node/src/node.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/p2p/src/util.rs" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fmt">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/account/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/account.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/config.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/config.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/fixed-hash/src/hash.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/src/hash.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/network.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/network.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crypto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/environment.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/environment.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/node.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/node.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/node/src/sync.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/sync.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/identity.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/identity.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/request_handler.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/request_handler.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/proof.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/proof.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/smt.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/smt.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/store.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/store.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/smt/src/tree.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/tree.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -530,21 +503,7 @@
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
       <workItem from="1657735229817" duration="98387000" />
-      <workItem from="1658343253983" duration="92428000" />
-    </task>
-    <task id="LOCAL-00185" summary="implement sync">
-      <created>1656033150762</created>
-      <option name="number" value="00185" />
-      <option name="presentableId" value="LOCAL-00185" />
-      <option name="project" value="LOCAL" />
-      <updated>1656033150763</updated>
-    </task>
-    <task id="LOCAL-00186" summary="implement sync">
-      <created>1656033531020</created>
-      <option name="number" value="00186" />
-      <option name="presentableId" value="LOCAL-00186" />
-      <option name="project" value="LOCAL" />
-      <updated>1656033531020</updated>
+      <workItem from="1658343253983" duration="105366000" />
     </task>
     <task id="LOCAL-00187" summary="implement sync">
       <created>1656034127850</created>
@@ -875,7 +834,21 @@
       <option name="project" value="LOCAL" />
       <updated>1658536401088</updated>
     </task>
-    <option name="localTasksCounter" value="234" />
+    <task id="LOCAL-00234" summary="- networking refactor&#10;- cli commands implementation">
+      <created>1658877400986</created>
+      <option name="number" value="00234" />
+      <option name="presentableId" value="LOCAL-00234" />
+      <option name="project" value="LOCAL" />
+      <updated>1658877400986</updated>
+    </task>
+    <task id="LOCAL-00235" summary="cargo fmt">
+      <created>1658877427185</created>
+      <option name="number" value="00235" />
+      <option name="presentableId" value="LOCAL-00235" />
+      <option name="project" value="LOCAL" />
+      <updated>1658877427185</updated>
+    </task>
+    <option name="localTasksCounter" value="236" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -906,7 +879,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="persistence refactor" />
     <MESSAGE value="refactor" />
     <MESSAGE value="fixes" />
     <MESSAGE value="bug fixes: proof now working" />
@@ -917,7 +889,6 @@
     <MESSAGE value="cleanup imports" />
     <MESSAGE value="clean up: remove `staging_keys`" />
     <MESSAGE value="error formatting" />
-    <MESSAGE value="cargo fmt" />
     <MESSAGE value="improvement" />
     <MESSAGE value="fix `apply`: reset staging after applying changes" />
     <MESSAGE value="clean up + formatting" />
@@ -931,7 +902,9 @@
     <MESSAGE value="delete miner-test" />
     <MESSAGE value="rewrite sync" />
     <MESSAGE value="networking refactor" />
-    <option name="LAST_COMMIT_MESSAGE" value="networking refactor" />
+    <MESSAGE value="- networking refactor&#10;- cli commands implementation" />
+    <MESSAGE value="cargo fmt" />
+    <option name="LAST_COMMIT_MESSAGE" value="cargo fmt" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

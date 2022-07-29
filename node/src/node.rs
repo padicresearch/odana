@@ -140,7 +140,6 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     let (node_to_peer_sender, mut node_to_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_to_node_sender, mut peer_to_node_receiver) = tokio::sync::mpsc::unbounded_channel();
     let node_to_peer_sender = Arc::new(node_to_peer_sender);
-    let peers = Arc::new(PeerList::new());
     let interrupt = Arc::new(AtomicI8::new(miner::worker::START));
 
     // TODO; Refactor [Directory]
@@ -175,7 +174,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     )
         .clone();
 
-    let network_state = Arc::new(NetworkState::new(peers.clone(), local_mpsc_sender.clone()));
+    let network_state = Arc::new(NetworkState::new(local_mpsc_sender.clone()));
     let handler = Arc::new(RequestHandler::new(
         blockchain.clone(),
         network_state.clone(),
@@ -203,7 +202,6 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         node_to_peer_receiver,
         peer_to_node_sender,
         args.peer.clone(),
-        peers.clone(),
         identity_expected_pow,
         network_state.clone(),
         blockchain.chain(),

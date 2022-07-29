@@ -34,7 +34,7 @@ use libp2p::NetworkBehaviour;
 use libp2p::{Swarm, Transport};
 use primitive_types::{Compact, U256};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, trace, warn};
 use traits::Blockchain;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 
@@ -76,7 +76,7 @@ impl P2pEnvironment for EnvironmentConfig {
 async fn config_network(
     node_identity: NodeIdentity,
     p2p_to_node: UnboundedSender<PeerMessage>,
-    peer_list: Arc<PeerList>,
+    network_state: Arc<NetworkState>,
     pow_target: U256,
 ) -> Result<Swarm<ChainNetworkBehavior>> {
     let auth_keys = libp2p::noise::Keypair::<X25519Spec>::new()
@@ -135,7 +135,7 @@ async fn config_network(
         topic: network_topic.clone(),
         node: node_identity.to_p2p_node(),
         public_address,
-        peers: peer_list,
+        state: network_state,
         pow_target,
     };
 
@@ -169,14 +169,13 @@ pub async fn start_p2p_server(
     mut node_to_p2p: UnboundedReceiver<NodeToPeerMessage>,
     p2p_to_node: UnboundedSender<PeerMessage>,
     peer_arg: Vec<String>,
-    peer_list: Arc<PeerList>,
     pow_target: U256,
     network_state: Arc<NetworkState>,
     blockchain: Arc<dyn Blockchain>,
     request_handler: Arc<RequestHandler>,
 ) -> Result<()> {
     let mut swarm =
-        config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
+        config_network(node_identity.clone(), p2p_to_node, network_state.clone(), pow_target).await?;
 
     Swarm::listen_on(
         &mut swarm,
@@ -345,7 +344,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 PeerMessage::Ack(addr) => {
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
-                    chain_network.peers.set_peer_address(peer, addr.clone());
+                    chain_network.state.peer_list().set_peer_address(peer, addr.clone());
                     let _ = chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(
@@ -375,7 +374,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 response,
             } => match &response {
                 PeerMessage::ReAck(msg) => {
-                    match swarm.behaviour().peers.promote_peer(
+                    let peers = swarm.behaviour().state.peer_list();
+                    match peers.promote_peer(
                         &peer,
                         request_id,
                         msg.node_info,
@@ -384,7 +384,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         Ok(_) => {
                             swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
                             network_state.update_peer_current_head(&peer, msg.current_header);
-                            info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
+                            info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?peers.stats(),"Connected to new peer");
                             network_state.handle_new_peer_connected(&peer).unwrap()
                         }
                         Err(error) => {
@@ -412,19 +412,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint: ConnectedPoint::Dialer { address },
             ..
         } => {
-            if !swarm.behaviour().peers.is_peer_connected(&peer_id) {
+            let peers = swarm
+                .behaviour()
+                .state.peer_list();
+            if !peers.is_peer_connected(&peer_id) {
                 let addr = swarm.behaviour_mut().public_address.clone();
                 let request_id = swarm
                     .behaviour_mut()
                     .requestresponse
                     .send_request(&peer_id, PeerMessage::Ack(addr));
-                swarm
-                    .behaviour()
-                    .peers
-                    .add_potential_peer(peer_id, request_id);
-                swarm
-                    .behaviour()
-                    .peers
+                peers.add_potential_peer(peer_id, request_id);
+                peers
                     .set_peer_address(peer_id, address.clone());
             }
             info!(peer = ?address,"Connection established");
@@ -436,12 +434,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             ..
         } => {
             if let Some(cause) = cause {
-                swarm.behaviour_mut().peers.remove_peer(&peer_id);
                 swarm
                     .behaviour_mut()
                     .gossipsub
                     .remove_explicit_peer(&peer_id);
                 swarm.behaviour_mut().kad.remove_peer(&peer_id);
+                match swarm.behaviour_mut().state.remove_peer(&peer_id) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        debug!(error = ?error, "Error removing peer");
+                    }
+                };
                 warn!(peer = ?peer_id, address = ?address, cause = ?cause, "Connection closed");
             }
         }
@@ -465,7 +468,7 @@ struct ChainNetworkBehavior {
     #[behaviour(ignore)]
     public_address: Multiaddr,
     #[behaviour(ignore)]
-    peers: Arc<PeerList>,
+    state: Arc<NetworkState>,
     #[behaviour(ignore)]
     pow_target: U256,
 }
