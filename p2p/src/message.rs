@@ -65,6 +65,18 @@ impl GetBlockHeaderMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+pub struct FindBlocksMessage {
+    pub from: i32,
+    pub limit: i32,
+}
+
+impl FindBlocksMessage {
+    pub fn new(from: i32, limit: i32) -> Self {
+        Self { from, limit }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct BlockTransactionsMessage {
     pub txs: Vec<Transaction>,
 }
@@ -74,7 +86,6 @@ impl BlockTransactionsMessage {
         Self { txs }
     }
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct BlocksMessage {
@@ -128,13 +139,15 @@ impl GetBlockTransactionsMessage {
 pub struct ReAckMessage {
     pub node_info: PeerNode,
     pub current_header: BlockHeader,
+    pub addr: Multiaddr,
 }
 
 impl ReAckMessage {
-    pub fn new(node_info: PeerNode, current_header: BlockHeader) -> Self {
+    pub fn new(node_info: PeerNode, current_header: BlockHeader, addr: Multiaddr) -> Self {
         Self {
             node_info,
             current_header,
+            addr,
         }
     }
 }
@@ -156,6 +169,7 @@ pub enum PeerMessage {
     CurrentHead(CurrentHeadMessage),
     GetBlockHeader(GetBlockHeaderMessage),
     GetBlocks(BlocksToDownloadMessage),
+    FindBlocks(FindBlocksMessage),
     BlockHeader(BlockHeaderMessage),
     Blocks(BlocksMessage),
     BroadcastTransaction(BroadcastTransactionMessage),
@@ -169,6 +183,5 @@ pub struct NodeToPeerMessage {
     pub peer_id: Option<String>,
     pub message: PeerMessage,
 }
-
 
 impl_codec!(PeerMessage);

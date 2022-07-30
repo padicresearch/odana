@@ -1,3 +1,30 @@
+use crate::Level;
+use anyhow::Result;
+use std::fs::OpenOptions;
+use std::io::{BufReader, BufWriter, Write};
+use std::path::Path;
+use types::config::EnvironmentConfig;
+
+pub(crate) fn open_config_file<P: AsRef<Path>>(path: P) -> Result<EnvironmentConfig> {
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(path)?;
+    let reader = BufReader::new(&file);
+    let env: EnvironmentConfig = match serde_json::from_reader(reader) {
+        Ok(env) => env,
+        Err(_) => {
+            let default_config = EnvironmentConfig::default();
+            let mut writer = BufWriter::new(&file);
+            serde_json::to_writer(&mut writer, &default_config)?;
+            writer.flush()?;
+            file.sync_all()?;
+            default_config
+        }
+    };
+    Ok(env)
+}
 
 pub(crate) fn default_db_opts() -> rocksdb::Options {
     let mut opts = rocksdb::Options::default();

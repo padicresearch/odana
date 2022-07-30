@@ -8,8 +8,8 @@ use anyhow::{Error, Result};
 use codec::{Codec, Decoder, Encoder};
 
 use crate::error::StorageError;
-use crate::{KVStore, StorageIterator};
 use crate::Schema;
+use crate::{KVStore, StorageIterator};
 
 #[derive(Debug)]
 pub struct ColumnMemStore {

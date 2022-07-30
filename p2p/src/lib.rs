@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::fs::File;
 use std::iter;
 use std::str::FromStr;
@@ -6,6 +7,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
+use codec::{Decoder, Encoder};
 use colored::Colorize;
 use libp2p::core::connection::ConnectedPoint;
 use libp2p::core::multiaddr::Protocol;
@@ -13,13 +15,14 @@ use libp2p::core::transport::upgrade::Version;
 use libp2p::core::upgrade::{read_length_prefixed, write_length_prefixed};
 use libp2p::core::ProtocolName;
 use libp2p::futures::{AsyncRead, AsyncWrite, AsyncWriteExt, SinkExt, StreamExt};
+use libp2p::gossipsub::error::PublishError;
 use libp2p::gossipsub::{
-    Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, Sha256Topic,
+    Gossipsub, GossipsubConfigBuilder, GossipsubEvent, MessageAuthenticity, MessageId, Sha256Topic,
     ValidationMode,
 };
 use libp2p::kad::record::store::MemoryStore;
 use libp2p::kad::{Kademlia, KademliaConfig, KademliaEvent, QueryResult};
-use libp2p::mdns::{Mdns, MdnsEvent};
+use libp2p::mdns::{Mdns, MdnsConfig, MdnsEvent};
 use libp2p::noise::{NoiseConfig, X25519Spec};
 use libp2p::request_response::{
     ProtocolSupport, RequestResponse, RequestResponseCodec, RequestResponseConfig,
@@ -28,11 +31,10 @@ use libp2p::request_response::{
 use libp2p::swarm::{NetworkBehaviour, SwarmBuilder, SwarmEvent};
 use libp2p::tcp::TokioTcpConfig;
 use libp2p::NetworkBehaviour;
-use libp2p::{Multiaddr, PeerId, Swarm, Transport};
+use libp2p::{Swarm, Transport};
+use primitive_types::{Compact, U256};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use codec::{Decoder, Encoder};
-use primitive_types::Compact;
-use tracing::{info, warn};
+use tracing::{debug, error, info, trace, warn};
 use traits::Blockchain;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 
@@ -45,42 +47,37 @@ pub mod identity;
 pub mod message;
 pub mod peer_manager;
 pub mod request_handler;
+pub mod util;
+
+pub use libp2p::core::{Multiaddr, PeerId};
 
 trait P2pEnvironment {
-    fn node_identity(&self) -> NodeIdentity;
     fn p2p_address(&self) -> Multiaddr;
     fn topic(&self) -> Sha256Topic;
     fn p2p_pow_target(&self) -> Compact;
 }
 
 impl P2pEnvironment for EnvironmentConfig {
-    fn node_identity(&self) -> NodeIdentity {
-        let file = File::open(&self.identity_file).unwrap();
-        let identity_config: NodeIdentityConfig = serde_json::from_reader(file).unwrap();
-        return NodeIdentity::from_config(identity_config).unwrap();
-        //NodeIdentity::generate(self.network.max_difficulty_compact())
-    }
-
     fn p2p_address(&self) -> Multiaddr {
         Multiaddr::empty()
-            .with(Protocol::Ip4(self.host.parse().unwrap()))
-            .with(Protocol::Tcp(self.p2p_port))
+            .with(Protocol::Ip4(self.host().parse().unwrap()))
+            .with(Protocol::Tcp(self.p2p_port()))
     }
 
     fn topic(&self) -> Sha256Topic {
-        Sha256Topic::new(self.network)
+        Sha256Topic::new(self.network())
     }
 
     fn p2p_pow_target(&self) -> Compact {
-        self.network.max_difficulty_compact()
+        self.network().max_difficulty_compact()
     }
 }
 
 async fn config_network(
     node_identity: NodeIdentity,
     p2p_to_node: UnboundedSender<PeerMessage>,
-    peer_list: Arc<PeerList>,
-    pow_target: Compact,
+    network_state: Arc<NetworkState>,
+    pow_target: U256,
 ) -> Result<Swarm<ChainNetworkBehavior>> {
     let auth_keys = libp2p::noise::Keypair::<X25519Spec>::new()
         .into_authentic(&node_identity.identity_keys())
@@ -93,7 +90,6 @@ async fn config_network(
         .boxed();
 
     let network_topic = Sha256Topic::new("testnet");
-
     let mdns = Mdns::new(Default::default())
         .await
         .expect("Cannot create mdns");
@@ -105,7 +101,7 @@ async fn config_network(
         cfg,
     );
 
-    let max_transmit_size = 500;
+    let max_transmit_size = 1_000_000;
     let config = GossipsubConfigBuilder::default()
         .max_transmit_size(max_transmit_size)
         .protocol_id_prefix("tuchain")
@@ -131,13 +127,15 @@ async fn config_network(
         requestresponse: RequestResponse::new(
             ChainP2pExchangeCodec,
             iter::once((ChainP2pExchangeProtocol, ProtocolSupport::Full)),
-            RequestResponseConfig::default(),
+            RequestResponseConfig::default()
+                .set_connection_keep_alive(Duration::from_secs(60))
+                .clone(),
         ),
         p2p_to_node,
         topic: network_topic.clone(),
         node: node_identity.to_p2p_node(),
         public_address,
-        peers: peer_list,
+        state: network_state,
         pow_target,
     };
 
@@ -152,30 +150,40 @@ async fn config_network(
     Ok(swarm)
 }
 
-async fn handle_send_message_to_peer(swarm: &mut Swarm<ChainNetworkBehavior>, peer_id: String, message: PeerMessage) -> Result<()> {
+async fn handle_send_message_to_peer(
+    swarm: &mut Swarm<ChainNetworkBehavior>,
+    peer_id: String,
+    message: PeerMessage,
+) -> Result<()> {
     let peer = PeerId::from_str(&peer_id).unwrap();
-    let _ = swarm.behaviour_mut().requestresponse.send_request(&peer, message);
+    let _ = swarm
+        .behaviour_mut()
+        .requestresponse
+        .send_request(&peer, message);
     Ok(())
 }
 
 pub async fn start_p2p_server(
+    config: Arc<EnvironmentConfig>,
     node_identity: NodeIdentity,
     mut node_to_p2p: UnboundedReceiver<NodeToPeerMessage>,
     p2p_to_node: UnboundedSender<PeerMessage>,
-    peer_arg: Option<String>,
-    peer_list: Arc<PeerList>,
-    pow_target: Compact,
+    peer_arg: Vec<String>,
+    pow_target: U256,
     network_state: Arc<NetworkState>,
     blockchain: Arc<dyn Blockchain>,
     request_handler: Arc<RequestHandler>,
 ) -> Result<()> {
     let mut swarm =
-        config_network(node_identity.clone(), p2p_to_node, peer_list, pow_target).await?;
+        config_network(node_identity.clone(), p2p_to_node, network_state.clone(), pow_target).await?;
 
-    Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/9020".parse()?)
+    Swarm::listen_on(
+        &mut swarm,
+        format!("/ip4/{}/tcp/{}", config.host, config.p2p_port).parse()?,
+    )
         .expect("Error connecting to p2p");
 
-    if let Some(to_dial) = peer_arg {
+    for to_dial in peer_arg {
         let addr: Multiaddr = to_dial.parse()?;
         let peer_id = match addr.iter().last() {
             Some(Protocol::P2p(hash)) => PeerId::from_multihash(hash).expect("Valid hash."),
@@ -184,12 +192,11 @@ pub async fn start_p2p_server(
         swarm
             .behaviour_mut()
             .kad
-            .add_address(&peer_id, addr.with(Protocol::P2p(peer_id.into())));
+            .add_address(&peer_id, addr.clone().with(Protocol::P2p(peer_id.into())));
         swarm
             .behaviour_mut()
             .kad
             .get_closest_peers(node_identity.peer_id().clone());
-        //swarm.dial(addr.with(Protocol::P2p(peer_id.into())))?;
     }
 
     tokio::task::spawn(async move {
@@ -214,13 +221,25 @@ pub async fn start_p2p_server(
 }
 
 async fn handle_publish_message(msg: PeerMessage, swarm: &mut Swarm<ChainNetworkBehavior>) {
-    if let Ok(encoded_msg) = msg.encode() {
-        let network_topic = swarm.behaviour_mut().topic.clone();
-        swarm
-            .behaviour_mut()
-            .gossipsub
-            .publish(network_topic, encoded_msg);
-    } else {
+    match msg.encode() {
+        Ok(encoded_msg) => {
+            let network_topic = swarm.behaviour_mut().topic.clone();
+            let res = swarm
+                .behaviour_mut()
+                .gossipsub
+                .publish(network_topic, encoded_msg);
+            match res {
+                Ok(message_id) => {
+                    debug!("Publish gossip message_id {}", message_id);
+                }
+                Err(error) => {
+                    debug!(error = ?error, "Publish gossip message");
+                }
+            }
+        }
+        Err(error) => {
+            debug!(error = ?error, "Publish gossip message");
+        }
     }
 }
 
@@ -229,7 +248,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
     swarm: &mut Swarm<ChainNetworkBehavior>,
     network_state: &Arc<NetworkState>,
     blockchain: &Arc<dyn Blockchain>,
-    request_handler: &RequestHandler
+    request_handler: &RequestHandler,
 ) {
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
@@ -270,14 +289,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Discovered(list))) => {
             for (peer, addr) in list {
                 info!(peer = ?addr, "New Peer discovered");
-                swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
+                if !swarm.is_connected(&peer) {
+                    swarm.dial(addr.clone()).unwrap();
+                }
+                //swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
             }
         }
         SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Expired(list))) => {
             for (peer, addr) in list {
                 warn!(peer = ?addr, "Peer expired");
                 if !swarm.behaviour_mut().mdns.has_node(&peer) {
-                    swarm.behaviour_mut().gossipsub.remove_explicit_peer(&peer);
+                    swarm.disconnect_peer_id(peer).unwrap();
                 }
             }
         }
@@ -301,17 +323,11 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             old_peer,
         })) => {
             if is_new_peer {
+                info!(peer = ?peer,"New Peer");
+                swarm.behaviour_mut().kad.get_closest_peers(peer.clone());
                 for address in addresses.iter() {
-                    let addr = swarm.behaviour_mut().public_address.clone();
-                    let request_id = swarm
-                        .behaviour_mut()
-                        .requestresponse
-                        .send_request(&peer, PeerMessage::Ack(addr));
-                    swarm.behaviour().peers.add_potential_peer(peer, request_id);
-                    swarm
-                        .behaviour()
-                        .peers
-                        .set_peer_address(peer, address.clone());
+                    info!(address = ?address,"Dialing new peer");
+                    swarm.dial(address.clone()).unwrap()
                 }
             }
         }
@@ -328,12 +344,13 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 PeerMessage::Ack(addr) => {
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
-                    chain_network.peers.set_peer_address(peer, addr.clone());
-                    chain_network.requestresponse.send_response(
+                    chain_network.state.peer_list().set_peer_address(peer, addr.clone());
+                    let _ = chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(
                             chain_network.node,
                             blockchain.current_header().unwrap().unwrap().raw,
+                            chain_network.public_address.clone(),
                         )),
                     );
                 }
@@ -357,7 +374,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 response,
             } => match &response {
                 PeerMessage::ReAck(msg) => {
-                    match swarm.behaviour().peers.promote_peer(
+                    let peers = swarm.behaviour().state.peer_list();
+                    match peers.promote_peer(
                         &peer,
                         request_id,
                         msg.node_info,
@@ -366,7 +384,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         Ok(_) => {
                             swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
                             network_state.update_peer_current_head(&peer, msg.current_header);
-                            info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?swarm.behaviour().peers.stats(),"Connected to new peer");
+                            info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?peers.stats(),"Connected to new peer");
                             network_state.handle_new_peer_connected(&peer).unwrap()
                         }
                         Err(error) => {
@@ -394,19 +412,19 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint: ConnectedPoint::Dialer { address },
             ..
         } => {
-            let addr = swarm.behaviour_mut().public_address.clone();
-            let request_id = swarm
-                .behaviour_mut()
-                .requestresponse
-                .send_request(&peer_id, PeerMessage::Ack(addr));
-            swarm
+            let peers = swarm
                 .behaviour()
-                .peers
-                .add_potential_peer(peer_id, request_id);
-            swarm
-                .behaviour()
-                .peers
-                .set_peer_address(peer_id, address.clone());
+                .state.peer_list();
+            if !peers.is_peer_connected(&peer_id) {
+                let addr = swarm.behaviour_mut().public_address.clone();
+                let request_id = swarm
+                    .behaviour_mut()
+                    .requestresponse
+                    .send_request(&peer_id, PeerMessage::Ack(addr));
+                peers.add_potential_peer(peer_id, request_id);
+                peers
+                    .set_peer_address(peer_id, address.clone());
+            }
             info!(peer = ?address,"Connection established");
         }
         SwarmEvent::ConnectionClosed {
@@ -416,12 +434,17 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             ..
         } => {
             if let Some(cause) = cause {
-                swarm.behaviour_mut().peers.remove_peer(&peer_id);
                 swarm
                     .behaviour_mut()
                     .gossipsub
                     .remove_explicit_peer(&peer_id);
                 swarm.behaviour_mut().kad.remove_peer(&peer_id);
+                match swarm.behaviour_mut().state.remove_peer(&peer_id) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        debug!(error = ?error, "Error removing peer");
+                    }
+                };
                 warn!(peer = ?peer_id, address = ?address, cause = ?cause, "Connection closed");
             }
         }
@@ -445,9 +468,9 @@ struct ChainNetworkBehavior {
     #[behaviour(ignore)]
     public_address: Multiaddr,
     #[behaviour(ignore)]
-    peers: Arc<PeerList>,
+    state: Arc<NetworkState>,
     #[behaviour(ignore)]
-    pow_target: Compact,
+    pow_target: U256,
 }
 
 #[derive(Debug)]

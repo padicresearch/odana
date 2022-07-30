@@ -1,6 +1,5 @@
 use crate::block::{Block, BlockHeader};
 use crate::tx::Transaction;
-
 #[derive(Clone, Debug)]
 pub enum LocalEventMessage {
     MindedBlock(Block),
@@ -11,10 +10,10 @@ pub enum LocalEventMessage {
     },
     NetworkHighestHeadChanged {
         peer_id: String,
-        current_head: BlockHeader,
+        tip: Option<BlockHeader>,
     },
     NetworkNewPeerConnection {
         stats: (usize, usize),
-        peer_id: String
+        peer_id: String,
     },
 }

@@ -217,11 +217,11 @@ macro_rules! construct_fixed_hash {
 		impl $crate::core_::fmt::Display for $name {
 			fn fmt(&self, f: &mut $crate::core_::fmt::Formatter) -> $crate::core_::fmt::Result {
 				$crate::core_::write!(f, "0x")?;
-				for i in &self.0[0..2] {
+				for i in &self.0[0..3] {
 					$crate::core_::write!(f, "{:02x}", i)?;
 				}
 				$crate::core_::write!(f, "…")?;
-				for i in &self.0[$n_bytes - 2..$n_bytes] {
+				for i in &self.0[$n_bytes - 3..$n_bytes] {
 					$crate::core_::write!(f, "{:02x}", i)?;
 				}
 				Ok(())

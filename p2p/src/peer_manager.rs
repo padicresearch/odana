@@ -1,15 +1,17 @@
 use std::collections::{BTreeSet, HashMap};
 use std::ops::Deref;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock};
 
 use anyhow::bail;
 use anyhow::Result;
 use dashmap::DashMap;
 use libp2p::request_response::RequestId;
+use libp2p::swarm::KeepAlive::No;
 use libp2p::{Multiaddr, PeerId};
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::Compact;
+use primitive_types::{Compact, U256};
 use tracing::level_enabled;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
@@ -47,7 +49,7 @@ impl PeerList {
         peer: &PeerId,
         request_id: RequestId,
         node: PeerNode,
-        pow_target: Compact,
+        pow_target: U256,
     ) -> Result<()> {
         if self.connected_peers.contains_key(peer) {
             return Ok(());
@@ -117,19 +119,23 @@ impl PeerList {
 
 pub struct NetworkState {
     peer_list: Arc<PeerList>,
-    peer_state: Arc<Mutex<HashMap<Arc<PeerId>, BlockHeader>>>,
+    peer_state: Arc<RwLock<HashMap<Arc<PeerId>, BlockHeader>>>,
     highest_know_head: RwLock<Option<Arc<PeerId>>>,
     sender: UnboundedSender<LocalEventMessage>,
 }
 
 impl NetworkState {
-    pub fn new(peer_list: Arc<PeerList>, sender: UnboundedSender<LocalEventMessage>) -> Self {
+    pub fn new(sender: UnboundedSender<LocalEventMessage>) -> Self {
         Self {
-            peer_list,
+            peer_list: Arc::new(PeerList::new()),
             peer_state: Default::default(),
             highest_know_head: RwLock::default(),
             sender,
         }
+    }
+
+    pub fn peer_list(&self) -> Arc<PeerList> {
+        self.peer_list.clone()
     }
 
     pub fn update_peer_current_head(&self, peer_id: &PeerId, head: BlockHeader) -> Result<()> {
@@ -138,7 +144,7 @@ impl NetworkState {
             "Peer is not connected"
         );
         let peer_state = self.peer_state.clone();
-        let mut peer_state = peer_state.lock().unwrap();
+        let mut peer_state = peer_state.write().unwrap();
         let peer = self.peer_list.get_peer(peer_id).unwrap();
         let mut highest_know_head = self.highest_know_head.write().unwrap();
         if let Some(highest_know_head) = highest_know_head.as_mut() {
@@ -157,8 +163,8 @@ impl NetworkState {
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
-                    current_head: head,
-                });
+                    tip: Some(head),
+                })?;
         } else {
             let mut new_highest = Some(peer.clone());
             *highest_know_head = new_highest;
@@ -166,8 +172,8 @@ impl NetworkState {
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
-                    current_head: head,
-                });
+                    tip: Some(head),
+                })?;
         }
         Ok(())
     }
@@ -187,8 +193,32 @@ impl NetworkState {
     }
 
     pub fn get_peer_state(&self, peer_id: &PeerId) -> Option<BlockHeader> {
-        let peer_state = self.peer_state.lock().unwrap();
-        return peer_state.get(peer_id).map(|value| value.clone())
+        let peer_state = self.peer_state.read().unwrap();
+        return peer_state.get(peer_id).map(|value| value.clone());
+    }
+
+    pub fn remove_peer(&self, peer_id: &PeerId) -> Result<()> {
+        {
+            let mut highest_know_head = self.highest_know_head.write().unwrap();
+            let peer_state = self.peer_state.clone();
+            if highest_know_head
+                .as_ref()
+                .map(|highest_know_head| highest_know_head.as_ref().eq(peer_id))
+                .unwrap_or(false)
+            {
+                *highest_know_head = None;
+            }
+            let mut peer_state = peer_state.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+            peer_state.remove(peer_id);
+            self.peer_list.remove_peer(peer_id);
+        }
+
+        self.sender
+            .send(LocalEventMessage::NetworkHighestHeadChanged {
+                peer_id: peer_id.to_string(),
+                tip: self.network_head(),
+            })
+            .map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     pub fn highest_peer(&self) -> Option<String> {
@@ -198,6 +228,26 @@ impl NetworkState {
             Some(peer_id) => Some(peer_id.to_string()),
         }
     }
+
+    pub fn highest_peer_raw(&self) -> Option<Arc<PeerId>> {
+        let mut highest_know_head = self.highest_know_head.read().unwrap();
+        match highest_know_head.clone() {
+            None => None,
+            Some(peer_id) => Some(peer_id.clone()),
+        }
+    }
+
+    pub fn network_head(&self) -> Option<BlockHeader> {
+        let mut highest_peer = self.highest_peer_raw();
+        match highest_peer {
+            None => None,
+            Some(peer_id) => {
+                let peer_state = self.peer_state.clone();
+                let mut peer_state = peer_state.read().unwrap();
+                peer_state.get(&peer_id).cloned()
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -205,7 +255,6 @@ mod test {
     use primitive_types::U256;
 
     use crate::identity::NodeIdentity;
-    use crate::p2p::NodeIdentity;
 
     pub const NODE_POW_TARGET: U256 = U256([
         0x0000000000000000u64,
@@ -216,7 +265,7 @@ mod test {
 
     #[test]
     fn check_pow() {
-        let node_iden = NodeIdentity::generate(NODE_POW_TARGET.into());
-        println!("Stramp {:#?}", node_iden.to_p2p_node());
+        let node_identity = NodeIdentity::generate(NODE_POW_TARGET.into());
+        println!("Stramp {:#?}", node_identity.to_p2p_node());
     }
 }

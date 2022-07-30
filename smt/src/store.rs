@@ -75,7 +75,7 @@ impl Database {
         )?);
 
         Ok(Self {
-            inner: Arc::new(RocksDB::new(db))
+            inner: Arc::new(RocksDB::new(db)),
         })
     }
 

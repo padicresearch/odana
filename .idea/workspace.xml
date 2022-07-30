@@ -36,12 +36,12 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rewrite sync">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="general improvement">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/request_handler.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/request_handler.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/uint/src/uint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/src/uint.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/src/crypto.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/crypto.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/merkle/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,10 +61,11 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="state-kernel" />
+        <entry key="$PROJECT_DIR$" value="master" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
   </component>
   <component name="GitSEFilterConfiguration">
     <file-type-list>
@@ -156,14 +157,14 @@
       <recent name="$PROJECT_DIR$/trie/src" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/node/src" />
       <recent name="$PROJECT_DIR$/p2p/src" />
       <recent name="$PROJECT_DIR$/morph/src/state" />
       <recent name="$PROJECT_DIR$/consensus/src" />
       <recent name="$PROJECT_DIR$/common/types/src" />
-      <recent name="$PROJECT_DIR$/morph/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Build">
+  <component name="RunManager" selected="Cargo.Clippy">
     <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build --package smt" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -249,6 +250,23 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Expand types::config [tuchain]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="expand --lib --color=always --theme=Dracula --tests config" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/common/types" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test config::test::test_config" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package types --lib config::test::test_config -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -266,8 +284,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::test_morph" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package state --lib tests::test_morph -- --exact" />
+    <configuration name="Test identity::test_generate_identity" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package p2p --lib identity::test_generate_identity -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -283,25 +301,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::txpool_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package txpool --lib tests::txpool_test -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test tree::tests::basic_test_genesis_root" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib tree::tests::basic_test_genesis_root -- --exact" />
+    <configuration name="Test tests::print_difficulty" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package primitive-types --lib tests::print_difficulty -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -358,12 +359,20 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test tree::tests::basic_test_genesis_root" />
+      <item itemvalue="Cargo.Expand types::config [tuchain]" />
+      <item itemvalue="Cargo.Test identity::test_generate_identity" />
+      <item itemvalue="Cargo.Test tests::print_difficulty" />
       <item itemvalue="Cargo.Test config::test::test_config" />
-      <item itemvalue="Cargo.Test tests::test_morph" />
-      <item itemvalue="Cargo.Test tests::txpool_test" />
       <item itemvalue="Cargo.Test trie::tests::basic_test" />
     </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Cargo.Test identity::test_generate_identity" />
+        <item itemvalue="Cargo.Test tests::print_difficulty" />
+        <item itemvalue="Cargo.Expand types::config [tuchain]" />
+        <item itemvalue="Cargo.Test config::test::test_config" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
@@ -486,210 +495,11 @@
       <workItem from="1656843272705" duration="30000" />
       <workItem from="1656843322011" duration="10439000" />
       <workItem from="1657032439521" duration="1196000" />
-      <workItem from="1657298738734" duration="5185000" />
-    </task>
-    <task id="LOCAL-00159" summary="implemented sparse merkle tree">
-      <created>1652805116068</created>
-      <option name="number" value="00159" />
-      <option name="presentableId" value="LOCAL-00159" />
-      <option name="project" value="LOCAL" />
-      <updated>1652805116069</updated>
-    </task>
-    <task id="LOCAL-00160" summary="Implemented Trie with `reset`">
-      <created>1653117795250</created>
-      <option name="number" value="00160" />
-      <option name="presentableId" value="LOCAL-00160" />
-      <option name="project" value="LOCAL" />
-      <updated>1653117795251</updated>
-    </task>
-    <task id="LOCAL-00161" summary="cargo fmt">
-      <created>1653118604745</created>
-      <option name="number" value="00161" />
-      <option name="presentableId" value="LOCAL-00161" />
-      <option name="project" value="LOCAL" />
-      <updated>1653118604745</updated>
-    </task>
-    <task id="LOCAL-00162" summary="cleanup imports">
-      <created>1653118679915</created>
-      <option name="number" value="00162" />
-      <option name="presentableId" value="LOCAL-00162" />
-      <option name="project" value="LOCAL" />
-      <updated>1653118679915</updated>
-    </task>
-    <task id="LOCAL-00163" summary="clean up: remove `staging_keys`">
-      <created>1653118868335</created>
-      <option name="number" value="00163" />
-      <option name="presentableId" value="LOCAL-00163" />
-      <option name="project" value="LOCAL" />
-      <updated>1653118868335</updated>
-    </task>
-    <task id="LOCAL-00164" summary="error formatting">
-      <created>1653119704824</created>
-      <option name="number" value="00164" />
-      <option name="presentableId" value="LOCAL-00164" />
-      <option name="project" value="LOCAL" />
-      <updated>1653119704824</updated>
-    </task>
-    <task id="LOCAL-00165" summary="cargo fmt">
-      <created>1653119731908</created>
-      <option name="number" value="00165" />
-      <option name="presentableId" value="LOCAL-00165" />
-      <option name="project" value="LOCAL" />
-      <updated>1653119731908</updated>
-    </task>
-    <task id="LOCAL-00166" summary="improvement">
-      <created>1653120457086</created>
-      <option name="number" value="00166" />
-      <option name="presentableId" value="LOCAL-00166" />
-      <option name="project" value="LOCAL" />
-      <updated>1653120457086</updated>
-    </task>
-    <task id="LOCAL-00167" summary="fix `apply`: reset staging after applying changes">
-      <created>1653120599730</created>
-      <option name="number" value="00167" />
-      <option name="presentableId" value="LOCAL-00167" />
-      <option name="project" value="LOCAL" />
-      <updated>1653120599730</updated>
-    </task>
-    <task id="LOCAL-00168" summary="clean up + formatting">
-      <created>1653131743718</created>
-      <option name="number" value="00168" />
-      <option name="presentableId" value="LOCAL-00168" />
-      <option name="project" value="LOCAL" />
-      <updated>1653131743718</updated>
-    </task>
-    <task id="LOCAL-00169" summary="add rollback">
-      <created>1653144374317</created>
-      <option name="number" value="00169" />
-      <option name="presentableId" value="LOCAL-00169" />
-      <option name="project" value="LOCAL" />
-      <updated>1653144374317</updated>
-    </task>
-    <task id="LOCAL-00170" summary="chore: code improvement">
-      <created>1653146324179</created>
-      <option name="number" value="00170" />
-      <option name="presentableId" value="LOCAL-00170" />
-      <option name="project" value="LOCAL" />
-      <updated>1653146324179</updated>
-    </task>
-    <task id="LOCAL-00171" summary="change state">
-      <created>1653373695434</created>
-      <option name="number" value="00171" />
-      <option name="presentableId" value="LOCAL-00171" />
-      <option name="project" value="LOCAL" />
-      <updated>1653373695437</updated>
-    </task>
-    <task id="LOCAL-00172" summary="refactor: rename `Trie` to `Tree`">
-      <created>1653584576711</created>
-      <option name="number" value="00172" />
-      <option name="presentableId" value="LOCAL-00172" />
-      <option name="project" value="LOCAL" />
-      <updated>1653584576711</updated>
-    </task>
-    <task id="LOCAL-00173" summary="remove sqlite">
-      <created>1655583895644</created>
-      <option name="number" value="00173" />
-      <option name="presentableId" value="LOCAL-00173" />
-      <option name="project" value="LOCAL" />
-      <updated>1655583895644</updated>
-    </task>
-    <task id="LOCAL-00174" summary="remove sqlite">
-      <created>1655584050604</created>
-      <option name="number" value="00174" />
-      <option name="presentableId" value="LOCAL-00174" />
-      <option name="project" value="LOCAL" />
-      <updated>1655584050604</updated>
-    </task>
-    <task id="LOCAL-00175" summary="p2p hot fix">
-      <created>1655584750688</created>
-      <option name="number" value="00175" />
-      <option name="presentableId" value="LOCAL-00175" />
-      <option name="project" value="LOCAL" />
-      <updated>1655584750688</updated>
-    </task>
-    <task id="LOCAL-00176" summary="p2p hot fix">
-      <created>1655585167070</created>
-      <option name="number" value="00176" />
-      <option name="presentableId" value="LOCAL-00176" />
-      <option name="project" value="LOCAL" />
-      <updated>1655585167070</updated>
-    </task>
-    <task id="LOCAL-00177" summary="p2p hot fix">
-      <created>1655587220524</created>
-      <option name="number" value="00177" />
-      <option name="presentableId" value="LOCAL-00177" />
-      <option name="project" value="LOCAL" />
-      <updated>1655587220524</updated>
-    </task>
-    <task id="LOCAL-00178" summary="p2p hot fix">
-      <created>1655587292024</created>
-      <option name="number" value="00178" />
-      <option name="presentableId" value="LOCAL-00178" />
-      <option name="project" value="LOCAL" />
-      <updated>1655587292025</updated>
-    </task>
-    <task id="LOCAL-00179" summary="p2p hot fix">
-      <created>1655636741551</created>
-      <option name="number" value="00179" />
-      <option name="presentableId" value="LOCAL-00179" />
-      <option name="project" value="LOCAL" />
-      <updated>1655636741552</updated>
-    </task>
-    <task id="LOCAL-00180" summary="p2p hot fix">
-      <created>1655658811765</created>
-      <option name="number" value="00180" />
-      <option name="presentableId" value="LOCAL-00180" />
-      <option name="project" value="LOCAL" />
-      <updated>1655658811765</updated>
-    </task>
-    <task id="LOCAL-00181" summary="p2p hot fix">
-      <created>1655660573291</created>
-      <option name="number" value="00181" />
-      <option name="presentableId" value="LOCAL-00181" />
-      <option name="project" value="LOCAL" />
-      <updated>1655660573291</updated>
-    </task>
-    <task id="LOCAL-00182" summary="p2p hot fix">
-      <created>1655660660741</created>
-      <option name="number" value="00182" />
-      <option name="presentableId" value="LOCAL-00182" />
-      <option name="project" value="LOCAL" />
-      <updated>1655660660741</updated>
-    </task>
-    <task id="LOCAL-00183" summary="p2p hot fix">
-      <created>1655661704957</created>
-      <option name="number" value="00183" />
-      <option name="presentableId" value="LOCAL-00183" />
-      <option name="project" value="LOCAL" />
-      <updated>1655661704957</updated>
-    </task>
-    <task id="LOCAL-00184" summary="p2p hot fix">
-      <created>1655890877576</created>
-      <option name="number" value="00184" />
-      <option name="presentableId" value="LOCAL-00184" />
-      <option name="project" value="LOCAL" />
-      <updated>1655890877577</updated>
-    </task>
-    <task id="LOCAL-00185" summary="implement sync">
-      <created>1656033150762</created>
-      <option name="number" value="00185" />
-      <option name="presentableId" value="LOCAL-00185" />
-      <option name="project" value="LOCAL" />
-      <updated>1656033150763</updated>
-    </task>
-    <task id="LOCAL-00186" summary="implement sync">
-      <created>1656033531020</created>
-      <option name="number" value="00186" />
-      <option name="presentableId" value="LOCAL-00186" />
-      <option name="project" value="LOCAL" />
-      <updated>1656033531020</updated>
-    </task>
-    <task id="LOCAL-00187" summary="implement sync">
-      <created>1656034127850</created>
-      <option name="number" value="00187" />
-      <option name="presentableId" value="LOCAL-00187" />
-      <option name="project" value="LOCAL" />
-      <updated>1656034127850</updated>
+      <workItem from="1657298738734" duration="5870000" />
+      <workItem from="1657485625540" duration="598000" />
+      <workItem from="1657581288548" duration="4926000" />
+      <workItem from="1657735229817" duration="98387000" />
+      <workItem from="1658343253983" duration="106957000" />
     </task>
     <task id="LOCAL-00188" summary="implement sync">
       <created>1656143965928</created>
@@ -831,7 +641,210 @@
       <option name="project" value="LOCAL" />
       <updated>1657304685249</updated>
     </task>
-    <option name="localTasksCounter" value="208" />
+    <task id="LOCAL-00208" summary="rewrite sync">
+      <created>1657307715192</created>
+      <option name="number" value="00208" />
+      <option name="presentableId" value="LOCAL-00208" />
+      <option name="project" value="LOCAL" />
+      <updated>1657307715192</updated>
+    </task>
+    <task id="LOCAL-00209" summary="rewrite sync">
+      <created>1658059409418</created>
+      <option name="number" value="00209" />
+      <option name="presentableId" value="LOCAL-00209" />
+      <option name="project" value="LOCAL" />
+      <updated>1658059409419</updated>
+    </task>
+    <task id="LOCAL-00210" summary="rewrite sync">
+      <created>1658185424418</created>
+      <option name="number" value="00210" />
+      <option name="presentableId" value="LOCAL-00210" />
+      <option name="project" value="LOCAL" />
+      <updated>1658185424418</updated>
+    </task>
+    <task id="LOCAL-00211" summary="rewrite sync">
+      <created>1658189296153</created>
+      <option name="number" value="00211" />
+      <option name="presentableId" value="LOCAL-00211" />
+      <option name="project" value="LOCAL" />
+      <updated>1658189296153</updated>
+    </task>
+    <task id="LOCAL-00212" summary="rewrite sync">
+      <created>1658189658523</created>
+      <option name="number" value="00212" />
+      <option name="presentableId" value="LOCAL-00212" />
+      <option name="project" value="LOCAL" />
+      <updated>1658189658523</updated>
+    </task>
+    <task id="LOCAL-00213" summary="rewrite sync">
+      <created>1658190739745</created>
+      <option name="number" value="00213" />
+      <option name="presentableId" value="LOCAL-00213" />
+      <option name="project" value="LOCAL" />
+      <updated>1658190739745</updated>
+    </task>
+    <task id="LOCAL-00214" summary="rewrite sync">
+      <created>1658191224303</created>
+      <option name="number" value="00214" />
+      <option name="presentableId" value="LOCAL-00214" />
+      <option name="project" value="LOCAL" />
+      <updated>1658191224303</updated>
+    </task>
+    <task id="LOCAL-00215" summary="rewrite sync">
+      <created>1658199055260</created>
+      <option name="number" value="00215" />
+      <option name="presentableId" value="LOCAL-00215" />
+      <option name="project" value="LOCAL" />
+      <updated>1658199055260</updated>
+    </task>
+    <task id="LOCAL-00216" summary="rewrite sync">
+      <created>1658200909734</created>
+      <option name="number" value="00216" />
+      <option name="presentableId" value="LOCAL-00216" />
+      <option name="project" value="LOCAL" />
+      <updated>1658200909734</updated>
+    </task>
+    <task id="LOCAL-00217" summary="rewrite sync">
+      <created>1658201042293</created>
+      <option name="number" value="00217" />
+      <option name="presentableId" value="LOCAL-00217" />
+      <option name="project" value="LOCAL" />
+      <updated>1658201042293</updated>
+    </task>
+    <task id="LOCAL-00218" summary="rewrite sync">
+      <created>1658219263798</created>
+      <option name="number" value="00218" />
+      <option name="presentableId" value="LOCAL-00218" />
+      <option name="project" value="LOCAL" />
+      <updated>1658219263798</updated>
+    </task>
+    <task id="LOCAL-00219" summary="rewrite sync">
+      <created>1658242422219</created>
+      <option name="number" value="00219" />
+      <option name="presentableId" value="LOCAL-00219" />
+      <option name="project" value="LOCAL" />
+      <updated>1658242422219</updated>
+    </task>
+    <task id="LOCAL-00220" summary="rewrite sync">
+      <created>1658272422674</created>
+      <option name="number" value="00220" />
+      <option name="presentableId" value="LOCAL-00220" />
+      <option name="project" value="LOCAL" />
+      <updated>1658272422674</updated>
+    </task>
+    <task id="LOCAL-00221" summary="rewrite sync">
+      <created>1658273084714</created>
+      <option name="number" value="00221" />
+      <option name="presentableId" value="LOCAL-00221" />
+      <option name="project" value="LOCAL" />
+      <updated>1658273084714</updated>
+    </task>
+    <task id="LOCAL-00222" summary="rewrite sync">
+      <created>1658273629092</created>
+      <option name="number" value="00222" />
+      <option name="presentableId" value="LOCAL-00222" />
+      <option name="project" value="LOCAL" />
+      <updated>1658273629092</updated>
+    </task>
+    <task id="LOCAL-00223" summary="rewrite sync">
+      <created>1658273799042</created>
+      <option name="number" value="00223" />
+      <option name="presentableId" value="LOCAL-00223" />
+      <option name="project" value="LOCAL" />
+      <updated>1658273799042</updated>
+    </task>
+    <task id="LOCAL-00224" summary="networking refactor">
+      <created>1658343806681</created>
+      <option name="number" value="00224" />
+      <option name="presentableId" value="LOCAL-00224" />
+      <option name="project" value="LOCAL" />
+      <updated>1658343806681</updated>
+    </task>
+    <task id="LOCAL-00225" summary="networking refactor">
+      <created>1658344458692</created>
+      <option name="number" value="00225" />
+      <option name="presentableId" value="LOCAL-00225" />
+      <option name="project" value="LOCAL" />
+      <updated>1658344458692</updated>
+    </task>
+    <task id="LOCAL-00226" summary="networking refactor">
+      <created>1658345023114</created>
+      <option name="number" value="00226" />
+      <option name="presentableId" value="LOCAL-00226" />
+      <option name="project" value="LOCAL" />
+      <updated>1658345023114</updated>
+    </task>
+    <task id="LOCAL-00227" summary="networking refactor">
+      <created>1658346325261</created>
+      <option name="number" value="00227" />
+      <option name="presentableId" value="LOCAL-00227" />
+      <option name="project" value="LOCAL" />
+      <updated>1658346325261</updated>
+    </task>
+    <task id="LOCAL-00228" summary="networking refactor">
+      <created>1658358048388</created>
+      <option name="number" value="00228" />
+      <option name="presentableId" value="LOCAL-00228" />
+      <option name="project" value="LOCAL" />
+      <updated>1658358048388</updated>
+    </task>
+    <task id="LOCAL-00229" summary="networking refactor">
+      <created>1658359761944</created>
+      <option name="number" value="00229" />
+      <option name="presentableId" value="LOCAL-00229" />
+      <option name="project" value="LOCAL" />
+      <updated>1658359761944</updated>
+    </task>
+    <task id="LOCAL-00230" summary="networking refactor">
+      <created>1658525157847</created>
+      <option name="number" value="00230" />
+      <option name="presentableId" value="LOCAL-00230" />
+      <option name="project" value="LOCAL" />
+      <updated>1658525157848</updated>
+    </task>
+    <task id="LOCAL-00231" summary="networking refactor">
+      <created>1658526451103</created>
+      <option name="number" value="00231" />
+      <option name="presentableId" value="LOCAL-00231" />
+      <option name="project" value="LOCAL" />
+      <updated>1658526451104</updated>
+    </task>
+    <task id="LOCAL-00232" summary="networking refactor">
+      <created>1658526506100</created>
+      <option name="number" value="00232" />
+      <option name="presentableId" value="LOCAL-00232" />
+      <option name="project" value="LOCAL" />
+      <updated>1658526506100</updated>
+    </task>
+    <task id="LOCAL-00233" summary="networking refactor">
+      <created>1658536401088</created>
+      <option name="number" value="00233" />
+      <option name="presentableId" value="LOCAL-00233" />
+      <option name="project" value="LOCAL" />
+      <updated>1658536401088</updated>
+    </task>
+    <task id="LOCAL-00234" summary="- networking refactor&#10;- cli commands implementation">
+      <created>1658877400986</created>
+      <option name="number" value="00234" />
+      <option name="presentableId" value="LOCAL-00234" />
+      <option name="project" value="LOCAL" />
+      <updated>1658877400986</updated>
+    </task>
+    <task id="LOCAL-00235" summary="cargo fmt">
+      <created>1658877427185</created>
+      <option name="number" value="00235" />
+      <option name="presentableId" value="LOCAL-00235" />
+      <option name="project" value="LOCAL" />
+      <updated>1658877427185</updated>
+    </task>
+    <task id="LOCAL-00236" summary="general improvement">
+      <created>1659086122093</created>
+      <option name="number" value="00236" />
+      <option name="presentableId" value="LOCAL-00236" />
+      <option name="project" value="LOCAL" />
+      <updated>1659086122093</updated>
+    </task>
+    <option name="localTasksCounter" value="237" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -862,9 +875,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="begin sparse merkle tree" />
-    <MESSAGE value="persistence refactor" />
-    <MESSAGE value="refactor" />
     <MESSAGE value="fixes" />
     <MESSAGE value="bug fixes: proof now working" />
     <MESSAGE value="export functions" />
@@ -874,7 +884,6 @@
     <MESSAGE value="cleanup imports" />
     <MESSAGE value="clean up: remove `staging_keys`" />
     <MESSAGE value="error formatting" />
-    <MESSAGE value="cargo fmt" />
     <MESSAGE value="improvement" />
     <MESSAGE value="fix `apply`: reset staging after applying changes" />
     <MESSAGE value="clean up + formatting" />
@@ -887,7 +896,11 @@
     <MESSAGE value="implement sync" />
     <MESSAGE value="delete miner-test" />
     <MESSAGE value="rewrite sync" />
-    <option name="LAST_COMMIT_MESSAGE" value="rewrite sync" />
+    <MESSAGE value="networking refactor" />
+    <MESSAGE value="- networking refactor&#10;- cli commands implementation" />
+    <MESSAGE value="cargo fmt" />
+    <MESSAGE value="general improvement" />
+    <option name="LAST_COMMIT_MESSAGE" value="general improvement" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

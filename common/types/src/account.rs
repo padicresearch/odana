@@ -7,7 +7,7 @@ use codec::impl_codec;
 use codec::{Decoder, Encoder};
 use crypto::ecdsa::{PublicKey, SecretKey, Signature};
 use crypto::{RIPEMD160, SHA256};
-use primitive_types::H160;
+use primitive_types::{H160, H256};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountState {
@@ -31,7 +31,7 @@ impl_codec!(AccountState);
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {
     pub address: H160,
-    pub pri_key: [u8; 32],
+    pub secret: H256,
 }
 
 impl_codec!(Account);
@@ -52,7 +52,7 @@ impl Hash for Account {
 
 impl Account {
     pub fn sign(&self, payload: &[u8]) -> Result<Signature> {
-        let secrete = SecretKey::from_bytes(&self.pri_key)?;
+        let secrete = SecretKey::from_bytes(self.secret.as_fixed_bytes())?;
         secrete.sign(payload).map_err(|e| e.into())
     }
 }

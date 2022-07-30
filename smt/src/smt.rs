@@ -3,12 +3,12 @@ use crate::proof::{verify_proof_with_updates, Proof};
 use crate::store::{ArchivedStorage, DatabaseBackend};
 use crate::treehasher::TreeHasher;
 use crate::utils::{count_common_prefix, get_bits_at_from_msb};
+use crate::CopyStrategy;
 use anyhow::{bail, Result};
 use codec::{Decoder, Encoder};
 use hex::ToHex;
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
-use crate::CopyStrategy;
 
 impl TreeHasher for SparseMerkleTree {}
 
@@ -421,8 +421,8 @@ impl SparseMerkleTree {
 #[cfg(test)]
 mod tests {
     use crate::smt::SparseMerkleTree;
-    use std::string::String;
     use crate::CopyStrategy;
+    use std::string::String;
 
     #[test]
     fn basic_get_set_check_root_test() {

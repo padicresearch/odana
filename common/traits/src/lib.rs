@@ -83,3 +83,7 @@ pub trait Consensus: Send + Sync {
     fn miner_reward(&self, block_level: i32) -> u128;
     fn get_genesis_header(&self) -> BlockHeader;
 }
+
+pub trait Handler<T> {
+    fn handle(&mut self, msg: T);
+}

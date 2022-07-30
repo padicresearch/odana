@@ -128,7 +128,7 @@ impl From<FromHexError> for FromStrRadixErr {
 }
 
 /// Conversion from decimal string error
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum FromDecStrErr {
 	/// Char not from range 0-9
 	InvalidCharacter,

@@ -25,16 +25,26 @@ impl BlockStorage {
 
     pub fn put(&self, block: Block) -> Result<()> {
         let block_key = self.primary.put(block)?;
-        self.block_by_hash.put(block_key.0, block_key.clone());
-        self.block_by_level.put(block_key.1, block_key.clone());
+        self.block_by_hash.put(block_key.0, block_key.clone())?;
+        self.block_by_level.put(block_key.1, block_key.clone())?;
         Ok(())
     }
 
-    pub fn get_blocks<'a>(&'a self, hash: &'a Hash, level: i32) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<Block>)>>> {
+    pub fn delete(&self, hash: Hash, level: i32) -> Result<()> {
+        let block_key = BlockPrimaryKey(hash, level);
+        self.block_by_level.delete(block_key.1)?;
+        Ok(())
+    }
+
+    pub fn get_blocks<'a>(
+        &'a self,
+        hash: &'a Hash,
+        level: i32,
+    ) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<Block>)>>> {
         let primary_key = BlockPrimaryKey(*hash, level);
-        Ok(Box::new(self.primary.get_blocks(&primary_key)?.map(|(k, v)| {
-            v
-        })))
+        Ok(Box::new(
+            self.primary.get_blocks(&primary_key)?.map(|(k, v)| v),
+        ))
     }
 }
 
@@ -82,7 +92,7 @@ impl ChainReader for BlockStorage {
         if let Some(primary_key) = primary_key {
             return self.get_block(&primary_key.0, primary_key.1);
         }
-        return Ok(None)
+        return Ok(None);
     }
 }
 
@@ -120,7 +130,18 @@ impl BlockPrimaryStorage {
         self.kv.get(block_key)
     }
 
-    pub fn get_blocks(&self, start_at: &BlockPrimaryKey) -> Result<StorageIterator<BlockPrimaryStorage>> {
+    pub fn delete_block(&self, block_key: &BlockPrimaryKey) -> Result<()> {
+        self.kv.delete(block_key)
+    }
+
+    pub fn has_block(&self, block_key: &BlockPrimaryKey) -> Result<bool> {
+        self.kv.contains(block_key)
+    }
+
+    pub fn get_blocks(
+        &self,
+        start_at: &BlockPrimaryKey,
+    ) -> Result<StorageIterator<BlockPrimaryStorage>> {
         self.kv.prefix_iter(&start_at)
     }
 }
@@ -154,6 +175,10 @@ impl BlockByLevel {
     pub fn get(&self, level: i32) -> Result<Option<BlockPrimaryKey>> {
         self.kv.get(&(level as u32))
     }
+
+    pub fn delete(&self, key: i32) -> Result<()> {
+        self.kv.delete(&(key as u32))
+    }
 }
 
 /// Block by hash index
@@ -179,11 +204,13 @@ impl BlockByHash {
     pub fn put(&self, hash: Hash, primary_key: BlockPrimaryKey) -> Result<()> {
         self.kv.put(hash, primary_key)
     }
+    pub fn delete(&self, hash: &Hash) -> Result<()> {
+        self.kv.delete(hash)
+    }
     pub fn get(&self, hash: &Hash) -> Result<Option<BlockPrimaryKey>> {
         self.kv.get(hash)
     }
 }
-
 
 pub struct BlockHeadersStorage {
     primary: Arc<BlockPrimaryStorage>,

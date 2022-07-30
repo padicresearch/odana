@@ -1,9 +1,10 @@
 use crate::error::Error;
-use crate::proof::{Proof, verify_proof_with_updates};
+use crate::proof::{verify_proof_with_updates, Proof};
 use crate::store::Database;
 use crate::SparseMerkleTree;
 use anyhow::Result;
 use codec::{Codec, Decoder, Encoder};
+use hex::ToHex;
 use primitive_types::H256;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -11,7 +12,6 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
-use hex::ToHex;
 
 #[derive(Copy, Clone)]
 pub enum CopyStrategy {
@@ -56,9 +56,9 @@ pub struct Tree<K, V> {
 }
 
 impl<K, V> Tree<K, V>
-    where
-        K: Codec,
-        V: Codec,
+where
+    K: Codec,
+    V: Codec,
 {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open(path)?;
@@ -196,7 +196,7 @@ impl<K, V> Tree<K, V>
         }
         let new_root = tree.root();
         self.db.put(new_root, tree)?;
-        return Ok(new_root)
+        return Ok(new_root);
     }
 
     pub fn commit(&self) -> Result<H256> {
@@ -240,7 +240,9 @@ impl<K, V> Tree<K, V>
     pub fn get_with_proof(&self, key: &K) -> Result<(V, Proof)> {
         let mut head = self.head.read().map_err(|e| Error::RWPoison)?;
         let raw_key = key.encode()?;
-        let value = self.get(key)?.ok_or(Error::InvalidKey(raw_key.encode_hex()))?;
+        let value = self
+            .get(key)?
+            .ok_or(Error::InvalidKey(raw_key.encode_hex()))?;
         let proof = head.proof(&raw_key)?;
         Ok((value, proof))
     }
@@ -303,7 +305,9 @@ impl Verifier {
     {
         let key = key.encode()?;
         let value = IValue::Value(value.encode()?).encode()?;
-        return verify_proof_with_updates(proof, root, &key, &value).map(|_| ()).map_err(|e| e.into());
+        return verify_proof_with_updates(proof, root, &key, &value)
+            .map(|_| ())
+            .map_err(|e| e.into());
     }
 }
 
@@ -476,7 +480,12 @@ mod tests {
         println!("{:#?}", (&value, &proof));
         println!(
             "{:?}",
-            Verifier::verify_proof(&proof, tree.root().unwrap(), H256::from_slice(&vec![1; 32]), value)
+            Verifier::verify_proof(
+                &proof,
+                tree.root().unwrap(),
+                H256::from_slice(&vec![1; 32]),
+                value,
+            )
         )
     }
 

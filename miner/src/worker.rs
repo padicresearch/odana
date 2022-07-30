@@ -3,13 +3,14 @@ use std::sync::atomic::{AtomicBool, AtomicI8, Ordering};
 use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
+use blockchain::block_storage::BlockStorage;
 use chrono::Utc;
 use tokio::sync::mpsc::UnboundedSender;
-use blockchain::block_storage::BlockStorage;
 
 use merkle::Merkle;
+use p2p::peer_manager::NetworkState;
 use primitive_types::{H160, H256, U256};
-use tracing::{info, warn, debug};
+use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 use txpool::TxPool;
 use types::block::{Block, BlockHeader};
@@ -28,7 +29,7 @@ pub fn start_worker(
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
     chain: Arc<dyn Blockchain>,
-    block_storage: Arc<BlockStorage>,
+    network: Arc<NetworkState>,
     chain_header_reader: Arc<dyn ChainHeadReader>,
     interrupt: Arc<AtomicI8>,
 ) -> Result<()> {
@@ -36,50 +37,55 @@ pub fn start_worker(
     let mut current_block_template: Option<(BlockHeader, Vec<Transaction>)> = None;
     info!(miner = ?coinbase, "mine worker started running");
     loop {
-        let mut running = is_running.load(Ordering::Acquire);
+        let _ = is_running.load(Ordering::Acquire);
         let i = interrupt.load(Ordering::Acquire);
         if i == SHUTDOWN {
             is_running.store(false, Ordering::Release);
             warn!(reason = i, "⛔ mine worker shutting down");
             return Ok(());
-        } else if i == PAUSE {
-            is_running.store(false, Ordering::Release);
-            continue;
-        } else if i == RESET {
-            current_block_template = None;
-            interrupt.store(START, Ordering::Release);
+        }
+
+        let network_head = network
+            .network_head()
+            .map(|block| block.level)
+            .unwrap_or_default();
+        let node_head = chain
+            .current_header()
+            .map(|block| block.map(|block| block.raw.level).unwrap_or_default())
+            .unwrap_or_default();
+
+        if network_head > node_head {
             continue;
         }
 
-        if !running {
-            is_running.store(true, Ordering::Release);
-        }
-        let (mut block_template, txs) = match &current_block_template {
-            None => {
-                let (head, txs) = make_block_template(
-                    coinbase.to_fixed_bytes(),
-                    consensus.clone(),
-                    txpool.clone(),
-                    chain.get_current_state()?,
-                    chain.clone(),
-                    chain_header_reader.clone(),
-                )?;
-                current_block_template = Some((head.clone(), txs.clone()));
-                debug!(coinbase = ?coinbase, txs_count = txs.len(), "🚧 mining a new block");
-                (head, txs)
-            }
-            Some((head, txs)) => (head.clone(), txs.clone()),
+        let (mut block_template, txs) = {
+            let (head, txs) = make_block_template(
+                coinbase.to_fixed_bytes(),
+                consensus.clone(),
+                txpool.clone(),
+                chain.get_current_state()?,
+                chain.clone(),
+                chain_header_reader.clone(),
+            )?;
+            current_block_template = Some((head.clone(), txs.clone()));
+            debug!(coinbase = ?coinbase, txs_count = txs.len(), "🚧 mining a new block");
+            (head, txs)
         };
 
         loop {
-            let i = interrupt.load(Ordering::Acquire);
-            if i == SHUTDOWN {
-                break;
-            } else if i == PAUSE {
-                break;
-            } else if i == RESET {
+            let network_head = network
+                .network_head()
+                .map(|block| block.level)
+                .unwrap_or_default();
+            let node_head = chain
+                .current_header()
+                .map(|block| block.map(|block| block.raw.level).unwrap_or_default())
+                .unwrap_or_default();
+
+            if network_head > node_head {
                 break;
             }
+
             if U256::from(block_template.nonce) + U256::one() > U256::from(u128::MAX) {
                 let nonce = U256::from(block_template.nonce) + U256::one();
                 let mut mix_nonce = U256::from(block_template.mix_nonce);
@@ -99,18 +105,20 @@ pub fn start_worker(
                 let hash = block_template.hash();
                 let level = block_template.level;
 
-                let current_head = chain.current_header()?.unwrap();
+                let node_head = chain
+                    .current_header()
+                    .map(|block| block.map(|block| block.raw.level).unwrap_or_default())
+                    .unwrap_or_default();
 
-                if current_head.raw.level > level {
-                    interrupt.store(RESET, Ordering::Release);
+                if node_head >= level {
                     break;
                 }
-
 
                 info!(level = level, hash = ?hex::encode(hash), parent_hash = ?format!("{}", H256::from(block_template.parent_hash)), "⛏ mined new block");
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
-                block_storage.put(block.clone());
+                let blocks = vec![block.clone()];
+                chain.put_chain(consensus.clone(), blocks).unwrap();
                 lmpsc.send(LocalEventMessage::MindedBlock(block));
                 break;
             }
