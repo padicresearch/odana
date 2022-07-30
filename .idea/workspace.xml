@@ -36,12 +36,9 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="general improvement">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="fix clippy">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/src/uint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/src/uint.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/merkle/src/crypto.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/crypto.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/merkle/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/merkle/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,7 +58,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="forward-backward-sync" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -164,7 +161,7 @@
       <recent name="$PROJECT_DIR$/common/types/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Clippy">
+  <component name="RunManager" selected="Cargo.Build">
     <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build --package smt" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -250,23 +247,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Expand types::config [tuchain]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="expand --lib --color=always --theme=Dracula --tests config" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$/common/types" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Test config::test::test_config" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package types --lib config::test::test_config -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -284,8 +264,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test identity::test_generate_identity" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package p2p --lib identity::test_generate_identity -- --exact" />
+    <configuration name="Test tests::test_morph" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package state --lib tests::test_morph -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -301,8 +281,25 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::print_difficulty" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package primitive-types --lib tests::print_difficulty -- --exact" />
+    <configuration name="Test tests::txpool_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package txpool --lib tests::txpool_test -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tree::tests::basic_test_genesis_root" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package smt --lib tree::tests::basic_test_genesis_root -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -359,18 +356,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Expand types::config [tuchain]" />
-      <item itemvalue="Cargo.Test identity::test_generate_identity" />
-      <item itemvalue="Cargo.Test tests::print_difficulty" />
+      <item itemvalue="Cargo.Test tests::test_morph" />
+      <item itemvalue="Cargo.Test tests::txpool_test" />
+      <item itemvalue="Cargo.Test tree::tests::basic_test_genesis_root" />
       <item itemvalue="Cargo.Test config::test::test_config" />
       <item itemvalue="Cargo.Test trie::tests::basic_test" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test identity::test_generate_identity" />
-        <item itemvalue="Cargo.Test tests::print_difficulty" />
-        <item itemvalue="Cargo.Expand types::config [tuchain]" />
+        <item itemvalue="Cargo.Test trie::tests::basic_test" />
+        <item itemvalue="Cargo.Test tests::txpool_test" />
+        <item itemvalue="Cargo.Test tests::test_morph" />
         <item itemvalue="Cargo.Test config::test::test_config" />
+        <item itemvalue="Cargo.Test tree::tests::basic_test_genesis_root" />
       </list>
     </recent_temporary>
   </component>
@@ -499,14 +497,7 @@
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
       <workItem from="1657735229817" duration="98387000" />
-      <workItem from="1658343253983" duration="106957000" />
-    </task>
-    <task id="LOCAL-00188" summary="implement sync">
-      <created>1656143965928</created>
-      <option name="number" value="00188" />
-      <option name="presentableId" value="LOCAL-00188" />
-      <option name="project" value="LOCAL" />
-      <updated>1656143965928</updated>
+      <workItem from="1658343253983" duration="108306000" />
     </task>
     <task id="LOCAL-00189" summary="implement sync">
       <created>1656144638818</created>
@@ -844,7 +835,14 @@
       <option name="project" value="LOCAL" />
       <updated>1659086122093</updated>
     </task>
-    <option name="localTasksCounter" value="237" />
+    <task id="LOCAL-00237" summary="fix clippy">
+      <created>1659118662103</created>
+      <option name="number" value="00237" />
+      <option name="presentableId" value="LOCAL-00237" />
+      <option name="project" value="LOCAL" />
+      <updated>1659118662103</updated>
+    </task>
+    <option name="localTasksCounter" value="238" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -861,7 +859,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="master" />
+                        <option value="forward-backward-sync" />
                       </list>
                     </value>
                   </entry>
@@ -875,7 +873,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="fixes" />
     <MESSAGE value="bug fixes: proof now working" />
     <MESSAGE value="export functions" />
     <MESSAGE value="inline functions" />
@@ -900,7 +897,8 @@
     <MESSAGE value="- networking refactor&#10;- cli commands implementation" />
     <MESSAGE value="cargo fmt" />
     <MESSAGE value="general improvement" />
-    <option name="LAST_COMMIT_MESSAGE" value="general improvement" />
+    <MESSAGE value="fix clippy" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix clippy" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
