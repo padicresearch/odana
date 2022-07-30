@@ -6,13 +6,15 @@ use anyhow::Result;
 use blockchain::block_storage::BlockStorage;
 use chrono::Utc;
 use tokio::sync::mpsc::UnboundedSender;
+use blockchain::chain_state::ChainState;
 
 use merkle::Merkle;
 use p2p::peer_manager::NetworkState;
 use primitive_types::{H160, H256, U256};
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
-use txpool::TxPool;
+use txpool::tx_lookup::AccountSet;
+use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::Transaction;
@@ -28,7 +30,7 @@ pub fn start_worker(
     lmpsc: UnboundedSender<LocalEventMessage>,
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
-    chain: Arc<dyn Blockchain>,
+    chain: Arc<ChainState>,
     network: Arc<NetworkState>,
     chain_header_reader: Arc<dyn ChainHeadReader>,
     interrupt: Arc<AtomicI8>,
@@ -73,16 +75,20 @@ pub fn start_worker(
         };
 
         loop {
-            let network_head = network
-                .network_head()
-                .map(|block| block.level)
-                .unwrap_or_default();
-            let node_head = chain
-                .current_header()
-                .map(|block| block.map(|block| block.raw.level).unwrap_or_default())
-                .unwrap_or_default();
+            if i == SHUTDOWN {
+                break
+            }
 
-            if network_head > node_head {
+            let network_head = network
+                .network_head();
+
+            let node_head = chain
+                .current_header()?.unwrap();
+
+            let network_height = network_head.map(|header| header.level).unwrap_or_default();
+            let node_height = node_head.raw.level;
+
+            if network_height > node_height {
                 break;
             }
 
@@ -118,14 +124,33 @@ pub fn start_worker(
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
                 let blocks = vec![block.clone()];
-                chain.put_chain(consensus.clone(), blocks).unwrap();
-                lmpsc.send(LocalEventMessage::MindedBlock(block));
+                chain.put_chain(consensus.clone(), Box::new(blocks.into_iter()), txpool.clone())?;
+                lmpsc.send(LocalEventMessage::MindedBlock(block))?;
                 break;
             }
         }
     }
 
     warn!("miner shutdown");
+}
+
+fn pack_pending_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<Transaction>)> {
+    let txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
+    let mut tsx = Vec::new();
+    let mut merkle = Merkle::default();
+    for (_, list) in txpool.pending() {
+        for tx in list.iter() {
+            merkle.update(&tx.hash())?;
+        }
+        tsx.extend(list.iter().map(|tx_ref| tx_ref.deref().clone()));
+    }
+
+    let merkle_root = match merkle.finalize() {
+        None => [0; 32],
+        Some(root) => *root,
+    };
+
+    return Ok((merkle_root, tsx))
 }
 
 fn make_block_template(
@@ -136,26 +161,12 @@ fn make_block_template(
     chain: Arc<dyn Blockchain>,
     chain_header_reader: Arc<dyn ChainHeadReader>,
 ) -> Result<(BlockHeader, Vec<Transaction>)> {
-    let txpool = txpool.clone();
-    let txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
-    let mut tsx = Vec::new();
-    let mut merkle = Merkle::default();
     let parent_header = match chain.current_header()? {
         None => consensus.get_genesis_header(),
         Some(header) => header.raw,
     };
     let mut state = state.state_at(H256::from(parent_header.state_root))?;
-    for (_, list) in txpool.pending() {
-        for tx in list.iter() {
-            merkle.update(&tx.hash());
-        }
-        tsx.extend(list.iter().map(|tx_ref| tx_ref.deref().clone()));
-    }
-    let merkle_root = match merkle.finalize() {
-        None => [0; 32],
-        Some(root) => *root,
-    };
-
+    let (merkle_root, txs) = pack_pending_txs(txpool.clone())?;
     let mut mix_nonce = [0; 32];
     U256::one().to_big_endian(&mut mix_nonce);
     let time = Utc::now().timestamp() as u32;
@@ -172,6 +183,6 @@ fn make_block_template(
         nonce: 0,
     };
     consensus.prepare_header(chain_header_reader.clone(), &mut header)?;
-    consensus.finalize(chain_header_reader, &mut header, state.clone(), tsx.clone())?;
-    Ok((header, tsx))
+    consensus.finalize(chain_header_reader, &mut header, state.clone(), txs.clone())?;
+    Ok((header, txs))
 }

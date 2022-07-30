@@ -11,6 +11,8 @@ use state::State;
 use storage::{KVStore, Schema};
 use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
+use txpool::tx_lookup::AccountSet;
+use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
 use types::{ChainStateValue, Hash};
@@ -108,6 +110,7 @@ impl ChainState {
         &self,
         consensus: Arc<dyn Consensus>,
         blocks: Box<dyn Iterator<Item=Block>>,
+        txpool: Arc<RwLock<TxPool>>
     ) -> Result<()> {
         let _ = self.lock.write().map_err(|e| anyhow!("{}", e))?;
         let mut blocks = blocks.peekable();
@@ -160,14 +163,19 @@ impl ChainState {
             }
         }
 
+
         for block in blocks {
             let header = block.header().clone();
             match self
                 .process_block(consensus.clone(), block)
                 .and_then(|block| self.accept_block(consensus.clone(), block))
             {
-                Ok(block) => {
+                Ok((repack, block)) => {
                     self.block_storage.put(block.clone())?;
+                    if repack {
+                        let mut txpool = txpool.write().map_err(|e| anyhow::anyhow!("{}",e))?;
+                        txpool.repack(AccountSet::new(), Some(ResetRequest::new(Some(block.header().clone()), current_head.raw.clone())))?;
+                    }
                 }
                 Err(e) => {
                     trace!(header = ?H256::from(header.hash()), parent_hash = ?format!("{}", H256::from(header.parent_hash)), level = header.level, error = ?e, "Error updating chain state");
@@ -200,11 +208,12 @@ impl ChainState {
         Ok(block)
     }
 
-    fn accept_block(&self, consensus: Arc<dyn Consensus>, block: Block) -> Result<Block> {
+    fn accept_block(&self, consensus: Arc<dyn Consensus>, block: Block) -> Result<(bool, Block)> {
         let current_head = self.current_header()?;
         let current_head =
             current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
         let header = block.header();
+        let mut repack = false;
         if block.parent_hash() == current_head.hash.as_fixed_bytes() {
             let state = self.state();
             state.apply_txs(block.transactions().clone())?;
@@ -218,6 +227,7 @@ impl ChainState {
                 current_head: self.current_header().unwrap().unwrap().raw,
             })?;
             info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Applied new block");
+            repack = true;
         } else {
             let state = self.state();
             let block_storage = self.block_storage();
@@ -238,10 +248,11 @@ impl ChainState {
                 self.state.reset(H256::from(header.state_root))?;
                 self.chain_state.set_current_header(header.clone())?;
                 info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Chain changed, network fork");
+                repack = true
             }
         }
 
-        Ok(block)
+        Ok((repack, block))
     }
 
     pub fn block_storage(&self) -> Arc<BlockStorage> {
@@ -267,10 +278,6 @@ impl Blockchain for ChainState {
 
     fn get_state_at(&self, root: &Hash) -> anyhow::Result<Arc<dyn StateDB>> {
         Ok(self.state.get_sate_at(H256::from(root))?)
-    }
-
-    fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()> {
-        self.put_chain(consensus, Box::new(blocks.into_iter()))
     }
 }
 

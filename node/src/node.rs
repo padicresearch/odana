@@ -182,14 +182,14 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
 
     let mut sync_service = {
         let blockchain = blockchain.clone();
-        let block_storage = blockchain.chain().block_storage();
         let consensus = consensus.clone();
         //let system = System::new();
         SyncService::new(
             blockchain.chain(),
+            blockchain.txpool(),
             node_to_peer_sender.clone(),
             consensus,
-            block_storage,
+            blockchain.chain().block_storage(),
             Arc::new(SyncMode::Normal),
         )
     };

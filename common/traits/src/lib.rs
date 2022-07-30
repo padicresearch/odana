@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 
@@ -13,7 +13,6 @@ pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
     fn current_header(&self) -> Result<Option<IndexedBlockHeader>>;
     fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
-    fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()>;
 }
 
 pub trait StateDB: Send + Sync {

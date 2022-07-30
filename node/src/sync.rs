@@ -9,12 +9,13 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::path::Component::Normal;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::tracing_subscriber::reload::Handle;
 use tracing::warn;
 use traits::{Blockchain, ChainReader, Consensus, Handler};
+use txpool::TxPool;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 
@@ -69,6 +70,7 @@ impl AsRef<Block> for OrderedBlock {
 
 pub struct SyncService {
     chain: Arc<ChainState>,
+    txpool: Arc<RwLock<TxPool>>,
     consensus: Arc<dyn Consensus>,
     block_storage: Arc<BlockStorage>,
     sync_mode: Arc<SyncMode>,
@@ -120,6 +122,7 @@ impl SyncService {
             self.chain.put_chain(
                 self.consensus.clone(),
                 Box::new(ordered_blocks.into_iter().map(|ob| ob.0)),
+                self.txpool.clone()
             )?;
             self.sync_mode = Arc::new(SyncMode::Forward);
             let node_head = self.chain.current_header().unwrap();
@@ -200,7 +203,6 @@ impl SyncService {
                 self.highest_peer = peer_id.clone();
                 if self.tip_before_sync.is_none() && tip.level > node_height {
                     // TODO; stop mining
-
                     self.last_request_index = tip.level as u32;
                     self.tip_before_sync = Some((peer_id.clone(), tip.clone()));
                     self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
@@ -218,6 +220,7 @@ impl SyncService {
 impl SyncService {
     pub fn new(
         chain: Arc<ChainState>,
+        txpool: Arc<RwLock<TxPool>>,
         sender: Arc<UnboundedSender<NodeToPeerMessage>>,
         consensus: Arc<dyn Consensus>,
         block_storage: Arc<BlockStorage>,
@@ -228,6 +231,7 @@ impl SyncService {
         let network_tip = consensus.get_genesis_header();
         Self {
             chain,
+            txpool,
             consensus,
             block_storage,
             sync_mode,
