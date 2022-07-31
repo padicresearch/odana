@@ -7,7 +7,7 @@ use primitive_types::{endian, Compact, H160, H256, U256};
 use traits::{ChainHeadReader, Consensus, StateDB};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader};
-use types::tx::Transaction;
+use types::tx::SignedTransaction;
 use types::{Genesis, Hash};
 
 use crate::constants::RETARGETING_INTERVAL;

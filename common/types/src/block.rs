@@ -14,7 +14,7 @@ use codec::{Decoder, Encoder};
 use crypto::SHA256;
 use primitive_types::{Compact, H256, U128, U256};
 
-use crate::tx::Transaction;
+use crate::tx::SignedTransaction;
 
 use super::*;
 
@@ -107,13 +107,13 @@ impl std::fmt::Debug for BlockHeader {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Block {
     header: BlockHeader,
-    transactions: Vec<Transaction>,
+    transactions: Vec<SignedTransaction>,
     #[serde(skip)]
     hash: Arc<RwLock<Option<Hash>>>,
 }
 
 impl Block {
-    pub fn transactions(&self) -> &Vec<Transaction> {
+    pub fn transactions(&self) -> &Vec<SignedTransaction> {
         &self.transactions
     }
 }
@@ -138,7 +138,7 @@ impl PartialEq for BlockHeader {
 impl Eq for BlockHeader {}
 
 impl Block {
-    pub fn new(header: BlockHeader, transactions: Vec<Transaction>) -> Self {
+    pub fn new(header: BlockHeader, transactions: Vec<SignedTransaction>) -> Self {
         Self {
             header,
             transactions,
@@ -147,7 +147,7 @@ impl Block {
     }
 
     pub fn hash(&self) -> Hash {
-        cache_hash(&self.hash, || self.header.hash())
+        cache(&self.hash, || self.header.hash())
     }
 
     pub fn header(&self) -> &BlockHeader {

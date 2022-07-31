@@ -1,0 +1,9 @@
+syntax = "proto3";
+package tx;
+
+message UnsignedTransaction {
+  uint64 nonce = 1;
+  string to = 2;
+  string amount = 3;
+  string fee = 4;
+}

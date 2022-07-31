@@ -15,7 +15,7 @@ use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
 use transaction::make_sign_transaction;
 use types::account::{Account, AccountState};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
-use types::tx::{Transaction, TransactionKind};
+use types::tx::{SignedTransaction, TransactionKind};
 use types::Hash;
 
 use crate::tx_lookup::AccountSet;
@@ -33,32 +33,18 @@ pub fn make_tx(
     amount: u128,
     fee: u128,
 ) -> TransactionRef {
-    let tx = make_sign_transaction(
-        from,
-        nonce,
-        TransactionKind::Transfer {
-            from: from.address.to_fixed_bytes(),
-            to: to.address.to_fixed_bytes(),
-            amount,
-            fee,
-        },
-    )
-    .unwrap();
+    let tx = make_sign_transaction(from, nonce, to.address.to_fixed_bytes(), amount, fee).unwrap();
     Arc::new(tx)
 }
 
-fn make_tx_def(from: &Account, to: &Account, nonce: u64, amount: u128, fee: u128) -> Transaction {
-    let tx = make_sign_transaction(
-        from,
-        nonce,
-        TransactionKind::Transfer {
-            from: from.address.to_fixed_bytes(),
-            to: to.address.to_fixed_bytes(),
-            amount,
-            fee,
-        },
-    )
-    .unwrap();
+fn make_tx_def(
+    from: &Account,
+    to: &Account,
+    nonce: u64,
+    amount: u128,
+    fee: u128,
+) -> SignedTransaction {
+    let tx = make_sign_transaction(from, nonce, to.address.to_fixed_bytes(), amount, fee).unwrap();
     tx
 }
 
@@ -174,7 +160,7 @@ impl StateDB for DummyStateDB {
         todo!()
     }
 
-    fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
+    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<Hash> {
         todo!()
     }
 

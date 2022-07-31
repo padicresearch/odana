@@ -23,5 +23,7 @@ members = [
     "consensus",
     "miner",
     "p2p",
-    "smt"
+    "smt",
+    "proto",
+    "rpc"
 ]

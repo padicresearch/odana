@@ -39,6 +39,8 @@
       <sourceFolder url="file://$MODULE_DIR$/kernel/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/state/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/smt/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/proto/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rpc/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/common/target" />

@@ -18,7 +18,7 @@ use smt::{Op, Tree};
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
-use types::tx::{Transaction, TransactionKind};
+use types::tx::{SignedTransaction};
 use types::Hash;
 
 mod error;
@@ -86,7 +86,7 @@ impl StateDB for State {
         self.trie.reset(root)
     }
 
-    fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
+    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<Hash> {
         self.apply_txs(txs)?;
         self.root_hash()
     }
@@ -118,7 +118,7 @@ impl State {
         })
     }
 
-    pub fn apply_txs(&self, txs: Vec<Transaction>) -> Result<()> {
+    pub fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<()> {
         let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
@@ -149,7 +149,7 @@ impl State {
         at_root: H256,
         reward: u128,
         coinbase: H160,
-        txs: Vec<Transaction>,
+        txs: Vec<SignedTransaction>,
     ) -> Result<Hash> {
         let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
@@ -191,7 +191,7 @@ impl State {
 
     fn apply_transaction(
         &self,
-        transaction: Transaction,
+        transaction: SignedTransaction,
         states: &mut BTreeMap<H160, AccountState>,
     ) -> Result<()> {
         //TODO: verify transaction (probably)
@@ -221,7 +221,7 @@ impl State {
         Ok(())
     }
 
-    pub fn check_transaction(&self, transaction: &Transaction) -> Result<()> {
+    pub fn check_transaction(&self, transaction: &SignedTransaction) -> Result<()> {
         Ok(())
     }
 
@@ -313,34 +313,24 @@ impl StateOperation {
     }
 }
 
-pub fn get_operations(tx: &Transaction) -> Vec<StateOperation> {
+pub fn get_operations(tx: &SignedTransaction) -> Vec<StateOperation> {
     let mut ops = Vec::new();
     let tx_hash = tx.hash();
-    match tx.kind() {
-        TransactionKind::Transfer {
-            from,
-            to,
-            amount,
-            fee,
-            ..
-        } => {
-            ops.push(StateOperation::DebitBalance {
-                account: H160::from(from),
-                amount: *amount + *fee,
-                tx_hash,
-            });
-            ops.push(StateOperation::CreditBalance {
-                account: H160::from(to),
-                amount: *amount,
-                tx_hash,
-            });
-            ops.push(StateOperation::UpdateNonce {
-                account: H160::from(from),
-                nonce: tx.nonce(),
-                tx_hash,
-            });
-        }
-    }
+    ops.push(StateOperation::DebitBalance {
+        account: tx.from(),
+        amount: tx.price() + tx.fees(),
+        tx_hash,
+    });
+    ops.push(StateOperation::CreditBalance {
+        account: tx.to(),
+        amount: tx.price(),
+        tx_hash,
+    });
+    ops.push(StateOperation::UpdateNonce {
+        account: tx.from(),
+        nonce: tx.nonce(),
+        tx_hash,
+    });
     ops
 }
 impl_codec!(StateOperation);
@@ -372,12 +362,9 @@ mod tests {
             let tx = make_sign_transaction(
                 &alice,
                 i + 1,
-                TransactionKind::Transfer {
-                    from: alice.address.to_fixed_bytes(),
-                    to: bob.address.to_fixed_bytes(),
-                    amount,
-                    fee: (amount as f64 * 0.01) as u128,
-                },
+                bob.address.to_fixed_bytes(),
+                amount,
+                ((amount as f64 * 0.01) as u128),
             )
                 .unwrap();
             txs.push(tx);

@@ -17,7 +17,7 @@ use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
-use types::tx::Transaction;
+use types::tx::SignedTransaction;
 use types::Address;
 
 pub const SHUTDOWN: i8 = -1;
@@ -36,7 +36,7 @@ pub fn start_worker(
     interrupt: Arc<AtomicI8>,
 ) -> Result<()> {
     let is_running: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
-    let mut current_block_template: Option<(BlockHeader, Vec<Transaction>)> = None;
+    let mut current_block_template: Option<(BlockHeader, Vec<SignedTransaction>)> = None;
     info!(miner = ?coinbase, "mine worker started running");
     loop {
         let _ = is_running.load(Ordering::Acquire);
@@ -134,7 +134,7 @@ pub fn start_worker(
     warn!("miner shutdown");
 }
 
-fn pack_pending_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<Transaction>)> {
+fn pack_pending_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedTransaction>)> {
     let txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
     let mut tsx = Vec::new();
     let mut merkle = Merkle::default();
@@ -160,7 +160,7 @@ fn make_block_template(
     state: Arc<dyn StateDB>,
     chain: Arc<dyn Blockchain>,
     chain_header_reader: Arc<dyn ChainHeadReader>,
-) -> Result<(BlockHeader, Vec<Transaction>)> {
+) -> Result<(BlockHeader, Vec<SignedTransaction>)> {
     let parent_header = match chain.current_header()? {
         None => consensus.get_genesis_header(),
         Some(header) => header.raw,

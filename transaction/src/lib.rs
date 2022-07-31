@@ -10,23 +10,28 @@ use codec::Encoder;
 use crypto::{RIPEMD160, SHA256};
 use primitive_types::H160;
 use types::account::Account;
-use types::tx::{Transaction, TransactionData, TransactionKind};
+use types::Address;
+use types::tx::{SignedTransaction, Transaction};
 
 pub fn make_sign_transaction(
     account: &Account,
     nonce: u64,
-    kind: TransactionKind,
-) -> Result<Transaction> {
-    let data = TransactionData {
+    to: Address,
+    amount: u128,
+    fee: u128,
+) -> Result<SignedTransaction> {
+    let data = Transaction {
         nonce,
-        kind: kind.clone(),
+        to,
+        amount,
+        fee,
     };
-    let sig = account.sign(SHA256::digest(data.encode()?).as_fixed_bytes())?;
-    Ok(Transaction::new(nonce, sig, kind))
+    let sig = account.sign(SHA256::digest(data.encode()).as_fixed_bytes())?;
+    Ok(SignedTransaction::new(sig, data))
 }
 
 #[derive(Debug)]
-pub struct NoncePricedTransaction(pub Transaction);
+pub struct NoncePricedTransaction(pub SignedTransaction);
 
 impl Eq for NoncePricedTransaction {}
 

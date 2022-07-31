@@ -6,7 +6,7 @@ use anyhow::Result;
 use primitive_types::{Compact, H160, H256, U256};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
-use types::tx::Transaction;
+use types::tx::SignedTransaction;
 use types::{Genesis, Hash};
 
 pub trait Blockchain: ChainReader {
@@ -22,7 +22,7 @@ pub trait StateDB: Send + Sync {
     fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
     fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
     fn reset(&self, root: H256) -> Result<()>;
-    fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash>;
+    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<Hash>;
     fn root(&self) -> Hash;
     fn commit(&self) -> Result<()>;
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
@@ -63,14 +63,14 @@ pub trait Consensus: Send + Sync {
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
-        txs: Vec<Transaction>,
+        txs: Vec<SignedTransaction>,
     ) -> Result<()>;
     fn finalize_and_assemble(
         &self,
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
-        txs: Vec<Transaction>,
+        txs: Vec<SignedTransaction>,
     ) -> Result<Option<Block>>;
     fn work_required(
         &self,

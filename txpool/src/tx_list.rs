@@ -6,7 +6,7 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use anyhow::Result;
 
-use types::tx::Transaction;
+use types::tx::SignedTransaction;
 
 use crate::{TransactionRef, Transactions, TxHashRef};
 
@@ -329,7 +329,7 @@ mod tests {
     use account::create_account;
     use transaction::make_sign_transaction;
     use types::account::Account;
-    use types::tx::{Transaction, TransactionKind};
+    use types::tx::{SignedTransaction, TransactionKind};
 
     use crate::tests::make_tx;
     use crate::tx_list::{PricedTransaction, TxList, TxPricedList};

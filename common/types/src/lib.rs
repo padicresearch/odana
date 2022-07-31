@@ -56,9 +56,10 @@ pub struct TxPoolConfig {
     pub life_time: Duration,
 }
 
-pub fn cache_hash<F>(hash: &Arc<RwLock<Option<Hash>>>, f: F) -> Hash
-where
-    F: Fn() -> Hash,
+pub fn cache<F, T>(hash: &Arc<RwLock<Option<T>>>, f: F) -> T
+    where
+        F: Fn() -> T,
+        T: Copy + Clone
 {
     match hash.read() {
         Ok(hash) => match *hash {
@@ -74,6 +75,7 @@ where
     }
     out
 }
+
 
 pub struct Genesis {
     chain_id: u32,

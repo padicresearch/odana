@@ -8,7 +8,7 @@ use primitive_types::{Compact, H128, H160, H256, U256};
 use traits::{ChainHeadReader, Consensus, StateDB};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
-use types::tx::Transaction;
+use types::tx::SignedTransaction;
 use types::{Genesis, Hash};
 
 use crate::constants::{
@@ -362,7 +362,7 @@ impl Consensus for BarossaProtocol {
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
-        txs: Vec<Transaction>,
+        txs: Vec<SignedTransaction>,
     ) -> anyhow::Result<()> {
         state.apply_txs(txs.clone())?;
         header.state_root = state.credit_balance(
@@ -378,7 +378,7 @@ impl Consensus for BarossaProtocol {
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
-        txs: Vec<Transaction>,
+        txs: Vec<SignedTransaction>,
     ) -> anyhow::Result<Option<Block>> {
         self.finalize(chain, header, state, txs.clone())?;
         let block = Block::new(header.clone(), txs);

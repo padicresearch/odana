@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use codec::{impl_codec, Decoder, Encoder};
 use types::block::{Block, BlockHeader};
-use types::tx::Transaction;
+use types::tx::SignedTransaction;
 use types::Hash;
 
 use crate::identity::PeerNode;
@@ -21,11 +21,11 @@ impl CurrentHeadMessage {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct BroadcastTransactionMessage {
-    pub tx: Transaction,
+    pub tx: SignedTransaction,
 }
 
 impl BroadcastTransactionMessage {
-    pub fn new(tx: Transaction) -> Self {
+    pub fn new(tx: SignedTransaction) -> Self {
         Self { tx }
     }
 }
@@ -78,11 +78,11 @@ impl FindBlocksMessage {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct BlockTransactionsMessage {
-    pub txs: Vec<Transaction>,
+    pub txs: Vec<SignedTransaction>,
 }
 
 impl BlockTransactionsMessage {
-    pub fn new(txs: Vec<Transaction>) -> Self {
+    pub fn new(txs: Vec<SignedTransaction>) -> Self {
         Self { txs }
     }
 }

@@ -16,7 +16,7 @@ use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
-use types::tx::{Transaction, TransactionKind, TransactionStatus};
+use types::tx::{SignedTransaction, TransactionStatus};
 use types::{Hash, TxPoolConfig};
 
 use crate::error::TxPoolError;
@@ -34,7 +34,7 @@ pub mod tx_lookup;
 pub mod tx_noncer;
 
 type TxHashRef = Arc<Hash>;
-type TransactionRef = Arc<Transaction>;
+type TransactionRef = Arc<SignedTransaction>;
 type Transactions = Vec<TransactionRef>;
 type Address = H160;
 
@@ -43,7 +43,7 @@ const TXPOOL_LOG_TARGET: &str = "txpool";
 const TX_SLOT_SIZE: u64 = 32 * 1024;
 const TX_MAX_SIZE: u64 = 4 * TX_SLOT_SIZE;
 
-pub(crate) fn num_slots(tx: &Transaction) -> u64 {
+pub(crate) fn num_slots(tx: &SignedTransaction) -> u64 {
     return (tx.size() + TX_SLOT_SIZE - 1) / TX_SLOT_SIZE;
 }
 
@@ -153,14 +153,7 @@ impl TxPool {
         })
     }
 
-    fn validate_tx(&self, tx: &Transaction, local: bool) -> Result<()> {
-        match tx.kind() {
-            TransactionKind::Transfer { from, .. } => {
-                if from != tx.origin().as_fixed_bytes() {
-                    anyhow::bail!(TxPoolError::BadOrigin)
-                }
-            }
-        }
+    fn validate_tx(&self, tx: &SignedTransaction, local: bool) -> Result<()> {
         let from = tx.sender();
         anyhow::ensure!(
             self.current_state.nonce(&from) < tx.nonce(),
@@ -353,7 +346,7 @@ impl TxPool {
         true
     }
 
-    fn add_txs(&mut self, tsx: Vec<Transaction>, local: bool) -> Result<()> {
+    fn add_txs(&mut self, tsx: Vec<SignedTransaction>, local: bool) -> Result<()> {
         let mut news = Vec::new();
         let mut errors = Vec::with_capacity(tsx.len());
         for (i, tx) in tsx.into_iter().enumerate() {
@@ -821,19 +814,19 @@ impl TxPool {
 
 //Public functions
 impl TxPool {
-    pub fn add_local(&mut self, tx: Transaction) -> Result<()> {
+    pub fn add_local(&mut self, tx: SignedTransaction) -> Result<()> {
         self.add_txs(vec![tx], true)
     }
 
-    pub fn add_locals(&mut self, txs: Vec<Transaction>) -> Result<()> {
+    pub fn add_locals(&mut self, txs: Vec<SignedTransaction>) -> Result<()> {
         self.add_txs(txs, true)
     }
 
-    pub fn add_remote(&mut self, tx: Transaction) -> Result<()> {
+    pub fn add_remote(&mut self, tx: SignedTransaction) -> Result<()> {
         self.add_txs(vec![tx], false)
     }
 
-    pub fn add_remotes(&mut self, txs: Vec<Transaction>) -> Result<()> {
+    pub fn add_remotes(&mut self, txs: Vec<SignedTransaction>) -> Result<()> {
         self.add_txs(txs, false)
     }
 
