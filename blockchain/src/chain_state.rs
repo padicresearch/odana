@@ -88,7 +88,7 @@ impl ChainState {
             info!(current_head = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
         } else {
             let mut genesis = consensus.get_genesis_header();
-            state.credit_balance(&H160::from(&[0; 20]), 1_000_000_000_000);
+            state.credit_balance(&H160::from(&[0; 20]), 1_000_000_000_000)?;
             state.commit()?;
             genesis.set_state_root(H256::from(state.root()));
             let block = Block::new(genesis.clone(), vec![]);

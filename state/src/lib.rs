@@ -68,6 +68,7 @@ impl StateDB for State {
             tx_hash: [0; 32],
         };
         self.apply_operation(action)?;
+        println!("{:?}", self.root_hash());
         Ok(self.root_hash()?.into())
     }
 
@@ -78,6 +79,7 @@ impl StateDB for State {
             tx_hash: [0; 32],
         };
         self.apply_operation(action)?;
+        println!("{:?}", self.root_hash());
         Ok(self.root_hash()?.into())
     }
 
@@ -354,31 +356,33 @@ mod tests {
         let alice = create_account();
         let bob = create_account();
         let _jake = create_account();
-        state.credit_balance(&alice.address, 1_000_000).unwrap();
-        let mut txs = Vec::new();
-        for i in 0..100 {
-            let amount = 100;
-            let tx = make_sign_transaction(
-                &alice,
-                i + 1,
-                bob.address.to_fixed_bytes(),
-                amount,
-                (amount as f64 * 0.01) as u128,
-                "hello".to_string(),
-            )
-                .unwrap();
-            txs.push(tx);
-        }
-        state.apply_txs(txs).unwrap();
-
-        println!("Alice: {:#?}", state.account_state(&alice.address));
-        println!("Bob: {:#?}", state.account_state(&bob.address));
-
-        let read_state = state.snapshot().unwrap();
-        println!(
-            "Read Alice: {:#?}",
-            read_state.account_state(&alice.address)
-        );
-        println!("Read Bob: {:#?}", read_state.account_state(&bob.address));
+        println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
+        state.commit().unwrap();
+        println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
+        // let mut txs = Vec::new();
+        // for i in 0..100 {
+        //     let amount = 100;
+        //     let tx = make_sign_transaction(
+        //         &alice,
+        //         i + 1,
+        //         bob.address.to_fixed_bytes(),
+        //         amount,
+        //         (amount as f64 * 0.01) as u128,
+        //         "hello".to_string(),
+        //     )
+        //         .unwrap();
+        //     txs.push(tx);
+        // }
+        // state.apply_txs(txs).unwrap();
+        //
+        // println!("Alice: {:#?}", state.account_state(&alice.address));
+        // println!("Bob: {:#?}", state.account_state(&bob.address));
+        //
+        // let read_state = state.snapshot().unwrap();
+        // println!(
+        //     "Read Alice: {:#?}",
+        //     read_state.account_state(&alice.address)
+        // );
+        // println!("Read Bob: {:#?}", read_state.account_state(&bob.address));
     }
 }

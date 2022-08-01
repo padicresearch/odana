@@ -27,20 +27,14 @@ pub struct Transaction {
     pub data: String,
 }
 
-impl Into<Result<UnsignedTransaction>> for Transaction {
-    fn into(self) -> Result<UnsignedTransaction> {
-        let json_rep = serde_json::to_vec(&self)?;
-        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
-    }
-}
-
 impl Transaction {
     // pub fn encode(self) -> Vec<u8> {
     //     let unsigned_tx: Result<UnsignedTransaction> = self.into();
     //     return unsigned_tx.unwrap().encode_to_vec();
     // }
     pub fn into_proto(self) -> Result<UnsignedTransaction> {
-        self.into()
+        let json_rep = serde_json::to_vec(&self)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
     // pub fn decode(buf: &[u8]) -> Result<Self> {
     //     let unsigned_tx: UnsignedTransaction = UnsignedTransaction::decode(buf)?;

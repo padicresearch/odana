@@ -70,13 +70,6 @@ pub struct BlockHeader {
     nonce: U128,
 }
 
-impl Into<Result<ProtoBlockHeader>> for BlockHeader {
-    fn into(self) -> Result<ProtoBlockHeader> {
-        let json_rep = serde_json::to_vec(&self)?;
-        serde_json::from_slice(&json_rep).map_err(|e| anyhow!("{}", e))
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
 pub struct BlockHeaderHexFormat {
     pub parent_hash: H256,
@@ -127,7 +120,8 @@ impl BlockHeader {
     }
 
     pub fn into_proto(self) -> Result<ProtoBlockHeader> {
-        self.into()
+        let json_rep = serde_json::to_vec(&self)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
 

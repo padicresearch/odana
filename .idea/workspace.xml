@@ -36,28 +36,16 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fix checkpoint">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fix checkpoint, refactor: use primitive types">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/src/sync.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/sync.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/request_handler.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/request_handler.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proto/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/blockchain.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proto/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/tx.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rpc/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/src/blockchain.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/rocks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/rocks.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/src/sleddb.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/sleddb.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/transaction/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -180,7 +168,7 @@
       <recent name="$PROJECT_DIR$/consensus/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tx::test_proto_conversions">
+  <component name="RunManager" selected="Cargo.Test tests::test_morph">
     <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build --package smt" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -383,11 +371,11 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::test_morph" />
         <item itemvalue="Cargo.Test tx::test_proto_conversions" />
         <item itemvalue="Cargo.Test block::test_proto_conversions" />
         <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
         <item itemvalue="Cargo.Test tx::test" />
-        <item itemvalue="Cargo.Test tests::test_morph" />
       </list>
     </recent_temporary>
   </component>
@@ -516,14 +504,7 @@
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
       <workItem from="1657735229817" duration="98387000" />
-      <workItem from="1658343253983" duration="175795000" />
-    </task>
-    <task id="LOCAL-00194" summary="implement sync">
-      <created>1656147968668</created>
-      <option name="number" value="00194" />
-      <option name="presentableId" value="LOCAL-00194" />
-      <option name="project" value="LOCAL" />
-      <updated>1656147968668</updated>
+      <workItem from="1658343253983" duration="179834000" />
     </task>
     <task id="LOCAL-00195" summary="implement sync">
       <created>1656148950837</created>
@@ -861,7 +842,14 @@
       <option name="project" value="LOCAL" />
       <updated>1659359397588</updated>
     </task>
-    <option name="localTasksCounter" value="243" />
+    <task id="LOCAL-00243" summary="cargo fix checkpoint, refactor: use primitive types">
+      <created>1659367952577</created>
+      <option name="number" value="00243" />
+      <option name="presentableId" value="LOCAL-00243" />
+      <option name="project" value="LOCAL" />
+      <updated>1659367952577</updated>
+    </task>
+    <option name="localTasksCounter" value="244" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -892,7 +880,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="cleanup imports" />
     <MESSAGE value="clean up: remove `staging_keys`" />
     <MESSAGE value="error formatting" />
     <MESSAGE value="improvement" />
@@ -917,7 +904,8 @@
     <MESSAGE value="txpool repack after block application&#10;begin `grpc` implementation" />
     <MESSAGE value="fix checkpoint" />
     <MESSAGE value="cargo fix checkpoint" />
-    <option name="LAST_COMMIT_MESSAGE" value="cargo fix checkpoint" />
+    <MESSAGE value="cargo fix checkpoint, refactor: use primitive types" />
+    <option name="LAST_COMMIT_MESSAGE" value="cargo fix checkpoint, refactor: use primitive types" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
