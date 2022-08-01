@@ -8,8 +8,11 @@ edition = "2021"
 [dependencies]
 tonic = "0.7.2"
 prost = "0.10.4"
+anyhow = "1.0.45"
+thiserror = "1.0.30"
 proto = { path = "../proto" }
 codec = { path = "../codec" }
 types = { path = "../common/types" }
 traits = { path = "../common/traits" }
 blockchain = { path = "../blockchain" }
+tracing = { path = "../common/tracing" }

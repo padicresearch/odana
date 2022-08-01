@@ -20,7 +20,6 @@ use uint::{construct_uint, uint_full_mul_reg};
 
 pub mod endian;
 mod fp_conversion;
-
 /// Error type for conversion.
 
 #[derive(Debug, PartialEq, Eq)]
@@ -28,7 +27,10 @@ pub enum Error {
     /// Overflow encountered.
     Overflow,
 }
-
+#[deny(clippy::reversed_empty_ranges)]
+construct_uint! {
+    pub struct U64(1);
+}
 #[deny(clippy::reversed_empty_ranges)]
 construct_uint! {
     pub struct U128(2);
@@ -64,11 +66,13 @@ construct_fixed_hash! {
     pub struct H512(64);
 }
 
+impl_uint_num_traits!(U64, 1);
 impl_uint_num_traits!(U128, 2);
 impl_uint_num_traits!(U192, 3);
 impl_uint_num_traits!(U256, 4);
 impl_uint_num_traits!(U512, 8);
 
+impl_uint_serde!(U64, 1);
 impl_uint_serde!(U128, 2);
 impl_uint_serde!(U192, 3);
 impl_uint_serde!(U256, 4);
@@ -325,6 +329,7 @@ impl Compact {
         diff
     }
 }
+
 
 #[cfg(test)]
 mod tests {

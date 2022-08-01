@@ -12,6 +12,8 @@ serde = { version = "1.0.130", features = ["derive"] }
 tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
 anyhow = "1"
 derive-getters = "0.2.0"
+getset = "0.1.2"
+num-traits = "0.2.15"
 hex = "0.4.3"
 prost = "0.10.4"
 codec = { path = "../../codec" }

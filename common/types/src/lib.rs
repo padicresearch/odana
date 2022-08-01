@@ -19,6 +19,7 @@ pub mod config;
 pub mod events;
 pub mod network;
 pub mod tx;
+mod uint_hex_codec;
 
 pub type Hash = [u8; 32];
 pub type Address = [u8; 20];

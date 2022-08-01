@@ -164,7 +164,7 @@ impl BarossaProtocol {
                 }
             };
             bits.push(previous_header.raw.difficulty());
-            block_ref = previous_header.raw.parent_hash;
+            block_ref = *previous_header.raw.parent_hash().as_fixed_bytes();
         }
 
         for (index, bit) in bits.into_iter().enumerate() {
@@ -192,21 +192,21 @@ impl BarossaProtocol {
         ) -> IndexedBlockHeader {
             let reason = "header.level >= RETARGETNG_INTERVAL; retargeting_interval > 2; qed";
             let mut header1 = chain
-                .get_header_by_hash(&header2.raw.parent_hash)
+                .get_header_by_hash(header2.raw.parent_hash())
                 .unwrap()
                 .expect(reason);
             let mut header0 = chain
-                .get_header_by_hash(&header1.raw.parent_hash)
+                .get_header_by_hash(header1.raw.parent_hash())
                 .unwrap()
                 .expect(reason);
 
-            if header0.raw.time > header2.raw.time {
+            if header0.raw.time() > header2.raw.time() {
                 std::mem::swap(&mut header0, &mut header2);
             }
-            if header0.raw.time > header1.raw.time {
+            if header0.raw.time() > header1.raw.time() {
                 std::mem::swap(&mut header0, &mut header1);
             }
-            if header1.raw.time > header2.raw.time {
+            if header1.raw.time() > header2.raw.time() {
                 std::mem::swap(&mut header1, &mut header2);
             }
 

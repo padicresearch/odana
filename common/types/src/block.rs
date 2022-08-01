@@ -4,8 +4,7 @@ use std::fmt::Formatter;
 use std::io;
 use std::sync::{Arc, RwLock};
 
-use anyhow::Result;
-use derive_getters::Getters;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
@@ -13,8 +12,10 @@ use codec::impl_codec;
 use codec::{Decoder, Encoder};
 use crypto::SHA256;
 use primitive_types::{Compact, H256, U128, U256};
+use proto::BlockHeader as ProtoBlockHeader;
 
 use crate::tx::SignedTransaction;
+use getset::{CopyGetters, Getters, MutGetters, Setters};
 
 use super::*;
 
@@ -45,19 +46,27 @@ impl Decoder for BlockPrimaryKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Getters)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Getters, Setters, MutGetters, CopyGetters)]
+#[getset(get = "pub", set = "pub", get_mut = "pub")]
 pub struct BlockHeader {
-    pub parent_hash: Hash,
-    pub merkle_root: Hash,
-    pub state_root: Hash,
-    pub mix_nonce: Hash,
-    pub coinbase: Address,
-    #[getter(skip)]
-    pub difficulty: u32,
-    pub chain_id: u32,
-    pub level: i32,
-    pub time: u32,
-    pub nonce: u128,
+    parent_hash: H256,
+    merkle_root: H256,
+    state_root: H256,
+    mix_nonce: U256,
+    coinbase: H160,
+    #[getset(skip)]
+    difficulty: u32,
+    chain_id: u32,
+    level: i32,
+    time: u32,
+    nonce: U128,
+}
+
+impl Into<Result<ProtoBlockHeader>> for BlockHeader {
+    fn into(self) -> Result<ProtoBlockHeader> {
+        let json_rep = serde_json::to_vec(&self)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow!("{}", e))
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
@@ -75,6 +84,32 @@ pub struct BlockHeaderHexFormat {
 }
 
 impl BlockHeader {
+    pub fn new(
+        parent_hash: H256,
+        merkle_root: H256,
+        state_root: H256,
+        mix_nonce: U256,
+        coinbase: H160,
+        difficulty: u32,
+        chain_id: u32,
+        level: i32,
+        time: u32,
+        nonce: U128,
+    ) -> Self {
+        Self {
+            parent_hash,
+            merkle_root,
+            state_root,
+            mix_nonce,
+            coinbase,
+            difficulty,
+            chain_id,
+            level,
+            time,
+            nonce,
+        }
+    }
+
     pub fn hash(&self) -> Hash {
         SHA256::digest(&self.encode().unwrap()).into()
     }
@@ -83,27 +118,11 @@ impl BlockHeader {
         Compact::from(self.difficulty)
     }
 
-    pub fn to_hex_format(&self) -> BlockHeaderHexFormat {
-        BlockHeaderHexFormat {
-            parent_hash: H256::from(self.parent_hash),
-            merkle_root: H256::from(self.merkle_root),
-            state_root: H256::from(self.state_root),
-            mix_nonce: U256::from(self.mix_nonce),
-            coinbase: H160::from(self.coinbase),
-            difficulty: self.difficulty.into(),
-            chain_id: self.chain_id.into(),
-            level: (self.level as u32).into(),
-            time: self.time.into(),
-            nonce: self.nonce.into(),
-        }
+    pub fn into_proto(self) -> Result<ProtoBlockHeader> {
+        self.into()
     }
 }
 
-impl std::fmt::Debug for BlockHeader {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.to_hex_format().fmt(f)
-    }
-}
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Block {
     header: BlockHeader,
@@ -156,8 +175,8 @@ impl Block {
     pub fn level(&self) -> i32 {
         self.header.level
     }
-    pub fn parent_hash(&self) -> &Hash {
-        &self.header.parent_hash
+    pub fn parent_hash(&self) -> &H256 {
+        self.header.parent_hash()
     }
 }
 
@@ -233,4 +252,25 @@ impl Ord for HeightSortedBlockHeader {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.level.cmp(&other.0.level)
     }
+}
+
+#[test]
+fn test_proto_conversions() {
+    let block_header = BlockHeader::new(
+        H256::from([1; 32]),
+        H256::from([2; 32]),
+        H256::from([6; 32]),
+        U256::from(400),
+        H160::from([7; 20]),
+        30,
+        30,
+        30,
+        10000000,
+        U128::from(5),
+    );
+
+    let pheader = block_header.into_proto().unwrap();
+
+    println!("{:#?}", pheader);
+    println!("{:#02x}", U128::from(5));
 }

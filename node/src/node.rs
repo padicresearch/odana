@@ -26,6 +26,7 @@ use storage::{PersistentStorage, PersistentStorageBackend};
 use temp_dir::TempDir;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::UnboundedSender;
+use rpc::start_rpc_server;
 use tracing::tracing_subscriber;
 use tracing::Level;
 use tracing::{error, info};
@@ -208,6 +209,13 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         handler,
     )
         .await?;
+
+    {
+        let blockchain = blockchain.clone();
+        let env = env.clone();
+        tokio::spawn(start_rpc_server(blockchain.chain().clone(), env));
+    }
+
 
     if let Some(miner) = env.miner {
         let blockchain = blockchain.clone();

@@ -36,37 +36,27 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="txpool repack after block application">
-      <change afterPath="$PROJECT_DIR$/proto/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/proto/build.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/proto/schema/blockchain.proto" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/proto/schema/txs.proto" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/proto/src/blockchain.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/proto/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/proto/src/tx.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/rpc/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/rpc/src/blockchain.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/rpc/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="txpool repack after block application&#10;begin `grpc` implementation">
+      <change afterPath="$PROJECT_DIR$/common/types/src/uint_hex_codec.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/events.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/events.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/node/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/node/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p2p/src/message.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/message.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/transaction/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_list.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_list.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/tx_lookup.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/src/ecdsa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/src/ecdsa.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/node.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/node.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/proto/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/build.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/schema/blockchain.proto" beforeDir="false" afterPath="$PROJECT_DIR$/proto/schema/blockchain.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/schema/txs.proto" beforeDir="false" afterPath="$PROJECT_DIR$/proto/schema/txs.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/blockchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/src/blockchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -86,7 +76,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="txs-repack" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -189,7 +179,7 @@
       <recent name="$PROJECT_DIR$/consensus/src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tx::test::test_message_pack_serialization">
+  <component name="RunManager" selected="Cargo.Test tx::test_proto_conversions">
     <configuration name="Build SMT" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build --package smt" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -275,42 +265,25 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test block::test_proto_conversions" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package types --lib block::test_proto_conversions -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test tests::test_morph" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package state --lib tests::test_morph -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test tests::txpool_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package txpool --lib tests::txpool_test -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test trie::tests::basic_test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package smt --lib trie::tests::basic_test -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -360,6 +333,23 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test tx::test_proto_conversions" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package types --lib tx::test_proto_conversions -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test --package tuchain --lib tests" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -384,19 +374,19 @@
       <item itemvalue="Cargo.Build Test" />
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clippy" />
+      <item itemvalue="Cargo.Test block::test_proto_conversions" />
       <item itemvalue="Cargo.Test tests::test_morph" />
-      <item itemvalue="Cargo.Test tests::txpool_test" />
       <item itemvalue="Cargo.Test tx::test" />
       <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
-      <item itemvalue="Cargo.Test trie::tests::basic_test" />
+      <item itemvalue="Cargo.Test tx::test_proto_conversions" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tx::test_proto_conversions" />
+        <item itemvalue="Cargo.Test block::test_proto_conversions" />
         <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
         <item itemvalue="Cargo.Test tx::test" />
         <item itemvalue="Cargo.Test tests::test_morph" />
-        <item itemvalue="Cargo.Test trie::tests::basic_test" />
-        <item itemvalue="Cargo.Test tests::txpool_test" />
       </list>
     </recent_temporary>
   </component>
@@ -525,14 +515,7 @@
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
       <workItem from="1657735229817" duration="98387000" />
-      <workItem from="1658343253983" duration="144963000" />
-    </task>
-    <task id="LOCAL-00191" summary="implement sync">
-      <created>1656146113079</created>
-      <option name="number" value="00191" />
-      <option name="presentableId" value="LOCAL-00191" />
-      <option name="project" value="LOCAL" />
-      <updated>1656146113079</updated>
+      <workItem from="1658343253983" duration="167067000" />
     </task>
     <task id="LOCAL-00192" summary="implement sync">
       <created>1656146365979</created>
@@ -870,7 +853,14 @@
       <option name="project" value="LOCAL" />
       <updated>1659203706246</updated>
     </task>
-    <option name="localTasksCounter" value="240" />
+    <task id="LOCAL-00240" summary="txpool repack after block application&#10;begin `grpc` implementation">
+      <created>1659272252537</created>
+      <option name="number" value="00240" />
+      <option name="presentableId" value="LOCAL-00240" />
+      <option name="project" value="LOCAL" />
+      <updated>1659272252537</updated>
+    </task>
+    <option name="localTasksCounter" value="241" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -901,7 +891,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="inline functions" />
     <MESSAGE value="implemented sparse merkle tree" />
     <MESSAGE value="Implemented Trie with `reset`" />
     <MESSAGE value="cleanup imports" />
@@ -926,7 +915,8 @@
     <MESSAGE value="fix clippy" />
     <MESSAGE value="fix LICENSE" />
     <MESSAGE value="txpool repack after block application" />
-    <option name="LAST_COMMIT_MESSAGE" value="txpool repack after block application" />
+    <MESSAGE value="txpool repack after block application&#10;begin `grpc` implementation" />
+    <option name="LAST_COMMIT_MESSAGE" value="txpool repack after block application&#10;begin `grpc` implementation" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

@@ -11,8 +11,8 @@ edition = "2021"
 fixed-hash = { version = "0.7", path = "../fixed-hash" }
 uint = { version = "0.9.0", path = "../uint" }
 impl-serde = { version = "0.3.1", path = "impls/serde" }
-impl-num-traits = { version = "0.1.0", path = "impls/num-traits"}
-
+impl-num-traits = { version = "0.1.0", path = "impls/num-traits" }
+serde = { version = "1.0.101", default-features = false, features = ["alloc"] }
 [[test]]
 name = "fp_conversion"
 required-features = ["fp-conversion"]

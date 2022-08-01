@@ -6,8 +6,10 @@ use k256::ecdsa::{SigningKey, VerifyingKey};
 use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use rand_core::{CryptoRng, RngCore};
+use ripemd::digest::typenum::Len;
 use sha2::Digest;
 use sha2::Sha256;
+use primitive_types::H256;
 
 use crate::error::Error;
 use crate::error::Error::InternalError;
@@ -118,18 +120,18 @@ impl Signature {
     }
 
     #[inline]
-    pub fn from_rsv(rsv: (&[u8], &[u8], &u8)) -> Result<Self, Error> {
-        if rsv.0.len() != 32 {
+    pub fn from_rsv<B: AsRef<[u8]>>(rsv: (B, B, u8)) -> Result<Self, Error> {
+        if rsv.0.as_ref().len() != 32_usize {
             return Err(InternalError(format!("Invalid rsv format")));
         }
-        if rsv.1.len() != 32 {
+        if rsv.1.as_ref().len() != 32_usize {
             return Err(InternalError(format!("Invalid rsv format")));
         }
 
         let mut bytes = [0_u8; SIG_KEY_LENGTH];
-        bytes[..32].copy_from_slice(rsv.0);
-        bytes[32..64].copy_from_slice(rsv.1);
-        bytes[64] = *rsv.2;
+        bytes[..32].copy_from_slice(rsv.0.as_ref());
+        bytes[32..64].copy_from_slice(rsv.1.as_ref());
+        bytes[64] = rsv.2;
         let sig = k256::ecdsa::recoverable::Signature::from_bytes(&bytes)?;
         Ok(Self { inner: sig })
     }
@@ -148,13 +150,13 @@ impl Signature {
         Ok(PublicKey { inner: pk })
     }
 
-    pub fn rsv(&self) -> ([u8; 32], [u8; 32], u8) {
+    pub fn rsv(&self) -> (H256, H256, u8) {
         let mut r = [0_u8; 32];
         r.copy_from_slice(&self.inner.as_bytes()[..32]);
         let mut s = [0_u8; 32];
         s.copy_from_slice(&self.inner.as_bytes()[32..64]);
         let v = self.inner.as_bytes()[64];
-        (r, s, v)
+        (H256::from(r), H256::from(s), v)
     }
 }
 

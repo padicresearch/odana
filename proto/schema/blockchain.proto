@@ -1,20 +1,5 @@
-/*
-pub struct BlockHeader {
-    pub parent_hash: Hash,
-    pub merkle_root: Hash,
-    pub state_root: Hash,
-    pub mix_nonce: Hash,
-    pub coinbase: Address,
-    #[getter(skip)]
-    pub difficulty: u32,
-    pub chain_id: u32,
-    pub level: i32,
-    pub time: u32,
-    pub nonce: u128,
-}
- */
-
 syntax = "proto3";
+import "txs.proto";
 package blockchain;
 
 message Empty {}
@@ -32,39 +17,26 @@ message BlockHeader {
   string nonce = 10;
 }
 
-message GetBlockRequest {
-  oneof query {
-    string hash = 1;
-    int32 level = 2;
-  }
+message GetBlockByHashRequest {
+  string hash = 1;
+}
+
+message GetBlockByLevelRequest {
+  string hash = 1;
 }
 
 message GetBlockResponse {
   BlockHeader header = 1;
+  repeated tx.Transaction txs = 2;
 }
 
 message GetBlocksRequest {
-  message FromHash {
-    string from = 1;
-    uint32 count = 2;
-  }
-
-  message FromLevel {
-    int32 from = 1;
-    uint32 count = 2;
-  }
-
-  oneof query {
-    FromHash from_hash = 1;
-    FromLevel from_level = 2;
-  }
+  int32 from = 1;
+  uint32 count = 2;
 }
 
 message GetBlocksResponse {
   repeated BlockHeader blocks = 1;
-}
-message GetHeadResponse {
-  BlockHeader block = 1;
 }
 
 message GetBlockNumberResponse {
@@ -72,8 +44,9 @@ message GetBlockNumberResponse {
 }
 
 service BlockchainRPCService {
-  rpc GetHead(Empty) returns (GetHeadResponse);
-  rpc GetBlockNumber(Empty) returns (GetBlockNumberResponse);
-  rpc GetBlock (GetBlockRequest) returns (GetBlockResponse);
+  rpc CurrentHead(Empty) returns (BlockHeader);
+  rpc BlockLevel(Empty) returns (GetBlockNumberResponse);
+  rpc GetBlockByHash (GetBlockByHashRequest) returns (GetBlockResponse);
+  rpc GetBlockByLevel (GetBlockByLevelRequest) returns (GetBlockResponse);
   rpc GetBlocks (GetBlocksRequest) returns (GetBlocksResponse);
 }
