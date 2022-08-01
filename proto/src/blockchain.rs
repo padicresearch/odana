@@ -25,19 +25,16 @@ pub struct BlockHeader {
     #[prost(string, tag = "10")]
     pub nonce: ::prost::alloc::string::String,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByHashRequest {
     #[prost(string, tag = "1")]
     pub hash: ::prost::alloc::string::String,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByLevelRequest {
     #[prost(string, tag = "1")]
     pub hash: ::prost::alloc::string::String,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockResponse {
     #[prost(message, optional, tag = "1")]

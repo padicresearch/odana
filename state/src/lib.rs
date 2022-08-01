@@ -62,33 +62,33 @@ impl StateDB for State {
         self.account_state(address).free_balance
     }
 
-    fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
+    fn credit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
         let action = StateOperation::CreditBalance {
             account: *address,
             amount,
             tx_hash: [0; 32],
         };
         self.apply_operation(action)?;
-        Ok(self.root_hash().unwrap())
+        Ok(self.root_hash()?.into())
     }
 
-    fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
+    fn debit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
         let action = StateOperation::DebitBalance {
             account: *address,
             amount,
             tx_hash: [0; 32],
         };
         self.apply_operation(action)?;
-        Ok(self.root_hash().unwrap())
+        Ok(self.root_hash()?.into())
     }
 
     fn reset(&self, root: H256) -> Result<()> {
         self.trie.reset(root)
     }
 
-    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<Hash> {
+    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256> {
         self.apply_txs(txs)?;
-        self.root_hash()
+        self.root_hash().map(|hash| H256::from(hash))
     }
 
     fn root(&self) -> Hash {

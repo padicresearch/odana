@@ -12,7 +12,6 @@ pub struct UnsignedTransaction {
     #[prost(string, tag = "5")]
     pub data: ::prost::alloc::string::String,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Transaction {
     #[prost(string, tag = "1")]

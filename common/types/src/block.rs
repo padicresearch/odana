@@ -47,17 +47,24 @@ impl Decoder for BlockPrimaryKey {
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Getters, Setters, MutGetters, CopyGetters)]
-#[getset(get = "pub", set = "pub", get_mut = "pub")]
 pub struct BlockHeader {
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     parent_hash: H256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     merkle_root: H256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     state_root: H256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     mix_nonce: U256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     coinbase: H160,
-    #[getset(skip)]
+    #[getset(set = "pub", get_mut = "pub")]
     difficulty: u32,
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     chain_id: u32,
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     level: i32,
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     time: u32,
     nonce: U128,
 }

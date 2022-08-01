@@ -1,15 +1,13 @@
 use core::cmp;
 use std::sync::Arc;
 
-use chrono::{Timelike, Utc};
-
 use crypto::is_valid_proof_of_work;
-use primitive_types::{Compact, H128, H160, H256, U256};
+use primitive_types::{Compact, H256, U256};
 use traits::{ChainHeadReader, Consensus, StateDB};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 use types::tx::SignedTransaction;
-use types::{Genesis, Hash};
+
 
 use crate::constants::{
     BLOCK_MAX_FUTURE, DOUBLE_SPACING_SECONDS, MAX_TIMESPAN, MIN_TIMESPAN, RETARGETING_INTERVAL,
@@ -52,7 +50,7 @@ impl BarossaProtocol {
         }
 
         let parent_header = chain
-            .get_header_by_hash(parent_hash.as_fixed_bytes())
+            .get_header_by_hash(&parent_hash)
             .unwrap()
             .expect("self.height != 0; qed");
 
@@ -103,9 +101,9 @@ impl BarossaProtocol {
             .expect("self.height != 0 && self.height % RETARGETING_INTERVAL == 0; qed");
 
         // timestamp of block(height - RETARGETING_INTERVAL)
-        let retarget_timestamp = retarget_header.raw.time;
+        let retarget_timestamp = retarget_header.raw.time();
         // timestamp of parent block
-        let last_timestamp = parent_header.raw.time;
+        let last_timestamp = parent_header.raw.time();
         // bits of last block
         let last_bits = parent_header.raw.difficulty();
 
@@ -143,13 +141,13 @@ impl BarossaProtocol {
         );
 
         let mut bits = Vec::new();
-        let mut block_ref: Hash = parent_hash.into();
+        let mut block_ref: H256 = parent_hash;
 
         let parent_header = chain
             .get_header_by_hash(&block_ref)
             .unwrap()
             .expect("height != 0; qed");
-        let max_time_gap = parent_header.raw.time + DOUBLE_SPACING_SECONDS;
+        let max_time_gap = parent_header.raw.time() + DOUBLE_SPACING_SECONDS;
         let max_bits = self.network.max_difficulty_compact().into();
         if time > max_time_gap {
             return max_bits;
@@ -164,7 +162,7 @@ impl BarossaProtocol {
                 }
             };
             bits.push(previous_header.raw.difficulty());
-            block_ref = *previous_header.raw.parent_hash().as_fixed_bytes();
+            block_ref = *previous_header.raw.parent_hash();
         }
 
         for (index, bit) in bits.into_iter().enumerate() {
@@ -231,13 +229,13 @@ impl BarossaProtocol {
         ) -> U256 {
             debug_assert!(last.hash != first);
             let mut chain_work: U256 = block_proof(last);
-            let mut prev_hash = last.raw.parent_hash.clone();
+            let mut prev_hash = last.raw.parent_hash().clone();
             loop {
                 let header = chain.get_header_by_hash(&prev_hash).unwrap()
                     .expect("last header is on main chain; first is at level last.level - 144; it is on main chain; qed");
 
                 chain_work = chain_work + block_proof(&header);
-                prev_hash = header.raw.parent_hash;
+                prev_hash = *header.raw.parent_hash();
                 if H256::from(prev_hash) == first {
                     return chain_work;
                 }
@@ -260,8 +258,8 @@ impl BarossaProtocol {
 
             // In order to avoid difficulty cliffs, we bound the amplitude of the
             // adjustement we are going to do.
-            debug_assert!(last_header.raw.time > first_header.raw.time);
-            let mut actual_timespan = last_header.raw.time - first_header.raw.time;
+            debug_assert!(last_header.raw.time() > first_header.raw.time());
+            let mut actual_timespan = last_header.raw.time() - first_header.raw.time();
             if actual_timespan > 288 * TARGET_SPACING_SECONDS {
                 actual_timespan = 288 * TARGET_SPACING_SECONDS;
             } else if actual_timespan < 72 * TARGET_SPACING_SECONDS {
@@ -284,7 +282,7 @@ impl BarossaProtocol {
         // mining of a min-difficulty block.
         let max_bits: Compact = Compact::from_u256(self.network.max_difficulty());
         if self.network == Network::Testnet {
-            let max_time_gap = parent_header.raw.time + DOUBLE_SPACING_SECONDS;
+            let max_time_gap = parent_header.raw.time() + DOUBLE_SPACING_SECONDS;
             if time > max_time_gap {
                 return max_bits.into();
             }
@@ -324,11 +322,11 @@ impl Consensus for BarossaProtocol {
     ) -> anyhow::Result<()> {
         let current_time = chrono::Utc::now().timestamp();
         let _ = chain
-            .get_header(&header.parent_hash, header.level - 1)?
+            .get_header(header.parent_hash(), header.level() - 1)?
             .ok_or(Error::ParentBlockNotFound)?;
         // Check timestamp
         anyhow::ensure!(
-            (header.time as i64) < BLOCK_MAX_FUTURE + current_time,
+            (header.time() as i64) < BLOCK_MAX_FUTURE + current_time,
             "future block timestamp"
         );
         anyhow::ensure!(
@@ -348,27 +346,33 @@ impl Consensus for BarossaProtocol {
         header: &mut BlockHeader,
     ) -> anyhow::Result<()> {
         let parent = chain
-            .get_header(&header.parent_hash, header.level - 1)?
+            .get_header(&header.parent_hash(), header.level() - 1)?
             .ok_or(Error::ParentBlockNotFound)?;
-        header.chain_id = Self::CHAIN_ID;
-        header.difficulty = self
-            .work_required(parent.hash, header.time, (header.level + 1) as u32, chain)
-            .into();
+        header.set_chain_id(Self::CHAIN_ID);
+        header.set_difficulty(
+            self.work_required(
+                parent.hash,
+                header.time(),
+                (header.level() + 1) as u32,
+                chain,
+            )
+                .into(),
+        );
         Ok(())
     }
 
     fn finalize(
         &self,
-        chain: Arc<dyn ChainHeadReader>,
+        _chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
         txs: Vec<SignedTransaction>,
     ) -> anyhow::Result<()> {
         state.apply_txs(txs.clone())?;
-        header.state_root = state.credit_balance(
-            &H160::from(header.coinbase),
-            self.miner_reward(header.level),
-        )?;
+        header.set_state_root(state.credit_balance(
+            header.coinbase(),
+            self.miner_reward(header.level()),
+        )?);
         state.commit()?;
         Ok(())
     }
@@ -388,17 +392,17 @@ impl Consensus for BarossaProtocol {
     fn work_required(
         &self,
         chain: Arc<dyn ChainHeadReader>,
-        parent: &Hash,
+        parent: &H256,
         time: u32,
     ) -> anyhow::Result<Compact> {
         let parent_header = chain
             .get_header_by_hash(&parent)?
             .ok_or(Error::ParentBlockNotFound)?;
-        let level = parent_header.raw.level as u32;
+        let level = parent_header.raw.level() as u32;
         Ok(self.work_required(parent_header.hash, time, level + 1, chain))
     }
 
-    fn is_genesis(&self, header: &BlockHeader) -> bool {
+    fn is_genesis(&self, _header: &BlockHeader) -> bool {
         todo!()
     }
 
@@ -407,21 +411,21 @@ impl Consensus for BarossaProtocol {
     }
 
     fn get_genesis_header(&self) -> BlockHeader {
-        BlockHeader {
-            parent_hash: [0; 32],
-            merkle_root: [0; 32],
-            state_root: [
+        BlockHeader::new(
+            [0; 32].into(),
+            [0; 32].into(),
+            [
                 167, 166, 177, 200, 75, 77, 145, 25, 149, 154, 251, 233, 94, 46, 215, 162, 118, 43,
                 119, 114, 196, 232, 42, 88, 209, 4, 27, 184, 193, 138, 143, 109,
-            ],
-            mix_nonce: [0; 32],
-            coinbase: [0; 20],
-            difficulty: self.network.max_difficulty_compact().into(),
-            chain_id: Self::CHAIN_ID,
-            level: 0,
-            time: 0,
-            nonce: 0,
-        }
+            ].into(),
+            [0; 32].into(),
+            [0; 20].into(),
+            self.network.max_difficulty_compact().into(),
+            Self::CHAIN_ID,
+            0,
+            0,
+            0.into(),
+        )
     }
 }
 
@@ -432,10 +436,10 @@ mod tests {
 
     use chrono::Utc;
 
-    use primitive_types::{Compact, H256, U256};
+    use primitive_types::{Compact, H256};
     use traits::{ChainHeadReader, Consensus};
     use types::block::{BlockHeader, IndexedBlockHeader};
-    use types::Hash;
+
 
     use crate::barossa::{BarossaProtocol, Network};
 
@@ -458,21 +462,18 @@ mod tests {
     }
 
     impl ChainHeadReader for MemoryBlockHeaderReader {
-        fn current_header(&self) -> anyhow::Result<Option<IndexedBlockHeader>> {
-            unimplemented!()
-        }
 
         fn get_header(
             &self,
-            hash: &Hash,
-            level: i32,
+            hash: &H256,
+            _level: i32,
         ) -> anyhow::Result<Option<IndexedBlockHeader>> {
             self.get_header_by_hash(hash)
         }
 
-        fn get_header_by_hash(&self, hash: &Hash) -> anyhow::Result<Option<IndexedBlockHeader>> {
+        fn get_header_by_hash(&self, hash: &H256) -> anyhow::Result<Option<IndexedBlockHeader>> {
             let by_hash = self.by_hash.read().unwrap();
-            Ok(by_hash.get(&H256::from(hash)).map(|h| {
+            Ok(by_hash.get(hash).map(|h| {
                 let by_height = self.by_height.read().unwrap();
                 by_height[*h].clone()
             }))
@@ -486,7 +487,7 @@ mod tests {
 
     #[test]
     fn test_consensus_protocol() {
-        let barossa = BarossaProtocol::new(Network::Mainnet);
+        let _barossa = BarossaProtocol::new(Network::Mainnet);
     }
 
     #[test]
@@ -494,36 +495,38 @@ mod tests {
         let barossa = BarossaProtocol::new(Network::Mainnet);
 
         let limit_bits = barossa.network.max_difficulty();
-        let initial_bits = limit_bits >> 4;
+        let _initial_bits = limit_bits >> 4;
         let initial_bits: Compact = limit_bits.into();
         let header_provider = Arc::new(MemoryBlockHeaderReader::default());
 
         // Genesis block.
-        header_provider.insert(BlockHeader {
-            parent_hash: [0; 32],
-            merkle_root: [0; 32],
-            state_root: [
+        header_provider.insert(BlockHeader::new(
+            [0; 32].into(),
+            [0; 32].into(),
+            [
                 167, 166, 177, 200, 75, 77, 145, 25, 149, 154, 251, 233, 94, 46, 215, 162, 118, 43,
                 119, 114, 196, 232, 42, 88, 209, 4, 27, 184, 193, 138, 143, 109,
-            ],
-            mix_nonce: [0; 32],
-            coinbase: [0; 20],
-            difficulty: initial_bits.into(),
-            chain_id: 0,
-            level: 0,
-            time: 1269211443,
-            nonce: 0,
-        });
+            ]
+                .into(),
+            [0; 32].into(),
+            [0; 20].into(),
+            initial_bits.into(),
+            0,
+            0,
+            1269211443,
+            0.into(),
+        ));
 
         // Pile up some blocks every 10 mins to establish some history.
         for height in 1..2050 {
             let mut header = header_provider
-                .get_header_by_level((height - 1).into())
+                .get_header_by_level((height - 1) as i32)
                 .unwrap()
                 .unwrap();
-            header.raw.parent_hash = header.hash.into();
-            header.raw.time = header.raw.time + 600;
-            header.raw.level = height;
+
+            header.raw.set_parent_hash(header.hash.into());
+            header.raw.set_time(header.raw.time() + 600);
+            header.raw.set_time(height);
             header_provider.insert(header.raw);
         }
 
@@ -535,18 +538,18 @@ mod tests {
         let current_bits = barossa.work_required(
             header.hash,
             Utc::now().timestamp() as u32,
-            (header.raw.level + 1) as u32,
+            (header.raw.level() + 1) as u32,
             header_provider.clone(),
         );
         for height in 2050..2060 {
             let mut header = header_provider
-                .get_header_by_level((height - 1))
+                .get_header_by_level(height - 1)
                 .unwrap()
                 .unwrap();
-            header.raw.parent_hash = header.hash.into();
-            header.raw.time = header.raw.time + 600;
-            header.raw.difficulty = current_bits.into();
-            header.raw.level = header.raw.level + 1;
+            header.raw.set_parent_hash(header.hash.into());
+            header.raw.set_time(header.raw.time() + 600);
+            header.raw.set_difficulty(current_bits.into());
+            header.raw.set_level(header.raw.level() + 1);
             header_provider.insert(header.raw);
             let parent = header_provider
                 .get_header_by_level(height.into())
@@ -567,9 +570,9 @@ mod tests {
             .get_header_by_level(2059.into())
             .unwrap()
             .unwrap();
-        header.raw.parent_hash = header.hash.into();
-        header.raw.time = header.raw.time + 6000;
-        header.raw.difficulty = current_bits.into();
+        *header.raw.parent_hash_mut() = header.hash.into();
+        *header.raw.time_mut() = header.raw.time() + 6000;
+        *header.raw.difficulty_mut() = current_bits.into();
         header_provider.insert(header.raw);
         let calculated_bits =
             barossa.work_required_adjusted(header, 0, 2061, header_provider.clone());
@@ -580,9 +583,9 @@ mod tests {
             .get_header_by_level(2060.into())
             .unwrap()
             .unwrap();
-        header.raw.parent_hash = header.hash.into();
-        header.raw.time = header.raw.time + 2 * 600 - 6000;
-        header.raw.difficulty = current_bits.into();
+        *header.raw.parent_hash_mut() = header.hash.into();
+        *header.raw.time_mut() = header.raw.time() + 2 * 600 - 6000;
+        *header.raw.difficulty_mut() = current_bits.into();
         header_provider.insert(header.raw);
         let calculated_bits = barossa.work_required_adjusted(
             header_provider.get_header_by_level(2060).unwrap().unwrap(),

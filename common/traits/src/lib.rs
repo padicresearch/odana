@@ -19,10 +19,10 @@ pub trait StateDB: Send + Sync {
     fn nonce(&self, address: &H160) -> u64;
     fn account_state(&self, address: &H160) -> AccountState;
     fn balance(&self, address: &H160) -> u128;
-    fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
-    fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash>;
+    fn credit_balance(&self, address: &H160, amount: u128) -> Result<H256>;
+    fn debit_balance(&self, address: &H160, amount: u128) -> Result<H256>;
     fn reset(&self, root: H256) -> Result<()>;
-    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<Hash>;
+    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256>;
     fn root(&self) -> Hash;
     fn commit(&self) -> Result<()>;
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
@@ -40,14 +40,14 @@ pub trait Saturating {
 }
 
 pub trait ChainHeadReader: Send + Sync {
-    fn get_header(&self, hash: &Hash, level: i32) -> Result<Option<IndexedBlockHeader>>;
-    fn get_header_by_hash(&self, hash: &Hash) -> Result<Option<IndexedBlockHeader>>;
+    fn get_header(&self, hash: &H256, level: i32) -> Result<Option<IndexedBlockHeader>>;
+    fn get_header_by_hash(&self, hash: &H256) -> Result<Option<IndexedBlockHeader>>;
     fn get_header_by_level(&self, level: i32) -> Result<Option<IndexedBlockHeader>>;
 }
 
 pub trait ChainReader: Send + Sync {
-    fn get_block(&self, hash: &Hash, level: i32) -> Result<Option<Block>>;
-    fn get_block_by_hash(&self, hash: &Hash) -> Result<Option<Block>>;
+    fn get_block(&self, hash: &H256, level: i32) -> Result<Option<Block>>;
+    fn get_block_by_hash(&self, hash: &H256) -> Result<Option<Block>>;
     fn get_block_by_level(&self, level: i32) -> Result<Option<Block>>;
 }
 
@@ -75,7 +75,7 @@ pub trait Consensus: Send + Sync {
     fn work_required(
         &self,
         chain: Arc<dyn ChainHeadReader>,
-        parent: &Hash,
+        parent: &H256,
         time: u32,
     ) -> Result<Compact>;
     fn is_genesis(&self, header: &BlockHeader) -> bool;
