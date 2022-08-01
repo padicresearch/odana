@@ -2,7 +2,7 @@ use anyhow::Result;
 use proto::blockchain_rpc_service_server::{BlockchainRpcService, BlockchainRpcServiceServer};
 use proto::{
     BlockHeader, Empty, GetBlockByHashRequest, GetBlockByLevelRequest, GetBlockNumberResponse,
-    GetBlockRequest, GetBlockResponse, GetBlocksRequest, GetBlocksResponse, GetHeadResponse,
+    GetBlockResponse, GetBlocksRequest, GetBlocksResponse,
 };
 use std::net::{IpAddr, SocketAddr, SocketAddrV4};
 use std::sync::Arc;
@@ -24,7 +24,7 @@ impl BlockChainRPCServiceImpl {
 impl BlockchainRpcService for BlockChainRPCServiceImpl {
     async fn current_head(
         &self,
-        request: Request<Empty>,
+        _: Request<Empty>,
     ) -> std::result::Result<Response<BlockHeader>, Status> {
         let ch = self
             .blockchain
@@ -33,7 +33,7 @@ impl BlockchainRpcService for BlockChainRPCServiceImpl {
         let head: BlockHeader = ch
             .ok_or(Status::new(Code::NotFound, "head not available"))?
             .raw
-            .into()
+            .into_proto()
             .map_err(|e| Status::new(Code::NotFound, "head not available"))?;
         Ok(Response::new(head))
     }

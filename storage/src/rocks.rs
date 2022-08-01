@@ -10,7 +10,7 @@ pub fn default_write_opts() -> rocksdb::WriteOptions {
 }
 
 pub fn default_read_opts() -> rocksdb::ReadOptions {
-    let mut opts = rocksdb::ReadOptions::default();
+    let opts = rocksdb::ReadOptions::default();
     opts
 }
 

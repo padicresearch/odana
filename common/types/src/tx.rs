@@ -3,7 +3,7 @@ use std::fmt::Formatter;
 use std::str::FromStr;
 use std::sync::{Arc, PoisonError, RwLock, RwLockWriteGuard};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
@@ -17,7 +17,6 @@ use primitive_types::{H160, H256, H512, U128, U256, U512};
 use prost::Message;
 use proto::tx::UnsignedTransaction;
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {
     #[serde(with = "crate::uint_hex_codec")]
@@ -28,7 +27,6 @@ pub struct Transaction {
     pub data: String,
 }
 
-
 impl Into<Result<UnsignedTransaction>> for Transaction {
     fn into(self) -> Result<UnsignedTransaction> {
         let json_rep = serde_json::to_vec(&self)?;
@@ -37,14 +35,31 @@ impl Into<Result<UnsignedTransaction>> for Transaction {
 }
 
 impl Transaction {
-    pub fn encode(self) -> Vec<u8> {
-        let unsigned_tx: Result<UnsignedTransaction> = self.into();
-        return unsigned_tx.unwrap().encode_to_vec();
-    }
+    // pub fn encode(self) -> Vec<u8> {
+    //     let unsigned_tx: Result<UnsignedTransaction> = self.into();
+    //     return unsigned_tx.unwrap().encode_to_vec();
+    // }
     pub fn into_proto(self) -> Result<UnsignedTransaction> {
         self.into()
     }
-    pub fn decode(buf: &[u8]) -> Result<Self> {
+    // pub fn decode(buf: &[u8]) -> Result<Self> {
+    //     let unsigned_tx: UnsignedTransaction = UnsignedTransaction::decode(buf)?;
+    //     let json_rep = serde_json::to_vec(&unsigned_tx)?;
+    //     serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
+    // }
+}
+
+impl Encoder for Transaction {
+    fn encode(&self) -> Result<Vec<u8>> {
+        let unsigned_tx: Result<UnsignedTransaction> = self.clone().into_proto();
+        unsigned_tx
+            .map(|tx| tx.encode_to_vec())
+            .map_err(|e| anyhow!("{}", e))
+    }
+}
+
+impl Decoder for Transaction {
+    fn decode(buf: &[u8]) -> Result<Self> {
         let unsigned_tx: UnsignedTransaction = UnsignedTransaction::decode(buf)?;
         let json_rep = serde_json::to_vec(&unsigned_tx)?;
         serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
@@ -205,9 +220,9 @@ impl SignedTransaction {
                 to: self.to,
                 amount: self.amount.into(),
                 fee: self.fee.into(),
-                data: self.data.clone()
+                data: self.data.clone(),
             }
-                .encode(),
+                .encode().unwrap_or_default(),
         );
         Ok(out.to_fixed_bytes())
     }
@@ -217,9 +232,7 @@ impl SignedTransaction {
     }
 }
 
-
 impl_codec!(SignedTransaction);
-
 
 #[test]
 fn test_proto_conversions() {

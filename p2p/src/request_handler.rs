@@ -4,6 +4,7 @@ use anyhow::Result;
 use blockchain::blockchain::Tuchain;
 use std::sync::Arc;
 use tokio::io::AsyncReadExt;
+use primitive_types::H256;
 use traits::{Blockchain, ChainHeadReader, ChainReader};
 
 pub struct RequestHandler {
@@ -35,7 +36,7 @@ impl RequestHandler {
                 let res = blockchain
                     .chain()
                     .block_storage()
-                    .get_block_by_hash(&msg.from);
+                    .get_block_by_hash(&H256::from(msg.from));
                 let mut level = match res {
                     Ok(Some(block)) => block.level(),
                     _ => {
@@ -45,7 +46,7 @@ impl RequestHandler {
                         let res = blockchain
                             .chain()
                             .block_storage()
-                            .get_block_by_hash(&peer_current_state.parent_hash);
+                            .get_block_by_hash(&peer_current_state.parent_hash());
                         match res {
                             Ok(Some(block)) => block.level(),
                             _ => -1,
@@ -66,7 +67,7 @@ impl RequestHandler {
                         break;
                     }
 
-                    if Some(header.hash()) == msg.to {
+                    if Some(header.hash().to_fixed_bytes()) == msg.to {
                         headers.push(header);
                         break;
                     }
@@ -94,7 +95,7 @@ impl RequestHandler {
                 let blockchain = self.blockchain.clone();
                 let mut blocks = Vec::with_capacity(msg.block_hashes.len());
                 for hash in msg.block_hashes.iter() {
-                    let res = blockchain.chain().block_storage().get_block_by_hash(hash);
+                    let res = blockchain.chain().block_storage().get_block_by_hash(&H256::from(hash));
                     match res {
                         Ok(Some(block)) => blocks.push(block),
                         _ => break,

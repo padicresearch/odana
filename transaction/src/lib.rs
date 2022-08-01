@@ -19,14 +19,16 @@ pub fn make_sign_transaction(
     to: Address,
     amount: u128,
     fee: u128,
+    data: String,
 ) -> Result<SignedTransaction> {
     let data = Transaction {
         nonce,
-        to,
-        amount,
-        fee,
+        to: to.into(),
+        amount: amount.into(),
+        fee: fee.into(),
+        data,
     };
-    let sig = account.sign(SHA256::digest(data.encode()).as_fixed_bytes())?;
+    let sig = account.sign(SHA256::digest(data.encode()?).as_fixed_bytes())?;
     Ok(SignedTransaction::new(sig, data))
 }
 

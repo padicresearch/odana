@@ -4,14 +4,13 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Result;
-use rand::RngCore;
+
 use serde::{Deserialize, Serialize};
-use tempdir::TempDir;
-use tiny_keccak::Hasher;
+
 
 use crate::error::StateError;
 use codec::impl_codec;
-use codec::{Codec, Decoder, Encoder};
+use codec::{Decoder, Encoder};
 use primitive_types::{H160, H256};
 use smt::proof::Proof;
 use smt::{Op, Tree};
@@ -123,7 +122,7 @@ impl State {
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
         for tx in txs {
-            let mut txs = accounts.entry(tx.from()).or_default();
+            let txs = accounts.entry(tx.from()).or_default();
             txs.insert(NoncePricedTransaction(tx));
         }
 
@@ -155,7 +154,7 @@ impl State {
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
         for tx in txs {
-            let mut txs = accounts.entry(tx.from()).or_default();
+            let txs = accounts.entry(tx.from()).or_default();
             txs.insert(NoncePricedTransaction(tx));
         }
 
@@ -221,7 +220,7 @@ impl State {
         Ok(())
     }
 
-    pub fn check_transaction(&self, transaction: &SignedTransaction) -> Result<()> {
+    pub fn check_transaction(&self, _transaction: &SignedTransaction) -> Result<()> {
         Ok(())
     }
 
@@ -275,7 +274,7 @@ impl State {
         Ok((account_state, ReadProof { proof, root }))
     }
 
-    pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {
+    pub fn checkpoint<P: AsRef<Path>>(&self, _path: P) -> Result<Self> {
         unimplemented!()
     }
 
@@ -351,10 +350,10 @@ mod tests {
     #[test]
     fn test_morph() {
         let path = TempDir::new("state").unwrap();
-        let mut state = State::new(path.path()).unwrap();
+        let state = State::new(path.path()).unwrap();
         let alice = create_account();
         let bob = create_account();
-        let jake = create_account();
+        let _jake = create_account();
         state.credit_balance(&alice.address, 1_000_000).unwrap();
         let mut txs = Vec::new();
         for i in 0..100 {
@@ -364,7 +363,8 @@ mod tests {
                 i + 1,
                 bob.address.to_fixed_bytes(),
                 amount,
-                ((amount as f64 * 0.01) as u128),
+                (amount as f64 * 0.01) as u128,
+                "hello".to_string(),
             )
                 .unwrap();
             txs.push(tx);

@@ -154,7 +154,7 @@ impl NetworkState {
                     .get(&current_highest_peer_id)
                     .ok_or(anyhow::anyhow!("Current highest peer not found"))?;
                 let mut new_highest = peer.clone();
-                if head.level > current_highest_block_header.level {
+                if head.level() > current_highest_block_header.level() {
                     *highest_know_head = new_highest;
                     peer_state.insert(peer.clone(), head.clone());
                 }

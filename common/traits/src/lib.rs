@@ -12,7 +12,7 @@ use types::{Genesis, Hash};
 pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
     fn current_header(&self) -> Result<Option<IndexedBlockHeader>>;
-    fn get_state_at(&self, root: &types::Hash) -> Result<Arc<dyn StateDB>>;
+    fn get_state_at(&self, root: &H256) -> Result<Arc<dyn StateDB>>;
 }
 
 pub trait StateDB: Send + Sync {

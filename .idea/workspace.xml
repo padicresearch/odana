@@ -36,16 +36,28 @@
     <cargoProject FILE="$PROJECT_DIR$/constants/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="fix checkpoint">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fix checkpoint">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/block_storage.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/block_storage.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/blockchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/traits/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/coin.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/coin.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/consensus/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/sync.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/sync.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/peer_manager.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/peer_manager.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p2p/src/request_handler.rs" beforeDir="false" afterPath="$PROJECT_DIR$/p2p/src/request_handler.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proto/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/blockchain.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proto/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/src/blockchain.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/memstore.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/memstore.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/rocks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/rocks.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/storage/src/sleddb.rs" beforeDir="false" afterPath="$PROJECT_DIR$/storage/src/sleddb.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/transaction/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/txpool/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/txpool/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -504,14 +516,7 @@
       <workItem from="1657485625540" duration="598000" />
       <workItem from="1657581288548" duration="4926000" />
       <workItem from="1657735229817" duration="98387000" />
-      <workItem from="1658343253983" duration="170472000" />
-    </task>
-    <task id="LOCAL-00193" summary="implement sync">
-      <created>1656147574615</created>
-      <option name="number" value="00193" />
-      <option name="presentableId" value="LOCAL-00193" />
-      <option name="project" value="LOCAL" />
-      <updated>1656147574615</updated>
+      <workItem from="1658343253983" duration="175795000" />
     </task>
     <task id="LOCAL-00194" summary="implement sync">
       <created>1656147968668</created>
@@ -849,7 +854,14 @@
       <option name="project" value="LOCAL" />
       <updated>1659355282971</updated>
     </task>
-    <option name="localTasksCounter" value="242" />
+    <task id="LOCAL-00242" summary="cargo fix checkpoint">
+      <created>1659359397588</created>
+      <option name="number" value="00242" />
+      <option name="presentableId" value="LOCAL-00242" />
+      <option name="project" value="LOCAL" />
+      <updated>1659359397588</updated>
+    </task>
+    <option name="localTasksCounter" value="243" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -880,7 +892,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="Implemented Trie with `reset`" />
     <MESSAGE value="cleanup imports" />
     <MESSAGE value="clean up: remove `staging_keys`" />
     <MESSAGE value="error formatting" />
@@ -905,7 +916,8 @@
     <MESSAGE value="txpool repack after block application" />
     <MESSAGE value="txpool repack after block application&#10;begin `grpc` implementation" />
     <MESSAGE value="fix checkpoint" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix checkpoint" />
+    <MESSAGE value="cargo fix checkpoint" />
+    <option name="LAST_COMMIT_MESSAGE" value="cargo fix checkpoint" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

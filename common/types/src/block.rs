@@ -66,6 +66,7 @@ pub struct BlockHeader {
     level: i32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     time: u32,
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     nonce: U128,
 }
 
@@ -117,8 +118,8 @@ impl BlockHeader {
         }
     }
 
-    pub fn hash(&self) -> Hash {
-        SHA256::digest(&self.encode().unwrap()).into()
+    pub fn hash(&self) -> H256 {
+        SHA256::digest(&self.encode().unwrap())
     }
 
     pub fn difficulty(&self) -> Compact {
@@ -135,7 +136,7 @@ pub struct Block {
     header: BlockHeader,
     transactions: Vec<SignedTransaction>,
     #[serde(skip)]
-    hash: Arc<RwLock<Option<Hash>>>,
+    hash: Arc<RwLock<Option<H256>>>,
 }
 
 impl Block {
@@ -172,7 +173,7 @@ impl Block {
         }
     }
 
-    pub fn hash(&self) -> Hash {
+    pub fn hash(&self) -> H256 {
         cache(&self.hash, || self.header.hash())
     }
 
@@ -236,7 +237,7 @@ impl AsRef<BlockHeader> for HeightSortedBlockHeader {
 }
 
 impl HeightSortedBlockHeader {
-    pub fn hash(&self) -> Hash {
+    pub fn hash(&self) -> H256 {
         self.0.hash()
     }
 }

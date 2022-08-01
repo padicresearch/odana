@@ -1,15 +1,15 @@
 use std::path::PathBuf;
-use std::sync::Mutex;
+
 use std::sync::{Arc, RwLock};
 
-use anyhow::{anyhow, bail, Result};
-use lru::LruCache;
+use anyhow::{anyhow, Result};
+
 use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::{H160, H256};
 use state::State;
 use storage::{KVStore, Schema};
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, info, trace, warn};
 use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
 use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
@@ -85,16 +85,16 @@ impl ChainState {
     ) -> Result<Self> {
         let state = Arc::new(State::new(state_dir)?);
         if let Some(current_head) = chain_state_storage.get_current_header()? {
-            info!(current_head = ?H256::from(current_head.hash()), level = ?current_head.level, "restore from blockchain state");
+            info!(current_head = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
         } else {
             let mut genesis = consensus.get_genesis_header();
             state.credit_balance(&H160::from(&[0; 20]), 1_000_000_000_000);
             state.commit()?;
-            genesis.state_root = state.root();
+            genesis.set_state_root(H256::from(state.root()));
             let block = Block::new(genesis.clone(), vec![]);
             block_storage.put(block)?;
             chain_state_storage.set_current_header(genesis)?;
-            info!(current_head = ?H256::from(genesis.hash()), level = ?genesis.level, "blockchain state started from genesis");
+            info!(current_head = ?genesis.hash(), level = ?genesis.level(), "blockchain state started from genesis");
         }
 
         Ok(Self {
@@ -117,26 +117,25 @@ impl ChainState {
         let current_head = self.current_header()?;
         let current_head =
             current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
-
         let first_block = blocks.peek().unwrap();
-        if first_block.parent_hash() != current_head.hash.as_fixed_bytes()
-            && current_head.raw.level > first_block.level() - 1
+        if first_block.parent_hash().ne(&current_head.hash)
+            && current_head.raw.level() > first_block.level() - 1
         {
             // Reset header to common head
-            let header = first_block.header();
+            let _header = first_block.header();
             let block_storage = self.block_storage();
             let parent_header = block_storage
                 .get_header_by_hash(first_block.parent_hash())?
                 .ok_or(anyhow!("error accepting block non commit"))?;
 
             let parent_header_raw = &parent_header.raw;
-            let parent_state_root = H256::from(parent_header_raw.state_root);
-            debug!(header = ?H256::from(parent_header_raw.hash()), level = parent_header_raw.level, "Resetting state to");
-            self.state.reset(parent_state_root)?;
+            let parent_state_root = parent_header_raw.state_root();
+            debug!(header = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Resetting state to");
+            self.state.reset(*parent_state_root)?;
             self.chain_state
                 .set_current_header(parent_header_raw.clone())?;
-            info!(header = ?H256::from(parent_header_raw.hash()), level = parent_header_raw.level, "Rolled back chain to previous");
-            debug!(chain_head = ?current_head.hash, chain_tail = ?parent_header.hash, level = current_head.raw.level, "Removing stale chain");
+            info!(header = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Rolled back chain to previous");
+            debug!(chain_head = ?current_head.hash, chain_tail = ?parent_header.hash, level = current_head.raw.level(), "Removing stale chain");
             // Remove current chain
             {
                 let block_storage = self.block_storage();
@@ -144,17 +143,17 @@ impl ChainState {
                 let mut remove_count = 0;
                 loop {
                     let (next, level) = match block_storage.get_header_by_hash(&head) {
-                        Ok(Some(block)) => (block.raw.parent_hash, block.raw.level),
+                        Ok(Some(block)) => (block.raw.parent_hash().clone(), block.raw.level()),
                         _ => break,
                     };
 
                     // Delete Head from storage
-                    block_storage.delete(head, level)?;
+                    block_storage.delete(&head, level)?;
                     remove_count += 1;
-                    debug!(hash = ?H256::from(head),level = current_head.raw.level, "Deleting block");
+                    debug!(hash = ?head,level = current_head.raw.level(), "Deleting block");
                     head = next;
 
-                    if next == *parent_header.hash.as_fixed_bytes() {
+                    if next.ne(&parent_header.hash) {
                         break;
                     }
                 }
@@ -178,7 +177,7 @@ impl ChainState {
                     }
                 }
                 Err(e) => {
-                    trace!(header = ?H256::from(header.hash()), parent_hash = ?format!("{}", H256::from(header.parent_hash)), level = header.level, error = ?e, "Error updating chain state");
+                    trace!(header = ?header.hash(), parent_hash = ?format!("{}", header.parent_hash()), level = header.level(), error = ?e, "Error updating chain state");
                     return Err(e);
                 }
             };
@@ -193,8 +192,8 @@ impl ChainState {
         let parent_header = block_storage
             .get_header_by_hash(block.parent_hash())?
             .ok_or(anyhow!("error processing block parent block not found"))?;
-        let parent_state_root = H256::from(parent_header.raw.state_root);
-        let parent_state = self.state.get_sate_at(parent_state_root)?;
+        let parent_state_root = parent_header.raw.state_root();
+        let parent_state = self.state.get_sate_at(*parent_state_root)?;
         consensus.finalize(
             self.block_storage.clone(),
             &mut header,
@@ -214,19 +213,19 @@ impl ChainState {
             current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
         let header = block.header();
         let mut repack = false;
-        if block.parent_hash() == current_head.hash.as_fixed_bytes() {
+        if block.parent_hash().eq(&current_head.hash) {
             let state = self.state();
             state.apply_txs(block.transactions().clone())?;
             let _ = state.credit_balance(
-                &H160::from(header.coinbase),
-                consensus.miner_reward(header.level),
+                header.coinbase(),
+                consensus.miner_reward(header.level()),
             )?;
             state.commit()?;
             self.chain_state.set_current_header(header.clone())?;
             self.sender.send(LocalEventMessage::StateChanged {
                 current_head: self.current_header().unwrap().unwrap().raw,
             })?;
-            info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Applied new block");
+            info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Applied new block");
             repack = true;
         } else {
             let state = self.state();
@@ -235,19 +234,19 @@ impl ChainState {
             let parent_header = block_storage
                 .get_header_by_hash(block.parent_hash())?
                 .ok_or(anyhow!("error accepting block non commit"))?;
-            let parent_state_root = H256::from(parent_header.raw.state_root);
+            let parent_state_root = parent_header.raw.state_root();
             state.apply_txs_no_commit(
-                parent_state_root,
+                *parent_state_root,
                 consensus.miner_reward(block.level()),
-                H160::from(block.header().coinbase),
+                *block.header().coinbase(),
                 block.transactions().clone(),
             )?;
-            info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Accepted block No Commit");
-            if block.level() > current_head.raw.level {
-                debug!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Resetting state");
-                self.state.reset(H256::from(header.state_root))?;
+            info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Accepted block No Commit");
+            if block.level() > current_head.raw.level() {
+                debug!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Resetting state");
+                self.state.reset(*header.state_root())?;
                 self.chain_state.set_current_header(header.clone())?;
-                info!(header = ?H256::from(header.hash()), level = header.level, parent_hash = ?format!("{}", H256::from(header.parent_hash)), "Chain changed, network fork");
+                info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Chain changed, network fork");
                 repack = true
             }
         }
@@ -276,17 +275,17 @@ impl Blockchain for ChainState {
             .map(|header| header.map(|header| header.into()))
     }
 
-    fn get_state_at(&self, root: &Hash) -> anyhow::Result<Arc<dyn StateDB>> {
-        Ok(self.state.get_sate_at(H256::from(root))?)
+    fn get_state_at(&self, root: &H256) -> anyhow::Result<Arc<dyn StateDB>> {
+        Ok(self.state.get_sate_at(*root)?)
     }
 }
 
 impl ChainReader for ChainState {
-    fn get_block(&self, hash: &Hash, level: i32) -> Result<Option<Block>> {
+    fn get_block(&self, hash: &H256, level: i32) -> Result<Option<Block>> {
         self.block_storage.get_block(hash, level)
     }
 
-    fn get_block_by_hash(&self, hash: &Hash) -> Result<Option<Block>> {
+    fn get_block_by_hash(&self, hash: &H256) -> Result<Option<Block>> {
         self.block_storage.get_block_by_hash(hash)
     }
 

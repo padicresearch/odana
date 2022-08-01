@@ -5,7 +5,7 @@ use anyhow::Result;
 use tokio::sync::mpsc::UnboundedSender;
 
 use storage::PersistentStorage;
-use tracing::{error, info};
+
 use traits::Consensus;
 use txpool::TxPool;
 use types::events::LocalEventMessage;

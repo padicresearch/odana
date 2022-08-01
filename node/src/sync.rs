@@ -94,9 +94,9 @@ impl SyncService {
     fn handle_import_blocks(&mut self, msg: &BlocksMessage) -> Result<()> {
         let blocks_to_import = &msg.blocks;
         let node_head = self.chain.current_header().unwrap();
-        let node_level = node_head.map(|block| block.raw.level).unwrap();
+        let node_level = node_head.map(|block| block.raw.level()).unwrap();
 
-        if blocks_to_import.is_empty() && node_level >= self.network_tip.level {
+        if blocks_to_import.is_empty() && node_level >= self.network_tip.level() {
             self.sync_mode = Arc::new(SyncMode::Normal);
             return Ok(());
         }
@@ -126,19 +126,19 @@ impl SyncService {
             )?;
             self.sync_mode = Arc::new(SyncMode::Forward);
             let node_head = self.chain.current_header().unwrap();
-            let node_level = node_head.map(|block| block.raw.level).unwrap();
+            let node_level = node_head.map(|block| block.raw.level()).unwrap();
 
             let (_, sync_point) = self.tip_before_sync.as_ref().unwrap();
 
-            if sync_point.level > node_level {
+            if sync_point.level() > node_level {
                 self.last_request_index = node_level as u32 + 1;
                 self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index as i32,
                     24,
                 )));
-            } else if sync_point.level <= node_level {
+            } else if sync_point.level() <= node_level {
                 self.tip_before_sync = None;
-                if node_level < self.network_tip.level {
+                if node_level < self.network_tip.level() {
                     self.last_request_index = node_level as u32 + 1;
                     self.tip_before_sync =
                         Some((self.highest_peer.clone(), self.network_tip.clone()));
@@ -198,12 +198,12 @@ impl SyncService {
                 let current_header = self.chain.current_header()?;
                 let current_header = current_header.unwrap();
                 let tip = tip.unwrap_or(current_header.raw.clone());
-                let node_height = current_header.raw.level;
+                let node_height = current_header.raw.level();
                 self.network_tip = tip.clone();
                 self.highest_peer = peer_id.clone();
-                if self.tip_before_sync.is_none() && tip.level > node_height {
+                if self.tip_before_sync.is_none() && tip.level() > node_height {
                     // TODO; stop mining
-                    self.last_request_index = tip.level as u32;
+                    self.last_request_index = tip.level() as u32;
                     self.tip_before_sync = Some((peer_id.clone(), tip.clone()));
                     self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                         node_height + 1,
@@ -227,7 +227,7 @@ impl SyncService {
         sync_mode: Arc<SyncMode>,
     ) -> Self {
         let node_height = chain.current_header().unwrap();
-        let node_height = node_height.map(|block| block.raw.level).unwrap();
+        let node_height = node_height.map(|block| block.raw.level()).unwrap();
         let network_tip = consensus.get_genesis_header();
         Self {
             chain,
@@ -248,7 +248,7 @@ impl SyncService {
     }
 
     fn validate_chain(&self, blocks: &[Block]) -> bool {
-        let mut blocks_to_apply: BTreeMap<i32, HashMap<[u8; 32], &Block>> = BTreeMap::new();
+        let mut blocks_to_apply: BTreeMap<i32, HashMap<H256, &Block>> = BTreeMap::new();
         for block in blocks {
             let mut map = blocks_to_apply
                 .entry(block.level())
