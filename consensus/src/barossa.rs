@@ -369,14 +369,12 @@ impl Consensus for BarossaProtocol {
         txs: Vec<SignedTransaction>,
     ) -> anyhow::Result<()> {
         state.apply_txs(txs.clone())?;
-        let new_root = state.credit_balance(
+        let _ = state.credit_balance(
             header.coinbase(),
             self.miner_reward(header.level()),
         )?;
-        println!("New Root {}", new_root);
-        header.set_state_root(new_root);
         state.commit()?;
-        println!("New Root {:?}", state.root());
+        header.set_state_root(H256::from(state.root()));
         Ok(())
     }
 

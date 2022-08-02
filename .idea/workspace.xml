@@ -37,14 +37,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="cargo fix checkpoint, refactor: use primitive types">
+      <change afterPath="$PROJECT_DIR$/proto/schema/rpc_account.proto" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/proto/schema/types.proto" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/proto/src/types.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/rpc/src/account.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/blockchain/src/chain_state.rs" beforeDir="false" afterPath="$PROJECT_DIR$/blockchain/src/chain_state.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/block.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/block.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/consensus/src/barossa.rs" beforeDir="false" afterPath="$PROJECT_DIR$/consensus/src/barossa.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/miner/src/worker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/miner/src/worker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proto/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/blockchain.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proto/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node/src/node.rs" beforeDir="false" afterPath="$PROJECT_DIR$/node/src/node.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/build.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/schema/blockchain.proto" beforeDir="false" afterPath="$PROJECT_DIR$/proto/schema/rpc_chain.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/schema/txs.proto" beforeDir="false" afterPath="$PROJECT_DIR$/proto/schema/txs.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/rpc.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/src/tx.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/src/blockchain.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/src/blockchain.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/smt/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/smt/src/tree.rs" beforeDir="false" afterPath="$PROJECT_DIR$/smt/src/tree.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -65,7 +78,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="txs-repack" />
+        <entry key="$PROJECT_DIR$" value="forward-backward-sync" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -134,31 +147,31 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/mambisizempare/CLionProjects/tuchain&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "WebServerToolWindowFactoryState": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "last_opened_file_path": "/Users/mambisizempare/CLionProjects/tuchain/proto/schema",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
+    "settings.editor.selected.configurable": "preferences.lookFeel"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/proto/schema" />
       <recent name="$PROJECT_DIR$/merk" />
       <recent name="$PROJECT_DIR$/morph/merk" />
       <recent name="$PROJECT_DIR$/common" />
       <recent name="$PROJECT_DIR$" />
-      <recent name="$PROJECT_DIR$/trie/src" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/proto" />
@@ -373,9 +386,9 @@
       <list>
         <item itemvalue="Cargo.Test tests::test_morph" />
         <item itemvalue="Cargo.Test tx::test_proto_conversions" />
-        <item itemvalue="Cargo.Test block::test_proto_conversions" />
         <item itemvalue="Cargo.Test tx::test::test_message_pack_serialization" />
         <item itemvalue="Cargo.Test tx::test" />
+        <item itemvalue="Cargo.Test block::test_proto_conversions" />
       </list>
     </recent_temporary>
   </component>

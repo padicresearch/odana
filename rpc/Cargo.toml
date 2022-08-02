@@ -13,6 +13,7 @@ thiserror = "1.0.30"
 proto = { path = "../proto" }
 codec = { path = "../codec" }
 types = { path = "../common/types" }
+primitive-types = { path = "../common/primitive-types" }
 traits = { path = "../common/traits" }
 blockchain = { path = "../blockchain" }
 tracing = { path = "../common/tracing" }

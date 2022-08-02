@@ -1,4 +1,4 @@
-mod blockchain;
-pub mod tx;
+pub mod rpc;
+mod types;
 
-pub use blockchain::*;
+pub use types::*;

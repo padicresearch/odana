@@ -1,22 +1,2 @@
-syntax = "proto3";
-package tx;
 
-message UnsignedTransaction {
-  string nonce = 1;
-  string to = 2;
-  string amount = 3;
-  string fee = 4;
-  string data = 5;
-}
 
-message Transaction {
-  string nonce = 1;
-  string from = 2;
-  string to = 3;
-  string amount = 4;
-  string fee = 5;
-  string data = 6;
-  string r = 7;
-  string s = 8;
-  string v = 9;
-}

@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use tracing::{debug, error};
 
 #[derive(Copy, Clone)]
 pub enum CopyStrategy {
@@ -151,8 +152,8 @@ where
         Ok(head.clone())
     }
 
-    pub fn apply(&self, batch: Vec<Op<K, V>>) -> Result<H256> {
-        self.commit()?;
+    pub fn apply(&self, batch: Vec<Op<K, V>>, persist: bool) -> Result<H256> {
+        self.commit(persist)?;
         let res: Result<HashMap<_, _>> = batch
             .into_iter()
             .map(|op| match op {
@@ -199,15 +200,23 @@ where
         return Ok(new_root);
     }
 
-    pub fn commit(&self) -> Result<H256> {
+    pub fn commit(&self, persist: bool) -> Result<H256> {
         let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
         let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
 
         if head.root == staging.root {
             return Ok(head.root);
         }
-
-        self.db.put(staging.root(), staging.clone());
+        if persist {
+            match self.db.put(staging.root(), staging.clone()) {
+                Ok(_) => {
+                    debug!(state_root = ?staging.root(), "Persisted State");
+                }
+                Err(e) => {
+                    error!(error = ?e, "Unable to persisted");
+                }
+            }
+        }
         *head = staging.clone();
         *staging = head.subtree(self.options.strategy, vec![])?;
         Ok(head.root())
@@ -216,14 +225,14 @@ where
     pub fn put(&self, key: K, value: V) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Value(value.encode()?).encode()?);
         let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
-        staging.update(key.clone(), value);
+        let root = staging.update(key.clone(), value)?;
         Ok(())
     }
 
     pub fn delete(&self, key: &K) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Deleted.encode()?);
         let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
-        staging.update(key.clone(), value);
+        staging.update(key.clone(), value)?;
         Ok(())
     }
 
@@ -361,7 +370,7 @@ mod tests {
             },
         )
             .unwrap();
-        let root_1 = tree.commit().unwrap();
+        let root_1 = tree.commit(true).unwrap();
         tree.put(
             H256::from_slice(&vec![24; 32]),
             AccountState {
@@ -412,7 +421,7 @@ mod tests {
         )
             .unwrap();
 
-        let root_2 = tree.commit().unwrap();
+        let root_2 = tree.commit(true).unwrap();
 
         assert_eq!(
             tree.get_descend(&H256::from_slice(&vec![3; 32]), true)
@@ -447,7 +456,7 @@ mod tests {
         )
             .unwrap();
 
-        let root_3 = tree.commit().unwrap();
+        let root_3 = tree.commit(true).unwrap();
 
         assert_eq!(
             tree.get_descend(&H256::from_slice(&vec![3; 32]), false)
@@ -502,7 +511,7 @@ mod tests {
             },
         )
             .unwrap();
-        tree.commit();
+        tree.commit(true);
         println!("{:#?}", tree.root().unwrap());
         println!("{:?}", tree.root().unwrap().0);
     }

@@ -1,0 +1,16 @@
+syntax = "proto3";
+import "types.proto";
+
+package rpc;
+
+message GetAccountBalanceRequest {
+  string address = 1;
+}
+
+message GetAccountBalanceResponse {
+  string balance = 1;
+}
+
+service AccountService {
+  rpc GetAccountBalance (GetAccountBalanceRequest) returns (GetAccountBalanceResponse);
+}

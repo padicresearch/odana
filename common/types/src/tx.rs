@@ -15,7 +15,7 @@ use crypto::ecdsa::{PublicKey, Signature};
 use crypto::{RIPEMD160, SHA256};
 use primitive_types::{H160, H256, H512, U128, U256, U512};
 use prost::Message;
-use proto::tx::UnsignedTransaction;
+use proto::UnsignedTransaction;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {

@@ -68,7 +68,6 @@ impl StateDB for State {
             tx_hash: [0; 32],
         };
         self.apply_operation(action)?;
-        println!("{:?}", self.root_hash());
         Ok(self.root_hash()?.into())
     }
 
@@ -79,7 +78,6 @@ impl StateDB for State {
             tx_hash: [0; 32],
         };
         self.apply_operation(action)?;
-        println!("{:?}", self.root_hash());
         Ok(self.root_hash()?.into())
     }
 
@@ -97,7 +95,7 @@ impl StateDB for State {
     }
 
     fn commit(&self) -> Result<()> {
-        self.trie.commit().map(|_| ())
+        self.commit()
     }
 
     fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
@@ -216,9 +214,7 @@ impl State {
     }
 
     fn commit(&self) -> Result<()> {
-        if !self.read_only {
-            self.trie.commit()?;
-        }
+        self.trie.commit(!self.read_only)?;
         Ok(())
     }
 
@@ -356,6 +352,8 @@ mod tests {
         let alice = create_account();
         let bob = create_account();
         let _jake = create_account();
+        println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
+        state.commit().unwrap();
         println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
         state.commit().unwrap();
         println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());

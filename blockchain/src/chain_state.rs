@@ -85,6 +85,7 @@ impl ChainState {
     ) -> Result<Self> {
         let state = Arc::new(State::new(state_dir)?);
         if let Some(current_head) = chain_state_storage.get_current_header()? {
+            state.reset(*current_head.state_root())?;
             info!(current_head = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
         } else {
             let mut genesis = consensus.get_genesis_header();

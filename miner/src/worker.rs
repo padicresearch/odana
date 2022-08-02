@@ -121,7 +121,6 @@ pub fn start_worker(
                 }
 
                 info!(level = level, hash = ?hex::encode(hash), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
-                println!("Header Mined {:?}", block_template);
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
                 let blocks = vec![block.clone()];
@@ -185,6 +184,5 @@ fn make_block_template(
     );
     consensus.prepare_header(chain_header_reader.clone(), &mut header)?;
     consensus.finalize(chain_header_reader, &mut header, state.clone(), txs.clone())?;
-    println!("Header Template Mine {:?}", header);
     Ok((header, txs))
 }
