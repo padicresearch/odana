@@ -15,6 +15,7 @@ use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 
 use txpool::{TxPool};
+use txpool::tx_lookup::AccountSet;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::SignedTransaction;
@@ -120,7 +121,7 @@ pub fn start_worker(
                     break;
                 }
 
-                info!(level = level, hash = ?hex::encode(hash), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
+                info!(level = level, blockhash = format!("{}",hex::encode(hash)), txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
                 let blocks = vec![block.clone()];
@@ -134,15 +135,15 @@ pub fn start_worker(
     warn!("miner shutdown");
 }
 
-fn pack_pending_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedTransaction>)> {
-    let txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
+fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedTransaction>)> {
+    let mut txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
     let mut tsx = Vec::new();
     let mut merkle = Merkle::default();
     for (_, list) in txpool.pending() {
-        for tx in list.iter() {
+        for tx in list.as_ref().iter() {
             merkle.update(&tx.hash())?;
         }
-        tsx.extend(list.iter().map(|tx_ref| tx_ref.deref().clone()));
+        tsx.extend(list.as_ref().iter().map(|tx_ref| tx_ref.deref().clone()));
     }
 
     let merkle_root = match merkle.finalize() {
@@ -166,7 +167,8 @@ fn make_block_template(
         Some(header) => header.raw,
     };
     let state = state.state_at(*parent_header.state_root())?;
-    let (merkle_root, txs) = pack_pending_txs(txpool.clone())?;
+    let (merkle_root, txs) = pack_queued_txs(txpool.clone())?;
+
     let mut mix_nonce = [0; 32];
     U256::one().to_big_endian(&mut mix_nonce);
     let time = Utc::now().timestamp() as u32;

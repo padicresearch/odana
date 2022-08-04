@@ -8,14 +8,16 @@ use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
-use codec::impl_codec;
+use codec::{ConsensusCodec, impl_codec};
 use codec::{Decoder, Encoder};
 use crypto::SHA256;
 use primitive_types::{Compact, H256, U128, U256};
-use proto::BlockHeader as ProtoBlockHeader;
+use proto::{BlockHeader as ProtoBlockHeader, Block as ProtoBlock, RawBlockHeaderPacket};
+use prost::Message;
 
 use crate::tx::SignedTransaction;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
+use serde_json::json;
 
 use super::*;
 
@@ -70,20 +72,6 @@ pub struct BlockHeader {
     nonce: U128,
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
-pub struct BlockHeaderHexFormat {
-    pub parent_hash: H256,
-    pub merkle_root: H256,
-    pub state_root: H256,
-    pub mix_nonce: U256,
-    pub coinbase: H160,
-    pub difficulty: U128,
-    pub chain_id: U128,
-    pub level: U128,
-    pub time: U128,
-    pub nonce: U128,
-}
-
 impl BlockHeader {
     pub fn new(
         parent_hash: H256,
@@ -112,7 +100,7 @@ impl BlockHeader {
     }
 
     pub fn hash(&self) -> H256 {
-        SHA256::digest(&self.encode().unwrap())
+        SHA256::digest(self.consensus_encode())
     }
 
     pub fn difficulty(&self) -> Compact {
@@ -122,6 +110,40 @@ impl BlockHeader {
     pub fn into_proto(self) -> Result<ProtoBlockHeader> {
         let json_rep = serde_json::to_vec(&self)?;
         serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
+    }
+}
+
+impl ConsensusCodec for BlockHeader {
+    fn consensus_encode(self) -> Vec<u8> {
+        let raw_pack = RawBlockHeaderPacket {
+            parent_hash: self.parent_hash.as_bytes().to_vec(),
+            merkle_root: self.parent_hash.as_bytes().to_vec(),
+            state_root: self.state_root.as_bytes().to_vec(),
+            mix_nonce: self.mix_nonce.to_be_bytes().to_vec(),
+            coinbase: self.coinbase.as_bytes().to_vec(),
+            difficulty: self.difficulty,
+            chain_id: self.chain_id,
+            level: self.level,
+            time: self.time,
+            nonce: self.nonce.to_be_bytes().to_vec(),
+        };
+        raw_pack.encode_to_vec()
+    }
+
+    fn consensus_decode(buf: &[u8]) -> Result<Self> {
+        let raw_pack: RawBlockHeaderPacket = RawBlockHeaderPacket::decode(buf)?;
+        Ok(Self {
+            parent_hash: H256::from_slice(raw_pack.parent_hash.as_slice()),
+            merkle_root: H256::from_slice(raw_pack.merkle_root.as_slice()),
+            state_root: H256::from_slice(raw_pack.state_root.as_slice()),
+            mix_nonce: U256::from_big_endian(raw_pack.mix_nonce.as_slice()),
+            coinbase: H160::from_slice(raw_pack.coinbase.as_slice()),
+            difficulty: raw_pack.difficulty,
+            chain_id: raw_pack.chain_id,
+            level: raw_pack.level,
+            time: raw_pack.time,
+            nonce: U128::from_big_endian(raw_pack.parent_hash.as_slice()),
+        })
     }
 }
 
@@ -179,6 +201,15 @@ impl Block {
     }
     pub fn parent_hash(&self) -> &H256 {
         self.header.parent_hash()
+    }
+    pub fn into_proto(self) -> Result<ProtoBlock> {
+        let jsblock = json!({
+            "hash" : self.hash(),
+            "header" : self.header(),
+            "txs" : self.transactions()
+        });
+        let json_rep = serde_json::to_vec(&jsblock)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
 

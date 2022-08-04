@@ -3,7 +3,7 @@ import "types.proto";
 
 package rpc;
 
-message GetAccountBalanceRequest {
+message GetAccountRequest {
   string address = 1;
 }
 
@@ -11,6 +11,12 @@ message GetAccountBalanceResponse {
   string balance = 1;
 }
 
+message GetAccountNonceResponse {
+  string nonce = 1;
+}
+
 service AccountService {
-  rpc GetAccountBalance (GetAccountBalanceRequest) returns (GetAccountBalanceResponse);
+  rpc GetAccountBalance (GetAccountRequest) returns (GetAccountBalanceResponse);
+  rpc GetAccountNonce (GetAccountRequest) returns (GetAccountNonceResponse);
+  rpc GetAccountState (GetAccountRequest) returns (types.AccountState);
 }

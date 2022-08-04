@@ -15,7 +15,7 @@ use crypto::ecdsa::{PublicKey, Signature};
 use crypto::{RIPEMD160, SHA256};
 use primitive_types::{H160, H256, H512, U128, U256, U512};
 use prost::Message;
-use proto::UnsignedTransaction;
+use proto::{TransactionStatus, UnsignedTransaction};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {
@@ -28,19 +28,25 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    // pub fn encode(self) -> Vec<u8> {
-    //     let unsigned_tx: Result<UnsignedTransaction> = self.into();
-    //     return unsigned_tx.unwrap().encode_to_vec();
-    // }
     pub fn into_proto(self) -> Result<UnsignedTransaction> {
         let json_rep = serde_json::to_vec(&self)?;
         serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
-    // pub fn decode(buf: &[u8]) -> Result<Self> {
-    //     let unsigned_tx: UnsignedTransaction = UnsignedTransaction::decode(buf)?;
-    //     let json_rep = serde_json::to_vec(&unsigned_tx)?;
-    //     serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
-    // }
+
+    pub fn from_proto(msg: &UnsignedTransaction) -> Result<Transaction> {
+        let json_rep = serde_json::to_vec(msg)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
+    }
+
+    pub fn sig_hash(&self) -> H256 {
+        let mut pack = Vec::new();
+        pack.extend_from_slice(&self.nonce.to_be_bytes());
+        pack.extend_from_slice(&self.to.as_bytes());
+        pack.extend_from_slice(&self.amount.to_be_bytes());
+        pack.extend_from_slice(&self.fee.to_be_bytes());
+        pack.extend_from_slice(&self.data.as_bytes());
+        return SHA256::digest(pack)
+    }
 }
 
 impl Encoder for Transaction {
@@ -60,12 +66,23 @@ impl Decoder for Transaction {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum TransactionStatus {
-    Confirmed,
-    Pending,
-    Queued,
-    NotFound,
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TransactionList {
+    pub txs: Vec<Arc<SignedTransaction>>,
+}
+
+impl TransactionList {
+    pub fn new(txs: Vec<Arc<SignedTransaction>>) -> Self {
+        Self {
+            txs
+        }
+    }
+}
+
+impl AsRef<Vec<Arc<SignedTransaction>>> for TransactionList {
+    fn as_ref(&self) -> &Vec<Arc<SignedTransaction>> {
+        &self.txs
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -94,7 +111,7 @@ impl std::fmt::Debug for SignedTransaction {
             .field("to", &self.to)
             .field("amount", &self.amount)
             .field("fee", &self.fee)
-            .field("data", &hex::encode(&self.data))
+            .field("data", &self.data)
             .field("r", &self.r)
             .field("s", &self.s)
             .field("v", &self.v)
@@ -129,20 +146,20 @@ impl std::hash::Hash for SignedTransaction {
 }
 
 impl SignedTransaction {
-    pub fn new(signature: Signature, tx: Transaction) -> Self {
+    pub fn new(signature: Signature, tx: UnsignedTransaction) -> Result<Self> {
         let (r, s, v) = signature.rsv();
-        Self {
-            nonce: tx.nonce,
-            to: tx.to,
-            amount: tx.amount,
-            fee: tx.fee,
-            data: Default::default(),
+        Ok(Self {
+            nonce: U128::from_str(&tx.nonce)?.as_u64(),
+            to: H160::from_str(&tx.to)?,
+            amount: U128::from_str(&tx.amount)?,
+            fee: U128::from_str(&tx.fee)?,
+            data: tx.data.to_owned(),
             r,
             s,
             v,
             hash: Arc::new(Default::default()),
             from: Arc::new(Default::default()),
-        }
+        })
     }
 
     pub fn hash(&self) -> [u8; 32] {
@@ -208,17 +225,44 @@ impl SignedTransaction {
     }
 
     pub fn sig_hash(&self) -> Result<[u8; 32]> {
-        let mut out = SHA256::digest(
-            Transaction {
-                nonce: self.nonce,
-                to: self.to,
-                amount: self.amount.into(),
-                fee: self.fee.into(),
-                data: self.data.clone(),
-            }
-                .encode().unwrap_or_default(),
-        );
-        Ok(out.to_fixed_bytes())
+        let tx = Transaction {
+            nonce: self.nonce,
+            to: self.to,
+            amount: self.amount.into(),
+            fee: self.fee.into(),
+            data: self.data.clone(),
+        };
+        let raw = tx.sig_hash();
+        Ok(raw.to_fixed_bytes())
+    }
+
+    pub fn into_proto(self) -> Result<proto::Transaction> {
+        let json_rep = serde_json::to_vec(&self)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
+    }
+
+    pub fn into_raw(self) -> Result<String> {
+        let tx = self.into_proto()?;
+        let encoded = tx.encode_to_vec();
+        Ok(prefix_hex::encode(encoded))
+    }
+
+    pub fn from_proto(msg: proto::Transaction) -> Result<Self> {
+        let json_rep = serde_json::to_vec(&msg)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
+    }
+
+    pub fn from_raw(buf: &[u8]) -> Result<Self> {
+        let tx: proto::Transaction = proto::Transaction::decode(buf)?;
+        let json_rep = serde_json::to_vec(&tx)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
+    }
+
+    pub fn from_raw_str(buf: &str) -> Result<Self> {
+        let decoded: Vec<u8> = prefix_hex::decode(buf).map_err(|e| anyhow!("{}", e))?;
+        let tx: proto::Transaction = proto::Transaction::decode(decoded.as_slice())?;
+        let json_rep = serde_json::to_vec(&tx)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
 
     pub fn size(&self) -> u64 {
@@ -233,7 +277,7 @@ fn test_proto_conversions() {
     let tx = Transaction {
         nonce: 1000,
         to: H160::from([1; 20]),
-        amount: U128::from(100),
+        amount: U128::from(1000000),
         fee: U128::from(200),
         data: "".to_string(),
     };
@@ -244,4 +288,11 @@ fn test_proto_conversions() {
     let tx2 = Transaction::decode(&utx.encode_to_vec()).unwrap();
     println!("{:#?}", tx2);
     //println!("{:#02x}", U128::from(5));
+}
+
+
+#[test]
+fn test_tx_status() {
+    let status = vec![TransactionStatus::Confirmed, TransactionStatus::Pending, TransactionStatus::NotFound];
+    println!("{}", serde_json::to_string_pretty(&status).unwrap());
 }

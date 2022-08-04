@@ -213,7 +213,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     {
         let blockchain = blockchain.clone();
         let env = env.clone();
-        tokio::spawn(start_rpc_server(blockchain.chain().clone(), blockchain.chain().state(), env));
+        tokio::spawn(start_rpc_server(blockchain.chain().clone(), blockchain.chain().state(), blockchain.txpool(), env));
     }
 
 

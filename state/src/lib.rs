@@ -19,6 +19,7 @@ use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
 use types::tx::{SignedTransaction};
 use types::Hash;
+use crate::StateOperation::{CreditBalance, DebitBalance, UpdateNonce};
 
 mod error;
 
@@ -122,13 +123,16 @@ impl State {
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
         for tx in txs {
+            if !states.contains_key(&tx.from()) {
+                let current_state = self.trie.get(&tx.from())?.unwrap_or_default();
+                states.insert(tx.from(), current_state);
+            }
+            if !states.contains_key(&tx.to()) {
+                let current_state = self.trie.get(&tx.to())?.unwrap_or_default();
+                states.insert(tx.to(), current_state);
+            }
             let txs = accounts.entry(tx.from()).or_default();
             txs.insert(NoncePricedTransaction(tx));
-        }
-
-        for (acc, _) in accounts.iter() {
-            let current_state = self.trie.get(&acc)?.unwrap_or_default();
-            states.insert(*acc, current_state);
         }
 
         for (_, txs) in accounts {
@@ -194,15 +198,33 @@ impl State {
         states: &mut BTreeMap<H160, AccountState>,
     ) -> Result<()> {
         //TODO: verify transaction (probably)
-        for action in get_operations(&transaction) {
-            let address = action.get_address();
-            let account_state = states
-                .get(&address)
-                .map(|state| state.clone())
-                .unwrap_or_default();
-            let new_account_state = self.apply_action(&action, account_state)?;
-            states.insert(address, new_account_state);
-        }
+        let mut from_account_state = states
+            .get(&transaction.from())
+            .map(|state| state.clone())
+            .unwrap_or_default();
+        let mut to_account_state = states
+            .get(&transaction.to())
+            .map(|state| state.clone())
+            .unwrap_or_default();
+        from_account_state = self.apply_action(&DebitBalance {
+            account: transaction.from(),
+            amount: transaction.price() + transaction.fees(),
+            tx_hash: [0; 32],
+        }, from_account_state)?;
+        from_account_state = self.apply_action(&UpdateNonce {
+            account: transaction.from(),
+            nonce: from_account_state.nonce,
+            tx_hash: [0; 32],
+        }, from_account_state)?;
+
+        to_account_state = self.apply_action(&CreditBalance {
+            account: transaction.to(),
+            amount: transaction.price(),
+            tx_hash: [0; 32],
+        }, to_account_state)?;
+
+        states.insert(transaction.from(), from_account_state);
+        states.insert(transaction.to(), to_account_state);
         Ok(())
     }
 
@@ -241,10 +263,12 @@ impl State {
                 Ok(account_state)
             }
             StateOperation::UpdateNonce { nonce, .. } => {
-                if *nonce <= account_state.nonce {
-                    return Err(StateError::NonceIsLessThanCurrent.into());
-                }
-                account_state.nonce = *nonce;
+                let next_nonce = if *nonce > account_state.nonce {
+                    *nonce + 1
+                } else {
+                    account_state.nonce + 1
+                };
+                account_state.nonce = next_nonce;
                 Ok(account_state)
             }
         }

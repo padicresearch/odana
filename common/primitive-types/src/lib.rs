@@ -124,6 +124,12 @@ impl U256 {
     pub fn full_mul(self, other: U256) -> U512 {
         U512(uint_full_mul_reg!(U256, 4, self, other))
     }
+    #[inline(always)]
+    pub fn to_be_bytes(self) -> [u8; 32] {
+        let mut out = [0_u8; 32];
+        self.to_big_endian(&mut out);
+        out
+    }
 }
 
 impl From<U256> for U512 {

@@ -55,8 +55,10 @@ impl TxSortedList {
 
     pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef> {
         if self.txs.len() <= threshold {
+            println!("self.txs.len() <= threshold returning");
             return Default::default();
         }
+        println!("Cap <= {} returning", threshold);
         let mut remain = BTreeMap::new();
         let mut slots = threshold;
         while slots > 0 {
@@ -329,7 +331,7 @@ mod tests {
     use account::create_account;
     use transaction::make_sign_transaction;
     use types::account::Account;
-    use types::tx::{SignedTransaction, TransactionKind};
+    use types::tx::{SignedTransaction};
 
     use crate::tests::make_tx;
     use crate::tx_list::{PricedTransaction, TxList, TxPricedList};

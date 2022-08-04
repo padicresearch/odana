@@ -86,7 +86,7 @@ impl ChainState {
         let state = Arc::new(State::new(state_dir)?);
         if let Some(current_head) = chain_state_storage.get_current_header()? {
             state.reset(*current_head.state_root())?;
-            info!(current_head = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
+            info!(blockhash = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
         } else {
             let mut genesis = consensus.get_genesis_header();
             state.credit_balance(&H160::from(&[0; 20]), 1_000_000_000_000)?;
@@ -95,7 +95,7 @@ impl ChainState {
             let block = Block::new(genesis.clone(), vec![]);
             block_storage.put(block)?;
             chain_state_storage.set_current_header(genesis)?;
-            info!(current_head = ?genesis.hash(), level = ?genesis.level(), "blockchain state started from genesis");
+            info!(blockhash = ?genesis.hash(), level = ?genesis.level(), "blockchain state started from genesis");
         }
 
         Ok(Self {
@@ -131,11 +131,11 @@ impl ChainState {
 
             let parent_header_raw = &parent_header.raw;
             let parent_state_root = parent_header_raw.state_root();
-            debug!(header = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Resetting state to");
+            debug!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Resetting state to");
             self.state.reset(*parent_state_root)?;
             self.chain_state
                 .set_current_header(parent_header_raw.clone())?;
-            info!(header = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Rolled back chain to previous");
+            info!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Rolled back chain to previous");
             debug!(chain_head = ?current_head.hash, chain_tail = ?parent_header.hash, level = current_head.raw.level(), "Removing stale chain");
             // Remove current chain
             {
@@ -151,7 +151,7 @@ impl ChainState {
                     // Delete Head from storage
                     block_storage.delete(&head, level)?;
                     remove_count += 1;
-                    debug!(hash = ?head,level = current_head.raw.level(), "Deleting block");
+                    debug!(blockhash = ?head,level = current_head.raw.level(), "Deleting block");
                     head = next;
 
                     if next.ne(&parent_header.hash) {
@@ -174,7 +174,7 @@ impl ChainState {
                     self.block_storage.put(block.clone())?;
                     if repack {
                         let mut txpool = txpool.write().map_err(|e| anyhow::anyhow!("{}",e))?;
-                        txpool.repack(AccountSet::new(), Some(ResetRequest::new(Some(block.header().clone()), current_head.raw.clone())))?;
+                        txpool.repack(AccountSet::new(), Some(ResetRequest::new(Some(current_head.raw.clone()), block.header().clone())))?;
                     }
                 }
                 Err(e) => {
