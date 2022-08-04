@@ -1,6 +1,7 @@
 cargo-features = ["edition2021"]
 [workspace]
 members = [
+    #core
     "merkle",
     "trie",
     "node",
@@ -9,6 +10,16 @@ members = [
     "storage",
     "state",
     "account",
+    "codec",
+    "transaction",
+    "txpool",
+    "consensus",
+    "miner",
+    "p2p",
+    "smt",
+    "proto",
+    "rpc",
+    #common
     "common/traits",
     "common/uint",
     "common/primitive-types/impls/num-traits",
@@ -20,15 +31,8 @@ members = [
     "common/tracing",
     "common/rlp",
     "common/rlp-derive",
+    #evm
     "evm/revm",
     "evm/revm_precompiles",
-    "codec",
-    "transaction",
-    "txpool",
-    "consensus",
-    "miner",
-    "p2p",
-    "smt",
-    "proto",
-    "rpc"
+    "evm/revm-test",
 ]

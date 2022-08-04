@@ -38,55 +38,13 @@
     <cargoProject FILE="$PROJECT_DIR$/common/prefixhex/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="upgrade primitives">
-      <change afterPath="$PROJECT_DIR$/evm/revm/CHANGELOG.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/LICENSE" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/db.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/db/in_memory_db.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/db/web3db.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/evm.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/evm_impl.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/gas.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/gas/calc.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/gas/constants.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/inspector.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/arithmetic.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/bitwise.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/control.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/host.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/host_env.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/i256.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/macros.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/memory.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/opcode.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/stack.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/system.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter/bytecode.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter/contract.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter/memory.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter/stack.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/models.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/specification.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm/src/subroutine.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/CHANGELOG.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/LICENSE" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/blake2.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/bn128.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/error.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/hash.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/identity.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/modexp.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/secp256k1.rs" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="add revm">
+      <change afterPath="$PROJECT_DIR$/evm/revm-test/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm-test/src/bin/analysis.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm-test/src/bin/snailtracer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/crypto/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/Cargo.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -548,14 +506,7 @@
       <workItem from="1658343253983" duration="179834000" />
       <workItem from="1659559635242" duration="2298000" />
       <workItem from="1659581292602" duration="11358000" />
-      <workItem from="1659606087596" duration="4224000" />
-    </task>
-    <task id="LOCAL-00201" summary="implement sync">
-      <created>1656241923917</created>
-      <option name="number" value="00201" />
-      <option name="presentableId" value="LOCAL-00201" />
-      <option name="project" value="LOCAL" />
-      <updated>1656241923917</updated>
+      <workItem from="1659606087596" duration="9402000" />
     </task>
     <task id="LOCAL-00202" summary="delete miner-test">
       <created>1656840146320</created>
@@ -893,7 +844,14 @@
       <option name="project" value="LOCAL" />
       <updated>1659612191986</updated>
     </task>
-    <option name="localTasksCounter" value="250" />
+    <task id="LOCAL-00250" summary="add revm">
+      <created>1659612906491</created>
+      <option name="number" value="00250" />
+      <option name="presentableId" value="LOCAL-00250" />
+      <option name="project" value="LOCAL" />
+      <updated>1659612906491</updated>
+    </task>
+    <option name="localTasksCounter" value="251" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -910,7 +868,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="forward-backward-sync" />
+                        <option value="evm" />
                       </list>
                     </value>
                   </entry>
@@ -924,7 +882,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="clean up + formatting" />
     <MESSAGE value="add rollback" />
     <MESSAGE value="chore: code improvement" />
     <MESSAGE value="change state" />
@@ -949,7 +906,8 @@
     <MESSAGE value="rpc formalized&#10;lots of bug fixes" />
     <MESSAGE value="remove debug messages" />
     <MESSAGE value="upgrade primitives" />
-    <option name="LAST_COMMIT_MESSAGE" value="upgrade primitives" />
+    <MESSAGE value="add revm" />
+    <option name="LAST_COMMIT_MESSAGE" value="add revm" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
