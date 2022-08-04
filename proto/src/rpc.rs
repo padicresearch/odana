@@ -5,7 +5,6 @@ pub struct UnsignedTransactionRequest {
     #[prost(string, tag = "2")]
     pub key: ::prost::alloc::string::String,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SignedTransactionResponse {
     #[prost(string, tag = "1")]
@@ -13,19 +12,16 @@ pub struct SignedTransactionResponse {
     #[prost(message, optional, tag = "2")]
     pub tx: ::core::option::Option<super::types::Transaction>,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTransactionStatusResponse {
     #[prost(string, repeated, tag = "1")]
     pub status: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PendingTransactionsResponse {
     #[prost(map = "string, message", tag = "1")]
     pub pending: ::std::collections::HashMap<::prost::alloc::string::String, super::types::TransactionList>,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TxpoolContentResponse {
     #[prost(map = "string, message", tag = "1")]
@@ -33,30 +29,24 @@ pub struct TxpoolContentResponse {
     #[prost(map = "string, message", tag = "2")]
     pub queued: ::std::collections::HashMap<::prost::alloc::string::String, super::types::TransactionList>,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHash {
     #[prost(string, tag = "1")]
     pub hash: ::prost::alloc::string::String,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHashes {
     #[prost(string, repeated, tag = "1")]
     pub tx_hashes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-
 /// Generated client implementations.
 pub mod transactions_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::*;
-
     #[derive(Debug, Clone)]
     pub struct TransactionsServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-
     impl TransactionsServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
@@ -233,13 +223,10 @@ pub mod transactions_service_client {
         }
     }
 }
-
 /// Generated server implementations.
 pub mod transactions_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::*;
-
     ///Generated trait containing gRPC methods that should be implemented for use with TransactionsServiceServer.
     #[async_trait]
     pub trait TransactionsService: Send + Sync + 'static {
@@ -268,16 +255,13 @@ pub mod transactions_service_server {
             request: tonic::Request<super::super::types::Empty>,
         ) -> Result<tonic::Response<super::TxpoolContentResponse>, tonic::Status>;
     }
-
     #[derive(Debug)]
     pub struct TransactionsServiceServer<T: TransactionsService> {
         inner: _Inner<T>,
         accept_compression_encodings: (),
         send_compression_encodings: (),
     }
-
     struct _Inner<T>(Arc<T>);
-
     impl<T: TransactionsService> TransactionsServiceServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
@@ -574,7 +558,6 @@ pub mod transactions_service_server {
             }
         }
     }
-
     impl<T: TransactionsService> Clone for TransactionsServiceServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
@@ -585,37 +568,31 @@ pub mod transactions_service_server {
             }
         }
     }
-
     impl<T: TransactionsService> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(self.0.clone())
         }
     }
-
     impl<T: std::fmt::Debug> std::fmt::Debug for _Inner<T> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "{:?}", self.0)
         }
     }
-
     impl<T: TransactionsService> tonic::transport::NamedService
     for TransactionsServiceServer<T> {
         const NAME: &'static str = "rpc.TransactionsService";
     }
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountRequest {
     #[prost(string, tag = "1")]
     pub address: ::prost::alloc::string::String,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountBalanceResponse {
     #[prost(string, tag = "1")]
     pub balance: ::prost::alloc::string::String,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountNonceResponse {
     #[prost(string, tag = "1")]
@@ -745,13 +722,10 @@ pub mod account_service_client {
         }
     }
 }
-
 /// Generated server implementations.
 pub mod account_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::*;
-
     ///Generated trait containing gRPC methods that should be implemented for use with AccountServiceServer.
     #[async_trait]
     pub trait AccountService: Send + Sync + 'static {
@@ -975,7 +949,6 @@ pub mod account_service_server {
         const NAME: &'static str = "rpc.AccountService";
     }
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CurrentHeadResponse {
     #[prost(string, tag = "1")]
@@ -983,19 +956,16 @@ pub struct CurrentHeadResponse {
     #[prost(message, optional, tag = "2")]
     pub header: ::core::option::Option<super::types::BlockHeader>,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByHashRequest {
     #[prost(string, tag = "1")]
     pub hash: ::prost::alloc::string::String,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByLevelRequest {
     #[prost(int32, tag = "1")]
     pub level: i32,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlocksRequest {
     #[prost(int32, tag = "1")]

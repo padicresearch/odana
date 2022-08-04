@@ -233,7 +233,6 @@ impl SignedTransaction {
             data: self.data.clone(),
         };
         let raw = tx.sig_hash();
-        println!("Sig Hash {:?}", raw);
         Ok(raw.to_fixed_bytes())
     }
 

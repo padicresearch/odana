@@ -79,7 +79,6 @@ pub struct TransactionList {
     #[prost(message, repeated, tag = "1")]
     pub txs: ::prost::alloc::vec::Vec<Transaction>,
 }
-
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RawBlockHeaderPacket {
     #[prost(bytes = "vec", tag = "1")]

@@ -123,13 +123,16 @@ impl State {
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
         for tx in txs {
+            if !states.contains_key(&tx.from()) {
+                let current_state = self.trie.get(&tx.from())?.unwrap_or_default();
+                states.insert(tx.from(), current_state);
+            }
+            if !states.contains_key(&tx.to()) {
+                let current_state = self.trie.get(&tx.to())?.unwrap_or_default();
+                states.insert(tx.to(), current_state);
+            }
             let txs = accounts.entry(tx.from()).or_default();
             txs.insert(NoncePricedTransaction(tx));
-        }
-
-        for (acc, _) in accounts.iter() {
-            let current_state = self.trie.get(&acc)?.unwrap_or_default();
-            states.insert(*acc, current_state);
         }
 
         for (_, txs) in accounts {
@@ -194,7 +197,6 @@ impl State {
         transaction: SignedTransaction,
         states: &mut BTreeMap<H160, AccountState>,
     ) -> Result<()> {
-        println!("Applying {:#?}", transaction);
         //TODO: verify transaction (probably)
         let mut from_account_state = states
             .get(&transaction.from())
@@ -223,8 +225,6 @@ impl State {
 
         states.insert(transaction.from(), from_account_state);
         states.insert(transaction.to(), to_account_state);
-
-        println!("{:#?}", states);
         Ok(())
     }
 

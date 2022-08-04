@@ -38,13 +38,9 @@ pub fn make_sign_transaction(
 pub fn sign_tx(secret: H256, tx: UnsignedTransaction) -> Result<SignedTransaction> {
     let raw = Transaction::from_proto(&tx)?;
     let payload = raw.sig_hash();
-    println!("Sig Hash On Signing {:?}", payload);
     let secrete = SecretKey::from_bytes(secret.as_fixed_bytes())?;
-    println!("Signed Tx Key {:?}", H256::from(secrete.to_bytes()));
     let sig = secrete.sign(payload.as_bytes()).map_err(|e| anyhow!("{:?}", e))?;
     let tx = SignedTransaction::new(sig, tx)?;
-    println!("Signed Tx By {:?}", tx.from());
-    println!("Signed Tx By From Secrete {:?}", get_address_from_pub_key(secrete.public()));
     Ok(tx)
 }
 

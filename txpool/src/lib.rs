@@ -159,8 +159,6 @@ impl TxPool {
             return Err(TxPoolError::NonceTooLow.into())
         }
         let sender_balance = self.current_state.balance(&from);
-        println!("Sender {} Balance {}", from, sender_balance);
-        println!("{:#?}", tx);
         if sender_balance < tx.fees() + tx.price() {
             return Err(TxPoolError::InsufficientFunds(tx.fees(), tx.price()).into())
         }
