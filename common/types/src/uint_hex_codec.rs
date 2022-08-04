@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::ser::Error;
-use primitive_types::{U128, U64};
+use primitive_types::{U128};
 
 pub fn serialize<S: Serializer, T: num_traits::ToPrimitive>(
     t: &T,

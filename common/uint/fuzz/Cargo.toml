@@ -5,6 +5,7 @@ publish = false
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
+rust-version = "1.56.1"
 
 [package.metadata]
 cargo-fuzz = true
@@ -15,7 +16,7 @@ libfuzzer-sys = { git = "https://github.com/rust-fuzz/libfuzzer-sys.git" }
 rug = { version = "1.4", default-features = false, features = ["integer"] }
 
 [workspace]
-members = [""]
+members = ["."]
 
 [[bin]]
 name = "div_mod"

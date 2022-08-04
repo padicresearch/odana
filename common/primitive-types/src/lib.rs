@@ -11,80 +11,143 @@
 //! Those are uint types `U128`, `U256` and `U512`, and fixed hash types `H160`,
 //! `H256` and `H512`, with optional serde serialization, parity-scale-codec and
 //! rlp encoding.
-use core::convert::TryFrom;
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(feature = "fp-conversion")]
+mod fp_conversion;
+
+use core::convert::TryFrom;
 use fixed_hash::{construct_fixed_hash, impl_fixed_hash_conversions};
-use impl_num_traits::impl_uint_num_traits;
-use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
+#[cfg(feature = "scale-info")]
+use scale_info_crate::TypeInfo;
 use uint::{construct_uint, uint_full_mul_reg};
 
-pub mod endian;
-mod fp_conversion;
 /// Error type for conversion.
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     /// Overflow encountered.
     Overflow,
 }
-#[deny(clippy::reversed_empty_ranges)]
+
 construct_uint! {
-    pub struct U64(1);
-}
-#[deny(clippy::reversed_empty_ranges)]
-construct_uint! {
-    pub struct U128(2);
+	/// 128-bit unsigned integer.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct U128(2);
 }
 construct_uint! {
-    pub struct U192(3);
+	/// 256-bit unsigned integer.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct U192(3);
+}
+
+construct_uint! {
+	/// 256-bit unsigned integer.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct U256(4);
 }
 construct_uint! {
-    pub struct U256(4);
-}
-construct_uint! {
-    pub struct U512(8);
-}
-
-construct_fixed_hash! {
-    pub struct H128(16);
+	/// 512-bits unsigned integer.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct U512(8);
 }
 
 construct_fixed_hash! {
-    pub struct H160(20);
+	/// Fixed-size uninterpreted hash type with 16 bytes (128 bits) size.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct H128(16);
 }
 
 construct_fixed_hash! {
-    pub struct H192(24);
+	/// Fixed-size uninterpreted hash type with 20 bytes (160 bits) size.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct H160(20);
 }
 construct_fixed_hash! {
-    pub struct H256(32);
+	/// Fixed-size uninterpreted hash type with 32 bytes (256 bits) size.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct H192(24);
 }
+
 construct_fixed_hash! {
-    pub struct H448(56);
+	/// Fixed-size uninterpreted hash type with 32 bytes (256 bits) size.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct H256(32);
 }
+
 construct_fixed_hash! {
-    pub struct H512(64);
+	/// Fixed-size uninterpreted hash type with 64 bytes (512 bits) size.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct H448(56);
 }
 
-impl_uint_num_traits!(U64, 1);
-impl_uint_num_traits!(U128, 2);
-impl_uint_num_traits!(U192, 3);
-impl_uint_num_traits!(U256, 4);
-impl_uint_num_traits!(U512, 8);
+construct_fixed_hash! {
+	/// Fixed-size uninterpreted hash type with 64 bytes (512 bits) size.
+	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+	pub struct H512(64);
+}
 
-impl_uint_serde!(U64, 1);
-impl_uint_serde!(U128, 2);
-impl_uint_serde!(U192, 3);
-impl_uint_serde!(U256, 4);
-impl_uint_serde!(U512, 8);
+#[cfg(feature = "num-traits")]
+mod num_traits {
+    use super::*;
+    use impl_num_traits::impl_uint_num_traits;
 
-impl_fixed_hash_serde!(H128, 16);
-impl_fixed_hash_serde!(H160, 20);
-impl_fixed_hash_serde!(H192, 24);
-impl_fixed_hash_serde!(H256, 32);
-impl_fixed_hash_serde!(H448, 56);
-impl_fixed_hash_serde!(H512, 64);
-impl_fixed_hash_conversions!(H256, H160);
+    impl_uint_num_traits!(U128, 2);
+    impl_uint_num_traits!(U192, 3);
+    impl_uint_num_traits!(U256, 4);
+    impl_uint_num_traits!(U512, 8);
+}
+
+#[cfg(feature = "impl-serde")]
+mod serde {
+    use super::*;
+    use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
+
+    impl_uint_serde!(U128, 2);
+    impl_uint_serde!(U192, 3);
+    impl_uint_serde!(U256, 4);
+    impl_uint_serde!(U512, 8);
+
+    impl_fixed_hash_serde!(H128, 16);
+    impl_fixed_hash_serde!(H160, 20);
+    impl_fixed_hash_serde!(H192, 24);
+    impl_fixed_hash_serde!(H256, 32);
+    impl_fixed_hash_serde!(H448, 56);
+    impl_fixed_hash_serde!(H512, 64);
+    impl_fixed_hash_conversions!(H256, H160);
+}
+
+#[cfg(feature = "impl-codec")]
+mod codec {
+    use super::*;
+    use impl_codec::{impl_fixed_hash_codec, impl_uint_codec};
+
+    impl_uint_codec!(U128, 2);
+    impl_uint_codec!(U256, 4);
+    impl_uint_codec!(U512, 8);
+
+    impl_fixed_hash_codec!(H128, 16);
+    impl_fixed_hash_codec!(H160, 20);
+    impl_fixed_hash_codec!(H256, 32);
+    impl_fixed_hash_codec!(H512, 64);
+}
+
+#[cfg(feature = "impl-rlp")]
+mod rlp {
+    use super::*;
+    use impl_rlp::{impl_fixed_hash_rlp, impl_uint_rlp};
+    impl_uint_rlp!(U128, 2);
+    impl_uint_rlp!(U192, 3);
+    impl_uint_rlp!(U256, 4);
+    impl_uint_rlp!(U512, 8);
+
+    impl_fixed_hash_rlp!(H128, 16);
+    impl_fixed_hash_rlp!(H160, 20);
+    impl_fixed_hash_rlp!(H192, 24);
+    impl_fixed_hash_rlp!(H256, 32);
+    impl_fixed_hash_rlp!(H448, 56);
+    impl_fixed_hash_rlp!(H512, 64);
+}
 
 impl U128 {
     /// Multiplies two 128-bit integers to produce full 256-bit integer.
@@ -150,7 +213,7 @@ impl TryFrom<U256> for U128 {
     fn try_from(value: U256) -> Result<U128, Error> {
         let U256(ref arr) = value;
         if arr[2] | arr[3] != 0 {
-            return Err(Error::Overflow);
+            return Err(Error::Overflow)
         }
         let mut ret = [0; 2];
         ret[0] = arr[0];
@@ -165,7 +228,7 @@ impl TryFrom<U512> for U256 {
     fn try_from(value: U512) -> Result<U256, Error> {
         let U512(ref arr) = value;
         if arr[4] | arr[5] | arr[6] | arr[7] != 0 {
-            return Err(Error::Overflow);
+            return Err(Error::Overflow)
         }
         let mut ret = [0; 4];
         ret[0] = arr[0];
@@ -182,7 +245,7 @@ impl TryFrom<U512> for U128 {
     fn try_from(value: U512) -> Result<U128, Error> {
         let U512(ref arr) = value;
         if arr[2] | arr[3] | arr[4] | arr[5] | arr[6] | arr[7] != 0 {
-            return Err(Error::Overflow);
+            return Err(Error::Overflow)
         }
         let mut ret = [0; 2];
         ret[0] = arr[0];
@@ -229,7 +292,7 @@ impl<'a> TryFrom<&'a U512> for U256 {
     fn try_from(value: &'a U512) -> Result<U256, Error> {
         let U512(ref arr) = *value;
         if arr[4] | arr[5] | arr[6] | arr[7] != 0 {
-            return Err(Error::Overflow);
+            return Err(Error::Overflow)
         }
         let mut ret = [0; 4];
         ret[0] = arr[0];
