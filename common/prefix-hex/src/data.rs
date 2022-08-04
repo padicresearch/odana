@@ -19,8 +19,8 @@ impl ToHexPrefixed for Vec<u8> {
 }
 
 impl<const N: usize> FromHexPrefixed for [u8; N]
-    where
-        Self: hex::FromHex,
+where
+    Self: hex::FromHex,
 {
     fn from_hex_prefixed(hex: &str) -> Result<Self, Error> {
         let hex = strip_prefix(hex)?;
