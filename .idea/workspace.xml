@@ -38,66 +38,55 @@
     <cargoProject FILE="$PROJECT_DIR$/common/prefixhex/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="remove debug messages">
-      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/codec/CHANGELOG.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/codec/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/codec/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/rlp/CHANGELOG.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/rlp/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/primitive-types/impls/rlp/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp-derive/CHANGELOG.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp-derive/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp-derive/src/de.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp-derive/src/en.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp-derive/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp-derive/tests/rlp.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/CHANGELOG.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/Cargo.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/benches/rlp.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/src/error.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/src/impls.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/src/lib.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/src/rlpin.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/src/stream.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/src/traits.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/common/rlp/tests/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tuchain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tuchain.iml" afterDir="false" />
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="upgrade primitives">
+      <change afterPath="$PROJECT_DIR$/evm/revm/CHANGELOG.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/LICENSE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/db.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/db/in_memory_db.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/db/web3db.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/evm.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/evm_impl.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/gas.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/gas/calc.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/gas/constants.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/inspector.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/arithmetic.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/bitwise.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/control.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/host.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/host_env.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/i256.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/macros.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/memory.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/opcode.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/stack.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/instructions/system.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter/bytecode.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter/contract.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter/memory.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/interpreter/stack.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/models.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/specification.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm/src/subroutine.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/CHANGELOG.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/Cargo.toml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/LICENSE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/blake2.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/bn128.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/error.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/hash.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/identity.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/lib.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/modexp.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/evm/revm_precompiles/src/secp256k1.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/fixed-hash/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/fixed-hash/benches/cmp.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/benches/cmp.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/fixed-hash/src/hash.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/src/hash.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/fixed-hash/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/fixed-hash/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/fixed-hash/src/tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/prefix-hex/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/prefix-hex/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/prefix-hex/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/common/prefix-hex/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/prefix-hex/src/data.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/prefix-hex/src/data.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/num-traits/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/num-traits/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/num-traits/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/num-traits/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/impl_serde.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/impl_serde.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/input.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/benches/input.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/serialize.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/impls/serde/src/serialize.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/endian.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/fp_conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/fp_conversion.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/tests/fp_conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/tests/fp_conversion.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/tests/num_traits.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/tests/num_traits.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/primitive-types/tests/scale_info.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/primitive-types/tests/scale_info.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/CHANGELOG.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/benches/bigint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/benches/bigint.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/examples/modular.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/examples/modular.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/fuzz/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/fuzz/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/src/uint.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/src/uint.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/uint/tests/uint_tests.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proto/src/rpc.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/rpc.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proto/src/types.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/types.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crypto/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/crypto/Cargo.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -194,7 +183,7 @@
     "WebServerToolWindowFactoryState": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "last_opened_file_path": "/Users/mambisizempare/CLionProjects/tuchain/common",
+    "last_opened_file_path": "/Users/mambisizempare/CLionProjects/tuchain/evm",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -206,9 +195,9 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/evm" />
       <recent name="$PROJECT_DIR$/common" />
       <recent name="$PROJECT_DIR$/common/primitive-types/impls" />
-      <recent name="$PROJECT_DIR$/evm" />
       <recent name="$PROJECT_DIR$/common/prefix-hex" />
       <recent name="$PROJECT_DIR$/common/prefix-hex/tests" />
     </key>
@@ -559,14 +548,7 @@
       <workItem from="1658343253983" duration="179834000" />
       <workItem from="1659559635242" duration="2298000" />
       <workItem from="1659581292602" duration="11358000" />
-      <workItem from="1659606087596" duration="3350000" />
-    </task>
-    <task id="LOCAL-00200" summary="implement sync">
-      <created>1656241589761</created>
-      <option name="number" value="00200" />
-      <option name="presentableId" value="LOCAL-00200" />
-      <option name="project" value="LOCAL" />
-      <updated>1656241589761</updated>
+      <workItem from="1659606087596" duration="4224000" />
     </task>
     <task id="LOCAL-00201" summary="implement sync">
       <created>1656241923917</created>
@@ -904,7 +886,14 @@
       <option name="project" value="LOCAL" />
       <updated>1659592612359</updated>
     </task>
-    <option name="localTasksCounter" value="249" />
+    <task id="LOCAL-00249" summary="upgrade primitives">
+      <created>1659612191986</created>
+      <option name="number" value="00249" />
+      <option name="presentableId" value="LOCAL-00249" />
+      <option name="project" value="LOCAL" />
+      <updated>1659612191986</updated>
+    </task>
+    <option name="localTasksCounter" value="250" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -935,7 +924,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="fix `apply`: reset staging after applying changes" />
     <MESSAGE value="clean up + formatting" />
     <MESSAGE value="add rollback" />
     <MESSAGE value="chore: code improvement" />
@@ -960,7 +948,8 @@
     <MESSAGE value="rpc formalized" />
     <MESSAGE value="rpc formalized&#10;lots of bug fixes" />
     <MESSAGE value="remove debug messages" />
-    <option name="LAST_COMMIT_MESSAGE" value="remove debug messages" />
+    <MESSAGE value="upgrade primitives" />
+    <option name="LAST_COMMIT_MESSAGE" value="upgrade primitives" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

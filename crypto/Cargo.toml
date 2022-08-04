@@ -13,6 +13,6 @@ tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
 primitive-types = { path = "../common/primitive-types" }
 ripemd = "0.1.0"
 rand_chacha = "0.3.1"
-k256 = { version = "0.10.2", features = ["ecdsa-core", "ecdsa", "keccak256"] }
+k256 = { version = "0.11", features = ["ecdsa-core", "ecdsa", "keccak256"] }
 thiserror = "1.0.30"
 rand_core = "0.6.3"
