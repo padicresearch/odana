@@ -1,5 +1,5 @@
 use anyhow::Error;
-use primitive_types::{H160, H256};
+use primitive_types::{H160, H256, U128};
 use proto::rpc::account_service_server::AccountService;
 use proto::rpc::transactions_service_server::TransactionsService;
 use proto::rpc::{
@@ -9,11 +9,13 @@ use proto::rpc::{
 };
 use proto::{Empty, Transaction, UnsignedTransaction};
 use std::collections::HashMap;
+use std::fmt::format;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use tonic::{Code, Request, Response, Status};
 use traits::StateDB;
 use txpool::TxPool;
+use types::account::get_address_from_secret_key;
 use types::tx::SignedTransaction;
 
 pub(crate) struct TransactionsServiceImpl {
@@ -32,10 +34,19 @@ impl TransactionsService for TransactionsServiceImpl {
         &self,
         request: Request<UnsignedTransactionRequest>,
     ) -> Result<Response<SignedTransactionResponse>, Status> {
+        let txpool = self.txpool.read().map_err(|_| Status::internal(""))?;
         let req = request.into_inner();
-        let tx = req.tx.ok_or(Status::invalid_argument(
+        let mut tx = req.tx.ok_or(Status::invalid_argument(
             "tx arg not found or failed to decode",
         ))?;
+        let address = get_address_from_secret_key(
+            H256::from_str(&req.key).map_err(|e| Status::internal(e.to_string()))?,
+        )
+            .map_err(|e| Status::internal(e.to_string()))?;
+        let nonce = U128::from_str(&tx.nonce).unwrap_or_default();
+        if nonce.as_u128() == 0 {
+            tx.nonce = prefix_hex::encode(U128::from(txpool.nonce(&address)));
+        }
         let signed_tx =
             transaction::sign_tx(H256::from_str(&req.key).unwrap_or_default(), tx.clone())
                 .map_err(|e| Status::internal(format!("{}", e)))?;
@@ -53,7 +64,7 @@ impl TransactionsService for TransactionsServiceImpl {
         request: Request<UnsignedTransactionRequest>,
     ) -> Result<Response<SignedTransactionResponse>, Status> {
         let req = request.into_inner();
-        let tx = req.tx.ok_or(Status::invalid_argument(
+        let mut tx = req.tx.ok_or(Status::invalid_argument(
             "tx arg not found or failed to decode",
         ))?;
         let signed_tx =
@@ -75,14 +86,15 @@ impl TransactionsService for TransactionsServiceImpl {
         &self,
         request: Request<Transaction>,
     ) -> Result<Response<TransactionHash>, Status> {
-        let signed_tx = SignedTransaction::from_proto(request.into_inner()).map_err(|_| Status::internal(""))?;
+        let signed_tx = SignedTransaction::from_proto(request.into_inner())
+            .map_err(|_| Status::internal(""))?;
         let tx_hash = signed_tx.hash_256();
         let mut txpool = self.txpool.write().map_err(|_| Status::internal(""))?;
         txpool
             .add_local(signed_tx)
             .map_err(|e| Status::aborted(format!("{}", e)))?;
         Ok(Response::new(TransactionHash {
-            hash: format!("{:?}", tx_hash)
+            hash: format!("{:?}", tx_hash),
         }))
     }
 

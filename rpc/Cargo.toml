@@ -21,4 +21,5 @@ traits = { path = "../common/traits" }
 blockchain = { path = "../blockchain" }
 txpool = { path = "../txpool" }
 tracing = { path = "../common/tracing" }
+prefix-hex = { path = "../common/prefix-hex", features = ["primitive-types"] }
 transaction = { path = "../transaction" }

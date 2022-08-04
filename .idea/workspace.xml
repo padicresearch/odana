@@ -38,13 +38,14 @@
     <cargoProject FILE="$PROJECT_DIR$/common/prefixhex/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="rpc formalized&#10;lots of bug fixes">
+    <list default="true" id="35f18ab4-582a-4d37-8ae4-dbf8c9d428bb" name="Default Changelist" comment="remove debug messages">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/types/src/tx.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/tx.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/types/src/account.rs" beforeDir="false" afterPath="$PROJECT_DIR$/common/types/src/account.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proto/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proto/src/rpc.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/rpc.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proto/src/types.rs" beforeDir="false" afterPath="$PROJECT_DIR$/proto/src/types.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/state/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/state/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/transaction/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rpc/src/txs.rs" beforeDir="false" afterPath="$PROJECT_DIR$/rpc/src/txs.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -505,21 +506,7 @@
       <workItem from="1657735229817" duration="98387000" />
       <workItem from="1658343253983" duration="179834000" />
       <workItem from="1659559635242" duration="2298000" />
-      <workItem from="1659581292602" duration="9658000" />
-    </task>
-    <task id="LOCAL-00197" summary="implement sync">
-      <created>1656239634336</created>
-      <option name="number" value="00197" />
-      <option name="presentableId" value="LOCAL-00197" />
-      <option name="project" value="LOCAL" />
-      <updated>1656239634336</updated>
-    </task>
-    <task id="LOCAL-00198" summary="implement sync">
-      <created>1656241499025</created>
-      <option name="number" value="00198" />
-      <option name="presentableId" value="LOCAL-00198" />
-      <option name="project" value="LOCAL" />
-      <updated>1656241499025</updated>
+      <workItem from="1659581292602" duration="10932000" />
     </task>
     <task id="LOCAL-00199" summary="implement sync">
       <created>1656241548274</created>
@@ -850,7 +837,21 @@
       <option name="project" value="LOCAL" />
       <updated>1659589446739</updated>
     </task>
-    <option name="localTasksCounter" value="246" />
+    <task id="LOCAL-00246" summary="remove debug messages">
+      <created>1659591091581</created>
+      <option name="number" value="00246" />
+      <option name="presentableId" value="LOCAL-00246" />
+      <option name="project" value="LOCAL" />
+      <updated>1659591091581</updated>
+    </task>
+    <task id="LOCAL-00247" summary="remove debug messages">
+      <created>1659591305821</created>
+      <option name="number" value="00247" />
+      <option name="presentableId" value="LOCAL-00247" />
+      <option name="project" value="LOCAL" />
+      <updated>1659591305821</updated>
+    </task>
+    <option name="localTasksCounter" value="248" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -881,7 +882,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="improvement" />
     <MESSAGE value="fix `apply`: reset staging after applying changes" />
     <MESSAGE value="clean up + formatting" />
     <MESSAGE value="add rollback" />
@@ -906,7 +906,8 @@
     <MESSAGE value="cargo fix checkpoint, refactor: use primitive types" />
     <MESSAGE value="rpc formalized" />
     <MESSAGE value="rpc formalized&#10;lots of bug fixes" />
-    <option name="LAST_COMMIT_MESSAGE" value="rpc formalized&#10;lots of bug fixes" />
+    <MESSAGE value="remove debug messages" />
+    <option name="LAST_COMMIT_MESSAGE" value="remove debug messages" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

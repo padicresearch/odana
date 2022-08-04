@@ -78,3 +78,8 @@ pub fn get_address_from_pub_key(pub_key: PublicKey) -> H160 {
     let mut address = RIPEMD160::digest(SHA256::digest(&pub_key.to_bytes()).as_bytes());
     address
 }
+
+pub fn get_address_from_secret_key(key: H256) -> Result<H160> {
+    let secret = SecretKey::from_bytes(key.as_bytes())?;
+    Ok(get_address_from_pub_key(secret.public()))
+}
