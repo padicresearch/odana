@@ -29,6 +29,12 @@ pub trait StateDB: Send + Sync {
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;
 }
 
+pub trait AccountStateReader: Send + Sync {
+    fn nonce(&self, address: &H160) -> u64;
+    fn account_state(&self, address: &H160) -> AccountState;
+    fn balance(&self, address: &H160) -> u128;
+}
+
 pub trait StateIntermediate {}
 
 pub trait Saturating {

@@ -41,6 +41,10 @@
       <sourceFolder url="file://$MODULE_DIR$/smt/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/proto/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/rpc/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/prefix-hex/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common/prefix-hex/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/types/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/common/types/src/bench" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/common/target" />

@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use std::str::FromStr;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -11,8 +12,11 @@ use primitive_types::{H160, H256};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AccountState {
+    #[serde(with = "crate::uint_hex_codec")]
     pub free_balance: u128,
+    #[serde(with = "crate::uint_hex_codec")]
     pub reserve_balance: u128,
+    #[serde(with = "crate::uint_hex_codec")]
     pub nonce: u64,
 }
 
@@ -21,12 +25,19 @@ impl Default for AccountState {
         Self {
             free_balance: 0,
             reserve_balance: 0,
-            nonce: 0,
+            nonce: 1,
         }
     }
 }
 
 impl_codec!(AccountState);
+
+impl AccountState {
+    pub fn into_proto(self) -> Result<proto::AccountState> {
+        let json_rep = serde_json::to_vec(&self)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
+    }
+}
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {

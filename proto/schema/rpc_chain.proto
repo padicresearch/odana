@@ -3,17 +3,17 @@ import "types.proto";
 
 package rpc;
 
+message CurrentHeadResponse {
+  string hash = 1;
+  types.BlockHeader header = 2;
+}
+
 message GetBlockByHashRequest {
   string hash = 1;
 }
 
 message GetBlockByLevelRequest {
-  string hash = 1;
-}
-
-message GetBlockResponse {
-  types.BlockHeader header = 1;
-  repeated types.Transaction txs = 2;
+  int32 level = 1;
 }
 
 message GetBlocksRequest {
@@ -30,9 +30,9 @@ message GetBlockNumberResponse {
 }
 
 service ChainService {
-  rpc CurrentHead(types.Empty) returns (types.BlockHeader);
+  rpc CurrentHead(types.Empty) returns (CurrentHeadResponse);
   rpc BlockLevel(types.Empty) returns (GetBlockNumberResponse);
-  rpc GetBlockByHash (GetBlockByHashRequest) returns (GetBlockResponse);
-  rpc GetBlockByLevel (GetBlockByLevelRequest) returns (GetBlockResponse);
+  rpc GetBlockByHash (GetBlockByHashRequest) returns (types.Block);
+  rpc GetBlockByLevel (GetBlockByLevelRequest) returns (types.Block);
   rpc GetBlocks (GetBlocksRequest) returns (GetBlocksResponse);
 }

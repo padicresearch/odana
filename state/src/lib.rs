@@ -19,6 +19,7 @@ use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
 use types::tx::{SignedTransaction};
 use types::Hash;
+use crate::StateOperation::{CreditBalance, DebitBalance, UpdateNonce};
 
 mod error;
 
@@ -193,16 +194,37 @@ impl State {
         transaction: SignedTransaction,
         states: &mut BTreeMap<H160, AccountState>,
     ) -> Result<()> {
+        println!("Applying {:#?}", transaction);
         //TODO: verify transaction (probably)
-        for action in get_operations(&transaction) {
-            let address = action.get_address();
-            let account_state = states
-                .get(&address)
-                .map(|state| state.clone())
-                .unwrap_or_default();
-            let new_account_state = self.apply_action(&action, account_state)?;
-            states.insert(address, new_account_state);
-        }
+        let mut from_account_state = states
+            .get(&transaction.from())
+            .map(|state| state.clone())
+            .unwrap_or_default();
+        let mut to_account_state = states
+            .get(&transaction.to())
+            .map(|state| state.clone())
+            .unwrap_or_default();
+        from_account_state = self.apply_action(&DebitBalance {
+            account: transaction.from(),
+            amount: transaction.price() + transaction.fees(),
+            tx_hash: [0; 32],
+        }, from_account_state)?;
+        from_account_state = self.apply_action(&UpdateNonce {
+            account: transaction.from(),
+            nonce: from_account_state.nonce,
+            tx_hash: [0; 32],
+        }, from_account_state)?;
+
+        to_account_state = self.apply_action(&CreditBalance {
+            account: transaction.to(),
+            amount: transaction.price(),
+            tx_hash: [0; 32],
+        }, to_account_state)?;
+
+        states.insert(transaction.from(), from_account_state);
+        states.insert(transaction.to(), to_account_state);
+
+        println!("{:#?}", states);
         Ok(())
     }
 
@@ -241,10 +263,12 @@ impl State {
                 Ok(account_state)
             }
             StateOperation::UpdateNonce { nonce, .. } => {
-                if *nonce <= account_state.nonce {
-                    return Err(StateError::NonceIsLessThanCurrent.into());
-                }
-                account_state.nonce = *nonce;
+                let next_nonce = if *nonce > account_state.nonce {
+                    *nonce + 1
+                } else {
+                    account_state.nonce + 1
+                };
+                account_state.nonce = next_nonce;
                 Ok(account_state)
             }
         }

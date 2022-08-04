@@ -10,9 +10,11 @@ tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
 serde = { version = "1.0.130", features = ["derive"] }
 anyhow = "1.0.45"
 thiserror = "1.0.30"
+hex = "0.4.3"
 types = { path = "../common/types" }
 traits = { path = "../common/traits" }
 account = { path = "../account" }
 codec = { path = "../codec" }
 crypto = { path = "../crypto" }
+proto = { path = "../proto" }
 primitive-types = { path = "../common/primitive-types" }

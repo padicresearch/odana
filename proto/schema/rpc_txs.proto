@@ -1,0 +1,43 @@
+syntax = "proto3";
+import "types.proto";
+
+package rpc;
+
+message UnsignedTransactionRequest {
+  types.UnsignedTransaction tx = 1;
+  string key = 2;
+}
+
+message SignedTransactionResponse {
+  string hash = 1;
+  types.Transaction tx = 2;
+}
+
+message GetTransactionStatusResponse {
+  repeated string status = 1;
+}
+
+message PendingTransactionsResponse {
+  map<string, types.TransactionList> pending = 1;
+}
+
+message TxpoolContentResponse {
+  map<string, types.TransactionList> pending = 1;
+  map<string, types.TransactionList> queued = 2;
+}
+message TransactionHash {
+  string hash = 1;
+}
+
+message TransactionHashes {
+  repeated string tx_hashes = 1;
+}
+
+service TransactionsService {
+  rpc SignTransaction(UnsignedTransactionRequest) returns (SignedTransactionResponse);
+  rpc SignSendTransaction(UnsignedTransactionRequest) returns (SignedTransactionResponse);
+  rpc SendTransaction(types.Transaction) returns (TransactionHash);
+  rpc GetTransactionStatus(TransactionHashes) returns (GetTransactionStatusResponse);
+  rpc GetPendingTransactions(types.Empty) returns (PendingTransactionsResponse);
+  rpc GetTxpoolContent(types.Empty) returns (TxpoolContentResponse);
+}

@@ -10,10 +10,15 @@ tonic = "0.7.2"
 prost = "0.10.4"
 anyhow = "1.0.45"
 thiserror = "1.0.30"
+serde_json = "1.0"
+serde = { version = "1.0.130", features = ["derive"] }
+#local Deps
 proto = { path = "../proto" }
 codec = { path = "../codec" }
 types = { path = "../common/types" }
 primitive-types = { path = "../common/primitive-types" }
 traits = { path = "../common/traits" }
 blockchain = { path = "../blockchain" }
+txpool = { path = "../txpool" }
 tracing = { path = "../common/tracing" }
+transaction = { path = "../transaction" }

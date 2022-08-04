@@ -2,16 +2,19 @@ use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::rc::Rc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use tiny_keccak::Hasher;
 
 use account::GOVERNANCE_ACCOUNTID;
 use codec::Encoder;
 use crypto::{RIPEMD160, SHA256};
-use primitive_types::H160;
-use types::account::Account;
+use crypto::ecdsa::SecretKey;
+use primitive_types::{H160, H256};
+use proto::UnsignedTransaction;
+use types::account::{Account, get_address_from_pub_key};
 use types::Address;
 use types::tx::{SignedTransaction, Transaction};
+use proto::Message;
 
 pub fn make_sign_transaction(
     account: &Account,
@@ -29,7 +32,20 @@ pub fn make_sign_transaction(
         data,
     };
     let sig = account.sign(SHA256::digest(data.encode()?).as_fixed_bytes())?;
-    Ok(SignedTransaction::new(sig, data))
+    SignedTransaction::new(sig, data.into_proto()?)
+}
+
+pub fn sign_tx(secret: H256, tx: UnsignedTransaction) -> Result<SignedTransaction> {
+    let raw = Transaction::from_proto(&tx)?;
+    let payload = raw.sig_hash();
+    println!("Sig Hash On Signing {:?}", payload);
+    let secrete = SecretKey::from_bytes(secret.as_fixed_bytes())?;
+    println!("Signed Tx Key {:?}", H256::from(secrete.to_bytes()));
+    let sig = secrete.sign(payload.as_bytes()).map_err(|e| anyhow!("{:?}", e))?;
+    let tx = SignedTransaction::new(sig, tx)?;
+    println!("Signed Tx By {:?}", tx.from());
+    println!("Signed Tx By From Secrete {:?}", get_address_from_pub_key(secrete.public()));
+    Ok(tx)
 }
 
 #[derive(Debug)]
@@ -63,6 +79,7 @@ pub type TransactionsByNonceAndPrice = BTreeSet<NoncePricedTransaction>;
 #[cfg(test)]
 mod test {
     use account::create_account;
+    use proto::TransactionStatus;
 
     #[test]
     fn generate_sudo_address() {

@@ -1,3 +1,6 @@
+#![feature(test)]
+extern crate test;
+
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 

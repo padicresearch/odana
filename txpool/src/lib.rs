@@ -16,7 +16,8 @@ use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
-use types::tx::{SignedTransaction, TransactionStatus};
+use types::tx::{SignedTransaction, TransactionList};
+use proto::TransactionStatus;
 use types::{Hash, TxPoolConfig};
 
 use crate::error::TxPoolError;
@@ -37,7 +38,6 @@ type TxHashRef = Arc<Hash>;
 type TransactionRef = Arc<SignedTransaction>;
 type Transactions = Vec<TransactionRef>;
 type Address = H160;
-
 const TXPOOL_LOG_TARGET: &str = "txpool";
 
 const TX_SLOT_SIZE: u64 = 32 * 1024;
@@ -155,14 +155,15 @@ impl TxPool {
 
     fn validate_tx(&self, tx: &SignedTransaction, local: bool) -> Result<()> {
         let from = tx.sender();
-        anyhow::ensure!(
-            self.current_state.nonce(&from) < tx.nonce(),
-            TxPoolError::NonceTooLow
-        );
-        anyhow::ensure!(
-            self.current_state.balance(&from) > tx.price(),
-            TxPoolError::InsufficientFunds
-        );
+        if self.current_state.nonce(&from) > tx.nonce() {
+            return Err(TxPoolError::NonceTooLow.into())
+        }
+        let sender_balance = self.current_state.balance(&from);
+        println!("Sender {} Balance {}", from, sender_balance);
+        println!("{:#?}", tx);
+        if sender_balance < tx.fees() + tx.price() {
+            return Err(TxPoolError::InsufficientFunds(tx.fees(), tx.price()).into())
+        }
         Ok(())
     }
 
@@ -641,7 +642,6 @@ impl TxPool {
     fn demote_unexecutable(&mut self) {
         let mut stale_addrs = Vec::new();
         let mut enqueue = Vec::new();
-
         for (addr, list) in self.pending.iter_mut() {
             let nonce = self.current_state.nonce(addr);
             let olds = list.forward(nonce);
@@ -771,7 +771,6 @@ impl TxPool {
             }
         }
         let promoted = self.promote_executable(promote_addrs);
-
         if reset.is_some() {
             self.demote_unexecutable();
             let mut nonces = HashMap::with_capacity(self.pending.len());
@@ -791,13 +790,12 @@ impl TxPool {
             let mut sorted_map = events.entry(tx.sender()).or_insert(TxSortedList::new());
             sorted_map.put(tx);
         }
-
+        let mut txs = Vec::new();
         if !events.is_empty() {
-            let mut txs = Vec::new();
             for (_, set) in events {
                 txs.extend(set.flatten())
             }
-            self.send(txs)?;
+            self.send(txs.clone())?;
         }
         Ok(())
     }
@@ -838,10 +836,10 @@ impl TxPool {
         self.all.contains(hash)
     }
 
-    pub fn status(self, txs: Vec<Hash>) -> Vec<TransactionStatus> {
+    pub fn status(&self, txs: Vec<H256>) -> Vec<TransactionStatus> {
         let mut status = vec![TransactionStatus::NotFound; txs.len()];
         for (i, hash) in txs.iter().enumerate() {
-            if let Some(tx) = self.get(hash) {
+            if let Some(tx) = self.get(hash.as_fixed_bytes()) {
                 let sender = tx.sender();
                 if let Some(list) = self.pending.get(&sender) {
                     status[i] = if list.txs.has(tx.nonce()) {
@@ -862,7 +860,15 @@ impl TxPool {
     }
 
     pub fn nonce(&self, address: &H160) -> u64 {
-        self.pending_nonce.get(address)
+        let mut nonce = self.current_state.nonce(address);
+        let mut sn = self.pending_nonce.get(address);
+        if sn > nonce {
+            nonce = sn
+        }
+        if sn < nonce {
+            self.pending_nonce.set(*address, nonce);
+        }
+        return nonce
     }
 
     pub fn stats(&self) -> (usize, usize) {
@@ -880,17 +886,17 @@ impl TxPool {
     pub fn content(
         &self,
     ) -> (
-        HashMap<Address, Transactions>,
-        HashMap<Address, Transactions>,
+        HashMap<Address, TransactionList>,
+        HashMap<Address, TransactionList>,
     ) {
         let mut pending = HashMap::new();
         for (address, list) in self.pending.iter() {
-            pending.insert(*address, list.flatten());
+            pending.insert(*address, TransactionList::new(list.flatten()));
         }
 
         let mut queued = HashMap::new();
         for (address, list) in self.queue.iter() {
-            queued.insert(*address, list.flatten());
+            queued.insert(*address, TransactionList::new(list.flatten()));
         }
         (pending, queued)
     }
@@ -907,10 +913,10 @@ impl TxPool {
         (pending, queued)
     }
 
-    pub fn pending(&self) -> HashMap<Address, Transactions> {
+    pub fn pending(&self) -> HashMap<Address, TransactionList> {
         let mut pending = HashMap::new();
         for (address, list) in self.pending.iter() {
-            pending.insert(*address, list.flatten());
+            pending.insert(*address, TransactionList::new(list.flatten()));
         }
         (pending)
     }

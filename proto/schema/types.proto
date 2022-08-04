@@ -15,6 +15,12 @@ message BlockHeader {
   string nonce = 10;
 }
 
+message Block {
+  string hash = 1;
+  BlockHeader header = 2;
+  repeated Transaction txs = 3;
+}
+
 message UnsignedTransaction {
   string nonce = 1;
   string to = 2;
@@ -25,12 +31,41 @@ message UnsignedTransaction {
 
 message Transaction {
   string nonce = 1;
-  string from = 2;
-  string to = 3;
-  string amount = 4;
-  string fee = 5;
-  string data = 6;
-  string r = 7;
-  string s = 8;
-  string v = 9;
+  string to = 2;
+  string amount = 3;
+  string fee = 4;
+  string data = 5;
+  string r = 6;
+  string s = 7;
+  string v = 8;
+}
+
+message TransactionList {
+  repeated Transaction txs = 1;
+}
+
+message RawBlockHeaderPacket {
+  bytes parent_hash = 1;
+  bytes merkle_root = 2;
+  bytes state_root = 3;
+  bytes mix_nonce = 4;
+  bytes coinbase = 5;
+  uint32 difficulty = 6;
+  uint32 chain_id = 7;
+  int32 level = 8;
+  uint32 time = 9;
+  bytes nonce = 10;
+}
+
+message AccountState {
+  string free_balance = 1;
+  string reserve_balance = 2;
+  string nonce = 3;
+}
+
+enum TransactionStatus {
+  Confirmed = 0;
+  Pending = 1;
+  Queued = 2;
+  NotFound = 3;
 }
