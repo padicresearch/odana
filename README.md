@@ -1,7 +1,7 @@
-# uChain - Blockchain for prototyping
+# µChain - Blockchain for prototyping
 > Work in progress
 
-µChain(micro-chain) is a blockchain base/framework for prototyping blockchain projects
+µChain _pronounced_ `mu-chain`, is a blockchain base/framework for prototyping blockchain projects
 ## Quickstart
 
 ### 🧰 Install Dependencies
