@@ -64,4 +64,9 @@
     ```
 
 ### RPC Usage
+µChain uses gRPC to interact with the node, user can use [bloomRPC](https://github.com/bloomrpc/bloomrpc.git) to interact with the blockchain
+* **Documentation**
 [RPC Documentation](/docs/rpc.md)
+* **Clients**
+  * Gui: [bloomRPC](https://github.com/bloomrpc/bloomrpc.git)
+  * Cli: [grpcCurl](https://github.com/fullstorydev/grpcurl)
