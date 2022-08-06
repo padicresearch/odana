@@ -1,21 +1,34 @@
-# uChain - Blockchain for prototyping
+# µChain - Blockchain for prototyping
 > Work in progress
 
 µChain _pronounced_ `mu-chain`, is a blockchain base/framework for prototyping blockchain projects
 ## Quickstart
 
+### ⬇️ Download
+
+* Download the source code
+    ```shell
+   git clone https://github.com/mambisi/uchain
+    cd uchain
+    ```
+   
 ### 🧰 Install Dependencies
 * Rust Toolchain
     ```shell
-    # Run the following in your terminal, then follow the onscreen instructions.
     curl https://sh.rustup.rs -sSf | sh
     ```
     ```shell
     rustup default nightly
     ```
-* Rocks DB
+* Clang and LLVM
+
+    `Linux`
     ```shell
     sudo apt install clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev
+    ```
+    `MacOS`
+    ```shell
+    brew install --with-toolchain llvm
     ```
 ### ⌛️ Running node `Linux/Mac`
 * Build the node from source
@@ -47,7 +60,8 @@
     ```
 * Run node
     ```shell
-    /target/release/node run
+    ./target/release/node run
     ```
 
-### Running node `Windows`: 🤷🏼‍♂️
+### RPC Usage
+[RPC Documentation](/docs/rpc.md)
