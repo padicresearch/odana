@@ -12,6 +12,8 @@
     ```shell
     rustup default nightly
     ```
+* **Install gRPC, RockDB dependencies**
+
   **`Linux`**
 
   ```shell
