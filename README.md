@@ -1,4 +1,4 @@
-# µChain - Blockchain for prototyping
+# uChain - Blockchain for prototyping
 > Work in progress
 
 µChain _pronounced_ `mu-chain`, is a blockchain base/framework for prototyping blockchain projects
