@@ -1,7 +1,7 @@
 # uChain - Blockchain for prototyping
 > Work in progress
 
-uChain(micro-chain) is a blockchain base/framework for prototyping blockchain projects
+µChain(micro-chain) is a blockchain base/framework for prototyping blockchain projects
 ## Quickstart
 
 ---
