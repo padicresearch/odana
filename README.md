@@ -12,14 +12,16 @@
     ```shell
     rustup default nightly
     ```
-* **Install `Linux` dependencies**
+  **`Linux`**
+
   ```shell
   sudo apt install clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev
   ```
   ```shell
   sudo apt install cmake libprotobuf-dev protobuf-compiler
   ```
-* **Install `MacOS` dependencies**
+  **`MacOS`**
+
   ```shell
   brew install --with-toolchain llvm
   ```
