@@ -13,14 +13,14 @@
     ```
 
 ### 🧰 Install Dependencies
-* Rust Toolchain
+* Rust Toolchain `Linux/MacOS`
     ```shell
     curl https://sh.rustup.rs -sSf | sh
     ```
     ```shell
     rustup default nightly
     ```
-* Clang and LLVM
+* Clang and LLVM : Rockdb
 
   `Linux`
     ```shell
@@ -30,7 +30,17 @@
     ```shell
     brew install --with-toolchain llvm
     ```
-### ⌛️ Running node `Linux/Mac`
+* CMake : Protobuf
+
+  `Linux`
+    ```shell
+    sudo apt install cmake libprotobuf-dev protobuf-compiler
+    ```
+  `MacOS`
+    ```shell
+    brew install cmake automake libtool
+    ```
+### ⌛️ Running node `Linux/MacOS`
 * Build the node from source
     ```shell
     cargo build --release --package node

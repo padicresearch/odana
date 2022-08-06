@@ -9,16 +9,12 @@ pub fn default_write_opts() -> rocksdb::WriteOptions {
     opts
 }
 
-pub fn default_read_opts() -> rocksdb::ReadOptions {
-    let opts = rocksdb::ReadOptions::default();
-    opts
-}
 
 impl<S: Schema> KVStore<S> for rocksdb::DB {
     fn get(&self, key: &S::Key) -> anyhow::Result<Option<S::Value>> {
         let cf = self
             .cf_handle(S::column())
-            .ok_or(StorageError::ColumnFamilyMissing(S::column()))?;
+            .ok_or_else(||StorageError::ColumnFamilyMissing(S::column()))?;
         let key = key.encode()?;
         let value = self.get_cf(&cf, key)?;
         match value {
@@ -30,7 +26,7 @@ impl<S: Schema> KVStore<S> for rocksdb::DB {
     fn put(&self, key: S::Key, value: S::Value) -> anyhow::Result<()> {
         let cf = self
             .cf_handle(S::column())
-            .ok_or(StorageError::ColumnFamilyMissing(S::column()))?;
+            .ok_or_else(||StorageError::ColumnFamilyMissing(S::column()))?;
         let key = key.encode()?;
         let value = value.encode()?;
         self.put_cf_opt(&cf, key, value, &default_write_opts())
@@ -40,7 +36,7 @@ impl<S: Schema> KVStore<S> for rocksdb::DB {
     fn delete(&self, key: &S::Key) -> anyhow::Result<()> {
         let cf = self
             .cf_handle(S::column())
-            .ok_or(StorageError::ColumnFamilyMissing(S::column()))?;
+            .ok_or_else(||StorageError::ColumnFamilyMissing(S::column()))?;
         let key = key.encode()?;
         self.delete_cf(&cf, key).map_err(|e| e.into())
     }
@@ -48,7 +44,7 @@ impl<S: Schema> KVStore<S> for rocksdb::DB {
     fn contains(&self, key: &S::Key) -> anyhow::Result<bool> {
         let cf = self
             .cf_handle(S::column())
-            .ok_or(StorageError::ColumnFamilyMissing(S::column()))?;
+            .ok_or_else(||StorageError::ColumnFamilyMissing(S::column()))?;
         let key = key.encode()?;
         let val = self.get_pinned_cf(&cf, key)?;
         Ok(val.is_some())
@@ -57,7 +53,7 @@ impl<S: Schema> KVStore<S> for rocksdb::DB {
     fn iter(&self) -> anyhow::Result<StorageIterator<S>> {
         let cf = self
             .cf_handle(S::column())
-            .ok_or(StorageError::ColumnFamilyMissing(S::column()))?;
+            .ok_or_else(||StorageError::ColumnFamilyMissing(S::column()))?;
         let iter = self.iterator_cf(&cf, rocksdb::IteratorMode::Start);
         Ok(Box::new(
             iter.map(|(k, v)| (S::Key::decode(&k), S::Value::decode(&v))),
@@ -67,7 +63,7 @@ impl<S: Schema> KVStore<S> for rocksdb::DB {
     fn prefix_iter(&self, start: &S::Key) -> anyhow::Result<StorageIterator<S>> {
         let cf = self
             .cf_handle(S::column())
-            .ok_or(StorageError::ColumnFamilyMissing(S::column()))?;
+            .ok_or_else(||StorageError::ColumnFamilyMissing(S::column()))?;
         let start = start.encode()?;
         let iter = self.prefix_iterator_cf(&cf, start);
         Ok(Box::new(

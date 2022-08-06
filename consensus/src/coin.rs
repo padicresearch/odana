@@ -11,7 +11,7 @@ pub const TUC_UNIT: u128 = 1_000_000_000;
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub struct Chi(u128);
 
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq,Eq, Debug)]
 pub struct Tuc {
     chi: Chi,
 }
@@ -70,19 +70,18 @@ impl From<u16> for Chi {
     }
 }
 
-impl Into<u128> for Chi {
-    fn into(self) -> u128 {
-        self.0
+impl From<Chi> for u128{
+    fn from(c: Chi) -> Self {
+        c.0
     }
 }
-
 impl Eq for Chi {}
 
 impl Sub for Chi {
     type Output = Chi;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Chi(self.0.checked_sub(rhs.0).unwrap_or(0))
+        Chi(self.0.saturating_sub(rhs.0))
     }
 }
 
@@ -94,7 +93,7 @@ impl Add for Chi {
         if s > Self::MAX {
             panic!("max allowed value exceeded")
         }
-        s.into()
+        s
     }
 }
 
@@ -106,7 +105,7 @@ impl Mul for Chi {
         if s > Self::MAX {
             panic!("max allowed value exceeded")
         }
-        s.into()
+        s
     }
 }
 
@@ -116,7 +115,7 @@ impl Saturating for Chi {
         if s > Self::MAX {
             return Self::MAX;
         }
-        s.into()
+        s
     }
 
     fn saturating_sub(self, rhs: Self) -> Self {
@@ -129,7 +128,7 @@ impl Saturating for Chi {
         if s > Self::MAX {
             return Self::MAX;
         }
-        s.into()
+        s
     }
 }
 

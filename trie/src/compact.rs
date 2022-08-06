@@ -73,8 +73,8 @@ where
                 Some(child_tree) => child_tree,
             };
         }
-        current_tree.key = Some(key.clone());
-        current_tree.value = Some(value.clone());
+        current_tree.key = Some(key);
+        current_tree.value = Some(value);
         current_tree.is_word = true
     }
 

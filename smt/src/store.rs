@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-const COLUMN_TREES: &'static str = "t";
-const COLUMN_ROOT: &'static str = "r";
+const COLUMN_TREES: &str = "t";
+const COLUMN_ROOT: &str = "r";
 
 pub(crate) fn cfs() -> Vec<ColumnFamilyDescriptor> {
     vec![

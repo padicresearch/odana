@@ -61,18 +61,18 @@ fn hex_to_u256(c: &mut Criterion) {
 
     c.bench(
         "hex_to_u256",
-        ParameterizedBenchmark::new("", |b, x| b.iter(|| black_box(serde_json::from_str::<U256>(&x))), parameters),
+        ParameterizedBenchmark::new("", |b, x| b.iter(|| black_box(serde_json::from_str::<U256>(x))), parameters),
     );
 }
 
 fn bytes_to_hex(c: &mut Criterion) {
     let parameters = vec![
-        serde_json::from_str::<Bytes>(&input::HEX_64_CHARS).unwrap(),
-        serde_json::from_str::<Bytes>(&input::HEX_256_CHARS).unwrap(),
-        serde_json::from_str::<Bytes>(&input::HEX_1024_CHARS).unwrap(),
-        serde_json::from_str::<Bytes>(&input::HEX_4096_CHARS).unwrap(),
-        serde_json::from_str::<Bytes>(&input::HEX_16384_CHARS).unwrap(),
-        serde_json::from_str::<Bytes>(&input::HEX_65536_CHARS).unwrap(),
+        serde_json::from_str::<Bytes>(input::HEX_64_CHARS).unwrap(),
+        serde_json::from_str::<Bytes>(input::HEX_256_CHARS).unwrap(),
+        serde_json::from_str::<Bytes>(input::HEX_1024_CHARS).unwrap(),
+        serde_json::from_str::<Bytes>(input::HEX_4096_CHARS).unwrap(),
+        serde_json::from_str::<Bytes>(input::HEX_16384_CHARS).unwrap(),
+        serde_json::from_str::<Bytes>(input::HEX_65536_CHARS).unwrap(),
     ];
 
     c.bench(
@@ -93,6 +93,6 @@ fn hex_to_bytes(c: &mut Criterion) {
 
     c.bench(
         "hex to bytes",
-        ParameterizedBenchmark::new("", |b, x| b.iter(|| black_box(serde_json::from_str::<Bytes>(&x))), parameters),
+        ParameterizedBenchmark::new("", |b, x| b.iter(|| black_box(serde_json::from_str::<Bytes>(x))), parameters),
     );
 }

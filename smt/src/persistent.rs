@@ -32,8 +32,8 @@ fn default_write_opts() -> rocksdb::WriteOptions {
 }
 
 fn default_read_opts() -> rocksdb::ReadOptions {
-    let mut opts = rocksdb::ReadOptions::default();
-    opts
+    
+    rocksdb::ReadOptions::default()
 }
 
 pub(crate) struct RocksDB {

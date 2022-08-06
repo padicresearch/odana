@@ -1,5 +1,4 @@
 use std::hash::Hash;
-use std::str::FromStr;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -57,7 +56,7 @@ impl Eq for Account {}
 
 impl Hash for Account {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        state.write(&self.address.as_bytes())
+        state.write(self.address.as_bytes())
     }
 }
 
@@ -68,14 +67,15 @@ impl Account {
     }
 }
 
-impl Into<H160> for Account {
-    fn into(self) -> H160 {
-        self.address
+impl From<Account> for H160 {
+    fn from(account: Account) -> Self {
+       account.address
     }
 }
 
+
 pub fn get_address_from_pub_key(pub_key: PublicKey) -> H160 {
-    let mut address = RIPEMD160::digest(SHA256::digest(&pub_key.to_bytes()).as_bytes());
+    let address = RIPEMD160::digest(SHA256::digest(&pub_key.to_bytes()).as_bytes());
     address
 }
 

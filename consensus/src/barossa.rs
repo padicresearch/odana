@@ -110,9 +110,8 @@ impl BarossaProtocol {
         let mut retarget: U256 = last_bits.into();
         let maximum: U256 = max_work_bits.into();
 
-        retarget =
-            retarget * U256::from(self.retarget_timespan(retarget_timestamp, last_timestamp));
-        retarget = retarget / U256::from(TARGET_TIMESPAN_SECONDS);
+        retarget *= U256::from(self.retarget_timespan(retarget_timestamp, last_timestamp));
+        retarget /= U256::from(TARGET_TIMESPAN_SECONDS);
 
         if retarget > maximum {
             let mut debug = [0; 32];
@@ -148,7 +147,7 @@ impl BarossaProtocol {
             .unwrap()
             .expect("height != 0; qed");
         let max_time_gap = parent_header.raw.time() + DOUBLE_SPACING_SECONDS;
-        let max_bits = self.network.max_difficulty_compact().into();
+        let max_bits = self.network.max_difficulty_compact();
         if time > max_time_gap {
             return max_bits;
         }
@@ -173,7 +172,7 @@ impl BarossaProtocol {
 
         max_bits
     }
-
+    #[allow(dead_code)]
     fn work_required_adjusted(
         &self,
         parent_header: IndexedBlockHeader,
@@ -229,14 +228,14 @@ impl BarossaProtocol {
         ) -> U256 {
             debug_assert!(last.hash != first);
             let mut chain_work: U256 = block_proof(last);
-            let mut prev_hash = last.raw.parent_hash().clone();
+            let mut prev_hash = *last.raw.parent_hash();
             loop {
                 let header = chain.get_header_by_hash(&prev_hash).unwrap()
                     .expect("last header is on main chain; first is at level last.level - 144; it is on main chain; qed");
 
-                chain_work = chain_work + block_proof(&header);
+                chain_work += block_proof(&header);
                 prev_hash = *header.raw.parent_hash();
-                if H256::from(prev_hash) == first {
+                if prev_hash == first {
                     return chain_work;
                 }
             }
@@ -254,7 +253,7 @@ impl BarossaProtocol {
             // between blocks.
             let mut work = compute_work_between_blocks(first_header.hash, &last_header, chain);
             let c: U256 = U256::from(TARGET_SPACING_SECONDS);
-            work = work * c;
+            work *= c;
 
             // In order to avoid difficulty cliffs, we bound the amplitude of the
             // adjustement we are going to do.
@@ -284,7 +283,7 @@ impl BarossaProtocol {
         if self.network == Network::Testnet {
             let max_time_gap = parent_header.raw.time() + DOUBLE_SPACING_SECONDS;
             if time > max_time_gap {
-                return max_bits.into();
+                return max_bits;
             }
         }
 
@@ -333,7 +332,7 @@ impl Consensus for BarossaProtocol {
             is_valid_proof_of_work(
                 self.network.max_difficulty().into(),
                 header.difficulty(),
-                &H256::from(header.hash())
+                &header.hash()
             ),
             Error::BadPow
         );
@@ -346,7 +345,7 @@ impl Consensus for BarossaProtocol {
         header: &mut BlockHeader,
     ) -> anyhow::Result<()> {
         let parent = chain
-            .get_header(&header.parent_hash(), header.level() - 1)?
+            .get_header(header.parent_hash(), header.level() - 1)?
             .ok_or(Error::ParentBlockNotFound)?;
         header.set_chain_id(Self::CHAIN_ID);
         header.set_difficulty(
@@ -368,7 +367,7 @@ impl Consensus for BarossaProtocol {
         state: Arc<dyn StateDB>,
         txs: Vec<SignedTransaction>,
     ) -> anyhow::Result<()> {
-        state.apply_txs(txs.clone())?;
+        state.apply_txs(txs)?;
         let _ = state.credit_balance(
             header.coinbase(),
             self.miner_reward(header.level()),
@@ -386,7 +385,7 @@ impl Consensus for BarossaProtocol {
         txs: Vec<SignedTransaction>,
     ) -> anyhow::Result<Option<Block>> {
         self.finalize(chain, header, state, txs.clone())?;
-        let block = Block::new(header.clone(), txs);
+        let block = Block::new(*header, txs);
         Ok(Some(block))
     }
 
@@ -397,7 +396,7 @@ impl Consensus for BarossaProtocol {
         time: u32,
     ) -> anyhow::Result<Compact> {
         let parent_header = chain
-            .get_header_by_hash(&parent)?
+            .get_header_by_hash(parent)?
             .ok_or(Error::ParentBlockNotFound)?;
         let level = parent_header.raw.level() as u32;
         Ok(self.work_required(parent_header.hash, time, level + 1, chain))

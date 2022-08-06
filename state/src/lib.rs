@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::option::Option::Some;
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -46,7 +46,7 @@ impl StateDB for State {
     fn nonce(&self, address: &H160) -> u64 {
         self.trie
             .get(address)
-            .map(|account_state| account_state.and_then(|account_state| Some(account_state.nonce)))
+            .map(|account_state| account_state.map(|account_state| account_state.nonce))
             .unwrap_or_default()
             .unwrap_or_default()
     }
@@ -88,7 +88,7 @@ impl StateDB for State {
 
     fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256> {
         self.apply_txs(txs)?;
-        self.root_hash().map(|hash| H256::from(hash))
+        self.root_hash().map(H256::from)
     }
 
     fn root(&self) -> Hash {
@@ -123,13 +123,13 @@ impl State {
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
         for tx in txs {
-            if !states.contains_key(&tx.from()) {
+            if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
                 let current_state = self.trie.get(&tx.from())?.unwrap_or_default();
-                states.insert(tx.from(), current_state);
+                e.insert(current_state);
             }
-            if !states.contains_key(&tx.to()) {
+            if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.to()) {
                 let current_state = self.trie.get(&tx.to())?.unwrap_or_default();
-                states.insert(tx.to(), current_state);
+                e.insert(current_state);
             }
             let txs = accounts.entry(tx.from()).or_default();
             txs.insert(NoncePricedTransaction(tx));
@@ -163,7 +163,7 @@ impl State {
         }
 
         for (acc, _) in accounts.iter() {
-            let current_state = self.trie.get(&acc)?.unwrap_or_default();
+            let current_state = self.trie.get(acc)?.unwrap_or_default();
             states.insert(*acc, current_state);
         }
 
@@ -199,12 +199,10 @@ impl State {
     ) -> Result<()> {
         //TODO: verify transaction (probably)
         let mut from_account_state = states
-            .get(&transaction.from())
-            .map(|state| state.clone())
+            .get(&transaction.from()).copied()
             .unwrap_or_default();
         let mut to_account_state = states
-            .get(&transaction.to())
-            .map(|state| state.clone())
+            .get(&transaction.to()).copied()
             .unwrap_or_default();
         from_account_state = self.apply_action(&DebitBalance {
             account: transaction.from(),
@@ -291,7 +289,7 @@ impl State {
     }
 
     fn get_account_state_with_proof(&self, address: &H160) -> Result<(AccountState, ReadProof)> {
-        let (account_state, proof) = self.trie.get_with_proof(&address)?;
+        let (account_state, proof) = self.trie.get_with_proof(address)?;
         let root = self.trie.root()?;
         Ok((account_state, ReadProof { proof, root }))
     }
@@ -365,7 +363,7 @@ mod tests {
     use tempdir::TempDir;
 
     use account::create_account;
-    use transaction::make_sign_transaction;
+    
 
     use super::*;
 
@@ -374,7 +372,7 @@ mod tests {
         let path = TempDir::new("state").unwrap();
         let state = State::new(path.path()).unwrap();
         let alice = create_account();
-        let bob = create_account();
+        let _bob = create_account();
         let _jake = create_account();
         println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
         state.commit().unwrap();

@@ -4,16 +4,16 @@ extern crate test;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-use derive_getters::Getters;
-use hex::ToHex;
+
+
 use serde::{Deserialize, Serialize};
 use serde_big_array::big_array;
 
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
-use primitive_types::{H160, H256};
+use primitive_types::{H160};
 
-use crate::account::AccountState;
+
 use crate::block::BlockHeader;
 
 pub mod account;
@@ -27,11 +27,7 @@ mod uint_hex_codec;
 pub type Hash = [u8; 32];
 pub type Address = [u8; 20];
 
-#[derive(Serialize, Deserialize, Getters, Debug, Clone)]
-pub struct MempoolSnapsot {
-    pub pending: Vec<Hash>,
-    pub valid: Vec<Hash>,
-}
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ChainStateValue {
@@ -65,28 +61,12 @@ pub fn cache<F, T>(hash: &Arc<RwLock<Option<T>>>, f: F) -> T
         F: Fn() -> T,
         T: Copy + Clone
 {
-    match hash.read() {
-        Ok(hash) => match *hash {
-            Some(hash) => return hash,
-            None => {}
-        },
-        Err(_) => {}
+    if let Ok(hash) = hash.read() {
+        if let Some(hash) = *hash { return hash }
     }
     let out = f();
-    match hash.write() {
-        Ok(mut hash) => *hash = Some(out),
-        Err(_) => {}
-    }
+    if let Ok(mut hash) = hash.write() { *hash = Some(out) }
     out
 }
-
-
-pub struct Genesis {
-    chain_id: u32,
-    accounts: Vec<(H160, AccountState)>,
-    block_header: BlockHeader,
-}
-
-impl_codec!(MempoolSnapsot);
 
 big_array! { BigArray; +33,65}

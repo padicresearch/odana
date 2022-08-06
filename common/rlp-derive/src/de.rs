@@ -122,9 +122,7 @@ fn decodable_field(
 
     let attributes = &field.attrs;
     let default = if let Some(attr) = attributes.iter().find(|attr| attr.path.is_ident("rlp")) {
-        if *default_attribute_encountered {
-            panic!("only 1 #[rlp(default)] attribute is allowed in a struct")
-        }
+        assert!(!(*default_attribute_encountered), "only 1 #[rlp(default)] attribute is allowed in a struct");
         match attr.parse_args() {
             Ok(proc_macro2::TokenTree::Ident(ident)) if ident == "default" => {},
             _ => panic!("only #[rlp(default)] attribute is supported"),

@@ -1,13 +1,11 @@
-use std::path::Path;
-use std::sync::{Arc, RwLock};
-
+use std::sync::{Arc};
 use anyhow::Result;
 
-use primitive_types::{Compact, H160, H256, U256};
+use primitive_types::{Compact, H160, H256};
 use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::SignedTransaction;
-use types::{Genesis, Hash};
+use types::{Hash};
 
 pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;

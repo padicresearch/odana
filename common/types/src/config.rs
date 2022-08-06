@@ -1,14 +1,14 @@
 use anyhow::Result;
-use derive_getters::Getters;
-use std::env::temp_dir;
-use std::fs::{File, OpenOptions};
-use std::io::{BufReader, BufWriter, Write};
+
+
+use std::fs::{OpenOptions};
+use std::io::{BufReader};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
-use primitive_types::{H160, H192, H256, H448, U192};
+
+use primitive_types::{H160, H256, U192};
 
 use crate::network::Network;
 

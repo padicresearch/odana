@@ -1,14 +1,14 @@
-use std::cmp::{Ordering, Reverse};
+use std::cmp::{Ordering};
 use std::collections::{BTreeMap, BTreeSet};
-use std::ops::Deref;
+
 use std::sync::atomic::AtomicUsize;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc};
 
 use anyhow::Result;
 
-use types::tx::SignedTransaction;
 
-use crate::{TransactionRef, Transactions, TxHashRef};
+
+use crate::{TransactionRef, Transactions};
 
 #[derive(Debug, Default, Clone)]
 pub struct TxSortedList {
@@ -106,8 +106,6 @@ pub struct TxList {
     pub(crate) txs: TxSortedList,
 }
 
-pub type TransactionIterator<'a> = Box<dyn 'a + Send + Iterator<Item = TransactionRef>>;
-
 impl TxList {
     pub fn new(strict: bool) -> Self {
         Self {
@@ -116,10 +114,10 @@ impl TxList {
         }
     }
     pub fn add(&mut self, tx: TransactionRef, price_bump: u128) -> (bool, Option<TransactionRef>) {
-        let old = self.txs.get(tx.nonce()).map(|tx| tx.clone());
+        let old = self.txs.get(tx.nonce()).cloned();
         if let Some(old) = &old {
             let old_fees = old.fees();
-            let bump = (((tx.fees() as i128 - old_fees as i128) * 100) / tx.fees() as i128);
+            let bump = ((tx.fees() as i128 - old_fees as i128) * 100) / tx.fees() as i128;
             if old.fees().cmp(&tx.fees()).is_le() && bump < price_bump as i128 {
                 return (false, None);
             }
@@ -148,7 +146,7 @@ impl TxList {
         &mut self,
         price_limit: u128,
     ) -> Option<(Vec<TransactionRef>, Vec<TransactionRef>)> {
-        if price_limit <= 0 {
+        if price_limit == 0 {
             return None;
         }
 
@@ -324,18 +322,18 @@ impl TxPricedList {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeSet, BinaryHeap};
-    use std::rc::Rc;
-    use std::sync::Arc;
+    
+    
+    
 
     use account::create_account;
-    use transaction::make_sign_transaction;
-    use types::account::Account;
-    use types::tx::{SignedTransaction};
+    
+    
+    
 
     use crate::tests::make_tx;
-    use crate::tx_list::{PricedTransaction, TxList, TxPricedList};
-    use crate::TransactionRef;
+    use crate::tx_list::{TxList};
+    
 
     #[test]
     fn test_txlist() {

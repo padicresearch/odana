@@ -28,7 +28,7 @@ pub struct CompatProof {
 }
 
 pub fn verify_proof(proof: &Proof, root: H256, key: &[u8], value: &[u8]) -> bool {
-    return verify_proof_with_updates(proof, root, key, value).is_ok();
+    verify_proof_with_updates(proof, root, key, value).is_ok()
 }
 
 struct Hasher;
@@ -99,7 +99,7 @@ pub(crate) fn verify_proof_with_updates(
     if current_hash.ne(&root) {
         return Err(Error::BadProof(updates));
     }
-    return Ok(updates);
+    Ok(updates)
 }
 
 #[cfg(test)]

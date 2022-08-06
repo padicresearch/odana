@@ -1,6 +1,7 @@
+#![allow(dead_code)]
 use std::cmp::Ordering;
-use std::collections::{BTreeSet, BinaryHeap};
-use std::hash::{Hash, Hasher};
+use std::collections::{BinaryHeap};
+
 
 struct Element<Value>
 where

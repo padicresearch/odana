@@ -1,21 +1,21 @@
 use std::cmp::Ordering;
 use std::fmt::Formatter;
 use std::str::FromStr;
-use std::sync::{Arc, PoisonError, RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock};
 
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-use tiny_keccak::Hasher;
+
 
 use crate::account::get_address_from_pub_key;
-use crate::{cache, Address, BigArray, Hash};
+use crate::{cache, Hash};
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
 use crypto::ecdsa::{PublicKey, Signature};
-use crypto::{RIPEMD160, SHA256};
-use primitive_types::{H160, H256, H512, U128, U256, U512};
+use crypto::{SHA256};
+use primitive_types::{H160, H256, U128};
 use prost::Message;
-use proto::{TransactionStatus, UnsignedTransaction};
+use proto::{ UnsignedTransaction};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {
@@ -41,11 +41,11 @@ impl Transaction {
     pub fn sig_hash(&self) -> H256 {
         let mut pack = Vec::new();
         pack.extend_from_slice(&self.nonce.to_be_bytes());
-        pack.extend_from_slice(&self.to.as_bytes());
+        pack.extend_from_slice(self.to.as_bytes());
         pack.extend_from_slice(&self.amount.to_be_bytes());
         pack.extend_from_slice(&self.fee.to_be_bytes());
-        pack.extend_from_slice(&self.data.as_bytes());
-        return SHA256::digest(pack)
+        pack.extend_from_slice(self.data.as_bytes());
+        SHA256::digest(pack)
     }
 }
 
@@ -163,10 +163,10 @@ impl SignedTransaction {
     }
 
     pub fn hash(&self) -> [u8; 32] {
-        let hash = cache(&self.hash, || {
+        
+        cache(&self.hash, || {
             SHA256::digest(self.encode().unwrap()).to_fixed_bytes()
-        });
-        hash
+        })
     }
 
     pub fn hash_256(&self) -> H256 {
@@ -186,7 +186,7 @@ impl SignedTransaction {
     }
 
     pub fn to(&self) -> H160 {
-        H160::from(self.to)
+        self.to
     }
 
     pub fn origin(&self) -> H160 {
@@ -200,20 +200,19 @@ impl SignedTransaction {
     }
 
     pub fn from(&self) -> H160 {
-        let origin = cache(&self.from, || {
+        
+        cache(&self.from, || {
             Signature::from_rsv((&self.r, &self.s, self.v))
                 .map_err(|e| anyhow::anyhow!(e))
                 .and_then(|signature| {
                     self.sig_hash().and_then(|sig_hash| {
                         signature
                             .recover_public_key(&sig_hash)
-                            .map_err(|e| anyhow::anyhow!(e))
-                            .and_then(|pub_key| Ok(get_address_from_pub_key(pub_key)))
+                            .map_err(|e| anyhow::anyhow!(e)).map(get_address_from_pub_key)
                     })
                 })
                 .unwrap_or_default()
-        });
-        origin
+        })
     }
 
     pub fn fees(&self) -> u128 {
@@ -228,8 +227,8 @@ impl SignedTransaction {
         let tx = Transaction {
             nonce: self.nonce,
             to: self.to,
-            amount: self.amount.into(),
-            fee: self.fee.into(),
+            amount: self.amount,
+            fee: self.fee,
             data: self.data.clone(),
         };
         let raw = tx.sig_hash();
@@ -271,28 +270,3 @@ impl SignedTransaction {
 }
 
 impl_codec!(SignedTransaction);
-
-#[test]
-fn test_proto_conversions() {
-    let tx = Transaction {
-        nonce: 1000,
-        to: H160::from([1; 20]),
-        amount: U128::from(1000000),
-        fee: U128::from(200),
-        data: "".to_string(),
-    };
-
-    let utx = tx.into_proto().unwrap();
-    println!("{:#?}", utx);
-
-    let tx2 = Transaction::decode(&utx.encode_to_vec()).unwrap();
-    println!("{:#?}", tx2);
-    //println!("{:#02x}", U128::from(5));
-}
-
-
-#[test]
-fn test_tx_status() {
-    let status = vec![TransactionStatus::Confirmed, TransactionStatus::Pending, TransactionStatus::NotFound];
-    println!("{}", serde_json::to_string_pretty(&status).unwrap());
-}

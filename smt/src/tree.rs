@@ -6,12 +6,11 @@ use anyhow::Result;
 use codec::{Codec, Decoder, Encoder};
 use hex::ToHex;
 use primitive_types::H256;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use std::sync::{Arc, RwLock};
 use tracing::{debug, error};
 
 #[derive(Copy, Clone)]
@@ -72,7 +71,7 @@ where
         let staging_tree = tree.subtree(options.strategy, vec![])?;
         Ok(Self {
             db: Arc::new(db),
-            head: Arc::new(RwLock::new(tree.clone())),
+            head: Arc::new(RwLock::new(tree)),
             staging: Arc::new(RwLock::new(staging_tree)),
             options,
             _data: Default::default(),
@@ -87,7 +86,7 @@ where
         Ok(Self {
             db: Arc::new(db),
             head: Arc::new(RwLock::new(tree.clone())),
-            staging: Arc::new(RwLock::new(tree.clone())),
+            staging: Arc::new(RwLock::new(tree)),
             options,
             _data: Default::default(),
         })
@@ -103,7 +102,7 @@ where
         let staging_tree = tree.subtree(options.strategy, vec![])?;
         Ok(Self {
             db: Arc::new(db),
-            head: Arc::new(RwLock::new(tree.clone())),
+            head: Arc::new(RwLock::new(tree)),
             staging: Arc::new(RwLock::new(staging_tree)),
             options,
             _data: Default::default(),
@@ -120,20 +119,20 @@ where
         let staging_tree = tree.subtree(options.strategy, vec![])?;
         Ok(Self {
             db: Arc::new(db),
-            head: Arc::new(RwLock::new(tree.clone())),
+            head: Arc::new(RwLock::new(tree)),
             staging: Arc::new(RwLock::new(staging_tree)),
             options,
             _data: Default::default(),
         })
     }
 
-    pub fn revert(&self, root: H256) {
+    pub fn revert(&self, _root: H256) {
         todo!()
     }
 
     pub fn reset(&self, root: H256) -> Result<()> {
-        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
-        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
+        let mut head = self.head.write().map_err(|_e| Error::RWPoison)?;
+        let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
         let new_head = self.db.get(&root)?;
         *head = new_head;
         *staging = head.subtree(self.options.strategy, vec![])?;
@@ -141,14 +140,14 @@ where
     }
 
     pub fn rollback(&self) -> Result<()> {
-        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
-        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
+        let head = self.head.write().map_err(|_e| Error::RWPoison)?;
+        let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
         *staging = head.subtree(self.options.strategy, vec![])?;
         Ok(())
     }
 
     pub fn head(&self) -> Result<SparseMerkleTree> {
-        let mut head = self.head.read().map_err(|e| Error::RWPoison)?;
+        let head = self.head.read().map_err(|_e| Error::RWPoison)?;
         Ok(head.clone())
     }
 
@@ -166,8 +165,8 @@ where
 
         let batch = res?;
 
-        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
-        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
+        let mut head = self.head.write().map_err(|_e| Error::RWPoison)?;
+        let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
 
         for (key, value) in batch {
             head.update(key, value)?;
@@ -197,12 +196,12 @@ where
         }
         let new_root = tree.root();
         self.db.put(new_root, tree)?;
-        return Ok(new_root);
+        Ok(new_root)
     }
 
     pub fn commit(&self, persist: bool) -> Result<H256> {
-        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
-        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
+        let mut head = self.head.write().map_err(|_e| Error::RWPoison)?;
+        let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
 
         if head.root == staging.root {
             return Ok(head.root);
@@ -224,15 +223,15 @@ where
 
     pub fn put(&self, key: K, value: V) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Value(value.encode()?).encode()?);
-        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
-        let root = staging.update(key.clone(), value)?;
+        let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
+        let _root = staging.update(key, value)?;
         Ok(())
     }
 
     pub fn delete(&self, key: &K) -> Result<()> {
         let (key, value) = (key.encode()?, IValue::Deleted.encode()?);
-        let mut staging = self.staging.write().map_err(|e| Error::RWPoison)?;
-        staging.update(key.clone(), value)?;
+        let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
+        staging.update(key, value)?;
         Ok(())
     }
 
@@ -247,7 +246,7 @@ where
     }
 
     pub fn get_with_proof(&self, key: &K) -> Result<(V, Proof)> {
-        let mut head = self.head.read().map_err(|e| Error::RWPoison)?;
+        let head = self.head.read().map_err(|_e| Error::RWPoison)?;
         let raw_key = key.encode()?;
         let value = self
             .get(key)?
@@ -258,8 +257,8 @@ where
 
     pub fn get_descend(&self, key: &K, descend: bool) -> Result<Option<V>> {
         let key = key.encode()?;
-        let mut staging = self.staging.read().map_err(|e| Error::RWPoison)?;
-        let mut head = self.head.read().map_err(|e| Error::RWPoison)?;
+        let staging = self.staging.read().map_err(|_e| Error::RWPoison)?;
+        let head = self.head.read().map_err(|_e| Error::RWPoison)?;
         let mut value = staging.get(&key)?;
         if value.is_empty() && descend {
             let res = self._get_descend(&key, &head.root)?;
@@ -277,10 +276,10 @@ where
             return Ok(None);
         }
         let decoded_value = IValue::decode(&value)?;
-        return match decoded_value {
+        match decoded_value {
             IValue::Deleted => Ok(None),
             IValue::Value(value) => Ok(Some(V::decode(&value)?)),
-        };
+        }
     }
 
     fn _get_descend(&self, key: &[u8], root: &H256) -> Result<Option<Vec<u8>>> {
@@ -299,7 +298,7 @@ where
     }
 
     pub fn root(&self) -> Result<H256> {
-        let mut head = self.head.write().map_err(|e| Error::RWPoison)?;
+        let head = self.head.write().map_err(|_e| Error::RWPoison)?;
         Ok(head.root())
     }
 }
@@ -314,9 +313,9 @@ impl Verifier {
     {
         let key = key.encode()?;
         let value = IValue::Value(value.encode()?).encode()?;
-        return verify_proof_with_updates(proof, root, &key, &value)
+        verify_proof_with_updates(proof, root, &key, &value)
             .map(|_| ())
-            .map_err(|e| e.into());
+            .map_err(|e| e.into())
     }
 }
 
@@ -332,7 +331,7 @@ mod tests {
         let tmp_dir = TempDir::new("test").unwrap();
         let tree = Tree::open(tmp_dir.path()).unwrap();
         tree.put(
-            H256::from_slice(&vec![1; 32]),
+            H256::from_slice(&[1; 32]),
             AccountState {
                 free_balance: 30000,
                 reserve_balance: 3000,
@@ -342,7 +341,7 @@ mod tests {
             .unwrap();
 
         tree.put(
-            H256::from_slice(&vec![2; 32]),
+            H256::from_slice(&[2; 32]),
             AccountState {
                 free_balance: 10000,
                 reserve_balance: 1000,
@@ -352,7 +351,7 @@ mod tests {
             .unwrap();
 
         tree.put(
-            H256::from_slice(&vec![3; 32]),
+            H256::from_slice(&[3; 32]),
             AccountState {
                 free_balance: 10000,
                 reserve_balance: 1000,
@@ -362,7 +361,7 @@ mod tests {
             .unwrap();
 
         tree.put(
-            H256::from_slice(&vec![24; 32]),
+            H256::from_slice(&[24; 32]),
             AccountState {
                 free_balance: 10000,
                 reserve_balance: 1000,
@@ -372,7 +371,7 @@ mod tests {
             .unwrap();
         let root_1 = tree.commit(true).unwrap();
         tree.put(
-            H256::from_slice(&vec![24; 32]),
+            H256::from_slice(&[24; 32]),
             AccountState {
                 free_balance: 20000,
                 reserve_balance: 2000,
@@ -382,7 +381,7 @@ mod tests {
             .unwrap();
 
         tree.put(
-            H256::from_slice(&vec![44; 32]),
+            H256::from_slice(&[44; 32]),
             AccountState {
                 free_balance: 10000,
                 reserve_balance: 1000,
@@ -392,7 +391,7 @@ mod tests {
             .unwrap();
 
         tree.put(
-            H256::from_slice(&vec![32; 32]),
+            H256::from_slice(&[32; 32]),
             AccountState {
                 free_balance: 10000,
                 reserve_balance: 1000,
@@ -402,7 +401,7 @@ mod tests {
             .unwrap();
 
         tree.put(
-            H256::from_slice(&vec![50; 32]),
+            H256::from_slice(&[50; 32]),
             AccountState {
                 free_balance: 10000,
                 reserve_balance: 1000,
@@ -412,7 +411,7 @@ mod tests {
             .unwrap();
 
         tree.put(
-            H256::from_slice(&vec![3; 32]),
+            H256::from_slice(&[3; 32]),
             AccountState {
                 free_balance: 200,
                 reserve_balance: 200,
@@ -424,7 +423,7 @@ mod tests {
         let root_2 = tree.commit(true).unwrap();
 
         assert_eq!(
-            tree.get_descend(&H256::from_slice(&vec![3; 32]), true)
+            tree.get_descend(&H256::from_slice(&[3; 32]), true)
                 .unwrap(),
             Some(AccountState {
                 free_balance: 200,
@@ -435,7 +434,7 @@ mod tests {
         tree.reset(root_1).unwrap();
 
         assert_eq!(
-            tree.get_descend(&H256::from_slice(&vec![3; 32]), true)
+            tree.get_descend(&H256::from_slice(&[3; 32]), true)
                 .unwrap(),
             Some(AccountState {
                 free_balance: 10000,
@@ -447,7 +446,7 @@ mod tests {
         tree.reset(root_2).unwrap();
 
         tree.put(
-            H256::from_slice(&vec![3; 32]),
+            H256::from_slice(&[3; 32]),
             AccountState {
                 free_balance: 90000,
                 reserve_balance: 9000,
@@ -456,10 +455,10 @@ mod tests {
         )
             .unwrap();
 
-        let root_3 = tree.commit(true).unwrap();
+        let _root_3 = tree.commit(true).unwrap();
 
         assert_eq!(
-            tree.get_descend(&H256::from_slice(&vec![3; 32]), false)
+            tree.get_descend(&H256::from_slice(&[3; 32]), false)
                 .unwrap(),
             Some(AccountState {
                 free_balance: 90000,
@@ -469,12 +468,12 @@ mod tests {
         );
 
         assert_eq!(
-            tree.get_descend(&H256::from_slice(&vec![1; 32]), false)
+            tree.get_descend(&H256::from_slice(&[1; 32]), false)
                 .unwrap(),
             None
         );
         assert_eq!(
-            tree.get_descend(&H256::from_slice(&vec![1; 32]), true)
+            tree.get_descend(&H256::from_slice(&[1; 32]), true)
                 .unwrap(),
             Some(AccountState {
                 free_balance: 30000,
@@ -484,7 +483,7 @@ mod tests {
         );
 
         let (value, proof) = tree
-            .get_with_proof(&H256::from_slice(&vec![1; 32]))
+            .get_with_proof(&H256::from_slice(&[1; 32]))
             .unwrap();
         println!("{:#?}", (&value, &proof));
         println!(
@@ -492,7 +491,7 @@ mod tests {
             Verifier::verify_proof(
                 &proof,
                 tree.root().unwrap(),
-                H256::from_slice(&vec![1; 32]),
+                H256::from_slice(&[1; 32]),
                 value,
             )
         )
@@ -503,7 +502,7 @@ mod tests {
         let tmp_dir = TempDir::new("test").unwrap();
         let tree = Tree::open(tmp_dir.path()).unwrap();
         tree.put(
-            H160::from_slice(&vec![0; 20]),
+            H160::from_slice(&[0; 20]),
             AccountState {
                 free_balance: 1_000_000_000,
                 reserve_balance: 0,
