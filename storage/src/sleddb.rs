@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use anyhow::Result;
-use itertools::Itertools;
-use sled::{IVec, Tree};
+
+use sled::{Tree};
 
 use codec::{Decoder, Encoder};
 

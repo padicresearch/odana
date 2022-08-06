@@ -3,7 +3,7 @@ use std::ops::{Add, Mul, Sub};
 
 use traits::Saturating;
 
-use crate::barossa::BarossaProtocol;
+
 use crate::MAX_SUPPLY_PRECOMPUTED;
 
 pub const TUC_UNIT: u128 = 1_000_000_000;

@@ -1,0 +1,38 @@
+syntax = "proto3";
+import "types.proto";
+
+package rpc;
+
+message CurrentHeadResponse {
+  string hash = 1;
+  types.BlockHeader header = 2;
+}
+
+message GetBlockByHashRequest {
+  string hash = 1;
+}
+
+message GetBlockByLevelRequest {
+  int32 level = 1;
+}
+
+message GetBlocksRequest {
+  int32 from = 1;
+  uint32 count = 2;
+}
+
+message GetBlocksResponse {
+  repeated types.BlockHeader blocks = 1;
+}
+
+message GetBlockNumberResponse {
+  int32 level = 1;
+}
+
+service ChainService {
+  rpc CurrentHead(types.Empty) returns (CurrentHeadResponse);
+  rpc BlockLevel(types.Empty) returns (GetBlockNumberResponse);
+  rpc GetBlockByHash (GetBlockByHashRequest) returns (types.Block);
+  rpc GetBlockByLevel (GetBlockByLevelRequest) returns (types.Block);
+  rpc GetBlocks (GetBlocksRequest) returns (GetBlocksResponse);
+}

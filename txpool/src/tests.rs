@@ -15,7 +15,7 @@ use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
 use transaction::make_sign_transaction;
 use types::account::{Account, AccountState};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
-use types::tx::{Transaction, TransactionKind};
+use types::tx::{SignedTransaction};
 use types::Hash;
 
 use crate::tx_lookup::AccountSet;
@@ -33,32 +33,18 @@ pub fn make_tx(
     amount: u128,
     fee: u128,
 ) -> TransactionRef {
-    let tx = make_sign_transaction(
-        from,
-        nonce,
-        TransactionKind::Transfer {
-            from: from.address.to_fixed_bytes(),
-            to: to.address.to_fixed_bytes(),
-            amount,
-            fee,
-        },
-    )
-    .unwrap();
+    let tx = make_sign_transaction(from, nonce, to.address.to_fixed_bytes(), amount, fee, "".to_string()).unwrap();
     Arc::new(tx)
 }
 
-fn make_tx_def(from: &Account, to: &Account, nonce: u64, amount: u128, fee: u128) -> Transaction {
-    let tx = make_sign_transaction(
-        from,
-        nonce,
-        TransactionKind::Transfer {
-            from: from.address.to_fixed_bytes(),
-            to: to.address.to_fixed_bytes(),
-            amount,
-            fee,
-        },
-    )
-    .unwrap();
+fn make_tx_def(
+    from: &Account,
+    to: &Account,
+    nonce: u64,
+    amount: u128,
+    fee: u128,
+) -> SignedTransaction {
+    let tx = make_sign_transaction(from, nonce, to.address.to_fixed_bytes(), amount, fee, "".to_string()).unwrap();
     tx
 }
 
@@ -109,8 +95,8 @@ impl DummyStateDB {
 #[derive(Clone)]
 struct DummyChain {
     chain: Arc<RwLock<Vec<Block>>>,
-    blocks: DashMap<[u8; 32], usize>,
-    states: DashMap<[u8; 32], Arc<DummyStateDB>>,
+    blocks: DashMap<H256, usize>,
+    states: DashMap<H256, Arc<DummyStateDB>>,
 }
 
 impl DummyChain {
@@ -122,7 +108,7 @@ impl DummyChain {
             .collect();
 
         let map = DashMap::new();
-        map.insert([0; 32], inital_state);
+        map.insert([0; 32].into(), inital_state);
 
         Self {
             chain: Arc::new(RwLock::new(blocks)),
@@ -132,8 +118,8 @@ impl DummyChain {
     }
 
     fn insert_state(&self, root: Hash, state: Arc<DummyStateDB>) {
-        self.states.insert(root, state.clone());
-        self.states.insert([0; 32], state);
+        self.states.insert(root.into(), state.clone());
+        self.states.insert([0; 32].into(), state);
     }
 
     fn add(&self, block: Block) {
@@ -162,23 +148,11 @@ impl StateDB for DummyStateDB {
         self.account_state(address).free_balance
     }
 
-    fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
+    fn credit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
         todo!()
     }
 
-    fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
-        todo!()
-    }
-
-    fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
-        todo!()
-    }
-
-    fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
-        todo!()
-    }
-
-    fn root(&self) -> Hash {
+    fn debit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
         todo!()
     }
 
@@ -186,7 +160,19 @@ impl StateDB for DummyStateDB {
         todo!()
     }
 
+    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256> {
+        todo!()
+    }
+
+    fn root(&self) -> Hash {
+        todo!()
+    }
+
     fn commit(&self) -> Result<()> {
+        todo!()
+    }
+
+    fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
         todo!()
     }
 
@@ -199,7 +185,7 @@ impl Blockchain for DummyChain {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>> {
         let state = self
             .states
-            .get(&[0; 32])
+            .get(&H256::from([0; 32]))
             .ok_or(anyhow::anyhow!("state not found"))?;
         let state = state.value().clone();
         Ok(state)
@@ -211,7 +197,7 @@ impl Blockchain for DummyChain {
         Ok(block)
     }
 
-    fn get_state_at(&self, root: &Hash) -> Result<Arc<dyn StateDB>> {
+    fn get_state_at(&self, root: &H256) -> Result<Arc<dyn StateDB>> {
         let d = self
             .states
             .get(root)
@@ -220,13 +206,10 @@ impl Blockchain for DummyChain {
         Ok(d)
     }
 
-    fn put_chain(&self, consensus: Arc<dyn Consensus>, blocks: Vec<Block>) -> Result<()> {
-        todo!()
-    }
 }
 
 impl ChainReader for DummyChain {
-    fn get_block(&self, hash: &Hash, level: i32) -> Result<Option<Block>> {
+    fn get_block(&self, hash: &H256, level: i32) -> Result<Option<Block>> {
         let index = match self.blocks.get(hash) {
             None => return Ok(None),
             Some(block) => *block.value(),
@@ -236,7 +219,7 @@ impl ChainReader for DummyChain {
         Ok(block)
     }
 
-    fn get_block_by_hash(&self, hash: &Hash) -> Result<Option<Block>> {
+    fn get_block_by_hash(&self, hash: &H256) -> Result<Option<Block>> {
         let index = match self.blocks.get(hash) {
             None => return Ok(None),
             Some(block) => *block.value(),
@@ -252,7 +235,7 @@ impl ChainReader for DummyChain {
 }
 
 impl ChainHeadReader for DummyChain {
-    fn get_header(&self, hash: &Hash, level: i32) -> Result<Option<IndexedBlockHeader>> {
+    fn get_header(&self, hash: &H256, level: i32) -> Result<Option<IndexedBlockHeader>> {
         let index = match self.blocks.get(hash) {
             None => return Ok(None),
             Some(block) => *block.value(),
@@ -262,7 +245,7 @@ impl ChainHeadReader for DummyChain {
         Ok(block.map(|b| b.header().clone().into()))
     }
 
-    fn get_header_by_hash(&self, hash: &Hash) -> Result<Option<IndexedBlockHeader>> {
+    fn get_header_by_hash(&self, hash: &H256) -> Result<Option<IndexedBlockHeader>> {
         let index = match self.blocks.get(hash) {
             None => return Ok(None),
             Some(block) => *block.value(),
@@ -285,14 +268,14 @@ fn generate_blocks(n: usize) -> Vec<Block> {
         let block = if blocks.is_empty() {
             make_block(
                 level as i32,
-                [0; 32],
-                H256::from_low_u64_be(level as u64).to_fixed_bytes(),
+                [0; 32].into(),
+                H256::from_low_u64_be(level as u64),
             )
         } else {
             make_block(
                 level as i32,
                 blocks[level - 1].hash(),
-                H256::from_low_u64_be(level as u64).to_fixed_bytes(),
+                H256::from_low_u64_be(level as u64),
             )
         };
         blocks.push(block);
@@ -306,20 +289,20 @@ fn state_with_balance(amount: u128) -> AccountState {
     state
 }
 
-fn make_block(level: i32, parent_hash: Hash, state_root: Hash) -> Block {
+fn make_block(level: i32, parent_hash: H256, state_root: H256) -> Block {
     Block::new(
-        BlockHeader {
+        BlockHeader::new(
             parent_hash,
-            merkle_root: [0; 32],
+            [0; 32].into(),
             state_root,
-            mix_nonce: [0; 32],
-            coinbase: [0; 20],
-            difficulty: 0,
-            chain_id: 0,
+            [0; 32].into(),
+            [0; 20].into(),
+            0,
+            0,
             level,
-            time: 0,
-            nonce: 0,
-        },
+            0,
+            0.into(),
+        ),
         Vec::new(),
     )
 }
@@ -334,7 +317,7 @@ async fn txpool_test() {
     )]));
     let chain = Arc::new(DummyChain::new(Vec::new(), state_db.clone()));
     chain.insert_state([1; 32], state_db.clone());
-    chain.add(make_block(0, [0; 32], [1; 32]));
+    chain.add(make_block(0, [0; 32].into(), [1; 32].into()));
     let (sender, mut recv) = tokio::sync::mpsc::unbounded_channel();
     let mut txpool = TxPool::new(None, None, sender, chain.clone()).unwrap();
     txpool
@@ -361,9 +344,8 @@ async fn txpool_test() {
             .current_header()
             .unwrap()
             .unwrap()
-            .hash
-            .to_fixed_bytes(),
-        [2; 32],
+            .hash,
+        [2; 32].into(),
     );
     let old_head = chain.current_header().unwrap().unwrap().raw;
     let new_head = block_2.header().clone();
@@ -390,7 +372,7 @@ async fn txpool_test() {
         )
         .unwrap();
     println!("{:#?}", txpool.nonce(&alice.address));
-    println!("{:#?}", txpool.pending);
+    println!("Pending {:#?}", txpool.pending);
 }
 
 // #[test]

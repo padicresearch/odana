@@ -1,10 +1,10 @@
 use crate::block::{Block, BlockHeader};
-use crate::tx::Transaction;
+use crate::tx::SignedTransaction;
 #[derive(Clone, Debug)]
 pub enum LocalEventMessage {
     MindedBlock(Block),
-    BroadcastTx(Transaction),
-    TxPoolPack(Vec<Transaction>),
+    BroadcastTx(SignedTransaction),
+    TxPoolPack(Vec<SignedTransaction>),
     StateChanged {
         current_head: BlockHeader,
     },

@@ -28,6 +28,7 @@ storage = { path = "../storage" }
 types = { path = "../common/types" }
 txpool = { path = "../txpool" }
 state = { path = "../state" }
+rpc = { path = "../rpc" }
 consensus = { path = "../consensus" }
 miner = { path = "../miner" }
 account = { path = "../account" }

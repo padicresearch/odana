@@ -128,7 +128,7 @@ impl From<FromHexError> for FromStrRadixErr {
 }
 
 /// Conversion from decimal string error
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum FromDecStrErr {
 	/// Char not from range 0-9
 	InvalidCharacter,
@@ -200,10 +200,7 @@ macro_rules! impl_try_from_for_primitive {
 			fn try_from(u: $from) -> $crate::core_::result::Result<$to, &'static str> {
 				let $from(arr) = u;
 				if !u.fits_word() || arr[0] > <$to>::max_value() as u64 {
-					Err(concat!(
-						"integer overflow when casting to ",
-						stringify!($to)
-					))
+					Err(concat!("integer overflow when casting to ", stringify!($to)))
 				} else {
 					Ok(arr[0] as $to)
 				}
@@ -221,11 +218,8 @@ macro_rules! uint_overflowing_binop {
 		let $name(ref you) = $other;
 
 		let mut ret = [0u64; $n_words];
-		let ret_ptr = &mut ret as *mut [u64; $n_words] as *mut u64;
 		let mut carry = 0u64;
-		$crate::static_assertions::const_assert!(
-			core::isize::MAX as usize / core::mem::size_of::<u64>() > $n_words
-		);
+		$crate::static_assertions::const_assert!(core::isize::MAX as usize / core::mem::size_of::<u64>() > $n_words);
 
 		// `unroll!` is recursive, but doesn’t use `$crate::unroll`, so we need to ensure that it
 		// is in scope unqualified.
@@ -238,19 +232,12 @@ macro_rules! uint_overflowing_binop {
 					let (res1, overflow1) = ($fn)(me[i], you[i]);
 					let (res2, overflow2) = ($fn)(res1, carry);
 
-					unsafe {
-						// SAFETY: `i` is within bounds and `i * size_of::<u64>() < isize::MAX`
-						*ret_ptr.offset(i as _) = res2
-					}
+					ret[i] = res2;
 					carry = (overflow1 as u8 + overflow2 as u8) as u64;
 				} else {
 					let (res, overflow) = ($fn)(me[i], you[i]);
 
-					unsafe {
-						// SAFETY: `i` is within bounds and `i * size_of::<u64>() < isize::MAX`
-						*ret_ptr.offset(i as _) = res
-					}
-
+					ret[i] = res;
 					carry = overflow as u64;
 				}
 			}
@@ -321,8 +308,7 @@ macro_rules! uint_full_mul_reg {
 #[doc(hidden)]
 macro_rules! uint_overflowing_mul {
 	($name:ident, $n_words: tt, $self_expr: expr, $other: expr) => {{
-		let ret: [u64; $n_words * 2] =
-			$crate::uint_full_mul_reg!($name, $n_words, $self_expr, $other);
+		let ret: [u64; $n_words * 2] = $crate::uint_full_mul_reg!($name, $n_words, $self_expr, $other);
 
 		// The safety of this is enforced by the compiler
 		let ret: [[u64; $n_words]; 2] = unsafe { $crate::core_::mem::transmute(ret) };
@@ -679,9 +665,10 @@ macro_rules! construct_uint {
 
 			/// Whether this is zero.
 			#[inline]
-			pub fn is_zero(&self) -> bool {
+			pub const fn is_zero(&self) -> bool {
 				let &$name(ref arr) = self;
-				for i in 0..$n_words { if arr[i] != 0 { return false; } }
+				let mut i = 0;
+				while i < $n_words { if arr[i] != 0 { return false; } else { i += 1; } }
 				return true;
 			}
 
@@ -798,8 +785,10 @@ macro_rules! construct_uint {
 
 			/// One (multiplicative identity) of this type.
 			#[inline]
-			pub fn one() -> Self {
-				From::from(1u64)
+			pub const fn one() -> Self {
+				let mut words = [0; $n_words];
+				words[0] = 1u64;
+				Self(words)
 			}
 
 			/// The maximum value which can be inhabited by this type.
@@ -1062,7 +1051,7 @@ macro_rules! construct_uint {
 				}
 			}
 
-			/// Add with overflow.
+			/// Addition which overflows and returns a flag if it does.
 			#[inline(always)]
 			pub fn overflowing_add(self, other: $name) -> ($name, bool) {
 				$crate::uint_overflowing_binop!(
@@ -1163,7 +1152,7 @@ macro_rules! construct_uint {
 				if self.is_zero() {
 					(self, false)
 				} else {
-					(!self, true)
+					(!self + 1, true)
 				}
 			}
 
@@ -1178,43 +1167,9 @@ macro_rules! construct_uint {
 			#[inline(always)]
 			fn div_mod_word(hi: u64, lo: u64, y: u64) -> (u64, u64) {
 				debug_assert!(hi < y);
-				// NOTE: this is slow (__udivti3)
-				// let x = (u128::from(hi) << 64) + u128::from(lo);
-				// let d = u128::from(d);
-				// ((x / d) as u64, (x % d) as u64)
-				// TODO: look at https://gmplib.org/~tege/division-paper.pdf
-				const TWO32: u64 = 1 << 32;
-				let s = y.leading_zeros();
-				let y = y << s;
-				let (yn1, yn0) = Self::split(y);
-				let un32 = (hi << s) | lo.checked_shr(64 - s).unwrap_or(0);
-				let un10 = lo << s;
-				let (un1, un0) = Self::split(un10);
-				let mut q1 = un32 / yn1;
-				let mut rhat = un32 - q1 * yn1;
-
-				while q1 >= TWO32 || q1 * yn0 > TWO32 * rhat + un1 {
-					q1 -= 1;
-					rhat += yn1;
-					if rhat >= TWO32 {
-						break;
-					}
-				}
-
-				let un21 = un32.wrapping_mul(TWO32).wrapping_add(un1).wrapping_sub(q1.wrapping_mul(y));
-				let mut q0 = un21 / yn1;
-				rhat = un21.wrapping_sub(q0.wrapping_mul(yn1));
-
-				while q0 >= TWO32 || q0 * yn0 > TWO32 * rhat + un0 {
-					q0 -= 1;
-					rhat += yn1;
-					if rhat >= TWO32 {
-						break;
-					}
-				}
-
-				let rem = un21.wrapping_mul(TWO32).wrapping_add(un0).wrapping_sub(y.wrapping_mul(q0));
-				(q1 * TWO32 + q0, rem >> s)
+				let x = (u128::from(hi) << 64) + u128::from(lo);
+				let y = u128::from(y);
+				((x / y) as u64, (x % y) as u64)
 			}
 
 			#[inline(always)]
@@ -1306,6 +1261,44 @@ macro_rules! construct_uint {
 				}
 
 				$name(ret)
+			}
+
+			fn fmt_hex(&self, f: &mut $crate::core_::fmt::Formatter, is_lower: bool) -> $crate::core_::fmt::Result {
+				let &$name(ref data) = self;
+				// special case.
+				if self.is_zero() {
+					return f.pad_integral(true, "0x", "0");
+				}
+
+				let mut latch = false;
+				let mut buf = [0_u8; $n_words * 16];
+				let mut i = 0;
+				for ch in data.iter().rev() {
+					for x in 0..16 {
+						// nibble < 16
+						let nibble = (ch & (15u64 << ((15 - x) * 4) as u64)) >> (((15 - x) * 4) as u64);
+						if !latch {
+							latch = nibble != 0;
+						}
+
+						if latch {
+							// nibble is `'0'..'9' 'a'..'f' 'A'..'F'` because nibble < 16
+							let nibble = match nibble {
+								0..=9 => nibble as u8 + b'0',
+								_ if is_lower => nibble as u8 - 10 + b'a',
+								_ => nibble as u8 - 10 + b'A',
+							};
+							buf[i] = nibble;
+							i += 1;
+						}
+					}
+				}
+
+				// sequence of `'0'..'9' 'a'..'f' 'A'..'F'` chars is guaranteed to be a valid UTF8 string
+				let s = unsafe {
+					$crate::core_::str::from_utf8_unchecked(&buf[0..i])
+				};
+				f.pad_integral(true, "0x", s)
 			}
 		}
 
@@ -1673,35 +1666,19 @@ macro_rules! construct_uint {
 				let s = unsafe {
 					$crate::core_::str::from_utf8_unchecked(&buf[i..])
 				};
-				f.write_str(s)
+				f.pad_integral(true, "", s)
 			}
 		}
 
 		impl $crate::core_::fmt::LowerHex for $name {
 			fn fmt(&self, f: &mut $crate::core_::fmt::Formatter) -> $crate::core_::fmt::Result {
-				let &$name(ref data) = self;
-				if f.alternate() {
-					$crate::core_::write!(f, "0x")?;
-				}
-				// special case.
-				if self.is_zero() {
-					return $crate::core_::write!(f, "0");
-				}
+				self.fmt_hex(f, true)
+			}
+		}
 
-				let mut latch = false;
-				for ch in data.iter().rev() {
-					for x in 0..16 {
-						let nibble = (ch & (15u64 << ((15 - x) * 4) as u64)) >> (((15 - x) * 4) as u64);
-						if !latch {
-							latch = nibble != 0;
-						}
-
-						if latch {
-							$crate::core_::write!(f, "{:x}", nibble)?;
-						}
-					}
-				}
-				Ok(())
+		impl $crate::core_::fmt::UpperHex for $name {
+			fn fmt(&self, f: &mut $crate::core_::fmt::Formatter) -> $crate::core_::fmt::Result {
+				self.fmt_hex(f, false)
 			}
 		}
 
@@ -1794,7 +1771,6 @@ macro_rules! impl_quickcheck_arbitrary_for_uint {
 macro_rules! impl_quickcheck_arbitrary_for_uint {
 	($uint: ty, $n_bytes: tt) => {};
 }
-
 
 #[cfg(feature = "arbitrary")]
 #[macro_export]

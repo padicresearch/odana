@@ -4,17 +4,20 @@ use std::fmt::Formatter;
 use std::io;
 use std::sync::{Arc, RwLock};
 
-use anyhow::Result;
-use derive_getters::Getters;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use tiny_keccak::Hasher;
 
-use codec::impl_codec;
+use codec::{ConsensusCodec, impl_codec};
 use codec::{Decoder, Encoder};
 use crypto::SHA256;
 use primitive_types::{Compact, H256, U128, U256};
+use proto::{BlockHeader as ProtoBlockHeader, Block as ProtoBlock, RawBlockHeaderPacket};
+use prost::Message;
 
-use crate::tx::Transaction;
+use crate::tx::SignedTransaction;
+use getset::{CopyGetters, Getters, MutGetters, Setters};
+use serde_json::json;
 
 use super::*;
 
@@ -45,75 +48,115 @@ impl Decoder for BlockPrimaryKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Getters)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Getters, Setters, MutGetters, CopyGetters)]
 pub struct BlockHeader {
-    pub parent_hash: Hash,
-    pub merkle_root: Hash,
-    pub state_root: Hash,
-    pub mix_nonce: Hash,
-    pub coinbase: Address,
-    #[getter(skip)]
-    pub difficulty: u32,
-    pub chain_id: u32,
-    pub level: i32,
-    pub time: u32,
-    pub nonce: u128,
-}
-
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Getters)]
-pub struct BlockHeaderHexFormat {
-    pub parent_hash: H256,
-    pub merkle_root: H256,
-    pub state_root: H256,
-    pub mix_nonce: U256,
-    pub coinbase: H160,
-    pub difficulty: U128,
-    pub chain_id: U128,
-    pub level: U128,
-    pub time: U128,
-    pub nonce: U128,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    parent_hash: H256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    merkle_root: H256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    state_root: H256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    mix_nonce: U256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    coinbase: H160,
+    #[getset(set = "pub", get_mut = "pub")]
+    difficulty: u32,
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    chain_id: u32,
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    level: i32,
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    time: u32,
+    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    nonce: U128,
 }
 
 impl BlockHeader {
-    pub fn hash(&self) -> Hash {
-        SHA256::digest(&self.encode().unwrap()).into()
+    pub fn new(
+        parent_hash: H256,
+        merkle_root: H256,
+        state_root: H256,
+        mix_nonce: U256,
+        coinbase: H160,
+        difficulty: u32,
+        chain_id: u32,
+        level: i32,
+        time: u32,
+        nonce: U128,
+    ) -> Self {
+        Self {
+            parent_hash,
+            merkle_root,
+            state_root,
+            mix_nonce,
+            coinbase,
+            difficulty,
+            chain_id,
+            level,
+            time,
+            nonce,
+        }
+    }
+
+    pub fn hash(&self) -> H256 {
+        SHA256::digest(self.consensus_encode())
     }
 
     pub fn difficulty(&self) -> Compact {
         Compact::from(self.difficulty)
     }
 
-    pub fn to_hex_format(&self) -> BlockHeaderHexFormat {
-        BlockHeaderHexFormat {
-            parent_hash: H256::from(self.parent_hash),
-            merkle_root: H256::from(self.merkle_root),
-            state_root: H256::from(self.state_root),
-            mix_nonce: U256::from(self.mix_nonce),
-            coinbase: H160::from(self.coinbase),
-            difficulty: self.difficulty.into(),
-            chain_id: self.chain_id.into(),
-            level: (self.level as u32).into(),
-            time: self.time.into(),
-            nonce: self.nonce.into(),
-        }
+    pub fn into_proto(self) -> Result<ProtoBlockHeader> {
+        let json_rep = serde_json::to_vec(&self)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
 
-impl std::fmt::Debug for BlockHeader {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.to_hex_format().fmt(f)
+impl ConsensusCodec for BlockHeader {
+    fn consensus_encode(self) -> Vec<u8> {
+        let raw_pack = RawBlockHeaderPacket {
+            parent_hash: self.parent_hash.as_bytes().to_vec(),
+            merkle_root: self.parent_hash.as_bytes().to_vec(),
+            state_root: self.state_root.as_bytes().to_vec(),
+            mix_nonce: self.mix_nonce.to_be_bytes().to_vec(),
+            coinbase: self.coinbase.as_bytes().to_vec(),
+            difficulty: self.difficulty,
+            chain_id: self.chain_id,
+            level: self.level,
+            time: self.time,
+            nonce: self.nonce.to_be_bytes().to_vec(),
+        };
+        raw_pack.encode_to_vec()
+    }
+
+    fn consensus_decode(buf: &[u8]) -> Result<Self> {
+        let raw_pack: RawBlockHeaderPacket = RawBlockHeaderPacket::decode(buf)?;
+        Ok(Self {
+            parent_hash: H256::from_slice(raw_pack.parent_hash.as_slice()),
+            merkle_root: H256::from_slice(raw_pack.merkle_root.as_slice()),
+            state_root: H256::from_slice(raw_pack.state_root.as_slice()),
+            mix_nonce: U256::from_big_endian(raw_pack.mix_nonce.as_slice()),
+            coinbase: H160::from_slice(raw_pack.coinbase.as_slice()),
+            difficulty: raw_pack.difficulty,
+            chain_id: raw_pack.chain_id,
+            level: raw_pack.level,
+            time: raw_pack.time,
+            nonce: U128::from_big_endian(raw_pack.parent_hash.as_slice()),
+        })
     }
 }
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Block {
     header: BlockHeader,
-    transactions: Vec<Transaction>,
+    transactions: Vec<SignedTransaction>,
     #[serde(skip)]
-    hash: Arc<RwLock<Option<Hash>>>,
+    hash: Arc<RwLock<Option<H256>>>,
 }
 
 impl Block {
-    pub fn transactions(&self) -> &Vec<Transaction> {
+    pub fn transactions(&self) -> &Vec<SignedTransaction> {
         &self.transactions
     }
 }
@@ -138,7 +181,7 @@ impl PartialEq for BlockHeader {
 impl Eq for BlockHeader {}
 
 impl Block {
-    pub fn new(header: BlockHeader, transactions: Vec<Transaction>) -> Self {
+    pub fn new(header: BlockHeader, transactions: Vec<SignedTransaction>) -> Self {
         Self {
             header,
             transactions,
@@ -146,8 +189,8 @@ impl Block {
         }
     }
 
-    pub fn hash(&self) -> Hash {
-        cache_hash(&self.hash, || self.header.hash())
+    pub fn hash(&self) -> H256 {
+        cache(&self.hash, || self.header.hash())
     }
 
     pub fn header(&self) -> &BlockHeader {
@@ -156,8 +199,17 @@ impl Block {
     pub fn level(&self) -> i32 {
         self.header.level
     }
-    pub fn parent_hash(&self) -> &Hash {
-        &self.header.parent_hash
+    pub fn parent_hash(&self) -> &H256 {
+        self.header.parent_hash()
+    }
+    pub fn into_proto(self) -> Result<ProtoBlock> {
+        let jsblock = json!({
+            "hash" : self.hash(),
+            "header" : self.header(),
+            "txs" : self.transactions()
+        });
+        let json_rep = serde_json::to_vec(&jsblock)?;
+        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
 
@@ -210,7 +262,7 @@ impl AsRef<BlockHeader> for HeightSortedBlockHeader {
 }
 
 impl HeightSortedBlockHeader {
-    pub fn hash(&self) -> Hash {
+    pub fn hash(&self) -> H256 {
         self.0.hash()
     }
 }
@@ -233,4 +285,25 @@ impl Ord for HeightSortedBlockHeader {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.level.cmp(&other.0.level)
     }
+}
+
+#[test]
+fn test_proto_conversions() {
+    let block_header = BlockHeader::new(
+        H256::from([1; 32]),
+        H256::from([2; 32]),
+        H256::from([6; 32]),
+        U256::from(400),
+        H160::from([7; 20]),
+        30,
+        30,
+        30,
+        10000000,
+        U128::from(5),
+    );
+
+    let pheader = block_header.into_proto().unwrap();
+
+    println!("{:#?}", pheader);
+    println!("{:#02x}", U128::from(5));
 }

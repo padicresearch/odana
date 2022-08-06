@@ -1,11 +1,11 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap};
 use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::RwLock;
 
-use anyhow::{Error, Result};
+use anyhow::{Result};
 
-use codec::{Codec, Decoder, Encoder};
+use codec::{Decoder, Encoder};
 
 use crate::error::StorageError;
 use crate::Schema;
@@ -118,7 +118,7 @@ impl<S: Schema> KVStore<S> for MemStore {
         ))
     }
 
-    fn prefix_iter(&self, start: &S::Key) -> Result<StorageIterator<S>> {
+    fn prefix_iter(&self, _start: &S::Key) -> Result<StorageIterator<S>> {
         todo!()
     }
 }

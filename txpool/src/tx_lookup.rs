@@ -4,7 +4,7 @@ use std::iter::FromIterator;
 use anyhow::Result;
 
 use primitive_types::H160;
-use types::tx::Transaction;
+use types::tx::SignedTransaction;
 use types::Hash;
 
 use crate::{num_slots, Address, TransactionRef, Transactions};
@@ -35,7 +35,7 @@ impl AccountSet {
         self.accounts.is_empty()
     }
 
-    pub(crate) fn contains_tx(&self, tx: &Transaction) -> bool {
+    pub(crate) fn contains_tx(&self, tx: &SignedTransaction) -> bool {
         let address = tx.sender();
         self.contains(&address)
     }

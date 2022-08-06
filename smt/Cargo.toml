@@ -13,6 +13,7 @@ rocksdb = { version = "0.17.0" }
 dashmap = { version = "5.2.0", features = ["serde"] }
 crypto = { path = "../crypto" }
 codec = { path = "../codec" }
+tracing = { path = "../common/tracing" }
 thiserror = "1.0.30"
 serde = { version = "1.0.136", features = ["derive", "rc"] }
 anyhow = "1.0.45"

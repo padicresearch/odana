@@ -4,22 +4,22 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Result;
-use rand::RngCore;
+
 use serde::{Deserialize, Serialize};
-use tempdir::TempDir;
-use tiny_keccak::Hasher;
+
 
 use crate::error::StateError;
 use codec::impl_codec;
-use codec::{Codec, Decoder, Encoder};
+use codec::{Decoder, Encoder};
 use primitive_types::{H160, H256};
 use smt::proof::Proof;
 use smt::{Op, Tree};
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
-use types::tx::{Transaction, TransactionKind};
+use types::tx::{SignedTransaction};
 use types::Hash;
+use crate::StateOperation::{CreditBalance, DebitBalance, UpdateNonce};
 
 mod error;
 
@@ -62,33 +62,33 @@ impl StateDB for State {
         self.account_state(address).free_balance
     }
 
-    fn credit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
+    fn credit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
         let action = StateOperation::CreditBalance {
             account: *address,
             amount,
             tx_hash: [0; 32],
         };
         self.apply_operation(action)?;
-        Ok(self.root_hash().unwrap())
+        Ok(self.root_hash()?.into())
     }
 
-    fn debit_balance(&self, address: &H160, amount: u128) -> Result<Hash> {
+    fn debit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
         let action = StateOperation::DebitBalance {
             account: *address,
             amount,
             tx_hash: [0; 32],
         };
         self.apply_operation(action)?;
-        Ok(self.root_hash().unwrap())
+        Ok(self.root_hash()?.into())
     }
 
     fn reset(&self, root: H256) -> Result<()> {
         self.trie.reset(root)
     }
 
-    fn apply_txs(&self, txs: Vec<Transaction>) -> Result<Hash> {
+    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256> {
         self.apply_txs(txs)?;
-        self.root_hash()
+        self.root_hash().map(|hash| H256::from(hash))
     }
 
     fn root(&self) -> Hash {
@@ -96,7 +96,7 @@ impl StateDB for State {
     }
 
     fn commit(&self) -> Result<()> {
-        self.trie.commit().map(|_| ())
+        self.commit()
     }
 
     fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
@@ -118,18 +118,21 @@ impl State {
         })
     }
 
-    pub fn apply_txs(&self, txs: Vec<Transaction>) -> Result<()> {
+    pub fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<()> {
         let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
         for tx in txs {
-            let mut txs = accounts.entry(tx.from()).or_default();
+            if !states.contains_key(&tx.from()) {
+                let current_state = self.trie.get(&tx.from())?.unwrap_or_default();
+                states.insert(tx.from(), current_state);
+            }
+            if !states.contains_key(&tx.to()) {
+                let current_state = self.trie.get(&tx.to())?.unwrap_or_default();
+                states.insert(tx.to(), current_state);
+            }
+            let txs = accounts.entry(tx.from()).or_default();
             txs.insert(NoncePricedTransaction(tx));
-        }
-
-        for (acc, _) in accounts.iter() {
-            let current_state = self.trie.get(&acc)?.unwrap_or_default();
-            states.insert(*acc, current_state);
         }
 
         for (_, txs) in accounts {
@@ -149,13 +152,13 @@ impl State {
         at_root: H256,
         reward: u128,
         coinbase: H160,
-        txs: Vec<Transaction>,
+        txs: Vec<SignedTransaction>,
     ) -> Result<Hash> {
         let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
         let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
 
         for tx in txs {
-            let mut txs = accounts.entry(tx.from()).or_default();
+            let txs = accounts.entry(tx.from()).or_default();
             txs.insert(NoncePricedTransaction(tx));
         }
 
@@ -191,19 +194,37 @@ impl State {
 
     fn apply_transaction(
         &self,
-        transaction: Transaction,
+        transaction: SignedTransaction,
         states: &mut BTreeMap<H160, AccountState>,
     ) -> Result<()> {
         //TODO: verify transaction (probably)
-        for action in get_operations(&transaction) {
-            let address = action.get_address();
-            let account_state = states
-                .get(&address)
-                .map(|state| state.clone())
-                .unwrap_or_default();
-            let new_account_state = self.apply_action(&action, account_state)?;
-            states.insert(address, new_account_state);
-        }
+        let mut from_account_state = states
+            .get(&transaction.from())
+            .map(|state| state.clone())
+            .unwrap_or_default();
+        let mut to_account_state = states
+            .get(&transaction.to())
+            .map(|state| state.clone())
+            .unwrap_or_default();
+        from_account_state = self.apply_action(&DebitBalance {
+            account: transaction.from(),
+            amount: transaction.price() + transaction.fees(),
+            tx_hash: [0; 32],
+        }, from_account_state)?;
+        from_account_state = self.apply_action(&UpdateNonce {
+            account: transaction.from(),
+            nonce: from_account_state.nonce,
+            tx_hash: [0; 32],
+        }, from_account_state)?;
+
+        to_account_state = self.apply_action(&CreditBalance {
+            account: transaction.to(),
+            amount: transaction.price(),
+            tx_hash: [0; 32],
+        }, to_account_state)?;
+
+        states.insert(transaction.from(), from_account_state);
+        states.insert(transaction.to(), to_account_state);
         Ok(())
     }
 
@@ -215,13 +236,11 @@ impl State {
     }
 
     fn commit(&self) -> Result<()> {
-        if !self.read_only {
-            self.trie.commit()?;
-        }
+        self.trie.commit(!self.read_only)?;
         Ok(())
     }
 
-    pub fn check_transaction(&self, transaction: &Transaction) -> Result<()> {
+    pub fn check_transaction(&self, _transaction: &SignedTransaction) -> Result<()> {
         Ok(())
     }
 
@@ -244,10 +263,12 @@ impl State {
                 Ok(account_state)
             }
             StateOperation::UpdateNonce { nonce, .. } => {
-                if *nonce <= account_state.nonce {
-                    return Err(StateError::NonceIsLessThanCurrent.into());
-                }
-                account_state.nonce = *nonce;
+                let next_nonce = if *nonce > account_state.nonce {
+                    *nonce + 1
+                } else {
+                    account_state.nonce + 1
+                };
+                account_state.nonce = next_nonce;
                 Ok(account_state)
             }
         }
@@ -275,7 +296,7 @@ impl State {
         Ok((account_state, ReadProof { proof, root }))
     }
 
-    pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Self> {
+    pub fn checkpoint<P: AsRef<Path>>(&self, _path: P) -> Result<Self> {
         unimplemented!()
     }
 
@@ -313,34 +334,24 @@ impl StateOperation {
     }
 }
 
-pub fn get_operations(tx: &Transaction) -> Vec<StateOperation> {
+pub fn get_operations(tx: &SignedTransaction) -> Vec<StateOperation> {
     let mut ops = Vec::new();
     let tx_hash = tx.hash();
-    match tx.kind() {
-        TransactionKind::Transfer {
-            from,
-            to,
-            amount,
-            fee,
-            ..
-        } => {
-            ops.push(StateOperation::DebitBalance {
-                account: H160::from(from),
-                amount: *amount + *fee,
-                tx_hash,
-            });
-            ops.push(StateOperation::CreditBalance {
-                account: H160::from(to),
-                amount: *amount,
-                tx_hash,
-            });
-            ops.push(StateOperation::UpdateNonce {
-                account: H160::from(from),
-                nonce: tx.nonce(),
-                tx_hash,
-            });
-        }
-    }
+    ops.push(StateOperation::DebitBalance {
+        account: tx.from(),
+        amount: tx.price() + tx.fees(),
+        tx_hash,
+    });
+    ops.push(StateOperation::CreditBalance {
+        account: tx.to(),
+        amount: tx.price(),
+        tx_hash,
+    });
+    ops.push(StateOperation::UpdateNonce {
+        account: tx.from(),
+        nonce: tx.nonce(),
+        tx_hash,
+    });
     ops
 }
 impl_codec!(StateOperation);
@@ -361,37 +372,39 @@ mod tests {
     #[test]
     fn test_morph() {
         let path = TempDir::new("state").unwrap();
-        let mut state = State::new(path.path()).unwrap();
+        let state = State::new(path.path()).unwrap();
         let alice = create_account();
         let bob = create_account();
-        let jake = create_account();
-        state.credit_balance(&alice.address, 1_000_000).unwrap();
-        let mut txs = Vec::new();
-        for i in 0..100 {
-            let amount = 100;
-            let tx = make_sign_transaction(
-                &alice,
-                i + 1,
-                TransactionKind::Transfer {
-                    from: alice.address.to_fixed_bytes(),
-                    to: bob.address.to_fixed_bytes(),
-                    amount,
-                    fee: (amount as f64 * 0.01) as u128,
-                },
-            )
-                .unwrap();
-            txs.push(tx);
-        }
-        state.apply_txs(txs).unwrap();
-
-        println!("Alice: {:#?}", state.account_state(&alice.address));
-        println!("Bob: {:#?}", state.account_state(&bob.address));
-
-        let read_state = state.snapshot().unwrap();
-        println!(
-            "Read Alice: {:#?}",
-            read_state.account_state(&alice.address)
-        );
-        println!("Read Bob: {:#?}", read_state.account_state(&bob.address));
+        let _jake = create_account();
+        println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
+        state.commit().unwrap();
+        println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
+        state.commit().unwrap();
+        println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
+        // let mut txs = Vec::new();
+        // for i in 0..100 {
+        //     let amount = 100;
+        //     let tx = make_sign_transaction(
+        //         &alice,
+        //         i + 1,
+        //         bob.address.to_fixed_bytes(),
+        //         amount,
+        //         (amount as f64 * 0.01) as u128,
+        //         "hello".to_string(),
+        //     )
+        //         .unwrap();
+        //     txs.push(tx);
+        // }
+        // state.apply_txs(txs).unwrap();
+        //
+        // println!("Alice: {:#?}", state.account_state(&alice.address));
+        // println!("Bob: {:#?}", state.account_state(&bob.address));
+        //
+        // let read_state = state.snapshot().unwrap();
+        // println!(
+        //     "Read Alice: {:#?}",
+        //     read_state.account_state(&alice.address)
+        // );
+        // println!("Read Bob: {:#?}", read_state.account_state(&bob.address));
     }
 }

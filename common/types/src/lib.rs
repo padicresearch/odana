@@ -1,3 +1,6 @@
+#![feature(test)]
+extern crate test;
+
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
@@ -19,6 +22,7 @@ pub mod config;
 pub mod events;
 pub mod network;
 pub mod tx;
+mod uint_hex_codec;
 
 pub type Hash = [u8; 32];
 pub type Address = [u8; 20];
@@ -56,9 +60,10 @@ pub struct TxPoolConfig {
     pub life_time: Duration,
 }
 
-pub fn cache_hash<F>(hash: &Arc<RwLock<Option<Hash>>>, f: F) -> Hash
-where
-    F: Fn() -> Hash,
+pub fn cache<F, T>(hash: &Arc<RwLock<Option<T>>>, f: F) -> T
+    where
+        F: Fn() -> T,
+        T: Copy + Clone
 {
     match hash.read() {
         Ok(hash) => match *hash {
@@ -74,6 +79,7 @@ where
     }
     out
 }
+
 
 pub struct Genesis {
     chain_id: u32,
