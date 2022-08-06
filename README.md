@@ -2,8 +2,10 @@
 > Work in progress
 
 Blockchain base/framework for prototyping blockchain projects
-## Build
-### Install Dependencies
+## Quickstart
+
+---
+### 🧰 Install Dependencies
 * Rust Toolchain
     ```shell
     # Run the following in your terminal, then follow the onscreen instructions.
@@ -16,7 +18,7 @@ Blockchain base/framework for prototyping blockchain projects
     ```shell
     sudo apt install clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev
     ```
-### Running node `Linux/Mac`
+### ⌛️ Running node `Linux/Mac`
 * Build the node from source
     ```shell
     cargo build --release --package node
