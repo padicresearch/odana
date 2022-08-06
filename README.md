@@ -4,7 +4,6 @@
 µChain(micro-chain) is a blockchain base/framework for prototyping blockchain projects
 ## Quickstart
 
----
 ### 🧰 Install Dependencies
 * Rust Toolchain
     ```shell
