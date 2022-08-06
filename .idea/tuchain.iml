@@ -52,6 +52,10 @@
       <sourceFolder url="file://$MODULE_DIR$/common/rlp/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/common/rlp/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/common/rlp/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/rt-bridge/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rt-example/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rt-test/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rt-wasm/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/merkle/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/common/target" />

@@ -1,0 +1,2 @@
+execute: func(ctx: string, raw-tx : string) -> string
+rpc: func(ctx: string, raw-rpc : string) -> string

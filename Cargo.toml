@@ -19,6 +19,9 @@ members = [
     "smt",
     "proto",
     "rpc",
+    "rt-example",
+    "rt-wasm",
+    "rt-test",
     #common
     "common/traits",
     "common/uint",

@@ -1,0 +1,3 @@
+set : func(app-id : u32, key: list<u8>, value: list<u8>)
+get : func(app-id : u32, key: list<u8>) -> list<u8>
+delete : func(app-id : u32, key: list<u8>)
