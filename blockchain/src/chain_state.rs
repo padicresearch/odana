@@ -113,7 +113,7 @@ impl ChainState {
         blocks: Box<dyn Iterator<Item=Block>>,
         txpool: Arc<RwLock<TxPool>>
     ) -> Result<()> {
-        let _ = self.lock.write().map_err(|e| anyhow!("{}", e))?;
+        let _lock = self.lock.write().map_err(|e| anyhow!("{}", e))?;
         let mut blocks = blocks.peekable();
         let current_head = self.current_header()?;
         let current_head =
@@ -270,7 +270,7 @@ impl Blockchain for ChainState {
     }
 
     fn current_header(&self) -> anyhow::Result<Option<IndexedBlockHeader>> {
-        let _ = self.lock.read().map_err(|e| anyhow!("{}", e))?;
+        let _lock = self.lock.read().map_err(|e| anyhow!("{}", e))?;
         self.chain_state
             .get_current_header()
             .map(|header| header.map(|header| header.into()))

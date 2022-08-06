@@ -1,14 +1,9 @@
 use k256::ecdsa::signature::DigestSigner;
 use k256::ecdsa::signature::DigestVerifier;
 use k256::ecdsa::signature::Signature as Sig;
-use k256::ecdsa::signature::{Signer, Verifier};
 use k256::ecdsa::{SigningKey, VerifyingKey};
-use rand_chacha::rand_core::SeedableRng;
-use rand_chacha::ChaCha20Rng;
 use rand_core::{CryptoRng, RngCore};
-use ripemd::digest::typenum::Len;
 use sha2::Digest;
-use sha2::Sha256;
 use primitive_types::H256;
 
 use crate::error::Error;
@@ -122,10 +117,10 @@ impl Signature {
     #[inline]
     pub fn from_rsv<B: AsRef<[u8]>>(rsv: (B, B, u8)) -> Result<Self, Error> {
         if rsv.0.as_ref().len() != 32_usize {
-            return Err(InternalError(format!("Invalid rsv format")));
+            return Err(InternalError("Invalid rsv format".to_string()));
         }
         if rsv.1.as_ref().len() != 32_usize {
-            return Err(InternalError(format!("Invalid rsv format")));
+            return Err(InternalError("Invalid rsv format".to_string()));
         }
 
         let mut bytes = [0_u8; SIG_KEY_LENGTH];

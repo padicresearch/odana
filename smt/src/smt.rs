@@ -1,18 +1,17 @@
 use crate::error::Error;
 use crate::proof::{verify_proof_with_updates, Proof};
-use crate::store::{ArchivedStorage, DatabaseBackend};
+use crate::store::{ArchivedStorage};
 use crate::treehasher::TreeHasher;
 use crate::utils::{count_common_prefix, get_bits_at_from_msb};
 use crate::CopyStrategy;
 use anyhow::{bail, Result};
 use codec::{Decoder, Encoder};
-use hex::ToHex;
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
 
 impl TreeHasher for SparseMerkleTree {}
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct SparseMerkleTree {
     pub(crate) nodes: ArchivedStorage,
     pub(crate) values: ArchivedStorage,
@@ -24,16 +23,6 @@ impl Encoder for SparseMerkleTree {}
 
 impl Decoder for SparseMerkleTree {}
 
-impl Default for SparseMerkleTree {
-    fn default() -> Self {
-        Self {
-            nodes: Default::default(),
-            values: Default::default(),
-            root: Default::default(),
-            parent: Default::default(),
-        }
-    }
-}
 
 impl SparseMerkleTree {
     pub fn new() -> Self {
@@ -58,7 +47,7 @@ impl SparseMerkleTree {
                 subtree.nodes = self.nodes.clone();
                 for key in import_keys {
                     let (value, proof) = self.get_with_proof_updatable(&key)?;
-                    subtree.add_branch(&proof, self.root(), &key, &value);
+                    subtree.add_branch(&proof, self.root(), &key, &value)?;
                 }
             }
             CopyStrategy::Full => {
@@ -77,7 +66,7 @@ impl SparseMerkleTree {
         key: &[u8],
         value: &[u8],
     ) -> Result<()> {
-        let updates = verify_proof_with_updates(&proof, root, key, value)?;
+        let updates = verify_proof_with_updates(proof, root, key, value)?;
         if !value.is_empty() {
             self.values.put(self.path(key).as_bytes(), value)?;
         }
@@ -87,7 +76,7 @@ impl SparseMerkleTree {
         }
 
         if let Some(sibling_data) = &proof.sibling_data {
-            if !proof.side_nodes.is_empty() && proof.side_nodes.len() > 0 {
+            if !proof.side_nodes.is_empty() && !proof.side_nodes.is_empty() {
                 self.nodes
                     .put(proof.side_nodes[0].as_bytes(), sibling_data)?;
             }
@@ -100,21 +89,18 @@ impl SparseMerkleTree {
         let (side_nodes, path_nodes, old_lead_data, _) =
             self.side_nodes_for_root(&path, &root, false)?;
 
-        let mut new_root = H256::zero();
         if value.is_empty() {
-            new_root =
-                self.delete_with_sides_nodes(&path, &side_nodes, &path_nodes, &old_lead_data)?;
             self.values.delete(path.as_bytes())?;
+            self.delete_with_sides_nodes(&path, &side_nodes, &path_nodes, &old_lead_data)
         } else {
-            new_root = self.update_with_sides_nodes(
+            self.update_with_sides_nodes(
                 &path,
-                &value,
+                value,
                 &side_nodes,
                 &path_nodes,
                 &old_lead_data,
-            )?;
+            )
         }
-        Ok(new_root)
     }
 
     fn depth(&self) -> usize {
@@ -129,7 +115,7 @@ impl SparseMerkleTree {
     ) -> Result<(Vec<H256>, Vec<H256>, Vec<u8>, Option<Vec<u8>>)> {
         let mut side_nodes = Vec::with_capacity(self.depth());
         let mut path_nodes = Vec::with_capacity(self.depth() + 1);
-        path_nodes.push(root.clone());
+        path_nodes.push(*root);
 
         if root.is_zero() {
             return Ok((side_nodes, path_nodes, Vec::new(), None));
@@ -174,7 +160,7 @@ impl SparseMerkleTree {
 
         side_nodes.reverse();
         path_nodes.reverse();
-        return Ok((side_nodes, path_nodes, current_data, Some(sibling_data)));
+        Ok((side_nodes, path_nodes, current_data, Some(sibling_data)))
     }
 
     fn delete_with_sides_nodes(
@@ -204,7 +190,7 @@ impl SparseMerkleTree {
             if current_data.is_empty() {
                 let side_node_value = self.nodes.get(side_node.as_bytes())?;
                 if self.is_leaf(&side_node_value) {
-                    current_hash = side_node.clone();
+                    current_hash = *side_node;
                     current_data = side_node.as_bytes().to_vec();
                     continue;
                 } else {
@@ -231,7 +217,7 @@ impl SparseMerkleTree {
             current_data = current_hash.as_bytes().to_vec();
         }
 
-        return Ok(current_hash);
+        Ok(current_hash)
     }
 
     fn update_with_sides_nodes(
@@ -248,19 +234,17 @@ impl SparseMerkleTree {
         self.nodes.put(current_hash.as_bytes(), &current_data)?;
         current_data = current_hash.as_bytes().to_vec();
 
-        let mut common_prefix_count = 0;
         let mut old_value_hash = None;
 
-        if path_nodes[0].is_zero() {
-            common_prefix_count = self.depth();
+        let common_prefix_count = if path_nodes[0].is_zero() {
+            self.depth()
         } else {
             let mut actual_path = H256::zero();
             let (ap, op) = self.parse_leaf(old_leaf_data);
             actual_path = H256::from_slice(ap);
             old_value_hash = Some(H256::from_slice(op));
-            common_prefix_count =
-                count_common_prefix(path.as_bytes(), actual_path.as_bytes()) as usize;
-        }
+                count_common_prefix(path.as_bytes(), actual_path.as_bytes()) as usize
+        };
 
         if common_prefix_count != self.depth() {
             if get_bits_at_from_msb(path.as_bytes(), common_prefix_count) == 1 {
@@ -321,25 +305,25 @@ impl SparseMerkleTree {
     }
 
     pub fn proof(&self, key: &[u8]) -> Result<Proof> {
-        return self.proof_for_root(key, &self.root);
+        self.proof_for_root(key, &self.root)
     }
 
     pub fn proof_updatable(&self, key: &[u8]) -> Result<Proof> {
-        return self.proof_updatable_for_root(key, &self.root);
+        self.proof_updatable_for_root(key, &self.root)
     }
 
     pub fn proof_for_root(&self, key: &[u8], root: &H256) -> Result<Proof> {
-        return self.do_proof_for_root(key, root, false);
+        self.do_proof_for_root(key, root, false)
     }
 
     pub fn proof_updatable_for_root(&self, key: &[u8], root: &H256) -> Result<Proof> {
-        return self.do_proof_for_root(key, root, true);
+        self.do_proof_for_root(key, root, true)
     }
 
     pub fn get_with_proof_for_root(&self, key: &[u8], root: &H256) -> Result<(Vec<u8>, Proof)> {
         let value = self.get(key)?;
         let proof = self.do_proof_for_root(key, root, false)?;
-        return Ok((value, proof));
+        Ok((value, proof))
     }
 
     pub fn get_with_proof_updatable_for_root(
@@ -349,13 +333,13 @@ impl SparseMerkleTree {
     ) -> Result<(Vec<u8>, Proof)> {
         let value = self.get(key)?;
         let proof = self.do_proof_for_root(key, root, true)?;
-        return Ok((value, proof));
+        Ok((value, proof))
     }
 
     fn do_proof_for_root(&self, key: &[u8], root: &H256, is_updatable: bool) -> Result<Proof> {
         let path = self.path(key);
         let (side_nodes, path_nodes, lead_data, sibling_data) =
-            self.side_nodes_for_root(&path, &root, is_updatable)?;
+            self.side_nodes_for_root(&path, root, is_updatable)?;
         let mut non_empty_side_nodes = Vec::new();
         for v in side_nodes {
             non_empty_side_nodes.push(v)
@@ -410,7 +394,7 @@ impl SparseMerkleTree {
     {
         let new_root = self.update_for_root(key.as_ref(), value.as_ref(), self.root())?;
         self.set_root(new_root);
-        return Ok(new_root);
+        Ok(new_root)
     }
 
     pub fn root(&self) -> H256 {
@@ -422,7 +406,7 @@ impl SparseMerkleTree {
 mod tests {
     use crate::smt::SparseMerkleTree;
     use crate::CopyStrategy;
-    use std::string::String;
+    
 
     #[test]
     fn basic_get_set_check_root_test() {

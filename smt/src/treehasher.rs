@@ -68,6 +68,6 @@ pub(crate) trait TreeHasher {
 
     #[inline]
     fn path_size(&self) -> usize {
-        return HASH_LEN;
+        HASH_LEN
     }
 }

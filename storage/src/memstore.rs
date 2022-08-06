@@ -11,9 +11,11 @@ use crate::error::StorageError;
 use crate::Schema;
 use crate::{KVStore, StorageIterator};
 
+type KVEntry = Arc<Vec<u8>>;
+
 #[derive(Debug)]
 pub struct ColumnMemStore {
-    inner: Arc<RwLock<BTreeMap<Arc<Vec<u8>>, Arc<Vec<u8>>>>>,
+    inner: Arc<RwLock<BTreeMap<KVEntry, KVEntry>>>,
 }
 
 impl Default for ColumnMemStore {
@@ -31,13 +33,12 @@ pub struct MemStore {
 
 pub struct MemStoreIterator {
     cursor: usize,
-    inner: Vec<(Arc<Vec<u8>>, Arc<Vec<u8>>)>,
+    inner: Vec<(KVEntry, KVEntry)>,
 }
 
 impl MemStoreIterator {
-    fn new(store: Arc<RwLock<BTreeMap<Arc<Vec<u8>>, Arc<Vec<u8>>>>>) -> Self {
-        let inner = store.clone();
-        let store = inner.read().map_err(|_| StorageError::RWPoison).unwrap();
+    fn new(store: Arc<RwLock<BTreeMap<KVEntry, KVEntry>>>) -> Self {
+        let store = store.read().map_err(|_| StorageError::RWPoison).unwrap();
         Self {
             cursor: 0,
             inner: store.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
@@ -46,7 +47,7 @@ impl MemStoreIterator {
 }
 
 impl Iterator for MemStoreIterator {
-    type Item = (Arc<Vec<u8>>, Arc<Vec<u8>>);
+    type Item = (KVEntry, KVEntry);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.cursor > self.inner.len() {

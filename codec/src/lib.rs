@@ -2,7 +2,7 @@ use std::convert::TryInto;
 
 use anyhow::Result;
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 use primitive_types::{H160, H256};
 

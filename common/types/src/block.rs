@@ -1,12 +1,9 @@
 use core::cmp;
 use std::cmp::Ordering;
-use std::fmt::Formatter;
-use std::io;
 use std::sync::{Arc, RwLock};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 use serde::{Deserialize, Serialize};
-use tiny_keccak::Hasher;
 
 use codec::{ConsensusCodec, impl_codec};
 use codec::{Decoder, Encoder};
@@ -30,10 +27,10 @@ impl Encoder for BlockPrimaryKey {
         encoded.extend(self.1.to_be_bytes());
         encoded.extend(self.0.iter());
 
-        return Ok(encoded);
+        Ok(encoded)
     }
     fn encoded_size(&self) -> Result<u64> {
-        return Ok(36);
+        Ok(36)
     }
 }
 
@@ -71,7 +68,7 @@ pub struct BlockHeader {
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     nonce: U128,
 }
-
+#[allow(clippy::too_many_arguments)]
 impl BlockHeader {
     pub fn new(
         parent_hash: H256,
@@ -243,7 +240,7 @@ impl IndexedBlockHeader {
     ///
     /// Hashes the contents of block header.
     pub fn from_raw(header: BlockHeader) -> Self {
-        IndexedBlockHeader::new(H256::from(header.hash()), header)
+        IndexedBlockHeader::new(header.hash(), header)
     }
 }
 

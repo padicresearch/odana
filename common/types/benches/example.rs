@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use codec::{ConsensusCodec, Encoder};
 use primitive_types::{H160, H256, U128, U256};
 use types::block::BlockHeader;
@@ -17,7 +17,7 @@ fn consensus_codec() -> usize {
         U128::from(5),
     );
 
-    let pheader = block_header.consensus_encode().unwrap();
+    let pheader = block_header.consensus_encode();
     pheader.len()
 }
 

@@ -1,20 +1,15 @@
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
-use std::rc::Rc;
-
 use anyhow::{anyhow, Result};
-use tiny_keccak::Hasher;
-
-use account::GOVERNANCE_ACCOUNTID;
 use codec::Encoder;
-use crypto::{RIPEMD160, SHA256};
 use crypto::ecdsa::SecretKey;
-use primitive_types::{H160, H256};
+use crypto::SHA256;
+use primitive_types::H256;
 use proto::UnsignedTransaction;
-use types::account::{Account, get_address_from_pub_key};
+use types::account::Account;
 use types::Address;
 use types::tx::{SignedTransaction, Transaction};
-use proto::Message;
+
 
 pub fn make_sign_transaction(
     account: &Account,

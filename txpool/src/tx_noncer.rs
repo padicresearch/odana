@@ -1,8 +1,8 @@
-use std::collections::hash_map::RandomState;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use dashmap::mapref::one::Ref;
+
 use dashmap::DashMap;
 
 use primitive_types::H160;

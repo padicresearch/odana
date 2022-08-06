@@ -14,7 +14,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use primitive_types::{H160, H256};
 use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};
-use types::block::{Block, BlockHeader};
+use types::block::{BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::{SignedTransaction, TransactionList};
 use proto::TransactionStatus;
@@ -34,17 +34,16 @@ mod tx_list;
 pub mod tx_lookup;
 pub mod tx_noncer;
 
-type TxHashRef = Arc<Hash>;
 type TransactionRef = Arc<SignedTransaction>;
 type Transactions = Vec<TransactionRef>;
 type Address = H160;
 const TXPOOL_LOG_TARGET: &str = "txpool";
 
 const TX_SLOT_SIZE: u64 = 32 * 1024;
-const TX_MAX_SIZE: u64 = 4 * TX_SLOT_SIZE;
+//const TX_MAX_SIZE: u64 = 4 * TX_SLOT_SIZE;
 
 pub(crate) fn num_slots(tx: &SignedTransaction) -> u64 {
-    return (tx.size() + TX_SLOT_SIZE - 1) / TX_SLOT_SIZE;
+    (tx.size() + TX_SLOT_SIZE - 1) / TX_SLOT_SIZE
 }
 
 const DEFAULT_TX_POOL_CONFIG: TxPoolConfig = TxPoolConfig {
@@ -130,12 +129,12 @@ impl TxPool {
         chain: Arc<dyn Blockchain>,
     ) -> Result<Self> {
         let conf = conf
-            .map(|conf| sanitize(conf))
+            .map(sanitize)
             .unwrap_or(DEFAULT_TX_POOL_CONFIG);
         let current_state = chain.get_current_state()?;
         let locals = local_accounts
-            .map(|locals| AccountSet::from(locals))
-            .unwrap_or(AccountSet::new());
+            .map(AccountSet::from)
+            .unwrap_or_default();
         Ok(Self {
             config: conf,
             locals,
@@ -153,7 +152,7 @@ impl TxPool {
         })
     }
 
-    fn validate_tx(&self, tx: &SignedTransaction, local: bool) -> Result<()> {
+    fn validate_tx(&self, tx: &SignedTransaction, _local: bool) -> Result<()> {
         let from = tx.sender();
         if self.current_state.nonce(&from) > tx.nonce() {
             return Err(TxPoolError::NonceTooLow.into())
@@ -172,16 +171,13 @@ impl TxPool {
             TxPoolError::TransactionAlreadyKnown
         });
         let is_local = local || self.locals.contains_tx(&tx);
-        match self.validate_tx(&tx, is_local) {
-            Err(e) => {
-                trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), error = ?e, "Discarding invalid transaction");
-                anyhow::bail!(e)
-            }
-            _ => {}
+        if let Err(e) = self.validate_tx(&tx, is_local) {
+            trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), error = ?e, "Discarding invalid transaction");
+            anyhow::bail!(e)
         }
 
-        let num = num_slots(&tx);
-        let all_slots = self.all.slots();
+        let _num = num_slots(&tx);
+        let _all_slots = self.all.slots();
         if self.all.slots() + num_slots(&tx) > self.config.global_slots + self.config.global_queue {
             if !is_local && self.priced.underpriced(tx.clone())? {
                 trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding underpriced transaction");
@@ -246,10 +242,10 @@ impl TxPool {
 
     fn queue_event(&mut self, tx: TransactionRef) {
         let sender = tx.sender();
-        let mut events = self
+        let events = self
             .queued_events
             .entry(sender)
-            .or_insert(Default::default());
+            .or_insert_with(Default::default);
         events.put(tx);
     }
 
@@ -261,7 +257,7 @@ impl TxPool {
         add_all: bool,
     ) -> Result<bool> {
         let from = tx.sender();
-        let queue = self.queue.entry(from).or_insert(TxList::new(false));
+        let queue = self.queue.entry(from).or_insert_with(||TxList::new(false));
         let (inserted, old) = queue.add(tx.clone(), self.config.price_bump);
         anyhow::ensure!(inserted, TxPoolError::ReplaceUnderpriced);
         if let Some(old) = &old {
@@ -278,9 +274,7 @@ impl TxPool {
             self.priced.put(tx, local);
         }
 
-        if !self.beats.contains_key(&from) {
-            self.beats.insert(from, Instant::now());
-        }
+        self.beats.entry(from).or_insert_with(Instant::now);
         Ok(old.is_some())
     }
 
@@ -328,7 +322,7 @@ impl TxPool {
 
     fn promote_tx(&mut self, addr: H160, hash: Hash, tx: TransactionRef) -> bool {
         let nonce = tx.nonce();
-        let mut list = self.pending.entry(addr).or_insert(TxList::new(true));
+        let list = self.pending.entry(addr).or_insert_with(||TxList::new(true));
         let (inserted, old) = list.add(tx.clone(), self.config.price_bump);
         if !inserted {
             // If not inserted an older transaction was better so remove the new transaction completely
@@ -348,7 +342,7 @@ impl TxPool {
     fn add_txs(&mut self, tsx: Vec<SignedTransaction>, local: bool) -> Result<()> {
         let mut news = Vec::new();
         let mut errors = Vec::with_capacity(tsx.len());
-        for (i, tx) in tsx.into_iter().enumerate() {
+        for (_i, tx) in tsx.into_iter().enumerate() {
             if self.all.contains(&tx.hash()) {
                 errors.push(format!("{:?}", TxPoolError::TransactionAlreadyKnown));
                 continue;
@@ -370,7 +364,7 @@ impl TxPool {
         if !errors.is_empty() {
             return Err(TxPoolError::CompositeErrors(errors).into());
         }
-        return Ok(());
+        Ok(())
     }
 
     fn add_txs_locked(
@@ -395,6 +389,7 @@ impl TxPool {
         (dirty, errors)
     }
 
+    #[allow(unused_assignments)]
     fn reset(&mut self, old_head: Option<BlockHeader>, new_head: BlockHeader) -> Result<()> {
         let mut reinject = Vec::new();
         if let Some(old_head) = old_head {
@@ -407,10 +402,10 @@ impl TxPool {
                 } else {
                     let mut discarded = BTreeSet::new();
                     let mut included = BTreeSet::new();
-                    let mut rem = self.chain.get_block(&H256::from(old_head.hash()), old_head.level())?;
-                    let mut add = match self.chain.get_block(&H256::from(new_head.hash()), new_head.level())? {
+                    let rem = self.chain.get_block(&old_head.hash(), old_head.level())?;
+                    let add = match self.chain.get_block(&new_head.hash(), new_head.level())? {
                         None => {
-                            error!(target : TXPOOL_LOG_TARGET, new_head = ?H256::from(new_head.hash()), "Transaction pool reset with missing newhead");
+                            error!(target : TXPOOL_LOG_TARGET, new_head = ?new_head.hash(), "Transaction pool reset with missing newhead");
                             return Err(TxPoolError::MissingBlock.into());
                         }
                         Some(add) => add,
@@ -426,7 +421,7 @@ impl TxPool {
                             if let Some(block) = self.chain.get_block_by_hash(rem.parent_hash())? {
                                 rem = block;
                             } else {
-                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
+                                error!(target : TXPOOL_LOG_TARGET,block = ?old_head.hash(),level = ?old_num,"Unrooted old chain seen by tx pool");
                                 return Ok(());
                             }
                         }
@@ -439,7 +434,7 @@ impl TxPool {
                             if let Some(block) = self.chain.get_block_by_hash(add.parent_hash())? {
                                 rem = block;
                             } else {
-                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
+                                error!(target : TXPOOL_LOG_TARGET,block = ?new_head.hash(),level = ?new_num,"Unrooted new chain seen by tx pool");
                                 return Ok(());
                             }
                         }
@@ -452,7 +447,7 @@ impl TxPool {
                             if let Some(block) = self.chain.get_block_by_hash(rem.parent_hash())? {
                                 rem = block;
                             } else {
-                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(old_head.hash()),level = ?old_num,"Unrooted old chain seen by tx pool");
+                                error!(target : TXPOOL_LOG_TARGET,block = ?old_head.hash(),level = ?old_num,"Unrooted old chain seen by tx pool");
                                 return Ok(());
                             }
                             included.extend(
@@ -463,7 +458,7 @@ impl TxPool {
                             if let Some(block) = self.chain.get_block_by_hash(add.parent_hash())? {
                                 rem = block;
                             } else {
-                                error!(target : TXPOOL_LOG_TARGET,block = ?H256::from(new_head.hash()),level = ?new_num,"Unrooted new chain seen by tx pool");
+                                error!(target : TXPOOL_LOG_TARGET,block = ?new_head.hash(),level = ?new_num,"Unrooted new chain seen by tx pool");
                                 return Ok(());
                             }
                         }
@@ -474,17 +469,17 @@ impl TxPool {
                     } else {
                         if new_num > old_num {
                             warn!(target : TXPOOL_LOG_TARGET,
-                            old = ?H256::from(old_head.hash()),
+                            old = ?old_head.hash(),
                             old_level = ?old_num,
-                            new = ?H256::from(new_head.hash()),
+                            new = ?new_head.hash(),
                             new_level = ?new_num,
                             "Transaction pool reset with missing newhead");
                             return Ok(());
                         }
                         debug!(target : TXPOOL_LOG_TARGET,
-                            old = ?H256::from(old_head.hash()),
+                            old = ?old_head.hash(),
                             old_level = ?old_num,
-                            new = ?H256::from(new_head.hash()),
+                            new = ?new_head.hash(),
                             new_level = ?new_num,
                             "Skipping transaction reset caused by setHead");
                     }
@@ -544,8 +539,8 @@ impl TxPool {
                         .unwrap_or_default()
                         > threshold
                 {
-                    for i in 0..(offenders.len() - 1) {
-                        let list = match self.pending.get_mut(&offenders[i]) {
+                    for offender in offenders.iter() {
+                        let list = match self.pending.get_mut(offender) {
                             None => return,
                             Some(list) => list,
                         };
@@ -556,7 +551,7 @@ impl TxPool {
                             let hash_256 = tx.hash_256();
                             self.all.remove(&hash);
                             self.priced.remove(tx);
-                            self.pending_nonce.set_if_lower(offenders[i].clone(), nonce);
+                            self.pending_nonce.set_if_lower(*offender, nonce);
                             trace!(target : TXPOOL_LOG_TARGET, hash = ?hash_256, "Removed fairness-exceeding pending transaction");
                         }
                         pending -= 1;
@@ -565,7 +560,7 @@ impl TxPool {
             }
         }
         // If still above threshold, reduce to limit or min allowance
-        if pending > self.config.global_slots && offenders.len() > 0 {
+        if pending > self.config.global_slots && !offenders.is_empty() {
             while pending > self.config.global_slots
                 && self
                     .pending
@@ -575,7 +570,7 @@ impl TxPool {
                     > self.config.account_slots
             {
                 for addr in offenders.iter() {
-                    if let Some(list) = self.pending.get_mut(&addr) {
+                    if let Some(list) = self.pending.get_mut(addr) {
                         let caps = list.cap(list.len().saturating_sub(1) as u64);
                         for tx in caps {
                             let hash = tx.hash();
@@ -593,10 +588,10 @@ impl TxPool {
         }
     }
 
-    fn truncate_queue(&mut self) {
-        let mut queued = self.queue.iter().fold(0, |acc, (_, list)| list.len()) as u64;
+    fn truncate_queue(&mut self) -> Result<()> {
+        let queued = self.queue.iter().fold(0, |_acc, (_, list)| list.len()) as u64;
         if queued <= self.config.global_queue {
-            return;
+            return Ok(());
         }
 
         let mut addresses = BTreeSet::new();
@@ -608,13 +603,13 @@ impl TxPool {
                 ));
             }
         }
-        let mut addresses: Vec<_> = addresses.iter().map(|beat| *beat).collect();
+        let mut addresses: Vec<_> = addresses.iter().copied().collect();
         let mut drop = queued - self.config.global_queue;
-        while drop > 0 && addresses.len() > 0 {
+        while drop > 0 && !addresses.is_empty() {
             let addr = addresses[addresses.len() - 1];
             let list = match self.queue.get(&addr.address) {
                 None => {
-                    return;
+                    return Ok(());
                 }
                 Some(list) => list,
             };
@@ -622,22 +617,23 @@ impl TxPool {
             let size = list.len() as u64;
             if size <= drop {
                 for tx in list.flatten() {
-                    self.remove_tx(tx.hash(), true);
+                    self.remove_tx(tx.hash(), true)?;
                 }
                 drop -= size;
                 continue;
             }
             let txs = list.flatten();
-            let mut i = txs.len();
+            let mut i = txs.len() as isize;
             while i >= 0 && drop > 0 {
-                self.remove_tx(txs[i].hash(), true);
+                self.remove_tx(txs[i as usize].hash(), true)?;
                 drop -= 1;
                 i -= 1;
             }
         }
+        Ok(())
     }
 
-    fn demote_unexecutable(&mut self) {
+    fn demote_unexecutable(&mut self) -> Result<()> {
         let mut stale_addrs = Vec::new();
         let mut enqueue = Vec::new();
         for (addr, list) in self.pending.iter_mut() {
@@ -660,7 +656,7 @@ impl TxPool {
                 }
             }
 
-            if list.len() > 0 && list.txs.get(nonce).is_none() {
+            if !list.is_empty() && list.txs.get(nonce).is_none() {
                 let gapped = list.cap(0);
                 for tx in gapped {
                     trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Demoting invalidated transaction");
@@ -670,7 +666,7 @@ impl TxPool {
         }
         for tx in enqueue {
             let hash = tx.hash();
-            self.enqueue_tx(hash, tx, false, false);
+            self.enqueue_tx(hash, tx, false, false)?;
         }
 
         for (addr, list) in self.pending.iter() {
@@ -682,27 +678,29 @@ impl TxPool {
         for addr in stale_addrs {
             self.pending.remove(&addr);
         }
+
+        Ok(())
     }
 
     fn promote_executable(&mut self, accounts: Vec<Address>) -> Vec<TransactionRef> {
         let mut promoted = Vec::new();
 
         for addr in &accounts {
-            let list = match self.queue.get_mut(&addr) {
+            let list = match self.queue.get_mut(addr) {
                 None => {
                     continue;
                 }
                 Some(list) => list,
             };
 
-            let forward = list.forward(self.current_state.nonce(&addr));
+            let forward = list.forward(self.current_state.nonce(addr));
             for tx in forward.iter() {
                 self.all.remove(&tx.hash());
             }
             trace!(target : TXPOOL_LOG_TARGET, count = ?forward.len(), "Removed old queued transactions");
 
             let drops = list
-                .filter(self.current_state.balance(&addr))
+                .filter(self.current_state.balance(addr))
                 .map(|(drops, _)| drops)
                 .unwrap_or_default();
             for tx in drops.iter() {
@@ -710,11 +708,11 @@ impl TxPool {
             }
             trace!(target : TXPOOL_LOG_TARGET, count = ?drops.len(), "Removed unpayable queued transactions");
 
-            let mut readies = list.ready(self.pending_nonce.get(&addr));
+            let readies = list.ready(self.pending_nonce.get(addr));
             let ready_count = &readies.len();
             for tx in readies {
                 let hash = tx.hash();
-                if self.promote_tx(*addr, hash.clone(), tx.clone()) {
+                if self.promote_tx(*addr, hash, tx.clone()) {
                     promoted.push(tx)
                 }
             }
@@ -722,13 +720,13 @@ impl TxPool {
         }
 
         for addr in &accounts {
-            let list = match self.queue.get_mut(&addr) {
+            let list = match self.queue.get_mut(addr) {
                 None => {
                     continue;
                 }
                 Some(list) => list,
             };
-            if !self.locals.contains(&addr) {
+            if !self.locals.contains(addr) {
                 let caps = list.cap(self.config.account_queue);
                 for tx in caps {
                     let hash = tx.hash();
@@ -770,7 +768,7 @@ impl TxPool {
         }
         let promoted = self.promote_executable(promote_addrs);
         if reset.is_some() {
-            self.demote_unexecutable();
+            self.demote_unexecutable()?;
             let mut nonces = HashMap::with_capacity(self.pending.len());
             for (addr, list) in self.pending.iter_mut() {
                 if let Some(highest_pending) = list.last_element() {
@@ -780,12 +778,12 @@ impl TxPool {
             }
         }
         self.truncate_pending();
-        self.truncate_queue();
+        self.truncate_queue()?;
 
         self.changes_since_repack = 0;
 
         for tx in promoted {
-            let mut sorted_map = events.entry(tx.sender()).or_insert(TxSortedList::new());
+            let sorted_map = events.entry(tx.sender()).or_insert_with(TxSortedList::new);
             sorted_map.put(tx);
         }
         let mut txs = Vec::new();
@@ -859,14 +857,14 @@ impl TxPool {
 
     pub fn nonce(&self, address: &H160) -> u64 {
         let mut nonce = self.current_state.nonce(address);
-        let mut sn = self.pending_nonce.get(address);
+        let sn = self.pending_nonce.get(address);
         if sn > nonce {
             nonce = sn
         }
         if sn < nonce {
             self.pending_nonce.set(*address, nonce);
         }
-        return nonce
+        nonce
     }
 
     pub fn stats(&self) -> (usize, usize) {
@@ -916,7 +914,7 @@ impl TxPool {
         for (address, list) in self.pending.iter() {
             pending.insert(*address, TransactionList::new(list.flatten()));
         }
-        (pending)
+        pending
     }
 
     pub fn locals(&self) -> Vec<Address> {

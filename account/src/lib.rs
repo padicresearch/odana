@@ -1,10 +1,8 @@
-use anyhow::Result;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 
-use crypto::ecdsa::{Keypair, PublicKey, Signature};
-use crypto::{RIPEMD160, SHA256};
-use primitive_types::{H160, H256};
+use crypto::ecdsa::{Keypair};
+use primitive_types::{H256};
 use types::account::{Account, get_address_from_pub_key};
 
 pub const GOVERNANCE_ACCOUNTID: [u8; 32] = [
@@ -16,6 +14,6 @@ pub fn create_account() -> Account {
     let mut csprng = ChaCha20Rng::from_entropy();
     let keypair = Keypair::generate(&mut csprng);
     let secret = H256::from(keypair.secret.to_bytes());
-    let mut address = get_address_from_pub_key(keypair.public);
+    let address = get_address_from_pub_key(keypair.public);
     Account { address, secret }
 }

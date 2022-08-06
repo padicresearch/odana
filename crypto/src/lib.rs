@@ -1,9 +1,6 @@
 use primitive_types::{Compact, H160, H256, H448, U192, U256};
 use ripemd::{Digest, Ripemd160};
-use sha2::digest::{FixedOutput, FixedOutputDirty};
 use sha2::Digest as ShaDigest;
-use std::io::Write;
-use tiny_keccak::Hasher;
 
 pub mod ecdsa;
 mod error;
@@ -12,21 +9,17 @@ pub struct SHA256;
 
 impl SHA256 {
     pub fn digest<B: AsRef<[u8]>>(bytes: B) -> H256 {
-        let mut out = H256::zero();
         let mut sha = sha2::Sha256::new();
         sha.update(bytes.as_ref());
-        out = H256::from_slice(sha.finalize().as_slice());
-        out
+        H256::from_slice(sha.finalize().as_slice())
     }
 
     pub fn concat_digest<'a, I: IntoIterator<Item=&'a [u8]>>(items: I) -> H256 {
-        let mut out = H256::zero();
         let mut sha = sha2::Sha256::new();
         for i in items {
             sha.update(i);
         }
-        out = H256::from_slice(sha.finalize().as_slice());
-        out
+        H256::from_slice(sha.finalize().as_slice())
     }
 }
 

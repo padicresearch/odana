@@ -1,7 +1,6 @@
 use clap::ArgEnum;
 use primitive_types::{Compact, U256};
 use serde::{Deserialize, Serialize};
-
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize, ArgEnum)]
 #[serde(rename_all = "lowercase")]
 pub enum Network {
@@ -10,9 +9,9 @@ pub enum Network {
     Mainnet,
 }
 
-impl Into<String> for Network {
-    fn into(self) -> String {
-        match self {
+impl From<Network> for String {
+    fn from(network: Network) -> Self {
+        match network {
             Network::Testnet => "testnet".to_string(),
             Network::Alphanet => "aplhanet".to_string(),
             Network::Mainnet => "mainnet".to_string(),
@@ -25,12 +24,6 @@ const TESTNET_MAX_DIFFICULTY: U256 = U256([
     0x0000000000000000u64,
     0x0000000000000000u64,
     0x00000377ae000000u64,
-]);
-const UNITNET_MAX_DIFFICULTY: U256 = U256([
-    0x0000000000000000u64,
-    0x0000000000000000u64,
-    0x0000000000000000u64,
-    0x0000ffffff000000u64,
 ]);
 const ALPHA_MAX_DIFFICULTY: U256 = U256([
     0x0000000000000000u64,

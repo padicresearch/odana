@@ -4,7 +4,7 @@ pub(crate) fn get_bits_at_from_msb(data: &[u8], position: usize) -> i32 {
     if t > 0 {
         return 1;
     }
-    return 0;
+    0
 }
 
 pub(crate) fn set_bits_at_from_msb(data: &mut [u8], position: usize) {
@@ -22,7 +22,7 @@ pub(crate) fn count_set_bits(data: &[u8]) -> i32 {
             break;
         }
     }
-    return count;
+    count
 }
 
 pub(crate) fn count_common_prefix(lhs: &[u8], rhs: &[u8]) -> i32 {
@@ -34,5 +34,5 @@ pub(crate) fn count_common_prefix(lhs: &[u8], rhs: &[u8]) -> i32 {
             break;
         }
     }
-    return count;
+    count
 }

@@ -1,7 +1,8 @@
+#![allow(dead_code)]
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
 
-use anyhow::Result;
+
 
 use primitive_types::H160;
 use types::tx::SignedTransaction;
@@ -11,6 +12,12 @@ use crate::{num_slots, Address, TransactionRef, Transactions};
 
 pub struct AccountSet {
     accounts: BTreeSet<H160>,
+}
+
+impl Default for AccountSet {
+    fn default() -> Self {
+        AccountSet::new()
+    }
 }
 
 impl From<Vec<Address>> for AccountSet {
@@ -50,7 +57,7 @@ impl AccountSet {
     }
 
     pub(crate) fn flatten(&self) -> Vec<H160> {
-        self.accounts.iter().map(|addrs| addrs.clone()).collect()
+        self.accounts.iter().copied().collect()
     }
 
     pub(crate) fn merge(&mut self, other: &AccountSet) {
@@ -58,6 +65,7 @@ impl AccountSet {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TxLookup {
     slots: u64,
     locals: BTreeMap<Hash, TransactionRef>,
@@ -71,6 +79,12 @@ impl TxLookup {
             locals: Default::default(),
             remotes: Default::default(),
         }
+    }
+}
+
+impl Default for TxLookup {
+    fn default() -> Self {
+        TxLookup::new()
     }
 }
 
@@ -95,9 +109,8 @@ impl TxLookup {
 
     pub fn get(&self, hash: &Hash) -> Option<TransactionRef> {
         self.locals
-            .get(hash)
-            .map(|tx| tx.clone())
-            .or(self.remotes.get(hash).map(|tx| tx.clone()))
+            .get(hash).cloned()
+            .or_else(||self.remotes.get(hash).cloned())
     }
 
     pub fn contains(&self, hash: &Hash) -> bool {
@@ -105,11 +118,11 @@ impl TxLookup {
     }
 
     pub fn get_local(&self, hash: &Hash) -> Option<TransactionRef> {
-        self.locals.get(hash).map(|tx| tx.clone())
+        self.locals.get(hash).cloned()
     }
 
     pub fn get_remote(&self, hash: &Hash) -> Option<TransactionRef> {
-        self.remotes.get(hash).map(|tx| tx.clone())
+        self.remotes.get(hash).cloned()
     }
 
     pub fn count(&self) -> usize {
@@ -147,7 +160,7 @@ impl TxLookup {
         let mut migrated: Vec<TransactionRef> = Vec::new();
         let filtered = self
             .remotes
-            .drain_filter(|hash, tx| local_accounts.contains_tx(tx));
+            .drain_filter(|_hash, tx| local_accounts.contains_tx(tx));
         for (hash, tx) in filtered {
             self.locals.insert(hash, tx.clone());
             migrated.push(tx.clone())

@@ -1,3 +1,4 @@
+#![allow(clippy::all)]
 pub mod rpc;
 mod types;
 

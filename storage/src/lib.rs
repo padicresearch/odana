@@ -87,8 +87,8 @@ where
     fn prefix_iter(&self, start: &Entry::Key) -> anyhow::Result<StorageIterator<Entry>>;
 }
 
-pub type StorageIterator<'a, Entry: Schema> =
-Box<dyn 'a + Send + Iterator<Item=(Result<Entry::Key>, Result<Entry::Value>)>>;
+pub type StorageIterator<'a, Entry>=
+Box<dyn 'a + Send + Iterator<Item=(Result<<Entry as Schema>::Key>, Result<<Entry as Schema>::Value>)>>;
 
 pub enum IteratorMode {
     Start,
