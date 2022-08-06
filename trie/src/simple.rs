@@ -74,8 +74,8 @@ where
                 });
         }
         current_tree.is_word = true;
-        current_tree.key = Some(key.clone());
-        current_tree.value = Some(value.clone());
+        current_tree.key = Some(key);
+        current_tree.value = Some(value);
     }
 
     fn get(&self, key: K) -> Option<V> {

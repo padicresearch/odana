@@ -236,11 +236,11 @@ fn uint256_bits_test() {
 
     //// Try to read the following lines out loud quickly
     let mut shl = U256::from(70000u64);
-    shl = shl << 100;
+    shl <<= 100;
     assert_eq!(shl.bits(), 117);
-    shl = shl << 100;
+    shl <<= 100;
     assert_eq!(shl.bits(), 217);
-    shl = shl << 100;
+    shl <<= 100;
     assert_eq!(shl.bits(), 0);
 
     //// Bit set check
@@ -472,8 +472,7 @@ fn uint256_mul_overflow() {
 #[should_panic]
 #[allow(unused_must_use)]
 fn uint256_mul_overflow_panic() {
-    U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap() *
-        U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
+    U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
 }
 
 #[test]
@@ -521,7 +520,7 @@ fn uint256_neg_overflow() {
 #[should_panic]
 #[allow(unused_must_use)]
 fn uint256_sub_overflow_panic() {
-    U256::from_str("0").unwrap() - U256::from_str("1").unwrap();
+    U256::from_str("0").unwrap();U256::from_str("1").unwrap();
 }
 
 #[test]
@@ -941,7 +940,7 @@ fn u256_multi_muls2() {
 fn example() {
     let mut val: U256 = 1023.into();
     for _ in 0..200 {
-        val = val * U256::from(2)
+        val *= U256::from(2)
     }
     assert_eq!(&format!("{}", val), "1643897619276947051879427220465009342380213662639797070513307648");
 }
@@ -965,7 +964,7 @@ fn slice_roundtrip() {
         107, 109, 113, 127,
     ];
 
-    let u256: U256 = (&raw[..]).into();
+    let u256: U256 = raw[..].into();
 
     let mut new_raw = [0u8; 32];
 

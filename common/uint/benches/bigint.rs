@@ -11,7 +11,6 @@
 //! ```bash
 //! rustup run cargo bench
 //! ```
-
 use criterion::{criterion_group, criterion_main};
 use uint::{construct_uint, uint_full_mul_reg};
 

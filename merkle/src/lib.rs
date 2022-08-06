@@ -243,7 +243,7 @@ mod tests {
         merkle.update("queen".as_bytes());
         merkle.update("baby".as_bytes());
         let root = merkle.finalize();
-        let merkle_root = root.unwrap().clone();
+        let merkle_root = *root.unwrap();
 
         let proof = merkle.proof("baby".as_bytes());
         assert_eq!(
