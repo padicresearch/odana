@@ -4,14 +4,6 @@
 µChain _pronounced_ `mu-chain`, is a blockchain base/framework for prototyping blockchain projects
 ## Quickstart
 
-### ⬇️ Download
-
-* Download the source code
-    ```shell
-   git clone https://github.com/mambisi/uchain
-    cd uchain
-    ```
-
 ### 🧰 Install Dependencies
 * Rust Toolchain `Linux/MacOS`
     ```shell
@@ -39,6 +31,13 @@
   `MacOS`
     ```shell
     brew install cmake automake libtool
+    ```
+### ⬇️ Download
+
+* Download the source code
+    ```shell
+   git clone https://github.com/mambisi/uchain
+    cd uchain
     ```
 ### ⌛️ Running node `Linux/MacOS`
 * Build the node from source
