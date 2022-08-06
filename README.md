@@ -1,7 +1,7 @@
 # uChain - Blockchain for prototyping
 > Work in progress
 
-Blockchain for learning and prototyping nodes
+Blockchain base/framework for prototyping blockchain projects
 ## Build
 ### Install Dependencies
 * Rust Toolchain
