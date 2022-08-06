@@ -69,4 +69,4 @@
 [RPC Documentation](/docs/rpc.md)
 * **Clients**
   * Gui: [bloomRPC](https://github.com/bloomrpc/bloomrpc.git)
-  * Cli: [grpcCurl](https://github.com/fullstorydev/grpcurl)
+  * Cli: [gRPCurl](https://github.com/fullstorydev/grpcurl)
