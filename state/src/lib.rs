@@ -178,7 +178,8 @@ impl State {
 
         let mut batch: Vec<_> = states.into_iter().map(|(k, v)| Op::Put(k, v)).collect();
 
-        let coinbase_account_state = self.trie.get_at_root(&at_root, &coinbase)?.unwrap_or_default();
+        let coinbase_account_state = self.trie.get_at_root(&at_root, &coinbase).unwrap_or_default()
+            .unwrap_or_default();
         let coinbase_account_state = self.apply_action(
             &StateOperation::CreditBalance {
                 account: coinbase,
