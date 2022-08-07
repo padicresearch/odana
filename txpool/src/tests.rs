@@ -1,9 +1,5 @@
-
-
-
 use std::sync::Arc;
 use std::sync::RwLock;
-
 
 use anyhow::Result;
 
@@ -15,7 +11,7 @@ use traits::{Blockchain, ChainHeadReader, ChainReader, StateDB};
 use transaction::make_sign_transaction;
 use types::account::{Account, AccountState};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
-use types::tx::{SignedTransaction};
+use types::tx::SignedTransaction;
 use types::Hash;
 
 use crate::tx_lookup::AccountSet;
@@ -33,7 +29,15 @@ pub fn make_tx(
     amount: u128,
     fee: u128,
 ) -> TransactionRef {
-    let tx = make_sign_transaction(from, nonce, to.address.to_fixed_bytes(), amount, fee, "".to_string()).unwrap();
+    let tx = make_sign_transaction(
+        from,
+        nonce,
+        to.address.to_fixed_bytes(),
+        amount,
+        fee,
+        "".to_string(),
+    )
+    .unwrap();
     Arc::new(tx)
 }
 
@@ -44,8 +48,15 @@ fn make_tx_def(
     amount: u128,
     fee: u128,
 ) -> SignedTransaction {
-    
-    make_sign_transaction(from, nonce, to.address.to_fixed_bytes(), amount, fee, "".to_string()).unwrap()
+    make_sign_transaction(
+        from,
+        nonce,
+        to.address.to_fixed_bytes(),
+        amount,
+        fee,
+        "".to_string(),
+    )
+    .unwrap()
 }
 
 impl DummyStateDB {
@@ -192,7 +203,10 @@ impl Blockchain for DummyChain {
     }
 
     fn current_header(&self) -> Result<Option<IndexedBlockHeader>> {
-        let chain = self.chain.read().map_err(|_e| anyhow::anyhow!("RW error"))?;
+        let chain = self
+            .chain
+            .read()
+            .map_err(|_e| anyhow::anyhow!("RW error"))?;
         let block = chain.last().cloned().map(|b| (*b.header()).into());
         Ok(block)
     }
@@ -205,7 +219,6 @@ impl Blockchain for DummyChain {
             .map(|r| r.value().clone())?;
         Ok(d)
     }
-
 }
 
 impl ChainReader for DummyChain {
@@ -214,7 +227,10 @@ impl ChainReader for DummyChain {
             None => return Ok(None),
             Some(block) => *block.value(),
         };
-        let chain = self.chain.read().map_err(|_e| anyhow::anyhow!("RW error"))?;
+        let chain = self
+            .chain
+            .read()
+            .map_err(|_e| anyhow::anyhow!("RW error"))?;
         let block = chain.get(index).cloned();
         Ok(block)
     }
@@ -224,7 +240,10 @@ impl ChainReader for DummyChain {
             None => return Ok(None),
             Some(block) => *block.value(),
         };
-        let chain = self.chain.read().map_err(|_e| anyhow::anyhow!("RW error"))?;
+        let chain = self
+            .chain
+            .read()
+            .map_err(|_e| anyhow::anyhow!("RW error"))?;
         let block = chain.get(index).cloned();
         Ok(block)
     }
@@ -240,7 +259,10 @@ impl ChainHeadReader for DummyChain {
             None => return Ok(None),
             Some(block) => *block.value(),
         };
-        let chain = self.chain.read().map_err(|_e| anyhow::anyhow!("RW error"))?;
+        let chain = self
+            .chain
+            .read()
+            .map_err(|_e| anyhow::anyhow!("RW error"))?;
         let block = chain.get(index).cloned();
         Ok(block.map(|b| (*b.header()).into()))
     }
@@ -250,13 +272,19 @@ impl ChainHeadReader for DummyChain {
             None => return Ok(None),
             Some(block) => *block.value(),
         };
-        let chain = self.chain.read().map_err(|_e| anyhow::anyhow!("RW error"))?;
+        let chain = self
+            .chain
+            .read()
+            .map_err(|_e| anyhow::anyhow!("RW error"))?;
         let block = chain.get(index).cloned();
         Ok(block.map(|b| (*b.header()).into()))
     }
 
     fn get_header_by_level(&self, level: i32) -> Result<Option<IndexedBlockHeader>> {
-        let chain = self.chain.read().map_err(|_e| anyhow::anyhow!("RW error"))?;
+        let chain = self
+            .chain
+            .read()
+            .map_err(|_e| anyhow::anyhow!("RW error"))?;
         let block = chain.get(level as usize).map(|bloc| *bloc.header());
         Ok(block.map(|header| header.into()))
     }
@@ -340,11 +368,7 @@ async fn txpool_test() {
 
     let block_2 = make_block(
         1,
-        chain
-            .current_header()
-            .unwrap()
-            .unwrap()
-            .hash,
+        chain.current_header().unwrap().unwrap().hash,
         [2; 32].into(),
     );
     let old_head = chain.current_header().unwrap().unwrap().raw;

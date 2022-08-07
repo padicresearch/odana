@@ -8,7 +8,6 @@ use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 use types::tx::SignedTransaction;
 
-
 use crate::constants::{
     BLOCK_MAX_FUTURE, DOUBLE_SPACING_SECONDS, MAX_TIMESPAN, MIN_TIMESPAN, RETARGETING_INTERVAL,
     TARGET_SPACING_SECONDS, TARGET_TIMESPAN_SECONDS,
@@ -355,7 +354,7 @@ impl Consensus for BarossaProtocol {
                 (header.level() + 1) as u32,
                 chain,
             )
-                .into(),
+            .into(),
         );
         Ok(())
     }
@@ -368,10 +367,7 @@ impl Consensus for BarossaProtocol {
         txs: Vec<SignedTransaction>,
     ) -> anyhow::Result<()> {
         state.apply_txs(txs)?;
-        let _ = state.credit_balance(
-            header.coinbase(),
-            self.miner_reward(header.level()),
-        )?;
+        let _ = state.credit_balance(header.coinbase(), self.miner_reward(header.level()))?;
         state.commit()?;
         header.set_state_root(H256::from(state.root()));
         Ok(())
@@ -417,7 +413,8 @@ impl Consensus for BarossaProtocol {
             [
                 167, 166, 177, 200, 75, 77, 145, 25, 149, 154, 251, 233, 94, 46, 215, 162, 118, 43,
                 119, 114, 196, 232, 42, 88, 209, 4, 27, 184, 193, 138, 143, 109,
-            ].into(),
+            ]
+            .into(),
             [0; 32].into(),
             [0; 20].into(),
             self.network.max_difficulty_compact().into(),
@@ -440,7 +437,6 @@ mod tests {
     use traits::{ChainHeadReader, Consensus};
     use types::block::{BlockHeader, IndexedBlockHeader};
 
-
     use crate::barossa::{BarossaProtocol, Network};
 
     #[derive(Default)]
@@ -462,7 +458,6 @@ mod tests {
     }
 
     impl ChainHeadReader for MemoryBlockHeaderReader {
-
         fn get_header(
             &self,
             hash: &H256,
@@ -507,7 +502,7 @@ mod tests {
                 167, 166, 177, 200, 75, 77, 145, 25, 149, 154, 251, 233, 94, 46, 215, 162, 118, 43,
                 119, 114, 196, 232, 42, 88, 209, 4, 27, 184, 193, 138, 143, 109,
             ]
-                .into(),
+            .into(),
             [0; 32].into(),
             [0; 20].into(),
             initial_bits.into(),

@@ -123,12 +123,12 @@ fn rlp_iter() {
 }
 
 struct ETestPair<T>(T, Vec<u8>)
-    where
-        T: Encodable;
+where
+    T: Encodable;
 
 fn run_encode_tests<T>(tests: Vec<ETestPair<T>>)
-    where
-        T: Encodable,
+where
+    T: Encodable,
 {
     for t in &tests {
         let res = rlp::encode(&t.0);
@@ -137,12 +137,12 @@ fn run_encode_tests<T>(tests: Vec<ETestPair<T>>)
 }
 
 struct VETestPair<T>(Vec<T>, Vec<u8>)
-    where
-        T: Encodable;
+where
+    T: Encodable;
 
 fn run_encode_tests_list<T>(tests: Vec<VETestPair<T>>)
-    where
-        T: Encodable,
+where
+    T: Encodable,
 {
     for t in &tests {
         let res = rlp::encode_list(&t.0);
@@ -151,9 +151,9 @@ fn run_encode_tests_list<T>(tests: Vec<VETestPair<T>>)
 }
 
 impl<T, Repr> From<(T, Repr)> for ETestPair<T>
-    where
-        T: Encodable,
-        Repr: Into<Vec<u8>>,
+where
+    T: Encodable,
+    Repr: Into<Vec<u8>>,
 {
     fn from((v, repr): (T, Repr)) -> Self {
         Self(v, repr.into())
@@ -161,9 +161,9 @@ impl<T, Repr> From<(T, Repr)> for ETestPair<T>
 }
 
 impl<T, Repr> From<(Vec<T>, Repr)> for VETestPair<T>
-    where
-        T: Encodable,
-        Repr: Into<Vec<u8>>,
+where
+    T: Encodable,
+    Repr: Into<Vec<u8>>,
 {
     fn from((v, repr): (Vec<T>, Repr)) -> Self {
         Self(v, repr.into())
@@ -234,10 +234,11 @@ fn encode_str() {
         ETestPair::from((
             "Lorem ipsum dolor sit amet, consectetur adipisicing elit",
             vec![
-                0xb8, 0x38, b'L', b'o', b'r', b'e', b'm', b' ', b'i', b'p', b's', b'u', b'm', b' ', b'd', b'o', b'l',
-                b'o', b'r', b' ', b's', b'i', b't', b' ', b'a', b'm', b'e', b't', b',', b' ', b'c', b'o', b'n', b's',
-                b'e', b'c', b't', b'e', b't', b'u', b'r', b' ', b'a', b'd', b'i', b'p', b'i', b's', b'i', b'c', b'i',
-                b'n', b'g', b' ', b'e', b'l', b'i', b't',
+                0xb8, 0x38, b'L', b'o', b'r', b'e', b'm', b' ', b'i', b'p', b's', b'u', b'm', b' ',
+                b'd', b'o', b'l', b'o', b'r', b' ', b's', b'i', b't', b' ', b'a', b'm', b'e', b't',
+                b',', b' ', b'c', b'o', b'n', b's', b'e', b'c', b't', b'e', b't', b'u', b'r', b' ',
+                b'a', b'd', b'i', b'p', b'i', b's', b'i', b'c', b'i', b'n', b'g', b' ', b'e', b'l',
+                b'i', b't',
             ],
         )),
     ];
@@ -264,7 +265,10 @@ fn encode_into_existing_buffer() {
 
     assert_eq!(
         &buffer[..],
-        &[b'j', b'u', b'n', b'k', b'!', 0x83, b'c', b'a', b't', b' ', b'a', b'n', b'd', b' ', 0x83, b'd', b'o', b'g']
+        &[
+            b'j', b'u', b'n', b'k', b'!', 0x83, b'c', b'a', b't', b' ', b'a', b'n', b'd', b' ',
+            0x83, b'd', b'o', b'g'
+        ]
     );
 }
 
@@ -317,14 +321,20 @@ fn encode_vector_u64() {
         VETestPair::from((vec![], hex!("c0"))),
         VETestPair::from((vec![15_u64], hex!("c10f"))),
         VETestPair::from((vec![1, 2, 3, 7, 0xff], hex!("c60102030781ff"))),
-        VETestPair::from((vec![0xffff_ffff, 1, 2, 3, 7, 0xff], hex!("cb84ffffffff0102030781ff"))),
+        VETestPair::from((
+            vec![0xffff_ffff, 1, 2, 3, 7, 0xff],
+            hex!("cb84ffffffff0102030781ff"),
+        )),
     ];
     run_encode_tests_list(tests);
 }
 
 #[test]
 fn encode_vector_str() {
-    let tests = vec![VETestPair(vec!["cat", "dog"], vec![0xc8, 0x83, b'c', b'a', b't', 0x83, b'd', b'o', b'g'])];
+    let tests = vec![VETestPair(
+        vec!["cat", "dog"],
+        vec![0xc8, 0x83, b'c', b'a', b't', 0x83, b'd', b'o', b'g'],
+    )];
     run_encode_tests_list(tests);
 }
 
@@ -338,20 +348,23 @@ fn clear() {
     s.clear();
     s.append(&"cat");
 
-    assert_eq!(&s.out()[..], &[b'j', b'u', b'n', b'k', 0x83, b'c', b'a', b't']);
+    assert_eq!(
+        &s.out()[..],
+        &[b'j', b'u', b'n', b'k', 0x83, b'c', b'a', b't']
+    );
 }
 
 struct DTestPair<T>(T, Vec<u8>)
-    where
-        T: Decodable + fmt::Debug + cmp::Eq;
+where
+    T: Decodable + fmt::Debug + cmp::Eq;
 
 struct VDTestPair<T>(Vec<T>, Vec<u8>)
-    where
-        T: Decodable + fmt::Debug + cmp::Eq;
+where
+    T: Decodable + fmt::Debug + cmp::Eq;
 
 fn run_decode_tests<T>(tests: Vec<DTestPair<T>>)
-    where
-        T: Decodable + fmt::Debug + cmp::Eq,
+where
+    T: Decodable + fmt::Debug + cmp::Eq,
 {
     for t in &tests {
         let res: Result<T, DecoderError> = rlp::decode(&t.1);
@@ -362,8 +375,8 @@ fn run_decode_tests<T>(tests: Vec<DTestPair<T>>)
 }
 
 fn run_decode_tests_list<T>(tests: Vec<VDTestPair<T>>)
-    where
-        T: Decodable + fmt::Debug + cmp::Eq,
+where
+    T: Decodable + fmt::Debug + cmp::Eq,
 {
     for t in &tests {
         let res: Vec<T> = rlp::decode_list(&t.1);
@@ -372,9 +385,9 @@ fn run_decode_tests_list<T>(tests: Vec<VDTestPair<T>>)
 }
 
 impl<T, Repr> From<(T, Repr)> for DTestPair<T>
-    where
-        T: Decodable + fmt::Debug + cmp::Eq,
-        Repr: Into<Vec<u8>>,
+where
+    T: Decodable + fmt::Debug + cmp::Eq,
+    Repr: Into<Vec<u8>>,
 {
     fn from((v, repr): (T, Repr)) -> Self {
         Self(v, repr.into())
@@ -382,9 +395,9 @@ impl<T, Repr> From<(T, Repr)> for DTestPair<T>
 }
 
 impl<T, Repr> From<(Vec<T>, Repr)> for VDTestPair<T>
-    where
-        T: Decodable + fmt::Debug + cmp::Eq,
-        Repr: Into<Vec<u8>>,
+where
+    T: Decodable + fmt::Debug + cmp::Eq,
+    Repr: Into<Vec<u8>>,
 {
     fn from((v, repr): (Vec<T>, Repr)) -> Self {
         Self(v, repr.into())
@@ -437,14 +450,19 @@ fn decode_untrusted_u8() {
 
 #[test]
 fn decode_untrusted_u16() {
-    let tests = vec![DTestPair::from((0x100u16, hex!("820100"))), DTestPair::from((0xffffu16, hex!("82ffff")))];
+    let tests = vec![
+        DTestPair::from((0x100u16, hex!("820100"))),
+        DTestPair::from((0xffffu16, hex!("82ffff"))),
+    ];
     run_decode_tests(tests);
 }
 
 #[test]
 fn decode_untrusted_u32() {
-    let tests =
-        vec![DTestPair::from((0x0001_0000u32, hex!("83010000"))), DTestPair::from((0x00ff_ffffu32, hex!("83ffffff")))];
+    let tests = vec![
+        DTestPair::from((0x0001_0000u32, hex!("83010000"))),
+        DTestPair::from((0x00ff_ffffu32, hex!("83ffffff"))),
+    ];
     run_decode_tests(tests);
 }
 
@@ -490,10 +508,11 @@ fn decode_untrusted_str() {
         DTestPair::from((
             "Lorem ipsum dolor sit amet, consectetur adipisicing elit".to_owned(),
             vec![
-                0xb8, 0x38, b'L', b'o', b'r', b'e', b'm', b' ', b'i', b'p', b's', b'u', b'm', b' ', b'd', b'o', b'l',
-                b'o', b'r', b' ', b's', b'i', b't', b' ', b'a', b'm', b'e', b't', b',', b' ', b'c', b'o', b'n', b's',
-                b'e', b'c', b't', b'e', b't', b'u', b'r', b' ', b'a', b'd', b'i', b'p', b'i', b's', b'i', b'c', b'i',
-                b'n', b'g', b' ', b'e', b'l', b'i', b't',
+                0xb8, 0x38, b'L', b'o', b'r', b'e', b'm', b' ', b'i', b'p', b's', b'u', b'm', b' ',
+                b'd', b'o', b'l', b'o', b'r', b' ', b's', b'i', b't', b' ', b'a', b'm', b'e', b't',
+                b',', b' ', b'c', b'o', b'n', b's', b'e', b'c', b't', b'e', b't', b'u', b'r', b' ',
+                b'a', b'd', b'i', b'p', b'i', b's', b'i', b'c', b'i', b'n', b'g', b' ', b'e', b'l',
+                b'i', b't',
             ],
         )),
     ];
@@ -515,7 +534,10 @@ fn decode_untrusted_vector_u64() {
         VDTestPair::from((vec![], hex!("c0"))),
         VDTestPair::from((vec![15_u64], hex!("c10f"))),
         VDTestPair::from((vec![1, 2, 3, 7, 0xff], hex!("c60102030781ff"))),
-        VDTestPair::from((vec![0xffff_ffff, 1, 2, 3, 7, 0xff], hex!("cb84ffffffff0102030781ff"))),
+        VDTestPair::from((
+            vec![0xffff_ffff, 1, 2, 3, 7, 0xff],
+            hex!("cb84ffffffff0102030781ff"),
+        )),
     ];
     run_decode_tests_list(tests);
 }
@@ -669,11 +691,26 @@ fn test_canonical_list_encoding() {
 // https://github.com/paritytech/parity-common/issues/48
 #[test]
 fn test_inner_length_capping_for_short_lists() {
-    assert_eq!(Rlp::new(&[0xc0, 0x82, b'a', b'b']).val_at::<String>(0), Err(DecoderError::RlpIsTooShort));
-    assert_eq!(Rlp::new(&[0xc0 + 1, 0x82, b'a', b'b']).val_at::<String>(0), Err(DecoderError::RlpIsTooShort));
-    assert_eq!(Rlp::new(&[0xc0 + 2, 0x82, b'a', b'b']).val_at::<String>(0), Err(DecoderError::RlpIsTooShort));
-    assert_eq!(Rlp::new(&[0xc0 + 3, 0x82, b'a', b'b']).val_at::<String>(0), Ok("ab".to_owned()));
-    assert_eq!(Rlp::new(&[0xc0 + 4, 0x82, b'a', b'b']).val_at::<String>(0), Err(DecoderError::RlpIsTooShort));
+    assert_eq!(
+        Rlp::new(&[0xc0, 0x82, b'a', b'b']).val_at::<String>(0),
+        Err(DecoderError::RlpIsTooShort)
+    );
+    assert_eq!(
+        Rlp::new(&[0xc0 + 1, 0x82, b'a', b'b']).val_at::<String>(0),
+        Err(DecoderError::RlpIsTooShort)
+    );
+    assert_eq!(
+        Rlp::new(&[0xc0 + 2, 0x82, b'a', b'b']).val_at::<String>(0),
+        Err(DecoderError::RlpIsTooShort)
+    );
+    assert_eq!(
+        Rlp::new(&[0xc0 + 3, 0x82, b'a', b'b']).val_at::<String>(0),
+        Ok("ab".to_owned())
+    );
+    assert_eq!(
+        Rlp::new(&[0xc0 + 4, 0x82, b'a', b'b']).val_at::<String>(0),
+        Err(DecoderError::RlpIsTooShort)
+    );
 }
 
 // test described in
@@ -704,7 +741,9 @@ fn test_nested_list_roundtrip() {
 
     impl<T: Encodable> Encodable for Nest<T> {
         fn rlp_append(&self, s: &mut RlpStream) {
-            s.begin_unbounded_list().append_list(&self.0).finalize_unbounded_list();
+            s.begin_unbounded_list()
+                .append_list(&self.0)
+                .finalize_unbounded_list();
         }
     }
 

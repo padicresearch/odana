@@ -4,15 +4,12 @@ extern crate test;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-
-
 use serde::{Deserialize, Serialize};
 use serde_big_array::big_array;
 
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
-use primitive_types::{H160};
-
+use primitive_types::H160;
 
 use crate::block::BlockHeader;
 
@@ -26,8 +23,6 @@ mod uint_hex_codec;
 
 pub type Hash = [u8; 32];
 pub type Address = [u8; 20];
-
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ChainStateValue {
@@ -57,15 +52,19 @@ pub struct TxPoolConfig {
 }
 
 pub fn cache<F, T>(hash: &Arc<RwLock<Option<T>>>, f: F) -> T
-    where
-        F: Fn() -> T,
-        T: Copy + Clone
+where
+    F: Fn() -> T,
+    T: Copy + Clone,
 {
     if let Ok(hash) = hash.read() {
-        if let Some(hash) = *hash { return hash }
+        if let Some(hash) = *hash {
+            return hash;
+        }
     }
     let out = f();
-    if let Ok(mut hash) = hash.write() { *hash = Some(out) }
+    if let Ok(mut hash) = hash.write() {
+        *hash = Some(out)
+    }
     out
 }
 

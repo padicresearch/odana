@@ -1,12 +1,10 @@
 use anyhow::Result;
 
-
-use std::fs::{OpenOptions};
-use std::io::{BufReader};
+use std::fs::OpenOptions;
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-
 
 use primitive_types::{H160, H256, U192};
 

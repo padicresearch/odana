@@ -15,6 +15,7 @@ use p2p::peer_manager::{NetworkState, PeerList};
 use p2p::request_handler::RequestHandler;
 use p2p::start_p2p_server;
 use primitive_types::H256;
+use rpc::start_rpc_server;
 use std::env::temp_dir;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
@@ -26,7 +27,6 @@ use storage::{PersistentStorage, PersistentStorageBackend};
 use temp_dir::TempDir;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::UnboundedSender;
-use rpc::start_rpc_server;
 use tracing::tracing_subscriber;
 use tracing::Level;
 use tracing::{error, info};
@@ -151,9 +151,9 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                 .clone()
                 .unwrap_or(datadir.join("identity.json")),
         )
-            .expect("identity file not found"),
+        .expect("identity file not found"),
     )
-        .expect("failed to read identity file");
+    .expect("failed to read identity file");
 
     let database = Arc::new(rocksdb::DB::open_cf_descriptors(
         &default_db_opts(),
@@ -171,9 +171,9 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
             storage,
             local_mpsc_sender.clone(),
         )
-            .unwrap(),
+        .unwrap(),
     )
-        .clone();
+    .clone();
 
     let network_state = Arc::new(NetworkState::new(local_mpsc_sender.clone()));
     let handler = Arc::new(RequestHandler::new(
@@ -208,14 +208,18 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         blockchain.chain(),
         handler,
     )
-        .await?;
+    .await?;
 
     {
         let blockchain = blockchain.clone();
         let env = env.clone();
-        tokio::spawn(start_rpc_server(blockchain.chain().clone(), blockchain.chain().state(), blockchain.txpool(), env));
+        tokio::spawn(start_rpc_server(
+            blockchain.chain().clone(),
+            blockchain.chain().state(),
+            blockchain.txpool(),
+            env,
+        ));
     }
-
 
     if let Some(miner) = env.miner {
         let blockchain = blockchain.clone();
@@ -233,7 +237,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                 blockchain.chain().block_storage(),
                 interrupt,
             )
-                .unwrap();
+            .unwrap();
         });
     }
 
@@ -284,21 +288,21 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                             &node_to_peer_sender,
                             PeerMessage::BroadcastBlock(BroadcastBlockMessage::new(block.clone())),
                         )
-                            .unwrap();
+                        .unwrap();
                     }
                     LocalEventMessage::BroadcastTx(tx) => {
                         broadcast_message(
                             &node_to_peer_sender,
                             PeerMessage::BroadcastTransaction(BroadcastTransactionMessage::new(tx)),
                         )
-                            .unwrap();
+                        .unwrap();
                     }
                     LocalEventMessage::StateChanged { current_head } => {
                         broadcast_message(
                             &node_to_peer_sender,
                             PeerMessage::CurrentHead(CurrentHeadMessage::new(current_head)),
                         )
-                            .unwrap();
+                        .unwrap();
                     }
                     LocalEventMessage::NetworkNewPeerConnection { stats, peer_id } => {
                         info!(pending = ?stats.0, connected = ?stats.1, "Peer connection");

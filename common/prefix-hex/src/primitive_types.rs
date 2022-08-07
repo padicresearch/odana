@@ -17,7 +17,11 @@ macro_rules! impl_from_to_hex {
 
                 <$type>::from_str_radix(hex, 16).map_err(|error| match error.kind() {
                     uint::FromStrRadixErrKind::InvalidCharacter => {
-                        if let Some((index, c)) = hex.chars().enumerate().find(|(_, c)| !c.is_ascii_hexdigit()) {
+                        if let Some((index, c)) = hex
+                            .chars()
+                            .enumerate()
+                            .find(|(_, c)| !c.is_ascii_hexdigit())
+                        {
                             Error::InvalidHexCharacter { c, index }
                         } else {
                             unreachable!()

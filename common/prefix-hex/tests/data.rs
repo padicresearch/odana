@@ -20,7 +20,10 @@ fn array_decode_invalid_hex() {
 fn array_decode_invalid_length_too_short() {
     assert_eq!(
         prefix_hex::decode::<[u8; 3]>("0x52fd6"),
-        Err(Error::InvalidStringLengthSlice { expected: 6, actual: 5 })
+        Err(Error::InvalidStringLengthSlice {
+            expected: 6,
+            actual: 5
+        })
     );
 }
 
@@ -28,7 +31,10 @@ fn array_decode_invalid_length_too_short() {
 fn array_decode_invalid_length_too_long() {
     assert_eq!(
         prefix_hex::decode::<[u8; 3]>("0x52fd643"),
-        Err(Error::InvalidStringLengthSlice { expected: 6, actual: 7 })
+        Err(Error::InvalidStringLengthSlice {
+            expected: 6,
+            actual: 7
+        })
     );
 }
 
@@ -75,14 +81,19 @@ fn boxed_slice_encode() {
 #[test]
 fn boxed_slice_reference_encode() {
     assert_eq!(
-        prefix_hex::encode(&vec![0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef].into_boxed_slice()),
+        prefix_hex::encode(
+            &vec![0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef].into_boxed_slice()
+        ),
         "0x0123456789abcdef"
     );
 }
 
 #[test]
 fn vec_decode() {
-    assert_eq!(prefix_hex::decode::<Vec<u8>>("0x000102").unwrap(), [0x0, 0x1, 0x2]);
+    assert_eq!(
+        prefix_hex::decode::<Vec<u8>>("0x000102").unwrap(),
+        [0x0, 0x1, 0x2]
+    );
 }
 
 #[test]
@@ -92,7 +103,10 @@ fn vec_decode_empty_string() {
 
 #[test]
 fn vec_decode_odd_length() {
-    assert_eq!(prefix_hex::decode::<Vec<u8>>("0xf0f0f"), Err(Error::OddLength));
+    assert_eq!(
+        prefix_hex::decode::<Vec<u8>>("0xf0f0f"),
+        Err(Error::OddLength)
+    );
 }
 
 #[test]

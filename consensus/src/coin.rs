@@ -3,7 +3,6 @@ use std::ops::{Add, Mul, Sub};
 
 use traits::Saturating;
 
-
 use crate::MAX_SUPPLY_PRECOMPUTED;
 
 pub const TUC_UNIT: u128 = 1_000_000_000;
@@ -11,7 +10,7 @@ pub const TUC_UNIT: u128 = 1_000_000_000;
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub struct Chi(u128);
 
-#[derive(Copy, Clone, PartialOrd, PartialEq,Eq, Debug)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Debug)]
 pub struct Tuc {
     chi: Chi,
 }
@@ -70,7 +69,7 @@ impl From<u16> for Chi {
     }
 }
 
-impl From<Chi> for u128{
+impl From<Chi> for u128 {
     fn from(c: Chi) -> Self {
         c.0
     }

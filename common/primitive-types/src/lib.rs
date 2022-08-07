@@ -19,7 +19,6 @@
 #[cfg(feature = "fp-conversion")]
 mod fp_conversion;
 
-
 use core::convert::TryFrom;
 use fixed_hash::{construct_fixed_hash, impl_fixed_hash_conversions};
 #[cfg(feature = "scale-info")]
@@ -34,60 +33,60 @@ pub enum Error {
 }
 
 construct_uint! {
-	/// 128-bit unsigned integer.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct U128(2);
+    /// 128-bit unsigned integer.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct U128(2);
 }
 construct_uint! {
-	/// 256-bit unsigned integer.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct U192(3);
+    /// 256-bit unsigned integer.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct U192(3);
 }
 
 construct_uint! {
-	/// 256-bit unsigned integer.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct U256(4);
+    /// 256-bit unsigned integer.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct U256(4);
 }
 construct_uint! {
-	/// 512-bits unsigned integer.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct U512(8);
+    /// 512-bits unsigned integer.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct U512(8);
 }
 
 construct_fixed_hash! {
-	/// Fixed-size uninterpreted hash type with 16 bytes (128 bits) size.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct H128(16);
+    /// Fixed-size uninterpreted hash type with 16 bytes (128 bits) size.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct H128(16);
 }
 
 construct_fixed_hash! {
-	/// Fixed-size uninterpreted hash type with 20 bytes (160 bits) size.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct H160(20);
+    /// Fixed-size uninterpreted hash type with 20 bytes (160 bits) size.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct H160(20);
 }
 construct_fixed_hash! {
-	/// Fixed-size uninterpreted hash type with 32 bytes (256 bits) size.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct H192(24);
-}
-
-construct_fixed_hash! {
-	/// Fixed-size uninterpreted hash type with 32 bytes (256 bits) size.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct H256(32);
+    /// Fixed-size uninterpreted hash type with 32 bytes (256 bits) size.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct H192(24);
 }
 
 construct_fixed_hash! {
-	/// Fixed-size uninterpreted hash type with 64 bytes (512 bits) size.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct H448(56);
+    /// Fixed-size uninterpreted hash type with 32 bytes (256 bits) size.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct H256(32);
 }
 
 construct_fixed_hash! {
-	/// Fixed-size uninterpreted hash type with 64 bytes (512 bits) size.
-	#[cfg_attr(feature = "scale-info", derive(TypeInfo))]
-	pub struct H512(64);
+    /// Fixed-size uninterpreted hash type with 64 bytes (512 bits) size.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct H448(56);
+}
+
+construct_fixed_hash! {
+    /// Fixed-size uninterpreted hash type with 64 bytes (512 bits) size.
+    #[cfg_attr(feature = "scale-info", derive(TypeInfo))]
+    pub struct H512(64);
 }
 
 #[cfg(feature = "num-traits")]
@@ -216,7 +215,7 @@ impl TryFrom<U256> for U128 {
     fn try_from(value: U256) -> Result<U128, Error> {
         let U256(ref arr) = value;
         if arr[2] | arr[3] != 0 {
-            return Err(Error::Overflow)
+            return Err(Error::Overflow);
         }
         let mut ret = [0; 2];
         ret[0] = arr[0];
@@ -231,7 +230,7 @@ impl TryFrom<U512> for U256 {
     fn try_from(value: U512) -> Result<U256, Error> {
         let U512(ref arr) = value;
         if arr[4] | arr[5] | arr[6] | arr[7] != 0 {
-            return Err(Error::Overflow)
+            return Err(Error::Overflow);
         }
         let mut ret = [0; 4];
         ret[0] = arr[0];
@@ -248,7 +247,7 @@ impl TryFrom<U512> for U128 {
     fn try_from(value: U512) -> Result<U128, Error> {
         let U512(ref arr) = value;
         if arr[2] | arr[3] | arr[4] | arr[5] | arr[6] | arr[7] != 0 {
-            return Err(Error::Overflow)
+            return Err(Error::Overflow);
         }
         let mut ret = [0; 2];
         ret[0] = arr[0];
@@ -295,7 +294,7 @@ impl<'a> TryFrom<&'a U512> for U256 {
     fn try_from(value: &'a U512) -> Result<U256, Error> {
         let U512(ref arr) = *value;
         if arr[4] | arr[5] | arr[6] | arr[7] != 0 {
-            return Err(Error::Overflow)
+            return Err(Error::Overflow);
         }
         let mut ret = [0; 4];
         ret[0] = arr[0];
@@ -401,7 +400,6 @@ impl Compact {
         diff
     }
 }
-
 
 #[cfg(test)]
 mod tests {

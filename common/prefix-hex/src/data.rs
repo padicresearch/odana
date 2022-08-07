@@ -26,10 +26,12 @@ where
         let hex = strip_prefix(hex)?;
         let mut buffer = [0; N];
         hex::decode_to_slice(hex, &mut buffer).map_err(|e| match e {
-            hex::FromHexError::InvalidStringLength | hex::FromHexError::OddLength => Error::InvalidStringLengthSlice {
-                expected: N * 2,
-                actual: hex.len(),
-            },
+            hex::FromHexError::InvalidStringLength | hex::FromHexError::OddLength => {
+                Error::InvalidStringLengthSlice {
+                    expected: N * 2,
+                    actual: hex.len(),
+                }
+            }
             _ => e.into(),
         })?;
         Ok(buffer)
@@ -37,8 +39,8 @@ where
 }
 
 impl<const N: usize> ToHexPrefixed for [u8; N]
-    where
-        Self: hex::ToHex,
+where
+    Self: hex::ToHex,
 {
     fn to_hex_prefixed(self) -> String {
         format!("0x{}", hex::encode(self))
@@ -46,8 +48,8 @@ impl<const N: usize> ToHexPrefixed for [u8; N]
 }
 
 impl<const N: usize> ToHexPrefixed for &[u8; N]
-    where
-        [u8; N]: hex::ToHex,
+where
+    [u8; N]: hex::ToHex,
 {
     fn to_hex_prefixed(self) -> String {
         format!("0x{}", hex::encode(self))

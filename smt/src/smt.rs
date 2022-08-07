@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::proof::{verify_proof_with_updates, Proof};
-use crate::store::{ArchivedStorage};
+use crate::store::ArchivedStorage;
 use crate::treehasher::TreeHasher;
 use crate::utils::{count_common_prefix, get_bits_at_from_msb};
 use crate::CopyStrategy;
@@ -22,7 +22,6 @@ pub struct SparseMerkleTree {
 impl Encoder for SparseMerkleTree {}
 
 impl Decoder for SparseMerkleTree {}
-
 
 impl SparseMerkleTree {
     pub fn new() -> Self {
@@ -93,13 +92,7 @@ impl SparseMerkleTree {
             self.values.delete(path.as_bytes())?;
             self.delete_with_sides_nodes(&path, &side_nodes, &path_nodes, &old_lead_data)
         } else {
-            self.update_with_sides_nodes(
-                &path,
-                value,
-                &side_nodes,
-                &path_nodes,
-                &old_lead_data,
-            )
+            self.update_with_sides_nodes(&path, value, &side_nodes, &path_nodes, &old_lead_data)
         }
     }
 
@@ -243,7 +236,7 @@ impl SparseMerkleTree {
             let (ap, op) = self.parse_leaf(old_leaf_data);
             actual_path = H256::from_slice(ap);
             old_value_hash = Some(H256::from_slice(op));
-                count_common_prefix(path.as_bytes(), actual_path.as_bytes()) as usize
+            count_common_prefix(path.as_bytes(), actual_path.as_bytes()) as usize
         };
 
         if common_prefix_count != self.depth() {
@@ -361,8 +354,8 @@ impl SparseMerkleTree {
     }
 
     pub fn get<K>(&self, key: K) -> Result<Vec<u8>>
-        where
-            K: AsRef<[u8]>,
+    where
+        K: AsRef<[u8]>,
     {
         let root = self.root();
         if root.is_zero() {
@@ -374,23 +367,23 @@ impl SparseMerkleTree {
     }
 
     pub fn get_with_proof<K>(&self, key: K) -> Result<(Vec<u8>, Proof)>
-        where
-            K: AsRef<[u8]>,
+    where
+        K: AsRef<[u8]>,
     {
         return self.get_with_proof_for_root(key.as_ref(), &self.root());
     }
 
     pub fn get_with_proof_updatable<K>(&self, key: K) -> Result<(Vec<u8>, Proof)>
-        where
-            K: AsRef<[u8]>,
+    where
+        K: AsRef<[u8]>,
     {
         return self.get_with_proof_updatable_for_root(key.as_ref(), &self.root());
     }
 
     pub fn update<K, V>(&mut self, key: K, value: V) -> Result<H256>
-        where
-            K: AsRef<[u8]>,
-            V: AsRef<[u8]>,
+    where
+        K: AsRef<[u8]>,
+        V: AsRef<[u8]>,
     {
         let new_root = self.update_for_root(key.as_ref(), value.as_ref(), self.root())?;
         self.set_root(new_root);
@@ -406,7 +399,6 @@ impl SparseMerkleTree {
 mod tests {
     use crate::smt::SparseMerkleTree;
     use crate::CopyStrategy;
-    
 
     #[test]
     fn basic_get_set_check_root_test() {

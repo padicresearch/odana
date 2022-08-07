@@ -2,9 +2,9 @@ use k256::ecdsa::signature::DigestSigner;
 use k256::ecdsa::signature::DigestVerifier;
 use k256::ecdsa::signature::Signature as Sig;
 use k256::ecdsa::{SigningKey, VerifyingKey};
+use primitive_types::H256;
 use rand_core::{CryptoRng, RngCore};
 use sha2::Digest;
-use primitive_types::H256;
 
 use crate::error::Error;
 use crate::error::Error::InternalError;

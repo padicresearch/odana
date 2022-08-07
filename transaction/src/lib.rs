@@ -1,15 +1,14 @@
-use std::cmp::Ordering;
-use std::collections::BTreeSet;
 use anyhow::{anyhow, Result};
 use codec::Encoder;
 use crypto::ecdsa::SecretKey;
 use crypto::SHA256;
 use primitive_types::H256;
 use proto::UnsignedTransaction;
+use std::cmp::Ordering;
+use std::collections::BTreeSet;
 use types::account::Account;
-use types::Address;
 use types::tx::{SignedTransaction, Transaction};
-
+use types::Address;
 
 pub fn make_sign_transaction(
     account: &Account,
@@ -34,7 +33,9 @@ pub fn sign_tx(secret: H256, tx: UnsignedTransaction) -> Result<SignedTransactio
     let raw = Transaction::from_proto(&tx)?;
     let payload = raw.sig_hash();
     let secrete = SecretKey::from_bytes(secret.as_fixed_bytes())?;
-    let sig = secrete.sign(payload.as_bytes()).map_err(|e| anyhow!("{:?}", e))?;
+    let sig = secrete
+        .sign(payload.as_bytes())
+        .map_err(|e| anyhow!("{:?}", e))?;
     let tx = SignedTransaction::new(sig, tx)?;
     Ok(tx)
 }

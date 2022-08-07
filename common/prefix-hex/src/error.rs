@@ -20,7 +20,9 @@ impl std::error::Error for Error {}
 impl From<FromHexError> for Error {
     fn from(v: FromHexError) -> Error {
         match v {
-            FromHexError::InvalidHexCharacter { c, index } => Error::InvalidHexCharacter { c, index },
+            FromHexError::InvalidHexCharacter { c, index } => {
+                Error::InvalidHexCharacter { c, index }
+            }
             FromHexError::InvalidStringLength => Error::InvalidStringLength,
             FromHexError::OddLength => Error::OddLength,
         }

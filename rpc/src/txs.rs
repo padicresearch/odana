@@ -42,7 +42,7 @@ impl TransactionsService for TransactionsServiceImpl {
         let address = get_address_from_secret_key(
             H256::from_str(&req.key).map_err(|e| Status::internal(e.to_string()))?,
         )
-            .map_err(|e| Status::internal(e.to_string()))?;
+        .map_err(|e| Status::internal(e.to_string()))?;
         let nonce = U128::from_str(&tx.nonce).unwrap_or_default();
         if nonce.as_u128() == 0 {
             tx.nonce = prefix_hex::encode(U128::from(txpool.nonce(&address)));

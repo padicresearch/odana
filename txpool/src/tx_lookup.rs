@@ -2,8 +2,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
 
-
-
 use primitive_types::H160;
 use types::tx::SignedTransaction;
 use types::Hash;
@@ -109,8 +107,9 @@ impl TxLookup {
 
     pub fn get(&self, hash: &Hash) -> Option<TransactionRef> {
         self.locals
-            .get(hash).cloned()
-            .or_else(||self.remotes.get(hash).cloned())
+            .get(hash)
+            .cloned()
+            .or_else(|| self.remotes.get(hash).cloned())
     }
 
     pub fn contains(&self, hash: &Hash) -> bool {

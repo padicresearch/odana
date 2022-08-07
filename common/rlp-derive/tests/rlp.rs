@@ -54,18 +54,26 @@ fn test_encode_item_default() {
     }
 
     let attack_of = "clones";
-    let item = Item { a: attack_of.into() };
+    let item = Item {
+        a: attack_of.into(),
+    };
 
     let expected = vec![0xc7, 0x86, b'c', b'l', b'o', b'n', b'e', b's'];
     let out = encode(&item);
     assert_eq!(out, expected);
 
-    let item_default = ItemDefault { a: attack_of.into(), b: None };
+    let item_default = ItemDefault {
+        a: attack_of.into(),
+        b: None,
+    };
 
     let decoded = decode(&expected).expect("default failure");
     assert_eq!(item_default, decoded);
 
-    let item_some = ItemDefault { a: attack_of.into(), b: Some(vec![1, 2, 3]) };
+    let item_some = ItemDefault {
+        a: attack_of.into(),
+        b: Some(vec![1, 2, 3]),
+    };
     let out = encode(&item_some);
     assert_eq!(decode(&out), Ok(item_some));
 }

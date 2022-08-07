@@ -1,7 +1,7 @@
-use std::str::FromStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::str::FromStr;
 
-use primitive_types::{U128};
+use primitive_types::U128;
 
 pub fn serialize<S: Serializer, T: num_traits::ToPrimitive>(
     t: &T,
@@ -11,10 +11,9 @@ pub fn serialize<S: Serializer, T: num_traits::ToPrimitive>(
     x.serialize(serializer)
 }
 
-pub fn deserialize<'de, D: Deserializer<'de>, T: FromStr>(
-    deserializer: D,
-) -> Result<T, D::Error> {
+pub fn deserialize<'de, D: Deserializer<'de>, T: FromStr>(deserializer: D) -> Result<T, D::Error> {
     let x = U128::deserialize(deserializer)?;
     let s = x.to_string();
-    s.parse::<T>().map_err(|_| serde::de::Error::custom("Parse from string failed"))
+    s.parse::<T>()
+        .map_err(|_| serde::de::Error::custom("Parse from string failed"))
 }

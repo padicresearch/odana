@@ -32,7 +32,6 @@ fn default_write_opts() -> rocksdb::WriteOptions {
 }
 
 fn default_read_opts() -> rocksdb::ReadOptions {
-    
     rocksdb::ReadOptions::default()
 }
 

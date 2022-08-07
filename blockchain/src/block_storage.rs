@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::{Result};
+use anyhow::Result;
 use primitive_types::H256;
 
 use storage::{KVStore, PersistentStorage, Schema, StorageIterator};
@@ -41,7 +41,7 @@ impl BlockStorage {
         &'a self,
         hash: &'a Hash,
         level: i32,
-    ) -> Result<Box<dyn 'a + Send + Iterator<Item=Result<Block>>>> {
+    ) -> Result<Box<dyn 'a + Send + Iterator<Item = Result<Block>>>> {
         let primary_key = BlockPrimaryKey(*hash, level);
         Ok(Box::new(
             self.primary.get_blocks(&primary_key)?.map(|(_k, v)| v),

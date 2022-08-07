@@ -2,16 +2,14 @@ use std::convert::TryInto;
 
 use anyhow::Result;
 use serde::de::DeserializeOwned;
-use serde::{Serialize};
+use serde::Serialize;
 
 use primitive_types::{H160, H256};
-
 
 pub trait ConsensusCodec: Sized + Serialize + DeserializeOwned {
     fn consensus_encode(self) -> Vec<u8>;
     fn consensus_decode(buf: &[u8]) -> Result<Self>;
 }
-
 
 pub trait Encoder: Sized + Serialize + DeserializeOwned {
     fn encode(&self) -> Result<Vec<u8>> {

@@ -16,11 +16,19 @@ struct ParseQuotes {
 }
 
 fn decodable_parse_quotes() -> ParseQuotes {
-    ParseQuotes { single: quote! { rlp.val_at }, list: quote! { rlp.list_at }, takes_index: true }
+    ParseQuotes {
+        single: quote! { rlp.val_at },
+        list: quote! { rlp.list_at },
+        takes_index: true,
+    }
 }
 
 fn decodable_wrapper_parse_quotes() -> ParseQuotes {
-    ParseQuotes { single: quote! { rlp.as_val }, list: quote! { rlp.as_list }, takes_index: false }
+    ParseQuotes {
+        single: quote! { rlp.as_val },
+        list: quote! { rlp.as_list },
+        takes_index: false,
+    }
 }
 
 pub fn impl_decodable(ast: &syn::DeriveInput) -> TokenStream {
@@ -35,28 +43,35 @@ pub fn impl_decodable(ast: &syn::DeriveInput) -> TokenStream {
         .fields
         .iter()
         .enumerate()
-        .map(|(i, field)| decodable_field(i, field, decodable_parse_quotes(), &mut default_attribute_encountered))
+        .map(|(i, field)| {
+            decodable_field(
+                i,
+                field,
+                decodable_parse_quotes(),
+                &mut default_attribute_encountered,
+            )
+        })
         .collect();
     let name = &ast.ident;
 
     let impl_block = quote! {
-		impl rlp::Decodable for #name {
-			fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
-				let result = #name {
-					#(#stmts)*
-				};
+        impl rlp::Decodable for #name {
+            fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
+                let result = #name {
+                    #(#stmts)*
+                };
 
-				Ok(result)
-			}
-		}
-	};
+                Ok(result)
+            }
+        }
+    };
 
     quote! {
-		const _: () = {
-			extern crate rlp;
-			#impl_block
-		};
-	}
+        const _: () = {
+            extern crate rlp;
+            #impl_block
+        };
+    }
 }
 
 pub fn impl_decodable_wrapper(ast: &syn::DeriveInput) -> TokenStream {
@@ -71,7 +86,12 @@ pub fn impl_decodable_wrapper(ast: &syn::DeriveInput) -> TokenStream {
         if fields.len() == 1 {
             let field = fields.first().expect("fields.len() == 1; qed");
             let mut default_attribute_encountered = false;
-            decodable_field(0, field, decodable_wrapper_parse_quotes(), &mut default_attribute_encountered)
+            decodable_field(
+                0,
+                field,
+                decodable_wrapper_parse_quotes(),
+                &mut default_attribute_encountered,
+            )
         } else {
             panic!("#[derive(RlpEncodableWrapper)] is only defined for structs with one field.")
         }
@@ -80,23 +100,23 @@ pub fn impl_decodable_wrapper(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
 
     let impl_block = quote! {
-		impl rlp::Decodable for #name {
-			fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
-				let result = #name {
-					#stmt
-				};
+        impl rlp::Decodable for #name {
+            fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
+                let result = #name {
+                    #stmt
+                };
 
-				Ok(result)
-			}
-		}
-	};
+                Ok(result)
+            }
+        }
+    };
 
     quote! {
-		const _: () = {
-			extern crate rlp;
-			#impl_block
-		};
-	}
+        const _: () = {
+            extern crate rlp;
+            #impl_block
+        };
+    }
 }
 
 fn decodable_field(
@@ -122,9 +142,12 @@ fn decodable_field(
 
     let attributes = &field.attrs;
     let default = if let Some(attr) = attributes.iter().find(|attr| attr.path.is_ident("rlp")) {
-        assert!(!(*default_attribute_encountered), "only 1 #[rlp(default)] attribute is allowed in a struct");
+        assert!(
+            !(*default_attribute_encountered),
+            "only 1 #[rlp(default)] attribute is allowed in a struct"
+        );
         match attr.parse_args() {
-            Ok(proc_macro2::TokenTree::Ident(ident)) if ident == "default" => {},
+            Ok(proc_macro2::TokenTree::Ident(ident)) if ident == "default" => {}
             _ => panic!("only #[rlp(default)] attribute is supported"),
         }
         *default_attribute_encountered = true;
@@ -134,7 +157,12 @@ fn decodable_field(
     };
 
     if let syn::Type::Path(path) = &field.ty {
-        let ident = &path.path.segments.first().expect("there must be at least 1 segment").ident;
+        let ident = &path
+            .path
+            .segments
+            .first()
+            .expect("there must be at least 1 segment")
+            .ident;
         let ident_type = ident.to_string();
         if ident_type == "Vec" {
             if quotes.takes_index {

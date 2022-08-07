@@ -12,23 +12,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute(
             "types.BlockHeader",
             "#[derive(::serde::Serialize,::serde::Deserialize)]",
-        ).type_attribute(
-        "types.Block",
-        "#[derive(::serde::Serialize,::serde::Deserialize)]",
-    )
+        )
+        .type_attribute(
+            "types.Block",
+            "#[derive(::serde::Serialize,::serde::Deserialize)]",
+        )
         .type_attribute(
             "types.AccountState",
             "#[derive(::serde::Serialize,::serde::Deserialize)]",
-        ).type_attribute(
-        "types.TransactionList",
-        "#[derive(::serde::Serialize,::serde::Deserialize)]",
-    ).type_attribute(
-        "types.TransactionStatus",
-        "#[derive(::serde::Serialize,::serde::Deserialize)]",
-    ).type_attribute(
-        "types.TransactionStatus",
-        "#[serde(rename_all = \"lowercase\")]",
-    )
+        )
+        .type_attribute(
+            "types.TransactionList",
+            "#[derive(::serde::Serialize,::serde::Deserialize)]",
+        )
+        .type_attribute(
+            "types.TransactionStatus",
+            "#[derive(::serde::Serialize,::serde::Deserialize)]",
+        )
+        .type_attribute(
+            "types.TransactionStatus",
+            "#[serde(rename_all = \"lowercase\")]",
+        )
         .compile(
             &[
                 "schema/types.proto",
@@ -40,5 +44,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
     Ok(())
 }
-
-

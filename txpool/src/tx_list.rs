@@ -1,12 +1,10 @@
-use std::cmp::{Ordering};
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
 use std::sync::atomic::AtomicUsize;
-use std::sync::{Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
-
-
 
 use crate::{TransactionRef, Transactions};
 
@@ -322,18 +320,11 @@ impl TxPricedList {
 
 #[cfg(test)]
 mod tests {
-    
-    
-    
 
     use account::create_account;
-    
-    
-    
 
     use crate::tests::make_tx;
-    use crate::tx_list::{TxList};
-    
+    use crate::tx_list::TxList;
 
     #[test]
     fn test_txlist() {

@@ -7,8 +7,8 @@ use anyhow::Result;
 
 use serde::{Deserialize, Serialize};
 
-
 use crate::error::StateError;
+use crate::StateOperation::{CreditBalance, DebitBalance, UpdateNonce};
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
 use primitive_types::{H160, H256};
@@ -17,9 +17,8 @@ use smt::{Op, Tree};
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
-use types::tx::{SignedTransaction};
+use types::tx::SignedTransaction;
 use types::Hash;
-use crate::StateOperation::{CreditBalance, DebitBalance, UpdateNonce};
 
 mod error;
 
@@ -198,28 +197,33 @@ impl State {
         states: &mut BTreeMap<H160, AccountState>,
     ) -> Result<()> {
         //TODO: verify transaction (probably)
-        let mut from_account_state = states
-            .get(&transaction.from()).copied()
-            .unwrap_or_default();
-        let mut to_account_state = states
-            .get(&transaction.to()).copied()
-            .unwrap_or_default();
-        from_account_state = self.apply_action(&DebitBalance {
-            account: transaction.from(),
-            amount: transaction.price() + transaction.fees(),
-            tx_hash: [0; 32],
-        }, from_account_state)?;
-        from_account_state = self.apply_action(&UpdateNonce {
-            account: transaction.from(),
-            nonce: from_account_state.nonce,
-            tx_hash: [0; 32],
-        }, from_account_state)?;
+        let mut from_account_state = states.get(&transaction.from()).copied().unwrap_or_default();
+        let mut to_account_state = states.get(&transaction.to()).copied().unwrap_or_default();
+        from_account_state = self.apply_action(
+            &DebitBalance {
+                account: transaction.from(),
+                amount: transaction.price() + transaction.fees(),
+                tx_hash: [0; 32],
+            },
+            from_account_state,
+        )?;
+        from_account_state = self.apply_action(
+            &UpdateNonce {
+                account: transaction.from(),
+                nonce: from_account_state.nonce,
+                tx_hash: [0; 32],
+            },
+            from_account_state,
+        )?;
 
-        to_account_state = self.apply_action(&CreditBalance {
-            account: transaction.to(),
-            amount: transaction.price(),
-            tx_hash: [0; 32],
-        }, to_account_state)?;
+        to_account_state = self.apply_action(
+            &CreditBalance {
+                account: transaction.to(),
+                amount: transaction.price(),
+                tx_hash: [0; 32],
+            },
+            to_account_state,
+        )?;
 
         states.insert(transaction.from(), from_account_state);
         states.insert(transaction.to(), to_account_state);
@@ -363,7 +367,6 @@ mod tests {
     use tempdir::TempDir;
 
     use account::create_account;
-    
 
     use super::*;
 
@@ -374,11 +377,20 @@ mod tests {
         let alice = create_account();
         let _bob = create_account();
         let _jake = create_account();
-        println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
+        println!(
+            "{}",
+            state.credit_balance(&alice.address, 1_000_000).unwrap()
+        );
         state.commit().unwrap();
-        println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
+        println!(
+            "{}",
+            state.credit_balance(&alice.address, 1_000_000).unwrap()
+        );
         state.commit().unwrap();
-        println!("{}", state.credit_balance(&alice.address, 1_000_000).unwrap());
+        println!(
+            "{}",
+            state.credit_balance(&alice.address, 1_000_000).unwrap()
+        );
         // let mut txs = Vec::new();
         // for i in 0..100 {
         //     let amount = 100;

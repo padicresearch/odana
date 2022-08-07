@@ -174,14 +174,19 @@ pub async fn start_p2p_server(
     blockchain: Arc<dyn Blockchain>,
     request_handler: Arc<RequestHandler>,
 ) -> Result<()> {
-    let mut swarm =
-        config_network(node_identity.clone(), p2p_to_node, network_state.clone(), pow_target).await?;
+    let mut swarm = config_network(
+        node_identity.clone(),
+        p2p_to_node,
+        network_state.clone(),
+        pow_target,
+    )
+    .await?;
 
     Swarm::listen_on(
         &mut swarm,
         format!("/ip4/{}/tcp/{}", config.host, config.p2p_port).parse()?,
     )
-        .expect("Error connecting to p2p");
+    .expect("Error connecting to p2p");
 
     for to_dial in peer_arg {
         let addr: Multiaddr = to_dial.parse()?;
@@ -344,7 +349,10 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 PeerMessage::Ack(addr) => {
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
-                    chain_network.state.peer_list().set_peer_address(peer, addr.clone());
+                    chain_network
+                        .state
+                        .peer_list()
+                        .set_peer_address(peer, addr.clone());
                     let _ = chain_network.requestresponse.send_response(
                         channel,
                         PeerMessage::ReAck(ReAckMessage::new(
@@ -412,9 +420,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint: ConnectedPoint::Dialer { address },
             ..
         } => {
-            let peers = swarm
-                .behaviour()
-                .state.peer_list();
+            let peers = swarm.behaviour().state.peer_list();
             if !peers.is_peer_connected(&peer_id) {
                 let addr = swarm.behaviour_mut().public_address.clone();
                 let request_id = swarm
@@ -422,8 +428,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     .requestresponse
                     .send_request(&peer_id, PeerMessage::Ack(addr));
                 peers.add_potential_peer(peer_id, request_id);
-                peers
-                    .set_peer_address(peer_id, address.clone());
+                peers.set_peer_address(peer_id, address.clone());
             }
             info!(peer = ?address,"Connection established");
         }

@@ -122,7 +122,7 @@ impl SyncService {
             self.chain.put_chain(
                 self.consensus.clone(),
                 Box::new(ordered_blocks.into_iter().map(|ob| ob.0)),
-                self.txpool.clone()
+                self.txpool.clone(),
             )?;
             self.sync_mode = Arc::new(SyncMode::Forward);
             let node_head = self.chain.current_header().unwrap();
@@ -244,7 +244,9 @@ impl SyncService {
     }
 
     fn local_tip(&self) -> Result<BlockHeader> {
-        self.chain.current_header_blocking().map(|head| head.unwrap().raw)
+        self.chain
+            .current_header_blocking()
+            .map(|head| head.unwrap().raw)
     }
 
     fn validate_chain(&self, blocks: &[Block]) -> bool {

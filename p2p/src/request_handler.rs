@@ -2,9 +2,9 @@ use crate::message::{BlockHeaderMessage, BlocksMessage, CurrentHeadMessage, Peer
 use crate::{NetworkState, PeerId};
 use anyhow::Result;
 use blockchain::blockchain::Tuchain;
+use primitive_types::H256;
 use std::sync::Arc;
 use tokio::io::AsyncReadExt;
-use primitive_types::H256;
 use traits::{Blockchain, ChainHeadReader, ChainReader};
 
 pub struct RequestHandler {
@@ -95,7 +95,10 @@ impl RequestHandler {
                 let blockchain = self.blockchain.clone();
                 let mut blocks = Vec::with_capacity(msg.block_hashes.len());
                 for hash in msg.block_hashes.iter() {
-                    let res = blockchain.chain().block_storage().get_block_by_hash(&H256::from(hash));
+                    let res = blockchain
+                        .chain()
+                        .block_storage()
+                        .get_block_by_hash(&H256::from(hash));
                     match res {
                         Ok(Some(block)) => blocks.push(block),
                         _ => break,

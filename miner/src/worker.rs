@@ -4,9 +4,9 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 
+use blockchain::chain_state::ChainState;
 use chrono::Utc;
 use tokio::sync::mpsc::UnboundedSender;
-use blockchain::chain_state::ChainState;
 
 use merkle::Merkle;
 use p2p::peer_manager::NetworkState;
@@ -14,8 +14,8 @@ use primitive_types::{H160, U128, U256};
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 
-use txpool::{TxPool};
 use txpool::tx_lookup::AccountSet;
+use txpool::TxPool;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::SignedTransaction;
@@ -77,16 +77,16 @@ pub fn start_worker(
 
         loop {
             if i == SHUTDOWN {
-                break
+                break;
             }
 
-            let network_head = network
-                .network_head();
+            let network_head = network.network_head();
 
-            let node_head = chain
-                .current_header()?.unwrap();
+            let node_head = chain.current_header()?.unwrap();
 
-            let network_height = network_head.map(|header| header.level()).unwrap_or_default();
+            let network_height = network_head
+                .map(|header| header.level())
+                .unwrap_or_default();
             let node_height = node_head.raw.level();
 
             if network_height > node_height {
@@ -125,7 +125,11 @@ pub fn start_worker(
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
                 let blocks = vec![block.clone()];
-                chain.put_chain(consensus.clone(), Box::new(blocks.into_iter()), txpool.clone())?;
+                chain.put_chain(
+                    consensus.clone(),
+                    Box::new(blocks.into_iter()),
+                    txpool.clone(),
+                )?;
                 lmpsc.send(LocalEventMessage::MindedBlock(block))?;
                 break;
             }
@@ -151,7 +155,7 @@ fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedT
         Some(root) => *root,
     };
 
-    return Ok((merkle_root, tsx))
+    return Ok((merkle_root, tsx));
 }
 
 fn make_block_template(

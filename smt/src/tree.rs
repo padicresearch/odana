@@ -307,9 +307,9 @@ pub struct Verifier;
 
 impl Verifier {
     pub fn verify_proof<K, V>(proof: &Proof, root: H256, key: K, value: V) -> Result<()>
-        where
-            K: Codec,
-            V: Codec,
+    where
+        K: Codec,
+        V: Codec,
     {
         let key = key.encode()?;
         let value = IValue::Value(value.encode()?).encode()?;
@@ -338,7 +338,7 @@ mod tests {
                 nonce: 1,
             },
         )
-            .unwrap();
+        .unwrap();
 
         tree.put(
             H256::from_slice(&[2; 32]),
@@ -348,7 +348,7 @@ mod tests {
                 nonce: 1,
             },
         )
-            .unwrap();
+        .unwrap();
 
         tree.put(
             H256::from_slice(&[3; 32]),
@@ -358,7 +358,7 @@ mod tests {
                 nonce: 1,
             },
         )
-            .unwrap();
+        .unwrap();
 
         tree.put(
             H256::from_slice(&[24; 32]),
@@ -368,7 +368,7 @@ mod tests {
                 nonce: 1,
             },
         )
-            .unwrap();
+        .unwrap();
         let root_1 = tree.commit(true).unwrap();
         tree.put(
             H256::from_slice(&[24; 32]),
@@ -378,7 +378,7 @@ mod tests {
                 nonce: 2,
             },
         )
-            .unwrap();
+        .unwrap();
 
         tree.put(
             H256::from_slice(&[44; 32]),
@@ -388,7 +388,7 @@ mod tests {
                 nonce: 1,
             },
         )
-            .unwrap();
+        .unwrap();
 
         tree.put(
             H256::from_slice(&[32; 32]),
@@ -398,7 +398,7 @@ mod tests {
                 nonce: 1,
             },
         )
-            .unwrap();
+        .unwrap();
 
         tree.put(
             H256::from_slice(&[50; 32]),
@@ -408,7 +408,7 @@ mod tests {
                 nonce: 1,
             },
         )
-            .unwrap();
+        .unwrap();
 
         tree.put(
             H256::from_slice(&[3; 32]),
@@ -418,13 +418,12 @@ mod tests {
                 nonce: 3,
             },
         )
-            .unwrap();
+        .unwrap();
 
         let root_2 = tree.commit(true).unwrap();
 
         assert_eq!(
-            tree.get_descend(&H256::from_slice(&[3; 32]), true)
-                .unwrap(),
+            tree.get_descend(&H256::from_slice(&[3; 32]), true).unwrap(),
             Some(AccountState {
                 free_balance: 200,
                 reserve_balance: 200,
@@ -434,8 +433,7 @@ mod tests {
         tree.reset(root_1).unwrap();
 
         assert_eq!(
-            tree.get_descend(&H256::from_slice(&[3; 32]), true)
-                .unwrap(),
+            tree.get_descend(&H256::from_slice(&[3; 32]), true).unwrap(),
             Some(AccountState {
                 free_balance: 10000,
                 reserve_balance: 1000,
@@ -453,7 +451,7 @@ mod tests {
                 nonce: 2,
             },
         )
-            .unwrap();
+        .unwrap();
 
         let _root_3 = tree.commit(true).unwrap();
 
@@ -473,18 +471,15 @@ mod tests {
             None
         );
         assert_eq!(
-            tree.get_descend(&H256::from_slice(&[1; 32]), true)
-                .unwrap(),
+            tree.get_descend(&H256::from_slice(&[1; 32]), true).unwrap(),
             Some(AccountState {
                 free_balance: 30000,
                 reserve_balance: 3000,
                 nonce: 1,
-            }, )
+            },)
         );
 
-        let (value, proof) = tree
-            .get_with_proof(&H256::from_slice(&[1; 32]))
-            .unwrap();
+        let (value, proof) = tree.get_with_proof(&H256::from_slice(&[1; 32])).unwrap();
         println!("{:#?}", (&value, &proof));
         println!(
             "{:?}",
@@ -509,7 +504,7 @@ mod tests {
                 nonce: 1,
             },
         )
-            .unwrap();
+        .unwrap();
         tree.commit(true);
         println!("{:#?}", tree.root().unwrap());
         println!("{:?}", tree.root().unwrap().0);

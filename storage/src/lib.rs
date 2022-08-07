@@ -1,6 +1,4 @@
-
 use std::sync::Arc;
-
 
 use anyhow::Result;
 use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
@@ -87,8 +85,16 @@ where
     fn prefix_iter(&self, start: &Entry::Key) -> anyhow::Result<StorageIterator<Entry>>;
 }
 
-pub type StorageIterator<'a, Entry>=
-Box<dyn 'a + Send + Iterator<Item=(Result<<Entry as Schema>::Key>, Result<<Entry as Schema>::Value>)>>;
+pub type StorageIterator<'a, Entry> = Box<
+    dyn 'a
+        + Send
+        + Iterator<
+            Item = (
+                Result<<Entry as Schema>::Key>,
+                Result<<Entry as Schema>::Value>,
+            ),
+        >,
+>;
 
 pub enum IteratorMode {
     Start,

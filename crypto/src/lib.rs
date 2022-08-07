@@ -14,7 +14,7 @@ impl SHA256 {
         H256::from_slice(sha.finalize().as_slice())
     }
 
-    pub fn concat_digest<'a, I: IntoIterator<Item=&'a [u8]>>(items: I) -> H256 {
+    pub fn concat_digest<'a, I: IntoIterator<Item = &'a [u8]>>(items: I) -> H256 {
         let mut sha = sha2::Sha256::new();
         for i in items {
             sha.update(i);

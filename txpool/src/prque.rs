@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap};
-
+use std::collections::BinaryHeap;
 
 struct Element<Value>
 where

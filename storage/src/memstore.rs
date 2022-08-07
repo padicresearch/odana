@@ -1,9 +1,9 @@
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::RwLock;
 
-use anyhow::{Result};
+use anyhow::Result;
 
 use codec::{Decoder, Encoder};
 
@@ -111,7 +111,7 @@ impl<S: Schema> KVStore<S> for MemStore {
 
     fn iter<'a>(
         &'a self,
-    ) -> Result<Box<dyn 'a + Send + Iterator<Item=(Result<S::Key>, Result<S::Value>)>>> {
+    ) -> Result<Box<dyn 'a + Send + Iterator<Item = (Result<S::Key>, Result<S::Value>)>>> {
         Ok(Box::new(
             self.column(S::column())?
                 .iter()

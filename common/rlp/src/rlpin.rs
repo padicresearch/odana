@@ -47,7 +47,10 @@ pub struct PayloadInfo {
     pub value_len: usize,
 }
 
-fn calculate_payload_info(header_bytes: &[u8], len_of_len: usize) -> Result<PayloadInfo, DecoderError> {
+fn calculate_payload_info(
+    header_bytes: &[u8],
+    len_of_len: usize,
+) -> Result<PayloadInfo, DecoderError> {
     let header_len = 1 + len_of_len;
     match header_bytes.get(1) {
         Some(&0) => return Err(DecoderError::RlpDataLenWithZeroPrefix),
@@ -55,18 +58,21 @@ fn calculate_payload_info(header_bytes: &[u8], len_of_len: usize) -> Result<Payl
         _ => (),
     }
     if header_bytes.len() < header_len {
-        return Err(DecoderError::RlpIsTooShort)
+        return Err(DecoderError::RlpIsTooShort);
     }
     let value_len = decode_usize(&header_bytes[1..header_len])?;
     if value_len <= 55 {
-        return Err(DecoderError::RlpInvalidIndirection)
+        return Err(DecoderError::RlpInvalidIndirection);
     }
     Ok(PayloadInfo::new(header_len, value_len))
 }
 
 impl PayloadInfo {
     const fn new(header_len: usize, value_len: usize) -> PayloadInfo {
-        PayloadInfo { header_len, value_len }
+        PayloadInfo {
+            header_len,
+            value_len,
+        }
     }
 
     /// Total size of the RLP.
@@ -110,7 +116,9 @@ impl<'a> fmt::Display for Rlp<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self.prototype() {
             Ok(Prototype::Null) => write!(f, "null"),
-            Ok(Prototype::Data(_)) => write!(f, "\"0x{}\"", self.data().unwrap().to_hex::<String>()),
+            Ok(Prototype::Data(_)) => {
+                write!(f, "\"0x{}\"", self.data().unwrap().to_hex::<String>())
+            }
             Ok(Prototype::List(len)) => {
                 write!(f, "[")?;
                 for i in 0..len - 1 {
@@ -118,7 +126,7 @@ impl<'a> fmt::Display for Rlp<'a> {
                 }
                 write!(f, "{}", self.at(len - 1).unwrap())?;
                 write!(f, "]")
-            },
+            }
             Err(err) => write!(f, "{:?}", err),
         }
     }
@@ -126,12 +134,16 @@ impl<'a> fmt::Display for Rlp<'a> {
 
 impl<'a> Rlp<'a> {
     pub const fn new(bytes: &'a [u8]) -> Rlp<'a> {
-        Rlp { bytes, offset_cache: Cell::new(None), count_cache: Cell::new(None) }
+        Rlp {
+            bytes,
+            offset_cache: Cell::new(None),
+            count_cache: Cell::new(None),
+        }
     }
 
     pub fn as_raw<'view>(&'view self) -> &'a [u8]
-        where
-            'a: 'view,
+    where
+        'a: 'view,
     {
         self.bytes
     }
@@ -152,8 +164,8 @@ impl<'a> Rlp<'a> {
     }
 
     pub fn data<'view>(&'view self) -> Result<&'a [u8], DecoderError>
-        where
-            'a: 'view,
+    where
+        'a: 'view,
     {
         let pi = BasicDecoder::payload_info(self.bytes)?;
         Ok(&self.bytes[pi.header_len..(pi.header_len + pi.value_len)])
@@ -167,7 +179,7 @@ impl<'a> Rlp<'a> {
                     let c = self.iter().count();
                     self.count_cache.set(Some(c));
                     Ok(c)
-                },
+                }
             }
         } else {
             Err(DecoderError::RlpExpectedToBeList)
@@ -177,7 +189,9 @@ impl<'a> Rlp<'a> {
     pub fn size(&self) -> usize {
         if self.is_data() {
             // TODO: No panic on malformed data, but ideally would Err on no PayloadInfo.
-            BasicDecoder::payload_info(self.bytes).map(|b| b.value_len).unwrap_or(0)
+            BasicDecoder::payload_info(self.bytes)
+                .map(|b| b.value_len)
+                .unwrap_or(0)
         } else {
             0
         }
@@ -187,8 +201,8 @@ impl<'a> Rlp<'a> {
     ///
     /// Returns an error if this Rlp is not a list or if the index is out of range.
     pub fn at<'view>(&'view self, index: usize) -> Result<Rlp<'a>, DecoderError>
-        where
-            'a: 'view,
+    where
+        'a: 'view,
     {
         let (rlp, _offset) = self.at_with_offset(index)?;
         Ok(rlp)
@@ -198,24 +212,30 @@ impl<'a> Rlp<'a> {
     /// raw data slice.
     ///
     /// Returns an error if this Rlp is not a list or if the index is out of range.
-    pub fn at_with_offset<'view>(&'view self, index: usize) -> Result<(Rlp<'a>, usize), DecoderError>
-        where
-            'a: 'view,
+    pub fn at_with_offset<'view>(
+        &'view self,
+        index: usize,
+    ) -> Result<(Rlp<'a>, usize), DecoderError>
+    where
+        'a: 'view,
     {
         if !self.is_list() {
-            return Err(DecoderError::RlpExpectedToBeList)
+            return Err(DecoderError::RlpExpectedToBeList);
         }
 
         // move to cached position if its index is less or equal to
         // current search index, otherwise move to beginning of list
         let cache = self.offset_cache.get();
         let (bytes, indexes_to_skip, bytes_consumed) = match cache {
-            Some(ref cache) if cache.index <= index =>
-                (Rlp::consume(self.bytes, cache.offset)?, index - cache.index, cache.offset),
+            Some(ref cache) if cache.index <= index => (
+                Rlp::consume(self.bytes, cache.offset)?,
+                index - cache.index,
+                cache.offset,
+            ),
             _ => {
                 let (bytes, consumed) = self.consume_list_payload()?;
                 (bytes, index, consumed)
-            },
+            }
         };
 
         // skip up to x items
@@ -227,7 +247,10 @@ impl<'a> Rlp<'a> {
 
         // construct new rlp
         let found = BasicDecoder::payload_info(bytes)?;
-        Ok((Rlp::new(&bytes[0..found.header_len + found.value_len]), offset))
+        Ok((
+            Rlp::new(&bytes[0..found.header_len + found.value_len]),
+            offset,
+        ))
     }
 
     pub fn is_null(&self) -> bool {
@@ -248,7 +271,7 @@ impl<'a> Rlp<'a> {
 
     pub fn is_int(&self) -> bool {
         if self.is_null() {
-            return false
+            return false;
         }
 
         match self.bytes[0] {
@@ -257,42 +280,42 @@ impl<'a> Rlp<'a> {
             b @ 0xb8..=0xbf => {
                 let payload_idx = 1 + b as usize - 0xb7;
                 payload_idx < self.bytes.len() && self.bytes[payload_idx] != 0
-            },
+            }
             _ => false,
         }
     }
 
     pub fn iter<'view>(&'view self) -> RlpIterator<'a, 'view>
-        where
-            'a: 'view,
+    where
+        'a: 'view,
     {
         self.into_iter()
     }
 
     pub fn as_val<T>(&self) -> Result<T, DecoderError>
-        where
-            T: Decodable,
+    where
+        T: Decodable,
     {
         T::decode(self)
     }
 
     pub fn as_list<T>(&self) -> Result<Vec<T>, DecoderError>
-        where
-            T: Decodable,
+    where
+        T: Decodable,
     {
         self.iter().map(|rlp| rlp.as_val()).collect()
     }
 
     pub fn val_at<T>(&self, index: usize) -> Result<T, DecoderError>
-        where
-            T: Decodable,
+    where
+        T: Decodable,
     {
         self.at(index)?.as_val()
     }
 
     pub fn list_at<T>(&self, index: usize) -> Result<Vec<T>, DecoderError>
-        where
-            T: Decodable,
+    where
+        T: Decodable,
     {
         self.at(index)?.as_list()
     }
@@ -305,9 +328,12 @@ impl<'a> Rlp<'a> {
     fn consume_list_payload(&self) -> Result<(&'a [u8], usize), DecoderError> {
         let item = BasicDecoder::payload_info(self.bytes)?;
         if self.bytes.len() < (item.header_len + item.value_len) {
-            return Err(DecoderError::RlpIsTooShort)
+            return Err(DecoderError::RlpIsTooShort);
         }
-        Ok((&self.bytes[item.header_len..item.header_len + item.value_len], item.header_len))
+        Ok((
+            &self.bytes[item.header_len..item.header_len + item.value_len],
+            item.header_len,
+        ))
     }
 
     /// consumes fixed number of items
@@ -335,22 +361,25 @@ impl<'a> Rlp<'a> {
 
 /// Iterator over rlp-slice list elements.
 pub struct RlpIterator<'a, 'view>
-    where
-        'a: 'view,
+where
+    'a: 'view,
 {
     rlp: &'view Rlp<'a>,
     index: usize,
 }
 
 impl<'a, 'view> IntoIterator for &'view Rlp<'a>
-    where
-        'a: 'view,
+where
+    'a: 'view,
 {
     type Item = Rlp<'a>;
     type IntoIter = RlpIterator<'a, 'view>;
 
     fn into_iter(self) -> Self::IntoIter {
-        RlpIterator { rlp: self, index: 0 }
+        RlpIterator {
+            rlp: self,
+            index: 0,
+        }
     }
 }
 
@@ -390,8 +419,8 @@ impl<'a> BasicDecoder<'a> {
     }
 
     pub fn decode_value<T, F>(&self, f: F) -> Result<T, DecoderError>
-        where
-            F: Fn(&[u8]) -> Result<T, DecoderError>,
+    where
+        F: Fn(&[u8]) -> Result<T, DecoderError>,
     {
         let bytes = self.rlp;
 
@@ -402,24 +431,26 @@ impl<'a> BasicDecoder<'a> {
         } else if l <= 0xb7 {
             let last_index_of = 1 + l as usize - 0x80;
             if bytes.len() < last_index_of {
-                return Err(DecoderError::RlpInconsistentLengthAndData)
+                return Err(DecoderError::RlpInconsistentLengthAndData);
             }
             let d = &bytes[1..last_index_of];
             if l == 0x81 && d[0] < 0x80 {
-                return Err(DecoderError::RlpInvalidIndirection)
+                return Err(DecoderError::RlpInvalidIndirection);
             }
             Ok(f(d)?)
         } else if l <= 0xbf {
             let len_of_len = l as usize - 0xb7;
             let begin_of_value = 1_usize + len_of_len;
             if bytes.len() < begin_of_value {
-                return Err(DecoderError::RlpInconsistentLengthAndData)
+                return Err(DecoderError::RlpInconsistentLengthAndData);
             }
             let len = decode_usize(&bytes[1..begin_of_value])?;
 
-            let last_index_of_value = begin_of_value.checked_add(len).ok_or(DecoderError::RlpInvalidLength)?;
+            let last_index_of_value = begin_of_value
+                .checked_add(len)
+                .ok_or(DecoderError::RlpInvalidLength)?;
             if bytes.len() < last_index_of_value {
-                return Err(DecoderError::RlpInconsistentLengthAndData)
+                return Err(DecoderError::RlpInconsistentLengthAndData);
             }
             Ok(f(&bytes[begin_of_value..last_index_of_value])?)
         } else {

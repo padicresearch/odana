@@ -1,25 +1,30 @@
-mod blockchain;
 mod account;
+mod blockchain;
 mod txs;
 
-use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
-use tracing::{info};
-use anyhow::Result;
-use tonic::transport::Server;
-use proto::rpc::account_service_server::AccountServiceServer;
-use proto::rpc::chain_service_server::ChainServiceServer;
-use proto::rpc::transactions_service_server::TransactionsServiceServer;
-use traits::{Blockchain, StateDB};
-use txpool::TxPool;
-use types::config::EnvironmentConfig;
 use crate::account::AccountServiceImpl;
 use crate::blockchain::ChainServiceImpl;
 use crate::txs::TransactionsServiceImpl;
+use anyhow::Result;
+use proto::rpc::account_service_server::AccountServiceServer;
+use proto::rpc::chain_service_server::ChainServiceServer;
+use proto::rpc::transactions_service_server::TransactionsServiceServer;
+use std::net::SocketAddr;
+use std::sync::{Arc, RwLock};
+use tonic::transport::Server;
+use tracing::info;
+use traits::{Blockchain, StateDB};
+use txpool::TxPool;
+use types::config::EnvironmentConfig;
 
 pub struct RPC;
 
-pub async fn start_rpc_server(blockchain: Arc<dyn Blockchain>, state: Arc<dyn StateDB>, txpool: Arc<RwLock<TxPool>>, env: Arc<EnvironmentConfig>) -> Result<()> {
+pub async fn start_rpc_server(
+    blockchain: Arc<dyn Blockchain>,
+    state: Arc<dyn StateDB>,
+    txpool: Arc<RwLock<TxPool>>,
+    env: Arc<EnvironmentConfig>,
+) -> Result<()> {
     let host = env.host();
     let port = env.rpc_port();
     let addr = SocketAddr::new(host.parse()?, port);

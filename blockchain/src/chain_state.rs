@@ -110,12 +110,12 @@ impl ChainState {
     pub fn put_chain(
         &self,
         consensus: Arc<dyn Consensus>,
-        blocks: Box<dyn Iterator<Item=Block>>,
-        txpool: Arc<RwLock<TxPool>>
+        blocks: Box<dyn Iterator<Item = Block>>,
+        txpool: Arc<RwLock<TxPool>>,
     ) -> Result<()> {
         let _lock = self.lock.write().map_err(|e| anyhow!("{}", e))?;
         let mut blocks = blocks.peekable();
-        let current_head  = self.current_header()?;
+        let current_head = self.current_header()?;
         let current_head =
             current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
         let first_block = blocks.peek().unwrap();
@@ -163,7 +163,6 @@ impl ChainState {
             }
         }
 
-
         for block in blocks {
             let header = block.header().clone();
             match self
@@ -173,8 +172,14 @@ impl ChainState {
                 Ok((repack, block)) => {
                     self.block_storage.put(block.clone())?;
                     if repack {
-                        let mut txpool = txpool.write().map_err(|e| anyhow::anyhow!("{}",e))?;
-                        txpool.repack(AccountSet::new(), Some(ResetRequest::new(Some(current_head.raw.clone()), block.header().clone())))?;
+                        let mut txpool = txpool.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+                        txpool.repack(
+                            AccountSet::new(),
+                            Some(ResetRequest::new(
+                                Some(current_head.raw.clone()),
+                                block.header().clone(),
+                            )),
+                        )?;
                     }
                 }
                 Err(e) => {
@@ -231,10 +236,8 @@ impl ChainState {
         if block.parent_hash().eq(&current_head.hash) {
             let state = self.state();
             state.apply_txs(block.transactions().clone())?;
-            let _ = state.credit_balance(
-                header.coinbase(),
-                consensus.miner_reward(header.level()),
-            )?;
+            let _ =
+                state.credit_balance(header.coinbase(), consensus.miner_reward(header.level()))?;
             state.commit()?;
             self.chain_state.set_current_header(header.clone())?;
             self.sender.send(LocalEventMessage::StateChanged {
@@ -284,7 +287,6 @@ impl Blockchain for ChainState {
     }
 
     fn current_header(&self) -> anyhow::Result<Option<IndexedBlockHeader>> {
-
         self.chain_state
             .get_current_header()
             .map(|header| header.map(|header| header.into()))

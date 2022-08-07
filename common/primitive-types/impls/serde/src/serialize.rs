@@ -23,12 +23,12 @@ pub fn to_hex(bytes: &[u8], skip_leading_zero: bool) -> String {
         let non_zero = bytes.iter().take_while(|b| **b == 0).count();
         let bytes = &bytes[non_zero..];
         if bytes.is_empty() {
-            return "0x0".into()
+            return "0x0".into();
         } else {
             bytes
         }
     } else if bytes.is_empty() {
-        return "0x".into()
+        return "0x".into();
     } else {
         bytes
     };
@@ -85,7 +85,9 @@ impl fmt::Display for FromHexError {
         match *self {
             #[allow(deprecated)]
             Self::MissingPrefix => write!(fmt, "0x prefix is missing"),
-            Self::InvalidHex { character, index } => write!(fmt, "invalid hex character: {}, at {}", character, index),
+            Self::InvalidHex { character, index } => {
+                write!(fmt, "invalid hex character: {}, at {}", character, index)
+            }
         }
     }
 }
@@ -119,12 +121,15 @@ fn from_hex_raw(v: &str, bytes: &mut [u8], stripped: bool) -> Result<usize, From
             b'0'..=b'9' => buf |= byte - b'0',
             b' ' | b'\r' | b'\n' | b'\t' => {
                 buf >>= 4;
-                continue
-            },
+                continue;
+            }
             b => {
                 let character = char::from(b);
-                return Err(FromHexError::InvalidHex { character, index: index + if stripped { 2 } else { 0 } })
-            },
+                return Err(FromHexError::InvalidHex {
+                    character,
+                    index: index + if stripped { 2 } else { 0 },
+                });
+            }
         }
 
         modulus += 1;
@@ -140,8 +145,8 @@ fn from_hex_raw(v: &str, bytes: &mut [u8], stripped: bool) -> Result<usize, From
 
 /// Serializes a slice of bytes.
 pub fn serialize_raw<S>(slice: &mut [u8], bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+where
+    S: Serializer,
 {
     if bytes.is_empty() {
         serializer.serialize_str("0x")
@@ -152,8 +157,8 @@ pub fn serialize_raw<S>(slice: &mut [u8], bytes: &[u8], serializer: S) -> Result
 
 /// Serializes a slice of bytes.
 pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+where
+    S: Serializer,
 {
     let mut slice = vec![0u8; (bytes.len() + 1) * 2];
     serialize_raw(&mut slice, bytes, serializer)
@@ -163,8 +168,8 @@ pub fn serialize<S>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
 ///
 /// The representation will have all leading zeros trimmed.
 pub fn serialize_uint<S>(slice: &mut [u8], bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+where
+    S: Serializer,
 {
     let non_zero = bytes.iter().take_while(|b| **b == 0).count();
     let bytes = &bytes[non_zero..];
@@ -188,7 +193,9 @@ impl<'a> fmt::Display for ExpectedLen<'a> {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ExpectedLen::Exact(ref v) => write!(fmt, "length of {}", v.len() * 2),
-            ExpectedLen::Between(min, ref v) => write!(fmt, "length between ({}; {}]", min * 2, v.len() * 2),
+            ExpectedLen::Between(min, ref v) => {
+                write!(fmt, "length between ({}; {}]", min * 2, v.len() * 2)
+            }
         }
     }
 }
@@ -196,8 +203,8 @@ impl<'a> fmt::Display for ExpectedLen<'a> {
 /// Deserialize into vector of bytes.  This will allocate an O(n) intermediate
 /// string.
 pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
-    where
-        D: Deserializer<'de>,
+where
+    D: Deserializer<'de>,
 {
     struct Visitor;
 
@@ -222,9 +229,12 @@ pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
 
 /// Deserialize into vector of bytes with additional size check.
 /// Returns number of bytes written.
-pub fn deserialize_check_len<'a, 'de, D>(deserializer: D, len: ExpectedLen<'a>) -> Result<usize, D::Error>
-    where
-        D: Deserializer<'de>,
+pub fn deserialize_check_len<'a, 'de, D>(
+    deserializer: D,
+    len: ExpectedLen<'a>,
+) -> Result<usize, D::Error>
+where
+    D: Deserializer<'de>,
 {
     struct Visitor<'a> {
         len: ExpectedLen<'a>,
@@ -234,7 +244,11 @@ pub fn deserialize_check_len<'a, 'de, D>(deserializer: D, len: ExpectedLen<'a>) 
         type Value = usize;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            write!(formatter, "a (both 0x-prefixed or not) hex string with {}", self.len)
+            write!(
+                formatter,
+                "a (both 0x-prefixed or not) hex string with {}",
+                self.len
+            )
         }
 
         fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
@@ -247,7 +261,7 @@ pub fn deserialize_check_len<'a, 'de, D>(deserializer: D, len: ExpectedLen<'a>) 
             };
 
             if !is_len_valid {
-                return Err(E::invalid_length(v.len(), &self))
+                return Err(E::invalid_length(v.len(), &self));
             }
 
             let bytes = match self.len {
@@ -293,12 +307,18 @@ mod tests {
 
     #[test]
     fn should_not_fail_on_other_strings_with_prefix() {
-        let a: Bytes =
-            serde_json::from_str("\"0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587\"").unwrap();
-        let b: Bytes =
-            serde_json::from_str("\"0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b\"").unwrap();
-        let c: Bytes =
-            serde_json::from_str("\"0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b4\"").unwrap();
+        let a: Bytes = serde_json::from_str(
+            "\"0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587\"",
+        )
+        .unwrap();
+        let b: Bytes = serde_json::from_str(
+            "\"0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b\"",
+        )
+        .unwrap();
+        let c: Bytes = serde_json::from_str(
+            "\"0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b4\"",
+        )
+        .unwrap();
 
         assert_eq!(a.0.len(), 31);
         assert_eq!(b.0.len(), 32);
@@ -324,12 +344,18 @@ mod tests {
 
     #[test]
     fn should_not_fail_on_other_strings_without_prefix() {
-        let a: Bytes =
-            serde_json::from_str("\"7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587\"").unwrap();
-        let b: Bytes =
-            serde_json::from_str("\"7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b\"").unwrap();
-        let c: Bytes =
-            serde_json::from_str("\"7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b4\"").unwrap();
+        let a: Bytes = serde_json::from_str(
+            "\"7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587\"",
+        )
+        .unwrap();
+        let b: Bytes = serde_json::from_str(
+            "\"7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b\"",
+        )
+        .unwrap();
+        let c: Bytes = serde_json::from_str(
+            "\"7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587b4\"",
+        )
+        .unwrap();
 
         assert_eq!(a.0.len(), 31);
         assert_eq!(b.0.len(), 32);

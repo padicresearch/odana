@@ -27,20 +27,20 @@ pub fn impl_encodable(ast: &syn::DeriveInput) -> TokenStream {
     let stmts_len = stmts.len();
     let stmts_len = quote! { #stmts_len };
     let impl_block = quote! {
-		impl rlp::Encodable for #name {
-			fn rlp_append(&self, stream: &mut rlp::RlpStream) {
-				stream.begin_list(#stmts_len);
-				#(#stmts)*
-			}
-		}
-	};
+        impl rlp::Encodable for #name {
+            fn rlp_append(&self, stream: &mut rlp::RlpStream) {
+                stream.begin_list(#stmts_len);
+                #(#stmts)*
+            }
+        }
+    };
 
     quote! {
-		const _: () = {
-			extern crate rlp;
-			#impl_block
-		};
-	}
+        const _: () = {
+            extern crate rlp;
+            #impl_block
+        };
+    }
 }
 
 pub fn impl_encodable_wrapper(ast: &syn::DeriveInput) -> TokenStream {
@@ -63,19 +63,19 @@ pub fn impl_encodable_wrapper(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
 
     let impl_block = quote! {
-		impl rlp::Encodable for #name {
-			fn rlp_append(&self, stream: &mut rlp::RlpStream) {
-				#stmt
-			}
-		}
-	};
+        impl rlp::Encodable for #name {
+            fn rlp_append(&self, stream: &mut rlp::RlpStream) {
+                #stmt
+            }
+        }
+    };
 
     quote! {
-		const _: () = {
-			extern crate rlp;
-			#impl_block
-		};
-	}
+        const _: () = {
+            extern crate rlp;
+            #impl_block
+        };
+    }
 }
 
 fn encodable_field(index: usize, field: &syn::Field) -> TokenStream {
@@ -89,15 +89,26 @@ fn encodable_field(index: usize, field: &syn::Field) -> TokenStream {
     let id = quote! { self.#ident };
 
     if let syn::Type::Path(path) = &field.ty {
-        let top_segment = path.path.segments.first().expect("there must be at least 1 segment");
+        let top_segment = path
+            .path
+            .segments
+            .first()
+            .expect("there must be at least 1 segment");
         let ident = &top_segment.ident;
         if ident == "Vec" {
             let inner_ident = {
                 if let syn::PathArguments::AngleBracketed(angle) = &top_segment.arguments {
-                    if let syn::GenericArgument::Type(syn::Type::Path(path)) =
-                    angle.args.first().expect("Vec has only one angle bracketed type; qed")
+                    if let syn::GenericArgument::Type(syn::Type::Path(path)) = angle
+                        .args
+                        .first()
+                        .expect("Vec has only one angle bracketed type; qed")
                     {
-                        &path.path.segments.first().expect("there must be at least 1 segment").ident
+                        &path
+                            .path
+                            .segments
+                            .first()
+                            .expect("there must be at least 1 segment")
+                            .ident
                     } else {
                         panic!("rlp_derive not supported");
                     }

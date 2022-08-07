@@ -1,9 +1,9 @@
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 
-use crypto::ecdsa::{Keypair};
-use primitive_types::{H256};
-use types::account::{Account, get_address_from_pub_key};
+use crypto::ecdsa::Keypair;
+use primitive_types::H256;
+use types::account::{get_address_from_pub_key, Account};
 
 pub const GOVERNANCE_ACCOUNTID: [u8; 32] = [
     102, 129, 71, 31, 126, 221, 234, 218, 37, 39, 104, 100, 107, 75, 80, 209, 8, 43, 33, 26, 137,

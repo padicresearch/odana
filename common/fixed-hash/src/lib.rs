@@ -58,6 +58,6 @@ mod tests;
 
 #[cfg(feature = "api-dummy")]
 construct_fixed_hash! {
-	/// Go here for an overview of the hash type API.
-	pub struct ApiDummy(32);
+    /// Go here for an overview of the hash type API.
+    pub struct ApiDummy(32);
 }

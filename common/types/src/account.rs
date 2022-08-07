@@ -69,10 +69,9 @@ impl Account {
 
 impl From<Account> for H160 {
     fn from(account: Account) -> Self {
-       account.address
+        account.address
     }
 }
-
 
 pub fn get_address_from_pub_key(pub_key: PublicKey) -> H160 {
     let address = RIPEMD160::digest(SHA256::digest(&pub_key.to_bytes()).as_bytes());

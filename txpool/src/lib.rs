@@ -12,12 +12,12 @@ use anyhow::Result;
 use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::{H160, H256};
+use proto::TransactionStatus;
 use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};
-use types::block::{BlockHeader};
+use types::block::BlockHeader;
 use types::events::LocalEventMessage;
 use types::tx::{SignedTransaction, TransactionList};
-use proto::TransactionStatus;
 use types::{Hash, TxPoolConfig};
 
 use crate::error::TxPoolError;
@@ -128,13 +128,9 @@ impl TxPool {
         lmpsc: UnboundedSender<LocalEventMessage>,
         chain: Arc<dyn Blockchain>,
     ) -> Result<Self> {
-        let conf = conf
-            .map(sanitize)
-            .unwrap_or(DEFAULT_TX_POOL_CONFIG);
+        let conf = conf.map(sanitize).unwrap_or(DEFAULT_TX_POOL_CONFIG);
         let current_state = chain.get_current_state()?;
-        let locals = local_accounts
-            .map(AccountSet::from)
-            .unwrap_or_default();
+        let locals = local_accounts.map(AccountSet::from).unwrap_or_default();
         Ok(Self {
             config: conf,
             locals,
@@ -155,11 +151,11 @@ impl TxPool {
     fn validate_tx(&self, tx: &SignedTransaction, _local: bool) -> Result<()> {
         let from = tx.sender();
         if self.current_state.nonce(&from) > tx.nonce() {
-            return Err(TxPoolError::NonceTooLow.into())
+            return Err(TxPoolError::NonceTooLow.into());
         }
         let sender_balance = self.current_state.balance(&from);
         if sender_balance < tx.fees() + tx.price() {
-            return Err(TxPoolError::InsufficientFunds(tx.fees(), tx.price()).into())
+            return Err(TxPoolError::InsufficientFunds(tx.fees(), tx.price()).into());
         }
         Ok(())
     }
@@ -257,7 +253,7 @@ impl TxPool {
         add_all: bool,
     ) -> Result<bool> {
         let from = tx.sender();
-        let queue = self.queue.entry(from).or_insert_with(||TxList::new(false));
+        let queue = self.queue.entry(from).or_insert_with(|| TxList::new(false));
         let (inserted, old) = queue.add(tx.clone(), self.config.price_bump);
         anyhow::ensure!(inserted, TxPoolError::ReplaceUnderpriced);
         if let Some(old) = &old {
@@ -322,7 +318,10 @@ impl TxPool {
 
     fn promote_tx(&mut self, addr: H160, hash: Hash, tx: TransactionRef) -> bool {
         let nonce = tx.nonce();
-        let list = self.pending.entry(addr).or_insert_with(||TxList::new(true));
+        let list = self
+            .pending
+            .entry(addr)
+            .or_insert_with(|| TxList::new(true));
         let (inserted, old) = list.add(tx.clone(), self.config.price_bump);
         if !inserted {
             // If not inserted an older transaction was better so remove the new transaction completely

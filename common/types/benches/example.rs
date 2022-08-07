@@ -1,5 +1,5 @@
-use criterion::{criterion_group, criterion_main, Criterion};
 use codec::{ConsensusCodec, Encoder};
+use criterion::{criterion_group, criterion_main, Criterion};
 use primitive_types::{H160, H256, U128, U256};
 use types::block::BlockHeader;
 
@@ -41,20 +41,12 @@ fn bincodec() -> usize {
 
 //#[bench]
 fn bench_codec(b: &mut Criterion) {
-    b.bench_function("bincodec", |b| {
-        b.iter(|| {
-            bincodec()
-        })
-    });
+    b.bench_function("bincodec", |b| b.iter(|| bincodec()));
 }
 
 //#[bench]
 fn bench_consensus_codec(b: &mut Criterion) {
-    b.bench_function("consensus_codec", |b| {
-        b.iter(|| {
-            consensus_codec()
-        })
-    });
+    b.bench_function("consensus_codec", |b| b.iter(|| consensus_codec()));
 }
 
 criterion_group!(benches, bench_codec, bench_consensus_codec);

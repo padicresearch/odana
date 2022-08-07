@@ -6,16 +6,15 @@ use std::sync::{Arc, RwLock};
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
-
 use crate::account::get_address_from_pub_key;
 use crate::{cache, Hash};
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
 use crypto::ecdsa::{PublicKey, Signature};
-use crypto::{SHA256};
+use crypto::SHA256;
 use primitive_types::{H160, H256, U128};
 use prost::Message;
-use proto::{ UnsignedTransaction};
+use proto::UnsignedTransaction;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {
@@ -56,9 +55,7 @@ pub struct TransactionList {
 
 impl TransactionList {
     pub fn new(txs: Vec<Arc<SignedTransaction>>) -> Self {
-        Self {
-            txs
-        }
+        Self { txs }
     }
 }
 
@@ -146,7 +143,6 @@ impl SignedTransaction {
     }
 
     pub fn hash(&self) -> [u8; 32] {
-        
         cache(&self.hash, || {
             SHA256::digest(self.encode().unwrap()).to_fixed_bytes()
         })
@@ -183,7 +179,6 @@ impl SignedTransaction {
     }
 
     pub fn from(&self) -> H160 {
-        
         cache(&self.from, || {
             Signature::from_rsv((&self.r, &self.s, self.v))
                 .map_err(|e| anyhow::anyhow!(e))
@@ -191,7 +186,8 @@ impl SignedTransaction {
                     self.sig_hash().and_then(|sig_hash| {
                         signature
                             .recover_public_key(&sig_hash)
-                            .map_err(|e| anyhow::anyhow!(e)).map(get_address_from_pub_key)
+                            .map_err(|e| anyhow::anyhow!(e))
+                            .map(get_address_from_pub_key)
                     })
                 })
                 .unwrap_or_default()
