@@ -49,23 +49,6 @@ impl Transaction {
     }
 }
 
-impl Encoder for Transaction {
-    fn encode(&self) -> Result<Vec<u8>> {
-        let unsigned_tx: Result<UnsignedTransaction> = self.clone().into_proto();
-        unsigned_tx
-            .map(|tx| tx.encode_to_vec())
-            .map_err(|e| anyhow!("{}", e))
-    }
-}
-
-impl Decoder for Transaction {
-    fn decode(buf: &[u8]) -> Result<Self> {
-        let unsigned_tx: UnsignedTransaction = UnsignedTransaction::decode(buf)?;
-        let json_rep = serde_json::to_vec(&unsigned_tx)?;
-        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TransactionList {
     pub txs: Vec<Arc<SignedTransaction>>,

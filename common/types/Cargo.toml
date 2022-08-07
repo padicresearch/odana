@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 serde-big-array = "0.3.2"
-primitive-types = { path = "../primitive-types" }
 serde = { version = "1.0.130", features = ["derive", "rc"] }
 tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
 anyhow = "1"
@@ -16,15 +15,18 @@ getset = "0.1.2"
 num-traits = "0.2.15"
 hex = "0.4.3"
 prost = "0.10.4"
-codec = { path = "../../codec" }
-crypto = { path = "../../crypto" }
-proto = { path = "../../proto" }
-prefix-hex = { path = "../prefix-hex" }
 rmp-serde = "1.0.0"
 serde_json = "1.0"
 actix = "0.13"
 bytes = { version = "1", features = ["serde"] }
 clap = { version = "3.0.13", features = ["derive"] }
+chrono = "0.4"
+# local deps
+prefix-hex = { path = "../prefix-hex" }
+primitive-types = { path = "../primitive-types" }
+codec = { path = "../../codec" }
+crypto = { path = "../../crypto" }
+proto = { path = "../../proto" }
 [dev-dependencies]
 rand = "0.7"
 bincode = "1.0.130"

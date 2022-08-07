@@ -26,7 +26,7 @@ pub fn make_sign_transaction(
         fee: fee.into(),
         data,
     };
-    let sig = account.sign(SHA256::digest(data.encode()?).as_fixed_bytes())?;
+    let sig = account.sign(SHA256::digest(data.sig_hash()).as_fixed_bytes())?;
     SignedTransaction::new(sig, data.into_proto()?)
 }
 

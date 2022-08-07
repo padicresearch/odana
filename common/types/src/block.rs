@@ -1,9 +1,11 @@
 use core::cmp;
 use std::cmp::Ordering;
+use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 use anyhow::{Result};
 use bytes::{Buf, Bytes, BytesMut};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 use codec::{ConsensusCodec, impl_codec};
@@ -305,4 +307,25 @@ fn test_proto_conversions() {
 
     println!("{:#?}", pheader);
     println!("{:#02x}", U128::from(5));
+}
+
+#[test]
+fn test_consensus_codec() {
+    let block_header = BlockHeader::new(
+        H256::from_str("0x0000014f092233bd0d41ab40817649d9a188ef86dc2f631a4c96e15997080499").unwrap(),
+        H256::from_str("0x0000000000000000000000000000000000000000000000000000000000000000").unwrap(),
+        H256::from_str("0x0c191dd909dad74ef2f96ed5dad8e9778e75b46979178cfb61f051ec06882ea8").unwrap(),
+        U256::from_str("0x1").unwrap(),
+        H160::from_str("0x350dc631bd1dc8f21d76a636ecea2ed4482a0a97").unwrap(),
+        30,
+        30,
+        30,
+        Utc::now().timestamp_subsec_millis(),
+        U128::from(5),
+    );
+    let a = block_header.into_proto();
+    let encoded = block_header.consensus_encode();
+    let block_header = BlockHeader::consensus_decode(&encoded).unwrap();
+    let b = block_header.into_proto();
+    assert_eq!(a.unwrap(),b.unwrap());
 }
