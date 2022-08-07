@@ -115,7 +115,7 @@ impl ChainState {
     ) -> Result<()> {
         let _lock = self.lock.write().map_err(|e| anyhow!("{}", e))?;
         let mut blocks = blocks.peekable();
-        let current_head = self.current_header()?;
+        let current_head  = self.current_header()?;
         let current_head =
             current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
         let first_block = blocks.peek().unwrap();
@@ -184,6 +184,13 @@ impl ChainState {
             };
         }
         Ok(())
+    }
+
+    pub fn current_header_blocking(&self) -> anyhow::Result<Option<IndexedBlockHeader>> {
+        let _lock = self.lock.read().map_err(|e| anyhow!("{}", e))?;
+        self.chain_state
+            .get_current_header()
+            .map(|header| header.map(|header| header.into()))
     }
 
     fn process_block(&self, consensus: Arc<dyn Consensus>, block: Block) -> Result<Block> {
@@ -270,7 +277,7 @@ impl Blockchain for ChainState {
     }
 
     fn current_header(&self) -> anyhow::Result<Option<IndexedBlockHeader>> {
-        let _lock = self.lock.read().map_err(|e| anyhow!("{}", e))?;
+
         self.chain_state
             .get_current_header()
             .map(|header| header.map(|header| header.into()))

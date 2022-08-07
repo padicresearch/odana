@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use std::sync::{Arc, RwLock};
 
 use anyhow::{Result};
+use bytes::{Buf, Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
 
 use codec::{ConsensusCodec, impl_codec};
@@ -17,6 +18,7 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use serde_json::json;
 
 use super::*;
+const HEADER_SIZE : usize = 180;
 
 #[derive(Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize)]
 pub struct BlockPrimaryKey(pub Hash, pub i32);
@@ -112,34 +114,34 @@ impl BlockHeader {
 
 impl ConsensusCodec for BlockHeader {
     fn consensus_encode(self) -> Vec<u8> {
-        let raw_pack = RawBlockHeaderPacket {
-            parent_hash: self.parent_hash.as_bytes().to_vec(),
-            merkle_root: self.parent_hash.as_bytes().to_vec(),
-            state_root: self.state_root.as_bytes().to_vec(),
-            mix_nonce: self.mix_nonce.to_be_bytes().to_vec(),
-            coinbase: self.coinbase.as_bytes().to_vec(),
-            difficulty: self.difficulty,
-            chain_id: self.chain_id,
-            level: self.level,
-            time: self.time,
-            nonce: self.nonce.to_be_bytes().to_vec(),
-        };
-        raw_pack.encode_to_vec()
+        let mut encoded = BytesMut::with_capacity(HEADER_SIZE);
+        encoded.extend(self.parent_hash.as_bytes());
+        encoded.extend(self.merkle_root.as_bytes());
+        encoded.extend(self.state_root.as_bytes());
+        encoded.extend(self.mix_nonce.to_be_bytes());
+        encoded.extend(self.coinbase.as_bytes());
+        encoded.extend(self.difficulty.to_be_bytes());
+        encoded.extend(self.chain_id.to_be_bytes());
+        encoded.extend(self.level.to_be_bytes());
+        encoded.extend(self.time.to_be_bytes());
+        encoded.extend(self.nonce.to_be_bytes());
+        encoded.to_vec()
     }
 
     fn consensus_decode(buf: &[u8]) -> Result<Self> {
-        let raw_pack: RawBlockHeaderPacket = RawBlockHeaderPacket::decode(buf)?;
+
+        let mut bytes = Bytes::copy_from_slice(buf);
         Ok(Self {
-            parent_hash: H256::from_slice(raw_pack.parent_hash.as_slice()),
-            merkle_root: H256::from_slice(raw_pack.merkle_root.as_slice()),
-            state_root: H256::from_slice(raw_pack.state_root.as_slice()),
-            mix_nonce: U256::from_big_endian(raw_pack.mix_nonce.as_slice()),
-            coinbase: H160::from_slice(raw_pack.coinbase.as_slice()),
-            difficulty: raw_pack.difficulty,
-            chain_id: raw_pack.chain_id,
-            level: raw_pack.level,
-            time: raw_pack.time,
-            nonce: U128::from_big_endian(raw_pack.parent_hash.as_slice()),
+            parent_hash: H256::from_slice(&bytes.copy_to_bytes(32)),
+            merkle_root: H256::from_slice(&bytes.copy_to_bytes(32)),
+            state_root: H256::from_slice(&bytes.copy_to_bytes(32)),
+            mix_nonce: U256::from_big_endian(&bytes.copy_to_bytes(32)),
+            coinbase: H160::from_slice(&bytes.copy_to_bytes(20)),
+            difficulty: bytes.get_u32(),
+            chain_id: bytes.get_u32(),
+            level: bytes.get_i32(),
+            time: bytes.get_u32(),
+            nonce: U128::from(bytes.get_u128()),
         })
     }
 }

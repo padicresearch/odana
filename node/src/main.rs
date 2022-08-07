@@ -190,7 +190,7 @@ fn create_file_path(datadir: Option<PathBuf>, filename: &str) -> Result<PathBuf>
     let user_dirs = UserDirs::new().ok_or(anyhow::anyhow!("user dir not found"))?;
     let path = datadir
         .clone()
-        .unwrap_or(PathBuf::from(user_dirs.home_dir()).join("tuchain"));
+        .unwrap_or(PathBuf::from(user_dirs.home_dir()).join(".uchain"));
     fs_extra::dir::create_all(path.as_path(), false)?;
     Ok(path.join(filename))
 }

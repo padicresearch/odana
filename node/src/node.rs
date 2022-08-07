@@ -74,7 +74,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
 
     let user_dir = UserDirs::new().unwrap();
     let mut default_datadir = PathBuf::from(user_dir.home_dir());
-    default_datadir.push("tuchain");
+    default_datadir.push(".uchain");
     let mut datadir = args.datadir.clone().unwrap_or(default_datadir);
 
     let mut config = EnvironmentConfig::default();
