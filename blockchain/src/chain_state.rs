@@ -113,7 +113,7 @@ impl ChainState {
         blocks: Box<dyn Iterator<Item = Block>>,
         txpool: Arc<RwLock<TxPool>>,
     ) -> Result<()> {
-        let _lock = self.lock.write().map_err(|e| anyhow!("{}", e))?;
+        //let _lock = self.lock.write().map_err(|e| anyhow!("{}", e))?;
         let mut blocks = blocks.peekable();
         let current_head = self.current_header()?;
         let current_head =
@@ -171,8 +171,12 @@ impl ChainState {
             {
                 Ok((repack, block)) => {
                     self.block_storage.put(block.clone())?;
+
                     if repack {
+
                         let mut txpool = txpool.write().map_err(|e| anyhow::anyhow!("{}", e))?;
+                        println!("txpool write lock acquired");
+                        println!("Repacking");
                         txpool.repack(
                             AccountSet::new(),
                             Some(ResetRequest::new(
@@ -180,6 +184,7 @@ impl ChainState {
                                 block.header().clone(),
                             )),
                         )?;
+                        println!("Repacked");
                     }
                 }
                 Err(e) => {

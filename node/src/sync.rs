@@ -226,7 +226,7 @@ impl SyncService {
         block_storage: Arc<BlockStorage>,
         sync_mode: Arc<SyncMode>,
     ) -> Self {
-        let node_height = chain.current_header_blocking().unwrap();
+        let node_height = chain.current_header().unwrap();
         let node_height = node_height.map(|block| block.raw.level()).unwrap();
         let network_tip = consensus.get_genesis_header();
         Self {
@@ -244,9 +244,7 @@ impl SyncService {
     }
 
     fn local_tip(&self) -> Result<BlockHeader> {
-        self.chain
-            .current_header_blocking()
-            .map(|head| head.unwrap().raw)
+        self.chain.current_header().map(|head| head.unwrap().raw)
     }
 
     fn validate_chain(&self, blocks: &[Block]) -> bool {
