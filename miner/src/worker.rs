@@ -113,7 +113,7 @@ pub fn start_worker(
                 let level = block_template.level();
 
                 let node_head = chain
-                    .current_header()
+                    .current_header_blocking()
                     .map(|block| block.map(|block| block.raw.level()).unwrap_or_default())
                     .unwrap_or_default();
 
