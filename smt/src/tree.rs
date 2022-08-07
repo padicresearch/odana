@@ -245,6 +245,16 @@ where
         self.get_descend(key, descend)
     }
 
+    pub fn get_at_root(&self,from_root: &H256, key: &K) -> Result<Option<V>> {
+        let descend = match self.options.strategy {
+            CopyStrategy::Partial => true,
+            CopyStrategy::Full => false,
+            CopyStrategy::None => false,
+        };
+
+        self.get_descend_from_root(from_root, key, descend)
+    }
+
     pub fn get_with_proof(&self, key: &K) -> Result<(V, Proof)> {
         let head = self.head.read().map_err(|_e| Error::RWPoison)?;
         let raw_key = key.encode()?;
@@ -260,6 +270,32 @@ where
         let staging = self.staging.read().map_err(|_e| Error::RWPoison)?;
         let head = self.head.read().map_err(|_e| Error::RWPoison)?;
         let mut value = staging.get(&key)?;
+        if value.is_empty() && descend {
+            let res = self._get_descend(&key, &head.root)?;
+            match res {
+                None => return Ok(None),
+                Some(encoded_value) => {
+                    value = encoded_value;
+                }
+            }
+        } else if value.is_empty() && !descend {
+            value = head.get(&key)?;
+        }
+
+        if value.is_empty() {
+            return Ok(None);
+        }
+        let decoded_value = IValue::decode(&value)?;
+        match decoded_value {
+            IValue::Deleted => Ok(None),
+            IValue::Value(value) => Ok(Some(V::decode(&value)?)),
+        }
+    }
+
+    fn get_descend_from_root(&self, from_root: &H256, key: &K, descend: bool) -> Result<Option<V>> {
+        let key = key.encode()?;
+        let mut head = self.db.get(from_root)?;
+        let mut value = head.get(&key)?;
         if value.is_empty() && descend {
             let res = self._get_descend(&key, &head.root)?;
             match res {

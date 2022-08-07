@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use std::sync::{Arc, RwLock};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -169,8 +169,10 @@ impl ChainState {
                 .process_block(consensus.clone(), block)
                 .and_then(|block| self.accept_block(consensus.clone(), block))
             {
-                Ok((repack, block)) => {
-                    self.block_storage.put(block.clone())?;
+                Ok((repack, store_block, block)) => {
+                    if store_block {
+                        self.block_storage.put(block.clone())?;
+                    }
 
                     if repack {
 
@@ -229,7 +231,7 @@ impl ChainState {
         Ok(block)
     }
 
-    fn accept_block(&self, consensus: Arc<dyn Consensus>, block: Block) -> Result<(bool, Block)> {
+    fn accept_block(&self, consensus: Arc<dyn Consensus>, block: Block) -> Result<(bool, bool ,Block)> {
         let current_head = self.current_header()?;
         let current_head =
             current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
@@ -255,12 +257,18 @@ impl ChainState {
                 .get_header_by_hash(block.parent_hash())?
                 .ok_or(anyhow!("error accepting block non commit"))?;
             let parent_state_root = parent_header.raw.state_root();
-            state.apply_txs_no_commit(
+            let commit_state = state.apply_txs_no_commit(
                 *parent_state_root,
                 consensus.miner_reward(block.level()),
                 *block.header().coinbase(),
                 block.transactions().clone(),
             )?;
+            let commit_state = H256::from(commit_state);
+            if commit_state.ne(header.state_root()) {
+                warn!(header = ?header.hash(), expected_state_root = ?commit_state , block_state_root = ?header.state_root(), parent_hash = ?format!("{}", header.parent_hash()), "Rejected block with invalid state");
+                bail!("Invalid or Corrupt Block")
+            }
+
             info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Accepted block No Commit");
             if block.level() > current_head.raw.level() {
                 debug!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Resetting state");
@@ -271,7 +279,7 @@ impl ChainState {
             }
         }
 
-        Ok((repack, block))
+        Ok((repack, true, block))
     }
 
     pub fn block_storage(&self) -> Arc<BlockStorage> {
