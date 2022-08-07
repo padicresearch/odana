@@ -100,7 +100,7 @@ enum IdentityCommands {
 
 #[derive(Args, Debug)]
 struct IdentityGenerateArgs {
-    #[clap(default_value_t = 20.0)]
+    #[clap(default_value_t = 26.0)]
     difficulty: f64,
     #[clap(short, long)]
     datadir: Option<PathBuf>,
@@ -221,7 +221,7 @@ fn generate_identity_file(args: &IdentityGenerateArgs) -> Result<()> {
     let identity = NodeIdentity::generate(crypto::make_target(args.difficulty));
     serde_json::to_writer(&identity_file, &identity.export_as_config())?;
     identity_file.sync_all()?;
-    pb.finish_with_message(format!("Created {:?}", identity_file_path));
+    pb.finish_with_message(format!("Created identity path: {:?}  difficulty({})", identity_file_path,args.difficulty));
     Ok(())
 }
 

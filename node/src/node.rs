@@ -105,7 +105,9 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         config.network = network;
     }
 
-    config.peers = args.peer.clone();
+    if !args.peer.is_empty() {
+        config.peers = args.peer.clone();
+    }
 
     if let Some(network) = args.network {
         config.network = network;
