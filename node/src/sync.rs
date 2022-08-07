@@ -93,7 +93,7 @@ impl SyncService {
 
     fn handle_import_blocks(&mut self, msg: &BlocksMessage) -> Result<()> {
         let blocks_to_import = &msg.blocks;
-        let node_head = self.chain.current_header().unwrap();
+        let node_head = self.chain.current_header_blocking().unwrap();
         let node_level = node_head.map(|block| block.raw.level()).unwrap();
 
         if blocks_to_import.is_empty() && node_level >= self.network_tip.level() {
@@ -195,7 +195,7 @@ impl SyncService {
     pub fn handle_local_message(&mut self, msg: LocalEventMessage) -> Result<()> {
         match msg {
             LocalEventMessage::NetworkHighestHeadChanged { peer_id, tip } => {
-                let current_header = self.chain.current_header()?;
+                let current_header = self.chain.current_header_blocking()?;
                 let current_header = current_header.unwrap();
                 let tip = tip.unwrap_or(current_header.raw.clone());
                 let node_height = current_header.raw.level();
@@ -244,7 +244,7 @@ impl SyncService {
     }
 
     fn local_tip(&self) -> Result<BlockHeader> {
-        self.chain.current_header().map(|head| head.unwrap().raw)
+        self.chain.current_header_blocking().map(|head| head.unwrap().raw)
     }
 
     fn validate_chain(&self, blocks: &[Block]) -> bool {

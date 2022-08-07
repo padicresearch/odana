@@ -402,7 +402,7 @@ impl TxPool {
                     let mut discarded = BTreeSet::new();
                     let mut included = BTreeSet::new();
                     let rem = self.chain.get_block(&old_head.hash(), old_head.level())?;
-                    let add = match self.chain.get_block(&new_head.hash(), new_head.level())? {
+                    let mut add = match self.chain.get_block(&new_head.hash(), new_head.level())? {
                         None => {
                             error!(target : TXPOOL_LOG_TARGET, new_head = ?new_head.hash(), "Transaction pool reset with missing newhead");
                             return Err(TxPoolError::MissingBlock.into());
@@ -417,7 +417,7 @@ impl TxPool {
                                     .iter()
                                     .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block_by_hash(rem.parent_hash())? {
+                            if let Some(block) = self.chain.get_block(rem.parent_hash(), rem.level() - 1)? {
                                 rem = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?old_head.hash(),level = ?old_num,"Unrooted old chain seen by tx pool");
@@ -430,8 +430,8 @@ impl TxPool {
                                     .iter()
                                     .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block_by_hash(add.parent_hash())? {
-                                rem = block;
+                            if let Some(block) = self.chain.get_block(add.parent_hash(), add.level() - 1)? {
+                                add = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?new_head.hash(),level = ?new_num,"Unrooted new chain seen by tx pool");
                                 return Ok(());
@@ -443,7 +443,7 @@ impl TxPool {
                                     .iter()
                                     .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block_by_hash(rem.parent_hash())? {
+                            if let Some(block) = self.chain.get_block(rem.parent_hash(), rem.level() - 1)? {
                                 rem = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?old_head.hash(),level = ?old_num,"Unrooted old chain seen by tx pool");
@@ -454,8 +454,8 @@ impl TxPool {
                                     .iter()
                                     .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block_by_hash(add.parent_hash())? {
-                                rem = block;
+                            if let Some(block) = self.chain.get_block(add.parent_hash(), add.level() - 1)? {
+                                add = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?new_head.hash(),level = ?new_num,"Unrooted new chain seen by tx pool");
                                 return Ok(());
