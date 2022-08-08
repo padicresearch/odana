@@ -131,12 +131,12 @@ impl ChainState {
 
             let parent_header_raw = &parent_header.raw;
             let parent_state_root = parent_header_raw.state_root();
-            debug!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Resetting state to");
+            info!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Resetting state to");
             self.state.reset(*parent_state_root)?;
             self.chain_state
                 .set_current_header(parent_header_raw.clone())?;
             info!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Rolled back chain to previous");
-            debug!(chain_head = ?current_head.hash, chain_tail = ?parent_header.hash, level = current_head.raw.level(), "Removing stale chain");
+            info!(chain_head = ?current_head.hash, chain_tail = ?parent_header.hash, level = current_head.raw.level(), "Removing stale chain");
             // Remove current chain
             {
                 let block_storage = self.block_storage();
