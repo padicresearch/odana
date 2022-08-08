@@ -211,6 +211,7 @@ impl ChainState {
 
     fn process_block(&self, consensus: Arc<dyn Consensus>, block: Block) -> Result<Block> {
         let mut header = block.header().clone();
+        println!("process_block: consensus.prepare_header");
         consensus.prepare_header(self.block_storage.clone(), &mut header)?;
         let block_storage = self.block_storage();
         let parent_header = block_storage
@@ -218,12 +219,14 @@ impl ChainState {
             .ok_or(anyhow!("error processing block parent block not found"))?;
         let parent_state_root = parent_header.raw.state_root();
         let parent_state = self.state.get_sate_at(*parent_state_root)?;
+        println!("process_block: consensus.finalize");
         consensus.finalize(
             self.block_storage.clone(),
             &mut header,
             parent_state,
             block.transactions().clone(),
         )?;
+        println!("process_block: consensus.verify_header");
         consensus.verify_header(self.block_storage.clone(), &header)?;
         if header.hash() != block.hash() {
             return Err(BlockChainError::InvalidBlock.into());
@@ -239,6 +242,7 @@ impl ChainState {
         let mut repack = false;
         if block.parent_hash().eq(&current_head.hash) {
             let state = self.state();
+            println!("accept_block: state.apply_txs");
             state.apply_txs(block.transactions().clone())?;
             let _ =
                 state.credit_balance(header.coinbase(), consensus.miner_reward(header.level()))?;
