@@ -53,10 +53,8 @@ impl TxSortedList {
 
     pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef> {
         if self.txs.len() <= threshold {
-            println!("self.txs.len() <= threshold returning");
             return Default::default();
         }
-        println!("Cap <= {} returning", threshold);
         let mut remain = BTreeMap::new();
         let mut slots = threshold;
         while slots > 0 {

@@ -105,6 +105,7 @@ async fn config_network(
     let config = GossipsubConfigBuilder::default()
         .max_transmit_size(max_transmit_size)
         .protocol_id_prefix("tuchain")
+        .idle_timeout(Duration::from_secs(3600))
         .validation_mode(ValidationMode::Permissive)
         .build()
         .expect("Failed to create Gossip sub network");
@@ -128,7 +129,7 @@ async fn config_network(
             ChainP2pExchangeCodec,
             iter::once((ChainP2pExchangeProtocol, ProtocolSupport::Full)),
             RequestResponseConfig::default()
-                .set_connection_keep_alive(Duration::from_secs(60))
+                .set_connection_keep_alive(Duration::from_secs(3600))
                 .clone(),
         ),
         p2p_to_node,
