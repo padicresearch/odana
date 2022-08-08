@@ -59,13 +59,13 @@
   Output:
   ```json
   {
-    "address": "0xa253d958f45db8aa712787cee1322aa2d7438a8f",
-    "secret" : "0xd2e73c5bf670001803d9436a78d14ca9c12185f33fbc197274a104d817a088ab"
+    "address": "0xffff…ffff",
+    "secret" : "0xffff…ffff"
   }
   ```
   Set miner
   ```shell
-  ./target/release/node config update --miner="0xa253d958f45db8aa712787cee1322aa2d7438a8f"
+  ./target/release/node config update --miner="0xffff…ffff"
   ```
 * Run node
   ```shell

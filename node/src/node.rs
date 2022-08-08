@@ -186,7 +186,6 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     let mut sync_service = {
         let blockchain = blockchain.clone();
         let consensus = consensus.clone();
-        //let system = System::new();
         SyncService::new(
             blockchain.chain(),
             blockchain.txpool(),
@@ -216,6 +215,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         let blockchain = blockchain.clone();
         let env = env.clone();
         tokio::spawn(start_rpc_server(
+            local_mpsc_sender.clone(),
             blockchain.chain().clone(),
             blockchain.chain().state(),
             blockchain.txpool(),

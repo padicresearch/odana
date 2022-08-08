@@ -11,15 +11,18 @@ use proto::rpc::chain_service_server::ChainServiceServer;
 use proto::rpc::transactions_service_server::TransactionsServiceServer;
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
+use tokio::sync::mpsc::UnboundedSender;
 use tonic::transport::Server;
 use tracing::info;
 use traits::{Blockchain, StateDB};
 use txpool::TxPool;
 use types::config::EnvironmentConfig;
+use types::events::LocalEventMessage;
 
 pub struct RPC;
 
 pub async fn start_rpc_server(
+    n2p_sender: UnboundedSender<LocalEventMessage>,
     blockchain: Arc<dyn Blockchain>,
     state: Arc<dyn StateDB>,
     txpool: Arc<RwLock<TxPool>>,
@@ -30,8 +33,7 @@ pub async fn start_rpc_server(
     let addr = SocketAddr::new(host.parse()?, port);
     let chain_service = ChainServiceImpl::new(blockchain);
     let account_service = AccountServiceImpl::new(state, txpool.clone());
-    let transaction_service = TransactionsServiceImpl::new(txpool);
-
+    let transaction_service = TransactionsServiceImpl::new(txpool,n2p_sender);
     info!(addr = ?addr, "RPC server running at");
     Server::builder()
         .add_service(ChainServiceServer::new(chain_service))

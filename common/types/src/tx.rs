@@ -249,3 +249,4 @@ impl SignedTransaction {
 }
 
 impl_codec!(SignedTransaction);
+
