@@ -190,7 +190,7 @@ impl Handler<PeerMessage> for SyncService {
         match self.handle_remote_message(msg.clone()) {
             Ok(_) => {}
             Err(error) => {
-                warn!(target: "sync", error = ?error, msg = format!("{:?}", msg), "failed to handle remote message");
+                warn!(target: "sync", error = ?error, "failed to handle remote message");
             }
         }
     }
