@@ -218,6 +218,7 @@ impl ChainState {
             .get_header_by_hash(block.parent_hash())?
             .ok_or(anyhow!("error processing block parent block not found"))?;
         let parent_state_root = parent_header.raw.state_root();
+        println!("process_block:  self.state.get_sate_at(*parent_state_root)");
         let parent_state = self.state.get_sate_at(*parent_state_root)?;
         println!("process_block: consensus.finalize");
         consensus.finalize(
