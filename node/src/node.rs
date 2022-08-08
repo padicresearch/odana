@@ -229,7 +229,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         let interrupt = interrupt.clone();
         let network_state = network_state.clone();
         tokio::spawn(async move {
-            start_worker(
+            match start_worker(
                 miner,
                 local_mpsc_sender,
                 consensus,
@@ -238,8 +238,13 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                 network_state,
                 blockchain.chain().block_storage(),
                 interrupt,
-            )
-            .unwrap();
+            ) {
+                Ok(_) => {}
+                Err(error) => {
+                    panic!(error)
+                }
+            }
+
         });
     }
 
