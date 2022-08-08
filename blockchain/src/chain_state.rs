@@ -257,6 +257,7 @@ impl ChainState {
                 .get_header_by_hash(block.parent_hash())?
                 .ok_or(anyhow!("error accepting block non commit"))?;
             let parent_state_root = parent_header.raw.state_root();
+            println!("state.apply_txs_no_commit");
             let commit_state = state.apply_txs_no_commit(
                 *parent_state_root,
                 consensus.miner_reward(block.level()),
@@ -271,7 +272,7 @@ impl ChainState {
 
             info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Accepted block No Commit");
             if block.level() > current_head.raw.level() {
-                debug!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Resetting state");
+                info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Resetting state");
                 self.state.reset(*header.state_root())?;
                 self.chain_state.set_current_header(header.clone())?;
                 info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Chain changed, network fork");

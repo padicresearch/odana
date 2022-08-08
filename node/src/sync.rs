@@ -119,6 +119,7 @@ impl SyncService {
             .map_or_else(|_| false, |block| block.is_some())
             || start_block.0.level() == 0;
         if has_common_ancestor {
+            println!("sync chain.put_chain");
             self.chain.put_chain(
                 self.consensus.clone(),
                 Box::new(ordered_blocks.into_iter().map(|ob| ob.0)),
