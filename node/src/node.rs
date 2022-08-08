@@ -241,7 +241,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
             ) {
                 Ok(_) => {}
                 Err(error) => {
-                    panic!(error)
+                    panic!("{}", error)
                 }
             }
 
