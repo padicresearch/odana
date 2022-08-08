@@ -229,7 +229,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         let interrupt = interrupt.clone();
         let network_state = network_state.clone();
         tokio::spawn(async move {
-            match start_worker(
+            start_worker(
                 miner,
                 local_mpsc_sender,
                 consensus,
@@ -238,12 +238,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                 network_state,
                 blockchain.chain().block_storage(),
                 interrupt,
-            ) {
-                Ok(_) => {}
-                Err(error) => {
-                    panic!("{}", error)
-                }
-            }
+            ).unwrap();
 
         });
     }
@@ -276,7 +271,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                         PeerMessage::BroadcastTransaction(msg) => {
                             let txpool = blockchain.txpool();
                             let mut txpool = txpool.write().unwrap();
-                            txpool.add_remote(msg.tx).unwrap()
+                            txpool.add_remotes(msg.tx).unwrap()
                         }
                         PeerMessage::BroadcastBlock(msg) => {
                             let block = msg.block;

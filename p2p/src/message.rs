@@ -21,11 +21,11 @@ impl CurrentHeadMessage {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct BroadcastTransactionMessage {
-    pub tx: SignedTransaction,
+    pub tx: Vec<SignedTransaction>,
 }
 
 impl BroadcastTransactionMessage {
-    pub fn new(tx: SignedTransaction) -> Self {
+    pub fn new(tx: Vec<SignedTransaction>) -> Self {
         Self { tx }
     }
 }

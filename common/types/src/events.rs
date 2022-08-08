@@ -3,7 +3,7 @@ use crate::tx::SignedTransaction;
 #[derive(Clone, Debug)]
 pub enum LocalEventMessage {
     MindedBlock(Block),
-    BroadcastTx(SignedTransaction),
+    BroadcastTx(Vec<SignedTransaction>),
     TxPoolPack(Vec<SignedTransaction>),
     StateChanged {
         current_head: BlockHeader,
