@@ -8,7 +8,7 @@ use types::Hash;
 
 use crate::identity::PeerNode;
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq,Clone)]
 pub struct CurrentHeadMessage {
     pub block_header: BlockHeader,
 }
@@ -30,7 +30,7 @@ impl BroadcastTransactionMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq,Clone)]
 pub struct BroadcastBlockMessage {
     pub block: Block,
 }
@@ -41,7 +41,7 @@ impl BroadcastBlockMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct GetCurrentHeadMessage {
     pub sender: String,
 }
@@ -52,7 +52,7 @@ impl GetCurrentHeadMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq,Clone)]
 pub struct GetBlockHeaderMessage {
     pub from: Hash,
     pub to: Option<Hash>,
@@ -64,7 +64,7 @@ impl GetBlockHeaderMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq,Clone)]
 pub struct FindBlocksMessage {
     pub from: i32,
     pub limit: i32,
@@ -76,7 +76,7 @@ impl FindBlocksMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct BlockTransactionsMessage {
     pub txs: Vec<SignedTransaction>,
 }
@@ -87,7 +87,7 @@ impl BlockTransactionsMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct BlocksMessage {
     pub blocks: Vec<Block>,
 }
@@ -98,7 +98,7 @@ impl BlocksMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct BlockHeaderMessage {
     pub block_headers: Vec<BlockHeader>,
 }
@@ -109,7 +109,7 @@ impl BlockHeaderMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq,Clone)]
 pub struct BlocksToDownloadMessage {
     pub block_hashes: Vec<Hash>,
 }
@@ -120,7 +120,7 @@ impl BlocksToDownloadMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq,Clone)]
 pub struct GetBlockTransactionsMessage {
     pub sender: String,
     pub tx_ids: Vec<Hash>,
@@ -135,7 +135,7 @@ impl GetBlockTransactionsMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq,Clone)]
 pub struct ReAckMessage {
     pub node_info: PeerNode,
     pub current_header: BlockHeader,
@@ -152,7 +152,7 @@ impl ReAckMessage {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct AdvertiseMessage {
     pub peers: Vec<String>,
 }
