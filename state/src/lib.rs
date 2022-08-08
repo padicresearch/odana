@@ -123,11 +123,11 @@ impl State {
 
         for tx in txs {
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
-                let current_state = self.trie.get(&tx.from())?.unwrap_or_default();
+                let current_state = self.get_account_state(&tx.from())?;
                 e.insert(current_state);
             }
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.to()) {
-                let current_state = self.trie.get(&tx.to())?.unwrap_or_default();
+                let current_state = self.get_account_state(&tx.to())?;
                 e.insert(current_state);
             }
             let txs = accounts.entry(tx.from()).or_default();
@@ -158,11 +158,11 @@ impl State {
 
         for tx in txs {
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
-                let current_state =  self.trie.get_at_root(&at_root,&tx.from())?.unwrap_or_default();
+                let current_state =  self.get_account_state_at_root(&at_root,&tx.from())?;
                 e.insert(current_state);
             }
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.to()) {
-                let current_state = self.trie.get_at_root(&at_root, &tx.to())?.unwrap_or_default();
+                let current_state = self.get_account_state_at_root(&at_root, &tx.to())?;
                 e.insert(current_state);
             }
             let txs = accounts.entry(tx.from()).or_default();
@@ -289,6 +289,14 @@ impl State {
             .unwrap_or_default())
     }
 
+    fn get_account_state_at_root(&self,at_root : &H256, address: &H160) -> Result<AccountState> {
+        Ok(self
+            .trie
+            .get_at_root(at_root, address)
+            .unwrap_or_default()
+            .unwrap_or_default())
+    }
+
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
         Ok(Arc::new(State {
             trie: Arc::new(Tree::open_read_only_at_root(self.path.as_path(), &root)?),
@@ -396,30 +404,5 @@ mod tests {
             "{}",
             state.credit_balance(&alice.address, 1_000_000).unwrap()
         );
-        // let mut txs = Vec::new();
-        // for i in 0..100 {
-        //     let amount = 100;
-        //     let tx = make_sign_transaction(
-        //         &alice,
-        //         i + 1,
-        //         bob.address.to_fixed_bytes(),
-        //         amount,
-        //         (amount as f64 * 0.01) as u128,
-        //         "hello".to_string(),
-        //     )
-        //         .unwrap();
-        //     txs.push(tx);
-        // }
-        // state.apply_txs(txs).unwrap();
-        //
-        // println!("Alice: {:#?}", state.account_state(&alice.address));
-        // println!("Bob: {:#?}", state.account_state(&bob.address));
-        //
-        // let read_state = state.snapshot().unwrap();
-        // println!(
-        //     "Read Alice: {:#?}",
-        //     read_state.account_state(&alice.address)
-        // );
-        // println!("Read Bob: {:#?}", read_state.account_state(&bob.address));
     }
 }
