@@ -113,11 +113,16 @@ impl SyncService {
             .map(|block| OrderedBlock(block))
             .collect();
         let start_block = ordered_blocks.first().unwrap();
-        let has_common_ancestor = self
-            .block_storage
-            .get_block_by_hash(start_block.as_ref().parent_hash())
-            .map_or_else(|_| false, |block| block.is_some())
-            || start_block.0.level() == 0;
+
+        let has_common_ancestor = {
+            let state_db = self.chain.state();
+            self
+                .block_storage
+                .get_block_by_hash(start_block.as_ref().parent_hash())
+                .map_or_else(|_|false, |block| {
+                    block.map(|block| state_db.get_sate_at(*block.header().state_root()).is_ok()).unwrap_or(false)
+                }) || start_block.0.level() == 0
+        };
         if has_common_ancestor {
             self.chain.put_chain(
                 self.consensus.clone(),
