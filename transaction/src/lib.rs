@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use codec::Encoder;
 use crypto::ecdsa::SecretKey;
 use crypto::SHA256;
 use primitive_types::H256;

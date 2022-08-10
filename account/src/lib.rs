@@ -2,7 +2,7 @@ use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 
 use crypto::ecdsa::Keypair;
-use primitive_types::{H160, H256};
+use primitive_types::{H256};
 use types::account::{get_address_from_pub_key, Account};
 
 pub const GOVERNANCE_ACCOUNTID: [u8; 32] = [
