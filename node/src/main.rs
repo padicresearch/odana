@@ -221,7 +221,10 @@ fn generate_identity_file(args: &IdentityGenerateArgs) -> Result<()> {
     let identity = NodeIdentity::generate(crypto::make_target(args.difficulty));
     serde_json::to_writer(&identity_file, &identity.export_as_config())?;
     identity_file.sync_all()?;
-    pb.finish_with_message(format!("Created identity path: {:?}  difficulty({})", identity_file_path,args.difficulty));
+    pb.finish_with_message(format!(
+        "Created identity path: {:?}  difficulty({})",
+        identity_file_path, args.difficulty
+    ));
     Ok(())
 }
 

@@ -238,8 +238,8 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                 network_state,
                 blockchain.chain().block_storage(),
                 interrupt,
-            ).unwrap();
-
+            )
+            .unwrap();
         });
     }
 

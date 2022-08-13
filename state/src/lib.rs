@@ -158,7 +158,7 @@ impl State {
 
         for tx in txs {
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
-                let current_state =  self.get_account_state_at_root(&at_root,&tx.from())?;
+                let current_state = self.get_account_state_at_root(&at_root, &tx.from())?;
                 e.insert(current_state);
             }
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.to()) {
@@ -169,7 +169,6 @@ impl State {
             txs.insert(NoncePricedTransaction(tx));
         }
 
-
         for (_, txs) in accounts {
             for tx in txs {
                 self.apply_transaction(tx.0, &mut states)?;
@@ -178,7 +177,10 @@ impl State {
 
         let mut batch: Vec<_> = states.into_iter().map(|(k, v)| Op::Put(k, v)).collect();
 
-        let coinbase_account_state = self.trie.get_at_root(&at_root, &coinbase).unwrap_or_default()
+        let coinbase_account_state = self
+            .trie
+            .get_at_root(&at_root, &coinbase)
+            .unwrap_or_default()
             .unwrap_or_default();
         let coinbase_account_state = self.apply_action(
             &StateOperation::CreditBalance {
@@ -289,7 +291,7 @@ impl State {
             .unwrap_or_default())
     }
 
-    fn get_account_state_at_root(&self,at_root : &H256, address: &H160) -> Result<AccountState> {
+    fn get_account_state_at_root(&self, at_root: &H256, address: &H160) -> Result<AccountState> {
         Ok(self
             .trie
             .get_at_root(at_root, address)

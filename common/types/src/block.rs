@@ -307,11 +307,11 @@ fn test_proto_conversions() {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use crate::BlockHeader;
     use chrono::Utc;
     use codec::ConsensusCodec;
     use primitive_types::{H160, H256, U128, U256};
-    use crate::BlockHeader;
+    use std::str::FromStr;
 
     #[test]
     fn test_consensus_codec() {
@@ -337,4 +337,3 @@ mod tests {
         assert_eq!(a.unwrap(), b.unwrap());
     }
 }
-

@@ -98,22 +98,22 @@ impl SyncService {
         let node_level = node_head.map(|block| block.raw.level()).unwrap();
 
         if blocks_to_import.is_empty() {
-            if  node_level >= self.network_tip.level() {
+            if node_level >= self.network_tip.level() {
                 self.sync_mode = Arc::new(SyncMode::Normal);
-            }else if node_level < self.network_tip.level() {
+            } else if node_level < self.network_tip.level() {
                 // Tipped peer is offline or Network is at a fork
                 // Get the new tip peer and sync from it
-                let old_bootstrap_peer = self.tip_before_sync.as_ref().map(|(peer_id,_)| (peer_id));
+                let old_bootstrap_peer =
+                    self.tip_before_sync.as_ref().map(|(peer_id, _)| (peer_id));
                 let new_bootstrap_peer = &self.highest_peer;
                 info!(from = ?old_bootstrap_peer, to = ?new_bootstrap_peer, "Bootstrap peer disconnected or failed to send blocks, switching bootstrapping peer");
-                self.tip_before_sync =
-                    Some((self.highest_peer.clone(), self.network_tip.clone()));
+                self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip.clone()));
                 self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index as i32,
                     24,
                 )));
             }
-            return Ok(())
+            return Ok(());
         }
 
         ensure!(
@@ -127,16 +127,23 @@ impl SyncService {
             .into_iter()
             .map(|block| OrderedBlock(block))
             .collect();
-        let start_block = ordered_blocks.first().ok_or(anyhow!("imported empty blocks"))?;
+        let start_block = ordered_blocks
+            .first()
+            .ok_or(anyhow!("imported empty blocks"))?;
 
         let has_common_ancestor = {
             let state_db = self.chain.state();
-            self
-                .block_storage
+            self.block_storage
                 .get_block_by_hash(start_block.as_ref().parent_hash())
-                .map_or_else(|_|false, |block| {
-                    block.map(|block| state_db.get_sate_at(*block.header().state_root()).is_ok()).unwrap_or(false)
-                }) || start_block.0.level() == 0
+                .map_or_else(
+                    |_| false,
+                    |block| {
+                        block
+                            .map(|block| state_db.get_sate_at(*block.header().state_root()).is_ok())
+                            .unwrap_or(false)
+                    },
+                )
+                || start_block.0.level() == 0
         };
         if has_common_ancestor {
             self.finder_multiplier = 1;
@@ -178,7 +185,9 @@ impl SyncService {
                 // If we are already at zero, lets give up
                 return Ok(());
             }
-            self.last_request_index = self.last_request_index.saturating_sub(5 * self.finder_multiplier);
+            self.last_request_index = self
+                .last_request_index
+                .saturating_sub(5 * self.finder_multiplier);
             if self.last_request_index == 0 {
                 self.last_request_index = 1
             }
@@ -277,7 +286,9 @@ impl SyncService {
     }
 
     fn local_tip(&self) -> Result<BlockHeader> {
-        self.chain.current_header_blocking().map(|head| head.unwrap().raw)
+        self.chain
+            .current_header_blocking()
+            .map(|head| head.unwrap().raw)
     }
 
     fn validate_chain(&self, blocks: &[Block]) -> bool {

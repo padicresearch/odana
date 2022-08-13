@@ -175,7 +175,6 @@ impl ChainState {
                     }
 
                     if repack {
-
                         let mut txpool = txpool.write().map_err(|e| anyhow::anyhow!("{}", e))?;
                         txpool.repack(
                             AccountSet::new(),
@@ -231,7 +230,11 @@ impl ChainState {
         Ok(block)
     }
 
-    fn accept_block(&self, consensus: Arc<dyn Consensus>, block: Block) -> Result<(bool, bool ,Block)> {
+    fn accept_block(
+        &self,
+        consensus: Arc<dyn Consensus>,
+        block: Block,
+    ) -> Result<(bool, bool, Block)> {
         let current_head = self.current_header()?;
         let current_head =
             current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
