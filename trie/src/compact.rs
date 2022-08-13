@@ -1,5 +1,7 @@
-use crate::{Symbol, Trie, Word};
+#![allow(dead_code)]
 use std::marker::PhantomData;
+
+use crate::{Symbol, Trie, Word};
 
 #[derive(Debug, Clone)]
 pub struct CompactTrie<C, K, V>

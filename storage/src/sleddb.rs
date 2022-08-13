@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use anyhow::Result;
-
 use sled::Tree;
 
 use codec::{Decoder, Encoder};

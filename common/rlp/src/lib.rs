@@ -37,16 +37,11 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-mod error;
-mod impls;
-mod rlpin;
-mod stream;
-mod traits;
-
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use bytes::BytesMut;
 use core::borrow::Borrow;
+
+use bytes::BytesMut;
 
 #[cfg(feature = "derive")]
 pub use rlp_derive::{RlpDecodable, RlpDecodableWrapper, RlpEncodable, RlpEncodableWrapper};
@@ -57,6 +52,12 @@ pub use self::{
     stream::RlpStream,
     traits::{Decodable, Encodable},
 };
+
+mod error;
+mod impls;
+mod rlpin;
+mod stream;
+mod traits;
 
 /// The RLP encoded empty data (used to mean "null value").
 pub const NULL_RLP: [u8; 1] = [0x80; 1];

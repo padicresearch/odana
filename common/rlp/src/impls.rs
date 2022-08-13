@@ -8,11 +8,12 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::{borrow::ToOwned, boxed::Box, string::String, vec::Vec};
-use bytes::{Bytes, BytesMut};
 use core::{
     iter::{empty, once},
     mem, str,
 };
+
+use bytes::{Bytes, BytesMut};
 
 use crate::{
     error::DecoderError,

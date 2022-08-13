@@ -9,9 +9,8 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use uint::*;
 use rug::{Integer, integer::Order};
-
+use uint::*;
 
 construct_uint! {
 	pub struct U512(8);

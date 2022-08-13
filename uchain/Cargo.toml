@@ -1,5 +1,5 @@
 [package]
-name = "node"
+name = "uchain"
 version = "0.1.0"
 authors = ["mambisi <lilbizi96@gmail.com>"]
 edition = "2021"

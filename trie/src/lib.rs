@@ -1,12 +1,12 @@
+pub use crate::simple::*;
+pub use crate::word::*;
+
 #[cfg(test)]
 mod tests;
 
 mod compact;
 mod simple;
 mod word;
-
-pub use crate::simple::*;
-pub use crate::word::*;
 
 pub trait Trie<C, K, V>
 where

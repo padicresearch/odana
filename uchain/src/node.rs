@@ -1,41 +1,32 @@
-use crate::environment::default_db_opts;
-use crate::sync::{SyncMode, SyncService};
-use crate::{Args, RunArgs};
-use account::create_account;
+use std::fs::OpenOptions;
+use std::path::PathBuf;
+use std::sync::atomic::AtomicI8;
+use std::sync::Arc;
+
 use anyhow::Result;
+use directories::UserDirs;
+use tokio::sync::mpsc::error::SendError;
+use tokio::sync::mpsc::UnboundedSender;
+
 use blockchain::blockchain::Tuchain;
 use blockchain::column_families;
-use clap::Parser;
-use consensus::barossa::{BarossaProtocol, NODE_POW_TARGET};
-use directories::UserDirs;
+use consensus::barossa::BarossaProtocol;
 use miner::worker::start_worker;
 use p2p::identity::NodeIdentity;
 use p2p::message::*;
-use p2p::peer_manager::{NetworkState, PeerList};
+use p2p::peer_manager::NetworkState;
 use p2p::request_handler::RequestHandler;
 use p2p::start_p2p_server;
-use primitive_types::H256;
 use rpc::start_rpc_server;
-use std::env::temp_dir;
-use std::fs::OpenOptions;
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicI8, Ordering};
-use std::sync::{Arc, RwLock};
-use std::thread::sleep;
-use std::time::Duration;
 use storage::{PersistentStorage, PersistentStorageBackend};
-use temp_dir::TempDir;
-use tokio::sync::mpsc::error::SendError;
-use tokio::sync::mpsc::UnboundedSender;
-use tracing::tracing_subscriber;
-use tracing::Level;
-use tracing::{error, info};
-use traits::{Blockchain, ChainHeadReader, ChainReader, Handler};
-use types::block::Block;
+use tracing::info;
+use traits::Handler;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 use types::events::LocalEventMessage;
-use types::network::Network;
-use types::Hash;
+
+use crate::environment::default_db_opts;
+use crate::sync::{SyncMode, SyncService};
+use crate::RunArgs;
 
 enum Event {
     LocalMessage(LocalEventMessage),
@@ -53,17 +44,6 @@ fn broadcast_message(
     })
 }
 
-fn send_message_to_peer(
-    peer_id: String,
-    sender: &UnboundedSender<NodeToPeerMessage>,
-    message: PeerMessage,
-) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
-    sender.send(NodeToPeerMessage {
-        peer_id: Some(peer_id),
-        message,
-    })
-}
-
 pub(crate) fn run(args: &RunArgs) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async { _start_node(args).await })
@@ -75,7 +55,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     let user_dir = UserDirs::new().unwrap();
     let mut default_datadir = PathBuf::from(user_dir.home_dir());
     default_datadir.push(".uchain");
-    let mut datadir = args.datadir.clone().unwrap_or(default_datadir);
+    let datadir = args.datadir.clone().unwrap_or(default_datadir);
 
     let mut config = EnvironmentConfig::default();
 
@@ -93,11 +73,8 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                 serde_json::from_reader(config_file).map_err(|e| anyhow::anyhow!("{}", e))
             });
 
-        match res {
-            Ok(c) => {
-                config = c;
-            }
-            Err(_) => {}
+        if let Ok(c) = res {
+            config = c;
         }
     }
 
@@ -140,7 +117,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     let env = Arc::new(config);
     // Communications
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
-    let (node_to_peer_sender, mut node_to_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
+    let (node_to_peer_sender, node_to_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (peer_to_node_sender, mut peer_to_node_receiver) = tokio::sync::mpsc::unbounded_channel();
     let node_to_peer_sender = Arc::new(node_to_peer_sender);
     let interrupt = Arc::new(AtomicI8::new(miner::worker::START));
@@ -151,7 +128,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         NodeIdentityConfig::open(
             env.identity_file
                 .clone()
-                .unwrap_or(datadir.join("identity.json")),
+                .unwrap_or_else(|| datadir.join("identity.json")),
         )
         .expect("identity file not found"),
     )
@@ -216,7 +193,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         let env = env.clone();
         tokio::spawn(start_rpc_server(
             local_mpsc_sender.clone(),
-            blockchain.chain().clone(),
+            blockchain.chain(),
             blockchain.chain().state(),
             blockchain.txpool(),
             env,
@@ -306,8 +283,8 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                         )
                         .unwrap();
                     }
-                    LocalEventMessage::NetworkNewPeerConnection { stats, peer_id } => {
-                        info!(pending = ?stats.0, connected = ?stats.1, "Peer connection");
+                    LocalEventMessage::NetworkNewPeerConnection { stats, .. } => {
+                        info!(pending = ?stats.0, connected = ?stats.1, "Peers");
                     }
                     msg => {
                         sync_service.handle(msg);

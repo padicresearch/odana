@@ -7,7 +7,9 @@
 // except according to those terms.
 
 use core::{convert::TryInto, str::FromStr, u64::MAX};
+
 use crunchy::unroll;
+
 use uint::{construct_uint, overflowing, FromDecStrErr};
 
 construct_uint! {
@@ -1295,6 +1297,7 @@ fn trailing_zeros() {
 #[cfg(feature = "quickcheck")]
 pub mod laws {
     use super::construct_uint;
+
     macro_rules! uint_laws {
 		($mod_name:ident, $uint_ty:ident) => {
 			mod $mod_name {

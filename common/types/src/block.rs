@@ -4,7 +4,9 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use bytes::{Buf, Bytes, BytesMut};
+use getset::{CopyGetters, Getters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use codec::{impl_codec, ConsensusCodec};
 use codec::{Decoder, Encoder};
@@ -13,10 +15,9 @@ use primitive_types::{Compact, H256, U128, U256};
 use proto::{Block as ProtoBlock, BlockHeader as ProtoBlockHeader};
 
 use crate::tx::SignedTransaction;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
-use serde_json::json;
 
 use super::*;
+
 const HEADER_SIZE: usize = 180;
 
 #[derive(Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize)]
@@ -307,11 +308,14 @@ fn test_proto_conversions() {
 
 #[cfg(test)]
 mod tests {
-    use crate::BlockHeader;
+    use std::str::FromStr;
+
     use chrono::Utc;
+
     use codec::ConsensusCodec;
     use primitive_types::{H160, H256, U128, U256};
-    use std::str::FromStr;
+
+    use crate::BlockHeader;
 
     #[test]
     fn test_consensus_codec() {

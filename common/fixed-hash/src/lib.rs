@@ -18,37 +18,31 @@ pub extern crate alloc as alloc_;
 #[doc(hidden)]
 pub use core as core_;
 
+#[cfg(feature = "arbitrary")]
+#[doc(hidden)]
+pub use arbitrary;
+#[cfg(feature = "byteorder")]
+#[doc(hidden)]
+pub use byteorder;
+#[cfg(feature = "quickcheck")]
+#[doc(hidden)]
+pub use quickcheck;
+#[cfg(feature = "rand")]
+#[doc(hidden)]
+pub use rand;
+#[cfg(feature = "rustc-hex")]
+#[doc(hidden)]
+pub use rustc_hex;
 // This disables a warning for unused #[macro_use(..)]
 // which is incorrect since the compiler does not check
 // for all available configurations.
 #[allow(unused_imports)]
 #[doc(hidden)]
 pub use static_assertions;
-
 // Export `const_assert` macro so that users of this crate do not
 // have to import the `static_assertions` crate themselves.
 #[doc(hidden)]
 pub use static_assertions::const_assert;
-
-#[cfg(feature = "byteorder")]
-#[doc(hidden)]
-pub use byteorder;
-
-#[cfg(feature = "rustc-hex")]
-#[doc(hidden)]
-pub use rustc_hex;
-
-#[cfg(feature = "rand")]
-#[doc(hidden)]
-pub use rand;
-
-#[cfg(feature = "quickcheck")]
-#[doc(hidden)]
-pub use quickcheck;
-
-#[cfg(feature = "arbitrary")]
-#[doc(hidden)]
-pub use arbitrary;
 
 #[macro_use]
 mod hash;

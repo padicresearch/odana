@@ -8,8 +8,9 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
-use bytes::{BufMut, BytesMut};
 use core::borrow::Borrow;
+
+use bytes::{BufMut, BytesMut};
 
 use crate::traits::Encodable;
 

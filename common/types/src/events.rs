@@ -1,5 +1,6 @@
 use crate::block::{Block, BlockHeader};
 use crate::tx::SignedTransaction;
+
 #[derive(Clone, Debug)]
 pub enum LocalEventMessage {
     MindedBlock(Block),

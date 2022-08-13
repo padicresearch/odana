@@ -1,12 +1,14 @@
-use crate::error::Error;
-use crate::store::{cfs, DatabaseBackend};
+use std::path::PathBuf;
+use std::sync::Arc;
+
 use anyhow::{bail, Result};
 use dashmap::DashMap;
 use hex::ToHex;
 use rocksdb::checkpoint::Checkpoint;
 use rocksdb::DB;
-use std::path::PathBuf;
-use std::sync::Arc;
+
+use crate::error::Error;
+use crate::store::{cfs, DatabaseBackend};
 
 pub(crate) fn default_db_opts() -> rocksdb::Options {
     let mut opts = rocksdb::Options::default();
@@ -63,7 +65,7 @@ impl DatabaseBackend for RocksDB {
             .ok_or(Error::ColumnFamilyMissing(column_name))?;
 
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
-        value.ok_or(Error::InvalidKey(key.encode_hex::<String>()).into())
+        value.ok_or_else(|| Error::InvalidKey(key.encode_hex::<String>()).into())
     }
 
     fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()> {
@@ -125,7 +127,7 @@ impl DatabaseBackend for MemoryStore {
     fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>> {
         let column = self.inner.entry(column_name).or_default();
         let value = column.get(key).map(|r| r.value().clone());
-        value.ok_or(Error::InvalidKey(key.encode_hex::<String>()).into())
+        value.ok_or_else(|| Error::InvalidKey(key.encode_hex::<String>()).into())
     }
 
     fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()> {

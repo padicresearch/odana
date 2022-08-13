@@ -11,7 +11,13 @@
 //! ```bash
 //! rustup run cargo bench
 //! ```
+use std::str::FromStr;
+
+use criterion::{black_box, Bencher, Criterion, ParameterizedBenchmark};
 use criterion::{criterion_group, criterion_main};
+use num_bigint::BigUint;
+use rug::{integer::Order, Integer};
+
 use uint::{construct_uint, uint_full_mul_reg};
 
 construct_uint! {
@@ -28,11 +34,6 @@ impl U256 {
         U512(uint_full_mul_reg!(U256, 4, self, other))
     }
 }
-
-use criterion::{black_box, Bencher, Criterion, ParameterizedBenchmark};
-use num_bigint::BigUint;
-use rug::{integer::Order, Integer};
-use std::str::FromStr;
 
 criterion_group!(
     bigint,

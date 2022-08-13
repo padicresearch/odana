@@ -1,14 +1,10 @@
 use std::collections::BTreeMap;
-
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Result;
-
 use serde::{Deserialize, Serialize};
 
-use crate::error::StateError;
-use crate::StateOperation::{CreditBalance, DebitBalance, UpdateNonce};
 use codec::impl_codec;
 use codec::{Decoder, Encoder};
 use primitive_types::{H160, H256};
@@ -20,9 +16,9 @@ use types::account::AccountState;
 use types::tx::SignedTransaction;
 use types::Hash;
 
-mod error;
+use crate::error::StateError;
 
-const GENESIS_ROOT: [u8; 32] = [0; 32];
+mod error;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ReadProof {
@@ -207,7 +203,7 @@ impl State {
         let mut from_account_state = states.get(&transaction.from()).copied().unwrap_or_default();
         let mut to_account_state = states.get(&transaction.to()).copied().unwrap_or_default();
         from_account_state = self.apply_action(
-            &DebitBalance {
+            &StateOperation::DebitBalance {
                 account: transaction.from(),
                 amount: transaction.price() + transaction.fees(),
                 tx_hash: [0; 32],
@@ -215,7 +211,7 @@ impl State {
             from_account_state,
         )?;
         from_account_state = self.apply_action(
-            &UpdateNonce {
+            &StateOperation::UpdateNonce {
                 account: transaction.from(),
                 nonce: from_account_state.nonce,
                 tx_hash: [0; 32],
@@ -224,7 +220,7 @@ impl State {
         )?;
 
         to_account_state = self.apply_action(
-            &CreditBalance {
+            &StateOperation::CreditBalance {
                 account: transaction.to(),
                 amount: transaction.price(),
                 tx_hash: [0; 32],

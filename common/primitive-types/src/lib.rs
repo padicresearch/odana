@@ -16,14 +16,16 @@
 #![allow(clippy::reversed_empty_ranges)]
 #![allow(clippy::assign_op_pattern)]
 
-#[cfg(feature = "fp-conversion")]
-mod fp_conversion;
-
 use core::convert::TryFrom;
-use fixed_hash::{construct_fixed_hash, impl_fixed_hash_conversions};
+
 #[cfg(feature = "scale-info")]
 use scale_info_crate::TypeInfo;
+
+use fixed_hash::{construct_fixed_hash, impl_fixed_hash_conversions};
 use uint::{construct_uint, uint_full_mul_reg};
+
+#[cfg(feature = "fp-conversion")]
+mod fp_conversion;
 
 /// Error type for conversion.
 #[derive(Debug, PartialEq, Eq)]
@@ -91,8 +93,9 @@ construct_fixed_hash! {
 
 #[cfg(feature = "num-traits")]
 mod num_traits {
-    use super::*;
     use impl_num_traits::impl_uint_num_traits;
+
+    use super::*;
 
     impl_uint_num_traits!(U128, 2);
     impl_uint_num_traits!(U192, 3);
@@ -102,8 +105,9 @@ mod num_traits {
 
 #[cfg(feature = "impl-serde")]
 mod serde {
-    use super::*;
     use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
+
+    use super::*;
 
     impl_uint_serde!(U128, 2);
     impl_uint_serde!(U192, 3);
@@ -121,8 +125,9 @@ mod serde {
 
 #[cfg(feature = "impl-codec")]
 mod codec {
-    use super::*;
     use impl_codec::{impl_fixed_hash_codec, impl_uint_codec};
+
+    use super::*;
 
     impl_uint_codec!(U128, 2);
     impl_uint_codec!(U256, 4);
@@ -136,8 +141,10 @@ mod codec {
 
 #[cfg(feature = "impl-rlp")]
 mod rlp {
-    use super::*;
     use impl_rlp::{impl_fixed_hash_rlp, impl_uint_rlp};
+
+    use super::*;
+
     impl_uint_rlp!(U128, 2);
     impl_uint_rlp!(U192, 3);
     impl_uint_rlp!(U256, 4);

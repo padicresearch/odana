@@ -1,5 +1,6 @@
-use anyhow::Result;
 use std::sync::Arc;
+
+use anyhow::Result;
 
 use primitive_types::{Compact, H160, H256};
 use types::account::AccountState;

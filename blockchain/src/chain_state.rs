@@ -1,9 +1,7 @@
 use std::path::PathBuf;
-
 use std::sync::{Arc, RwLock};
 
 use anyhow::{anyhow, bail, Result};
-
 use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::{H160, H256};
@@ -15,7 +13,7 @@ use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
-use types::{ChainStateValue, Hash};
+use types::ChainStateValue;
 
 use crate::block_storage::BlockStorage;
 use crate::errors::BlockChainError;
@@ -35,7 +33,7 @@ impl Schema for ChainStateStorage {
     }
 }
 
-const CURR_HEAD: &'static str = "ch";
+const CURR_HEAD: &str = "ch";
 
 impl ChainStateStorage {
     pub fn new(kv: Arc<ChainStateStorageKV>) -> Self {
@@ -53,13 +51,9 @@ impl ChainStateStorage {
 
         let r = match value {
             None => None,
-            Some(ch) => {
-                if let ChainStateValue::CurrentHeader(header) = ch {
-                    Some(header)
-                } else {
-                    None
-                }
-            }
+            Some(ch) => match ch {
+                ChainStateValue::CurrentHeader(header) => Some(header),
+            },
         };
         Ok(r)
     }
@@ -72,8 +66,6 @@ pub struct ChainState {
     chain_state: Arc<ChainStateStorage>,
     sender: UnboundedSender<LocalEventMessage>,
 }
-
-const CURR_STATE_ROOT: Hash = [0; 32];
 
 impl ChainState {
     pub fn new(
@@ -92,7 +84,7 @@ impl ChainState {
             state.credit_balance(&H160::from(&[0; 20]), 1_000_000_000_000)?;
             state.commit()?;
             genesis.set_state_root(H256::from(state.root()));
-            let block = Block::new(genesis.clone(), vec![]);
+            let block = Block::new(genesis, vec![]);
             block_storage.put(block)?;
             chain_state_storage.set_current_header(genesis)?;
             info!(blockhash = ?genesis.hash(), level = ?genesis.level(), "blockchain state started from genesis");
@@ -117,7 +109,7 @@ impl ChainState {
         let mut blocks = blocks.peekable();
         let current_head = self.current_header()?;
         let current_head =
-            current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
+            current_head.ok_or_else(|| anyhow!("failed to load current head, state invalid"))?;
         let first_block = blocks.peek().unwrap();
         if first_block.parent_hash().ne(&current_head.hash)
             && current_head.raw.level() > first_block.level() - 1
@@ -127,14 +119,13 @@ impl ChainState {
             let block_storage = self.block_storage();
             let parent_header = block_storage
                 .get_header_by_hash(first_block.parent_hash())?
-                .ok_or(anyhow!("error accepting block non commit"))?;
+                .ok_or_else(|| anyhow!("error accepting block non commit"))?;
 
             let parent_header_raw = &parent_header.raw;
             let parent_state_root = parent_header_raw.state_root();
             debug!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Resetting state to");
             self.state.reset(*parent_state_root)?;
-            self.chain_state
-                .set_current_header(parent_header_raw.clone())?;
+            self.chain_state.set_current_header(*parent_header_raw)?;
             info!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Rolled back chain to previous");
             debug!(chain_head = ?current_head.hash, chain_tail = ?parent_header.hash, level = current_head.raw.level(), "Removing stale chain");
             // Remove current chain
@@ -144,7 +135,7 @@ impl ChainState {
                 let mut remove_count = 0;
                 loop {
                     let (next, level) = match block_storage.get_header_by_hash(&head) {
-                        Ok(Some(block)) => (block.raw.parent_hash().clone(), block.raw.level()),
+                        Ok(Some(block)) => (*block.raw.parent_hash(), block.raw.level()),
                         _ => break,
                     };
 
@@ -164,7 +155,7 @@ impl ChainState {
         }
 
         for block in blocks {
-            let header = block.header().clone();
+            let header = *block.header();
             match self
                 .process_block(consensus.clone(), block)
                 .and_then(|block| self.accept_block(consensus.clone(), block))
@@ -178,10 +169,7 @@ impl ChainState {
                         let mut txpool = txpool.write().map_err(|e| anyhow::anyhow!("{}", e))?;
                         txpool.repack(
                             AccountSet::new(),
-                            Some(ResetRequest::new(
-                                Some(current_head.raw.clone()),
-                                block.header().clone(),
-                            )),
+                            Some(ResetRequest::new(Some(current_head.raw), *block.header())),
                         )?;
                     }
                 }
@@ -209,12 +197,12 @@ impl ChainState {
     }
 
     fn process_block(&self, consensus: Arc<dyn Consensus>, block: Block) -> Result<Block> {
-        let mut header = block.header().clone();
+        let mut header = *block.header();
         consensus.prepare_header(self.block_storage.clone(), &mut header)?;
         let block_storage = self.block_storage();
         let parent_header = block_storage
             .get_header_by_hash(block.parent_hash())?
-            .ok_or(anyhow!("error processing block parent block not found"))?;
+            .ok_or_else(|| anyhow!("error processing block parent block not found"))?;
         let parent_state_root = parent_header.raw.state_root();
         let parent_state = self.state.get_sate_at(*parent_state_root)?;
         consensus.finalize(
@@ -237,7 +225,7 @@ impl ChainState {
     ) -> Result<(bool, bool, Block)> {
         let current_head = self.current_header()?;
         let current_head =
-            current_head.ok_or(anyhow!("failed to load current head, state invalid"))?;
+            current_head.ok_or_else(|| anyhow!("failed to load current head, state invalid"))?;
         let header = block.header();
         let mut repack = false;
         if block.parent_hash().eq(&current_head.hash) {
@@ -246,7 +234,7 @@ impl ChainState {
             let _ =
                 state.credit_balance(header.coinbase(), consensus.miner_reward(header.level()))?;
             state.commit()?;
-            self.chain_state.set_current_header(header.clone())?;
+            self.chain_state.set_current_header(*header)?;
             self.sender.send(LocalEventMessage::StateChanged {
                 current_head: self.current_header().unwrap().unwrap().raw,
             })?;
@@ -258,7 +246,7 @@ impl ChainState {
             // TODO: make it better
             let parent_header = block_storage
                 .get_header_by_hash(block.parent_hash())?
-                .ok_or(anyhow!("error accepting block non commit"))?;
+                .ok_or_else(|| anyhow!("error accepting block non commit"))?;
             let parent_state_root = parent_header.raw.state_root();
             let commit_state = state.apply_txs_no_commit(
                 *parent_state_root,
@@ -276,7 +264,7 @@ impl ChainState {
             if block.level() > current_head.raw.level() {
                 debug!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Resetting state");
                 self.state.reset(*header.state_root())?;
-                self.chain_state.set_current_header(header.clone())?;
+                self.chain_state.set_current_header(*header)?;
                 info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Chain changed, network fork");
                 repack = true
             }

@@ -8,6 +8,7 @@
 
 use alloc::{string::String, vec::Vec};
 use core::{fmt, result::Result};
+
 use serde::{de, Deserializer, Serializer};
 
 static CHARS: &[u8] = b"0123456789abcdef";
@@ -282,8 +283,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_derive::{Deserialize, Serialize};
+
+    use super::*;
 
     #[derive(Serialize, Deserialize)]
     struct Bytes(#[serde(with = "super")] Vec<u8>);

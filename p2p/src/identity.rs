@@ -1,14 +1,13 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use libp2p::gossipsub::Sha256Topic;
-use libp2p::{Multiaddr, PeerId};
+use libp2p::PeerId;
 use serde::{Deserialize, Serialize};
 
 use crypto::{generate_pow_from_pub_key, SHA256};
-use primitive_types::{Compact, H192, H448, U256};
+use primitive_types::U256;
 use primitive_types::{H256, U192};
-use types::config::{EnvironmentConfig, NodeIdentityConfig};
+use types::config::NodeIdentityConfig;
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
 pub struct PeerNode {
@@ -74,10 +73,9 @@ impl NodeIdentity {
     }
 
     pub fn identity_keys(&self) -> libp2p::identity::Keypair {
-        let keys = libp2p::identity::Keypair::Ed25519(libp2p::identity::ed25519::Keypair::from(
+        libp2p::identity::Keypair::Ed25519(libp2p::identity::ed25519::Keypair::from(
             self.secret_key(),
-        ));
-        keys
+        ))
     }
 
     pub fn secret_key(&self) -> libp2p::identity::ed25519::SecretKey {

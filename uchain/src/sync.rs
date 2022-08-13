@@ -1,27 +1,22 @@
-use crate::error::NodeError;
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::fmt::Debug;
+use std::sync::{Arc, RwLock};
+
 use anyhow::{anyhow, ensure, Result};
+use tokio::sync::mpsc::UnboundedSender;
+
 use blockchain::block_storage::BlockStorage;
 use blockchain::chain_state::ChainState;
 use p2p::message::{BlocksMessage, FindBlocksMessage, NodeToPeerMessage, PeerMessage};
 use primitive_types::H256;
-use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::fmt::Debug;
-use std::hash::Hash;
-use std::path::Component::Normal;
-use std::sync::{Arc, RwLock};
-use std::time::Duration;
-use tokio::sync::mpsc::UnboundedSender;
-use tracing::tracing_subscriber::reload::Handle;
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainReader, Consensus, Handler};
 use txpool::TxPool;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 
-struct HeadersStore {
-    data: BTreeMap<Vec<u8>, BlockHeader>,
-}
+use crate::error::NodeError;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum SyncMode {
@@ -84,12 +79,12 @@ pub struct SyncService {
 
 impl SyncService {
     pub fn handle_remote_message(&mut self, msg: PeerMessage) -> Result<()> {
-        return match msg {
+        match msg {
             PeerMessage::Blocks(msg) => self.handle_import_blocks(&msg),
             PeerMessage::BroadcastTransaction(_) => Ok(()),
             PeerMessage::BroadcastBlock(_) => Ok(()),
             _ => Ok(()),
-        };
+        }
     }
 
     fn handle_import_blocks(&mut self, msg: &BlocksMessage) -> Result<()> {
@@ -107,7 +102,7 @@ impl SyncService {
                     self.tip_before_sync.as_ref().map(|(peer_id, _)| (peer_id));
                 let new_bootstrap_peer = &self.highest_peer;
                 info!(from = ?old_bootstrap_peer, to = ?new_bootstrap_peer, "Bootstrap peer disconnected or failed to send blocks, switching bootstrapping peer");
-                self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip.clone()));
+                self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip));
                 self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index as i32,
                     24,
@@ -121,15 +116,11 @@ impl SyncService {
             NodeError::ChainValidationFailed
         );
 
-        let mut ordered_blocks: BTreeSet<_> = msg
-            .blocks
-            .clone()
-            .into_iter()
-            .map(|block| OrderedBlock(block))
-            .collect();
+        let ordered_blocks: BTreeSet<_> =
+            msg.blocks.clone().into_iter().map(OrderedBlock).collect();
         let start_block = ordered_blocks
             .first()
-            .ok_or(anyhow!("imported empty blocks"))?;
+            .ok_or_else(|| anyhow!("imported empty blocks"))?;
 
         let has_common_ancestor = {
             let state_db = self.chain.state();
@@ -168,8 +159,7 @@ impl SyncService {
                 self.tip_before_sync = None;
                 if node_level < self.network_tip.level() {
                     self.last_request_index = node_level as u32 + 1;
-                    self.tip_before_sync =
-                        Some((self.highest_peer.clone(), self.network_tip.clone()));
+                    self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip));
                     self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
                         self.last_request_index as i32,
                         24,
@@ -214,7 +204,7 @@ impl Handler<LocalEventMessage> for SyncService {
 
 impl Handler<PeerMessage> for SyncService {
     fn handle(&mut self, msg: PeerMessage) {
-        match self.handle_remote_message(msg.clone()) {
+        match self.handle_remote_message(msg) {
             Ok(_) => {}
             Err(error) => {
                 warn!(target: "sync", error = ?error, "failed to handle remote message");
@@ -234,25 +224,22 @@ impl Handler<PeerMessage> for SyncService {
 
 impl SyncService {
     pub fn handle_local_message(&mut self, msg: LocalEventMessage) -> Result<()> {
-        match msg {
-            LocalEventMessage::NetworkHighestHeadChanged { peer_id, tip } => {
-                let current_header = self.chain.current_header_blocking()?;
-                let current_header = current_header.unwrap();
-                let tip = tip.unwrap_or(current_header.raw.clone());
-                let node_height = current_header.raw.level();
-                self.network_tip = tip.clone();
-                self.highest_peer = peer_id.clone();
-                if self.tip_before_sync.is_none() && tip.level() > node_height {
-                    // TODO; stop mining
-                    self.last_request_index = tip.level() as u32;
-                    self.tip_before_sync = Some((peer_id.clone(), tip.clone()));
-                    self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                        node_height + 1,
-                        24,
-                    )));
-                }
+        if let LocalEventMessage::NetworkHighestHeadChanged { peer_id, tip } = msg {
+            let current_header = self.chain.current_header_blocking()?;
+            let current_header = current_header.unwrap();
+            let tip = tip.unwrap_or(current_header.raw);
+            let node_height = current_header.raw.level();
+            self.network_tip = tip;
+            self.highest_peer = peer_id.clone();
+            if self.tip_before_sync.is_none() && tip.level() > node_height {
+                // TODO; stop mining
+                self.last_request_index = tip.level() as u32;
+                self.tip_before_sync = Some((peer_id, tip));
+                self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                    node_height + 1,
+                    24,
+                )));
             }
-            _ => {}
         }
         Ok(())
     }
@@ -285,18 +272,12 @@ impl SyncService {
         }
     }
 
-    fn local_tip(&self) -> Result<BlockHeader> {
-        self.chain
-            .current_header_blocking()
-            .map(|head| head.unwrap().raw)
-    }
-
     fn validate_chain(&self, blocks: &[Block]) -> bool {
         let mut blocks_to_apply: BTreeMap<i32, HashMap<H256, &Block>> = BTreeMap::new();
         for block in blocks {
-            let mut map = blocks_to_apply
+            let map = blocks_to_apply
                 .entry(block.level())
-                .or_insert(HashMap::new());
+                .or_insert_with(HashMap::new);
             map.insert(block.hash(), block);
         }
 
