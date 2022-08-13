@@ -27,7 +27,10 @@ pub(crate) struct TransactionsServiceImpl {
 }
 
 impl TransactionsServiceImpl {
-    pub(crate) fn new(txpool: Arc<RwLock<TxPool>>, sender: UnboundedSender<LocalEventMessage>) -> Self {
+    pub(crate) fn new(
+        txpool: Arc<RwLock<TxPool>>,
+        sender: UnboundedSender<LocalEventMessage>,
+    ) -> Self {
         Self { txpool, sender }
     }
 }
@@ -45,20 +48,21 @@ impl TransactionsService for TransactionsServiceImpl {
         ))?;
         let address = get_address_from_secret_key(
             H256::from_str(&req.key).map_err(|e| Status::internal(e.to_string()))?,
-        ).map_err(|e| Status::internal(e.to_string()))?;
+        )
+        .map_err(|e| Status::internal(e.to_string()))?;
         let nonce = U128::from_str(&tx.nonce).unwrap_or_default();
         if nonce.as_u128() == 0 {
             tx.nonce = prefix_hex::encode(U128::from(txpool.nonce(&address)));
         }
         let signed_tx =
             transaction::sign_tx(H256::from_str(&req.key).unwrap_or_default(), tx.clone())
-                .map_err(|e| Status::internal(format!("{}", e)))?;
+                .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(SignedTransactionResponse {
             hash: format!("{:?}", signed_tx.hash_256()),
             tx: signed_tx
                 .into_proto()
                 .map(|tx| Some(tx))
-                .map_err(|e| Status::internal(format!("{}", e)))?,
+                .map_err(|e| Status::internal(e.to_string()))?,
         }))
     }
 
@@ -72,17 +76,19 @@ impl TransactionsService for TransactionsServiceImpl {
         ))?;
         let signed_tx =
             transaction::sign_tx(H256::from_str(&req.key).unwrap_or_default(), tx.clone())
-                .map_err(|e| Status::internal(format!("{}", e)))?;
+                .map_err(|e| Status::internal(e.to_string()))?;
         let tx_hash = signed_tx.hash_256();
         let mut txpool = self.txpool.write().map_err(|_| Status::internal(""))?;
         txpool
             .add_local(signed_tx.clone())
-            .map_err(|e| Status::aborted(format!("{}", e)))?;
+            .map_err(|e| Status::unknown(e.to_string()))?;
 
-        self.sender.send(LocalEventMessage::BroadcastTx(vec![signed_tx])).map_err(|_| {
-            warn!(tx_hash = ?tx_hash, "failed to send tx to peers");
-            Status::internal("")
-        })?;
+        self.sender
+            .send(LocalEventMessage::BroadcastTx(vec![signed_tx]))
+            .map_err(|_| {
+                warn!(tx_hash = ?tx_hash, "failed to send tx to peers");
+                Status::internal("")
+            })?;
 
         Ok(Response::new(SignedTransactionResponse {
             hash: format!("{:?}", tx_hash),
@@ -100,12 +106,14 @@ impl TransactionsService for TransactionsServiceImpl {
         let mut txpool = self.txpool.write().map_err(|_| Status::internal(""))?;
         txpool
             .add_local(signed_tx.clone())
-            .map_err(|e| Status::aborted(format!("{}", e)))?;
+            .map_err(|e| Status::aborted(e.to_string()))?;
 
-        self.sender.send(LocalEventMessage::BroadcastTx(vec![signed_tx])).map_err(|_| {
-            warn!(tx_hash = ?tx_hash, "failed to send tx to peers");
-            Status::internal("")
-        })?;
+        self.sender
+            .send(LocalEventMessage::BroadcastTx(vec![signed_tx]))
+            .map_err(|_| {
+                warn!(tx_hash = ?tx_hash, "failed to send tx to peers");
+                Status::internal("")
+            })?;
 
         Ok(Response::new(TransactionHash {
             hash: format!("{:?}", tx_hash),

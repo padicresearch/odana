@@ -245,7 +245,7 @@ where
         self.get_descend(key, descend)
     }
 
-    pub fn get_at_root(&self,from_root: &H256, key: &K) -> Result<Option<V>> {
+    pub fn get_at_root(&self, from_root: &H256, key: &K) -> Result<Option<V>> {
         let descend = match self.options.strategy {
             CopyStrategy::Partial => true,
             CopyStrategy::Full => false,

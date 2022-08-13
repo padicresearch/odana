@@ -417,7 +417,9 @@ impl TxPool {
                                     .iter()
                                     .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block(rem.parent_hash(), rem.level() - 1)? {
+                            if let Some(block) =
+                                self.chain.get_block(rem.parent_hash(), rem.level() - 1)?
+                            {
                                 rem = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?old_head.hash(),level = ?old_num,"Unrooted old chain seen by tx pool");
@@ -430,7 +432,9 @@ impl TxPool {
                                     .iter()
                                     .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block(add.parent_hash(), add.level() - 1)? {
+                            if let Some(block) =
+                                self.chain.get_block(add.parent_hash(), add.level() - 1)?
+                            {
                                 add = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?new_head.hash(),level = ?new_num,"Unrooted new chain seen by tx pool");
@@ -443,7 +447,9 @@ impl TxPool {
                                     .iter()
                                     .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block(rem.parent_hash(), rem.level() - 1)? {
+                            if let Some(block) =
+                                self.chain.get_block(rem.parent_hash(), rem.level() - 1)?
+                            {
                                 rem = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?old_head.hash(),level = ?old_num,"Unrooted old chain seen by tx pool");
@@ -454,7 +460,9 @@ impl TxPool {
                                     .iter()
                                     .map(|tx| NonceTransaction(Arc::new(tx.clone()))),
                             );
-                            if let Some(block) = self.chain.get_block(add.parent_hash(), add.level() - 1)? {
+                            if let Some(block) =
+                                self.chain.get_block(add.parent_hash(), add.level() - 1)?
+                            {
                                 add = block;
                             } else {
                                 error!(target : TXPOOL_LOG_TARGET,block = ?new_head.hash(),level = ?new_num,"Unrooted new chain seen by tx pool");

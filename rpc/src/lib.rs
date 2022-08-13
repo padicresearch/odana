@@ -33,7 +33,7 @@ pub async fn start_rpc_server(
     let addr = SocketAddr::new(host.parse()?, port);
     let chain_service = ChainServiceImpl::new(blockchain);
     let account_service = AccountServiceImpl::new(state, txpool.clone());
-    let transaction_service = TransactionsServiceImpl::new(txpool,n2p_sender);
+    let transaction_service = TransactionsServiceImpl::new(txpool, n2p_sender);
     info!(addr = ?addr, "RPC server running at");
     Server::builder()
         .add_service(ChainServiceServer::new(chain_service))
