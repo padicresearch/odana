@@ -1,0 +1,22 @@
+name: cargofmt
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+
+jobs:
+  cargofmt:
+    name: Cargo fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nigthly
+          default: true
+      - run: rustup component add rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
