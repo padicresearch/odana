@@ -1,10 +1,8 @@
-use std::fs::OpenOptions;
-use std::path::PathBuf;
+use std::fs::{File, OpenOptions};
 use std::sync::atomic::AtomicI8;
 use std::sync::Arc;
 
 use anyhow::Result;
-use directories::UserDirs;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -19,14 +17,15 @@ use p2p::request_handler::RequestHandler;
 use p2p::start_p2p_server;
 use rpc::start_rpc_server;
 use storage::{PersistentStorage, PersistentStorageBackend};
-use tracing::info;
+use tracing::{info, tracing_subscriber};
+use tracing::tracing_subscriber::fmt::writer::MakeWriterExt;
 use traits::Handler;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 use types::events::LocalEventMessage;
 
 use crate::environment::default_db_opts;
 use crate::sync::{SyncMode, SyncService};
-use crate::RunArgs;
+use crate::{Level, RunArgs};
 
 enum Event {
     LocalMessage(LocalEventMessage),
@@ -50,71 +49,19 @@ pub(crate) fn run(args: &RunArgs) -> Result<()> {
 }
 
 async fn _start_node(args: &RunArgs) -> Result<()> {
-    // Config
+    let env = setup_evironment(args)?;
+    // Setup Log
+    let log_level: Level = args.log_level.into();
+    let debug_log = Arc::new(File::create(env.datadir.join("debug.log"))?);
+    let mk_writer = std::io::stderr
+        .with_max_level(Level::ERROR)
+        .or_else(std::io::stdout
+            .with_max_level(log_level)
+            .and(debug_log.with_max_level(Level::DEBUG))
+        );
 
-    let user_dir = UserDirs::new().unwrap();
-    let mut default_datadir = PathBuf::from(user_dir.home_dir());
-    default_datadir.push(".uchain");
-    let datadir = args.datadir.clone().unwrap_or(default_datadir);
+    tracing_subscriber::fmt().with_writer(mk_writer).init();
 
-    let mut config = EnvironmentConfig::default();
-
-    if let Some(config_file_path) = &args.config_file {
-        let config_file = OpenOptions::new()
-            .read(true)
-            .open(config_file_path.as_path())?;
-        config = serde_json::from_reader(config_file)?;
-    } else {
-        let res: Result<EnvironmentConfig, _> = OpenOptions::new()
-            .read(true)
-            .open(datadir.join("config.json"))
-            .map_err(|e| anyhow::anyhow!("{}", e))
-            .and_then(|config_file| {
-                serde_json::from_reader(config_file).map_err(|e| anyhow::anyhow!("{}", e))
-            });
-
-        if let Ok(c) = res {
-            config = c;
-        }
-    }
-
-    if let Some(network) = args.network {
-        config.network = network;
-    }
-
-    if !args.peer.is_empty() {
-        config.peers = args.peer.clone();
-    }
-
-    if let Some(network) = args.network {
-        config.network = network;
-    }
-
-    if let Some(coinbase) = args.miner {
-        config.miner = Some(coinbase)
-    }
-
-    if let Some(expected_pow) = args.expected_pow {
-        config.expected_pow = expected_pow
-    }
-
-    if let Some(host) = &args.host {
-        config.host = host.clone()
-    }
-
-    if let Some(p2p_port) = args.p2p_port {
-        config.p2p_port = p2p_port
-    }
-
-    if let Some(rpc_port) = args.rpc_port {
-        config.rpc_port = rpc_port
-    }
-
-    if let Some(identity_file) = &args.identity_file {
-        config.identity_file = Some(identity_file.clone())
-    }
-
-    let env = Arc::new(config);
     // Communications
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
     let (node_to_peer_sender, node_to_peer_receiver) = tokio::sync::mpsc::unbounded_channel();
@@ -128,7 +75,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         NodeIdentityConfig::open(
             env.identity_file
                 .clone()
-                .unwrap_or_else(|| datadir.join("identity.json")),
+                .unwrap_or_else(|| env.datadir.join("identity.json")),
         )
         .expect("identity file not found"),
     )
@@ -136,7 +83,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
 
     let database = Arc::new(rocksdb::DB::open_cf_descriptors(
         &default_db_opts(),
-        datadir.join("context"),
+        env.datadir.join("context"),
         column_families(),
     )?);
     let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::RocksDB(
@@ -145,7 +92,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     let consensus = Arc::new(BarossaProtocol::new(env.network));
     let blockchain = Arc::new(
         Tuchain::initialize(
-            datadir,
+            env.datadir.clone(),
             consensus.clone(),
             storage,
             local_mpsc_sender.clone(),
@@ -294,4 +241,70 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
             }
         }
     }
+}
+
+fn setup_evironment(args: &RunArgs) -> Result<Arc<EnvironmentConfig>> {
+    let mut config = EnvironmentConfig::default();
+
+
+    if let Some(datadir) = &args.datadir {
+        config.datadir = datadir.clone();
+    }
+
+    if let Some(config_file_path) = &args.config_file {
+        let config_file = OpenOptions::new()
+            .read(true)
+            .open(config_file_path.as_path())?;
+        config = serde_json::from_reader(config_file)?;
+    } else {
+        let res: Result<EnvironmentConfig, _> = OpenOptions::new()
+            .read(true)
+            .open(config.datadir.join("config.json"))
+            .map_err(|e| anyhow::anyhow!("{}", e))
+            .and_then(|config_file| {
+                serde_json::from_reader(config_file).map_err(|e| anyhow::anyhow!("{}", e))
+            });
+
+        if let Ok(c) = res {
+            config = c;
+        }
+    }
+
+    if let Some(network) = args.network {
+        config.network = network;
+    }
+
+    if !args.peer.is_empty() {
+        config.peers = args.peer.clone();
+    }
+
+    if let Some(network) = args.network {
+        config.network = network;
+    }
+
+    if let Some(coinbase) = args.miner {
+        config.miner = Some(coinbase)
+    }
+
+    if let Some(expected_pow) = args.expected_pow {
+        config.expected_pow = expected_pow
+    }
+
+    if let Some(host) = &args.host {
+        config.host = host.clone()
+    }
+
+    if let Some(p2p_port) = args.p2p_port {
+        config.p2p_port = p2p_port
+    }
+
+    if let Some(rpc_port) = args.rpc_port {
+        config.rpc_port = rpc_port
+    }
+
+    if let Some(identity_file) = &args.identity_file {
+        config.identity_file = Some(identity_file.clone())
+    }
+
+    Ok(Arc::new(config))
 }

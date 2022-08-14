@@ -6,7 +6,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use primitive_types::{H160, H256, U192};
-
+use directories::UserDirs;
 use crate::network::Network;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -42,6 +42,8 @@ pub struct EnvironmentConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub identity_file: Option<PathBuf>,
+    #[serde(default)]
+    pub datadir: PathBuf,
     pub network: Network,
 }
 
@@ -65,6 +67,9 @@ impl EnvironmentConfig {
 
 impl Default for EnvironmentConfig {
     fn default() -> Self {
+        let user_dir = UserDirs::new().unwrap();
+        let mut default_datadir = PathBuf::from(user_dir.home_dir());
+        default_datadir.push(".uchain");
         Self {
             miner: None,
             host: "0.0.0.0".to_string(),
@@ -73,6 +78,7 @@ impl Default for EnvironmentConfig {
             expected_pow: 26.0,
             peers: vec![],
             identity_file: None,
+            datadir: default_datadir,
             network: Network::Testnet,
         }
     }
