@@ -257,8 +257,9 @@ mod from_low_u64 {
 
 #[cfg(feature = "rand")]
 mod rand {
-    use super::*;
     use ::rand::{rngs::StdRng, SeedableRng};
+
+    use super::*;
 
     #[test]
     fn random() {

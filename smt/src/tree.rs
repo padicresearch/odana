@@ -1,17 +1,20 @@
-use crate::error::Error;
-use crate::proof::{verify_proof_with_updates, Proof};
-use crate::store::Database;
-use crate::SparseMerkleTree;
-use anyhow::Result;
-use codec::{Codec, Decoder, Encoder};
-use hex::ToHex;
-use primitive_types::H256;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
+
+use anyhow::Result;
+use hex::ToHex;
+use serde::{Deserialize, Serialize};
+
+use codec::{Codec, Decoder, Encoder};
+use primitive_types::H256;
 use tracing::{debug, error};
+
+use crate::error::Error;
+use crate::proof::{verify_proof_with_updates, Proof};
+use crate::store::Database;
+use crate::SparseMerkleTree;
 
 #[derive(Copy, Clone)]
 pub enum CopyStrategy {
@@ -173,7 +176,7 @@ where
         }
 
         let new_root = head.root();
-        self.db.put(new_root, head.clone());
+        self.db.put(new_root, head.clone())?;
         *staging = head.subtree(self.options.strategy, vec![])?;
         Ok(new_root)
     }
@@ -260,7 +263,7 @@ where
         let raw_key = key.encode()?;
         let value = self
             .get(key)?
-            .ok_or(Error::InvalidKey(raw_key.encode_hex()))?;
+            .ok_or_else(|| Error::InvalidKey(raw_key.encode_hex()))?;
         let proof = head.proof(&raw_key)?;
         Ok((value, proof))
     }
@@ -294,7 +297,7 @@ where
 
     fn get_descend_from_root(&self, from_root: &H256, key: &K, descend: bool) -> Result<Option<V>> {
         let key = key.encode()?;
-        let mut head = self.db.get(from_root)?;
+        let head = self.db.get(from_root)?;
         let mut value = head.get(&key)?;
         if value.is_empty() && descend {
             let res = self._get_descend(&key, &head.root)?;
@@ -357,10 +360,12 @@ impl Verifier {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Tree, Verifier};
-    use primitive_types::{H160, H256};
     use tempdir::TempDir;
+
+    use primitive_types::{H160, H256};
     use types::account::AccountState;
+
+    use crate::{Tree, Verifier};
 
     #[test]
     fn basic_test() {

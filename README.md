@@ -48,19 +48,19 @@
 
 * Build the node from source
     ```shell
-    cargo build --release --package node
+    cargo build --release
     ```
 * Generate Node Identity
     ```shell
-    ./target/release/node identity generate
+    ./target/release/uchain identity generate
     ```
 * Initialize node configuration
     ```shell
-    ./target/release/node config init
+    ./target/release/uchain config init
     ```
 * Create a miner account (optional - required if you want to run as a miner)
   ```shell
-  ./target/release/node account new
+  ./target/release/uchain account new
   ```
   Output:
   ```json
@@ -71,11 +71,11 @@
   ```
   Set miner
   ```shell
-  ./target/release/node config update --miner="0xffff…ffff"
+  ./target/release/uchain config update --miner="0xffff…ffff"
   ```
 * Run node
   ```shell
-  ./target/release/node run
+  ./target/release/uchain run
   ```
 
 ### RPC Usage

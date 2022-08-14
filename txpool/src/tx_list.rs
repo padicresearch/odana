@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
-
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
@@ -318,7 +317,6 @@ impl TxPricedList {
 
 #[cfg(test)]
 mod tests {
-
     use account::create_account;
 
     use crate::tests::make_tx;

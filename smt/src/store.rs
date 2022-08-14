@@ -1,15 +1,19 @@
+#![allow(dead_code)]
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use anyhow::{bail, Result};
+use dashmap::DashMap;
+use hex::ToHex;
+use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
+use serde::{Deserialize, Serialize};
+
+use codec::{Decoder, Encoder};
+use primitive_types::H256;
+
 use crate::error::Error;
 use crate::persistent::{default_db_opts, MemoryStore, RocksDB};
 use crate::SparseMerkleTree;
-use anyhow::{bail, Result};
-use codec::{Decoder, Encoder};
-use dashmap::DashMap;
-use hex::ToHex;
-use primitive_types::H256;
-use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
-use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 const COLUMN_TREES: &str = "t";
 const COLUMN_ROOT: &str = "r";
@@ -140,7 +144,7 @@ impl ArchivedStorage {
 
     pub fn get(&self, key: &[u8]) -> Result<Vec<u8>> {
         let value = self.inner.get(key).map(|r| r.value().clone());
-        value.ok_or(Error::InvalidKey(key.encode_hex::<String>()).into())
+        value.ok_or_else(|| Error::InvalidKey(key.encode_hex::<String>()).into())
     }
 
     pub fn delete(&self, key: &[u8]) -> Result<()> {

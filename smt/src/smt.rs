@@ -1,13 +1,15 @@
+use anyhow::{bail, Result};
+use serde::{Deserialize, Serialize};
+
+use codec::{Decoder, Encoder};
+use primitive_types::H256;
+
 use crate::error::Error;
 use crate::proof::{verify_proof_with_updates, Proof};
 use crate::store::ArchivedStorage;
 use crate::treehasher::TreeHasher;
 use crate::utils::{count_common_prefix, get_bits_at_from_msb};
 use crate::CopyStrategy;
-use anyhow::{bail, Result};
-use codec::{Decoder, Encoder};
-use primitive_types::H256;
-use serde::{Deserialize, Serialize};
 
 impl TreeHasher for SparseMerkleTree {}
 
@@ -119,19 +121,18 @@ impl SparseMerkleTree {
             return Ok((side_nodes, path_nodes, current_data, None));
         }
 
-        let mut node_hash = H256::zero();
         let mut side_node = Vec::new();
         let mut sibling_data = Vec::new();
 
         for i in 0..self.depth() {
             let (left_node, right_node) = self.parse_node(&current_data);
-            if get_bits_at_from_msb(path.as_bytes(), i) == 1 {
+            let node_hash = if get_bits_at_from_msb(path.as_bytes(), i) == 1 {
                 side_node = left_node.to_vec();
-                node_hash = H256::from_slice(right_node);
+                H256::from_slice(right_node)
             } else {
                 side_node = right_node.to_vec();
-                node_hash = H256::from_slice(left_node);
-            }
+                H256::from_slice(left_node)
+            };
 
             side_nodes.push(H256::from_slice(&side_node));
             path_nodes.push(node_hash);
@@ -161,7 +162,7 @@ impl SparseMerkleTree {
         path: &H256,
         side_nodes: &Vec<H256>,
         path_nodes: &Vec<H256>,
-        old_leaf_data: &Vec<u8>,
+        old_leaf_data: &[u8],
     ) -> Result<H256> {
         if path_nodes[0].is_zero() {
             bail!(Error::KeyAlreadyEmpty)
@@ -217,9 +218,9 @@ impl SparseMerkleTree {
         &self,
         path: &H256,
         value: &[u8],
-        side_nodes: &Vec<H256>,
-        path_nodes: &Vec<H256>,
-        old_leaf_data: &Vec<u8>,
+        side_nodes: &[H256],
+        path_nodes: &[H256],
+        old_leaf_data: &[u8],
     ) -> Result<H256> {
         let value_hash = self.digest(value);
         let (mut current_hash, mut current_data) =
@@ -232,9 +233,8 @@ impl SparseMerkleTree {
         let common_prefix_count = if path_nodes[0].is_zero() {
             self.depth()
         } else {
-            let mut actual_path = H256::zero();
             let (ap, op) = self.parse_leaf(old_leaf_data);
-            actual_path = H256::from_slice(ap);
+            let actual_path = H256::from_slice(ap);
             old_value_hash = Some(H256::from_slice(op));
             count_common_prefix(path.as_bytes(), actual_path.as_bytes()) as usize
         };
@@ -259,26 +259,25 @@ impl SparseMerkleTree {
             let _ = self.values.delete(path.as_bytes());
         }
 
-        for i in 1..path_nodes.len() {
-            self.nodes.delete(path_nodes[i].as_bytes())?;
+        for node in path_nodes.iter().skip(1) {
+            self.nodes.delete(node.as_bytes())?;
         }
 
         let offset_side_nodes = (self.depth() - side_nodes.len()) as i32;
 
         for i in 0..self.depth() {
-            let mut side_node = H256::zero();
-            if i as i32 - offset_side_nodes < 0
+            let side_node = if i as i32 - offset_side_nodes < 0
                 || side_nodes.get(i - offset_side_nodes as usize).is_none()
             {
                 if common_prefix_count != self.depth() && common_prefix_count > self.depth() - 1 - i
                 {
-                    side_node = self.placeholder();
+                    self.placeholder()
                 } else {
                     continue;
                 }
             } else {
-                side_node = side_nodes[i - offset_side_nodes as usize];
-            }
+                side_nodes[i - offset_side_nodes as usize]
+            };
 
             if get_bits_at_from_msb(path.as_bytes(), self.depth() - 1 - i) == 1 {
                 let (c, t) = self.digest_node(side_node.as_bytes(), &current_data);

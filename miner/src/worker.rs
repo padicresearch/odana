@@ -3,18 +3,15 @@ use std::sync::atomic::{AtomicBool, AtomicI8, Ordering};
 use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
-
-use blockchain::chain_state::ChainState;
 use chrono::Utc;
 use tokio::sync::mpsc::UnboundedSender;
 
+use blockchain::chain_state::ChainState;
 use merkle::Merkle;
 use p2p::peer_manager::NetworkState;
 use primitive_types::{H160, U128, U256};
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
-
-use txpool::tx_lookup::AccountSet;
 use txpool::TxPool;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
@@ -26,6 +23,7 @@ pub const RESET: i8 = 0;
 pub const PAUSE: i8 = 1;
 pub const START: i8 = 2;
 
+#[allow(clippy::too_many_arguments)]
 pub fn start_worker(
     coinbase: H160,
     lmpsc: UnboundedSender<LocalEventMessage>,
@@ -37,7 +35,6 @@ pub fn start_worker(
     interrupt: Arc<AtomicI8>,
 ) -> Result<()> {
     let is_running: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
-    let mut current_block_template: Option<(BlockHeader, Vec<SignedTransaction>)> = None;
     info!(miner = ?coinbase, "mine worker started running");
     loop {
         let _ = is_running.load(Ordering::Acquire);
@@ -70,7 +67,6 @@ pub fn start_worker(
                 chain.clone(),
                 chain_header_reader.clone(),
             )?;
-            current_block_template = Some((head.clone(), txs.clone()));
             debug!(coinbase = ?coinbase, txs_count = txs.len(), "🚧 mining a new block");
             (head, txs)
         };
@@ -135,15 +131,14 @@ pub fn start_worker(
             }
         }
     }
-
-    warn!("miner shutdown");
 }
 
 fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedTransaction>)> {
-    let mut txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
+    let txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
     let mut tsx = Vec::new();
     let mut merkle = Merkle::default();
-    for (_, list) in txpool.pending() {
+    let pending_txs = txpool.pending();
+    for (_, list) in pending_txs {
         for tx in list.as_ref().iter() {
             merkle.update(&tx.hash())?;
         }
@@ -155,7 +150,7 @@ fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedT
         Some(root) => *root,
     };
 
-    return Ok((merkle_root, tsx));
+    Ok((merkle_root, tsx))
 }
 
 fn make_block_template(
@@ -171,7 +166,7 @@ fn make_block_template(
         Some(header) => header.raw,
     };
     let state = state.state_at(*parent_header.state_root())?;
-    let (merkle_root, txs) = pack_queued_txs(txpool.clone())?;
+    let (merkle_root, txs) = pack_queued_txs(txpool)?;
 
     let mut mix_nonce = [0; 32];
     U256::one().to_big_endian(&mut mix_nonce);

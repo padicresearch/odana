@@ -3,7 +3,6 @@ use std::hash::{Hash, Hasher};
 use bloomfilter::Bloom;
 
 use crate::crypto::{HashFunction, HASH_LEN, SHA256};
-
 use crate::errors::*;
 
 mod crypto;

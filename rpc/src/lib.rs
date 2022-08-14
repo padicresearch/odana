@@ -1,23 +1,26 @@
-mod account;
-mod blockchain;
-mod txs;
+use std::net::SocketAddr;
+use std::sync::{Arc, RwLock};
 
-use crate::account::AccountServiceImpl;
-use crate::blockchain::ChainServiceImpl;
-use crate::txs::TransactionsServiceImpl;
 use anyhow::Result;
+use tokio::sync::mpsc::UnboundedSender;
+use tonic::transport::Server;
+
 use proto::rpc::account_service_server::AccountServiceServer;
 use proto::rpc::chain_service_server::ChainServiceServer;
 use proto::rpc::transactions_service_server::TransactionsServiceServer;
-use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
-use tokio::sync::mpsc::UnboundedSender;
-use tonic::transport::Server;
 use tracing::info;
 use traits::{Blockchain, StateDB};
 use txpool::TxPool;
 use types::config::EnvironmentConfig;
 use types::events::LocalEventMessage;
+
+use crate::account::AccountServiceImpl;
+use crate::blockchain::ChainServiceImpl;
+use crate::txs::TransactionsServiceImpl;
+
+mod account;
+mod blockchain;
+mod txs;
 
 pub struct RPC;
 

@@ -1,11 +1,13 @@
-use crate::message::{BlockHeaderMessage, BlocksMessage, CurrentHeadMessage, PeerMessage};
-use crate::{NetworkState, PeerId};
+use std::sync::Arc;
+
 use anyhow::Result;
+
 use blockchain::blockchain::Tuchain;
 use primitive_types::H256;
-use std::sync::Arc;
-use tokio::io::AsyncReadExt;
 use traits::{Blockchain, ChainHeadReader, ChainReader};
+
+use crate::message::{BlockHeaderMessage, BlocksMessage, CurrentHeadMessage, PeerMessage};
+use crate::{NetworkState, PeerId};
 
 pub struct RequestHandler {
     blockchain: Arc<Tuchain>,
@@ -28,7 +30,7 @@ impl RequestHandler {
                         current_head.raw,
                     ))));
                 }
-                return Ok(None);
+                Ok(None)
             }
             PeerMessage::GetBlockHeader(msg) => {
                 let blockchain = self.blockchain.clone();
@@ -46,7 +48,7 @@ impl RequestHandler {
                         let res = blockchain
                             .chain()
                             .block_storage()
-                            .get_block_by_hash(&peer_current_state.parent_hash());
+                            .get_block_by_hash(peer_current_state.parent_hash());
                         match res {
                             Ok(Some(block)) => block.level(),
                             _ => -1,
@@ -108,9 +110,9 @@ impl RequestHandler {
                 if blocks.len() != msg.block_hashes.len() {
                     blocks.clear();
                 }
-                return Ok(Some(PeerMessage::Blocks(BlocksMessage::new(blocks))));
+                Ok(Some(PeerMessage::Blocks(BlocksMessage::new(blocks))))
             }
-            _ => return Ok(None),
+            _ => Ok(None),
         }
     }
 }

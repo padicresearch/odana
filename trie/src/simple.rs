@@ -11,7 +11,6 @@ where
 {
     key: Option<K>,
     value: Option<V>,
-    root: bool,
     is_word: bool,
     children: BTreeMap<C, SimpleTrie<C, K, V>>,
 }
@@ -26,7 +25,6 @@ where
         Self {
             key: None,
             value: None,
-            root: true,
             is_word: false,
             children: Default::default(),
         }
@@ -68,7 +66,6 @@ where
                 .or_insert(SimpleTrie {
                     key: None,
                     value: None,
-                    root: false,
                     is_word: false,
                     children: Default::default(),
                 });

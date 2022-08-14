@@ -13,14 +13,14 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+use alloc::string::String;
+
+pub use error::Error;
+
 mod data;
 mod error;
 #[cfg(feature = "primitive-types")]
 mod primitive_types;
-
-use alloc::string::String;
-
-pub use error::Error;
 
 /// Tries to decode an hexadecimal encoded string with a `0x` prefix.
 pub trait FromHexPrefixed: Sized {

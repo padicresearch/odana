@@ -2,7 +2,6 @@ use std::sync::Arc;
 use std::sync::RwLock;
 
 use anyhow::Result;
-
 use dashmap::DashMap;
 
 use account::create_account;

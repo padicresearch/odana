@@ -11,10 +11,9 @@
 #![no_std]
 
 #[doc(hidden)]
-pub use num_traits;
-
-#[doc(hidden)]
 pub use integer_sqrt;
+#[doc(hidden)]
+pub use num_traits;
 
 #[doc(hidden)]
 pub use uint;

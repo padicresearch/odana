@@ -16,16 +16,17 @@
 //! the field deserialization fails, as we don't serialize field
 //! names and there is no way to tell if it is present or not.
 
-#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![allow(clippy::all)]
 
 extern crate proc_macro;
 
-mod de;
-mod en;
+use proc_macro::TokenStream;
 
 use de::{impl_decodable, impl_decodable_wrapper};
 use en::{impl_encodable, impl_encodable_wrapper};
-use proc_macro::TokenStream;
+
+mod de;
+mod en;
 
 #[proc_macro_derive(RlpEncodable, attributes(rlp))]
 pub fn encodable(input: TokenStream) -> TokenStream {

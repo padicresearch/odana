@@ -10,6 +10,7 @@ use core::{cmp, fmt};
 
 use bytes::{Bytes, BytesMut};
 use hex_literal::hex;
+
 use primitive_types::{H160, U256};
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 

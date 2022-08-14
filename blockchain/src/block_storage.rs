@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+
 use primitive_types::H256;
-
 use storage::{KVStore, PersistentStorage, Schema, StorageIterator};
-
 use traits::{ChainHeadReader, ChainReader};
 use types::block::{Block, BlockPrimaryKey, IndexedBlockHeader};
 use types::Hash;
@@ -26,8 +25,8 @@ impl BlockStorage {
 
     pub fn put(&self, block: Block) -> Result<()> {
         let block_key = self.primary.put(block)?;
-        self.block_by_hash.put(block_key.0, block_key.clone())?;
-        self.block_by_level.put(block_key.1, block_key.clone())?;
+        self.block_by_hash.put(block_key.0, block_key)?;
+        self.block_by_level.put(block_key.1, block_key)?;
         Ok(())
     }
 
@@ -54,7 +53,7 @@ impl ChainHeadReader for BlockStorage {
         let primary_key = BlockPrimaryKey(hash.to_fixed_bytes(), level);
         self.primary
             .get_block(&primary_key)
-            .map(|opt_block| opt_block.map(|b| b.header().clone().into()))
+            .map(|opt_block| opt_block.map(|b| (*b.header()).into()))
     }
 
     fn get_header_by_hash(&self, hash: &H256) -> anyhow::Result<Option<IndexedBlockHeader>> {
@@ -62,7 +61,7 @@ impl ChainHeadReader for BlockStorage {
         if let Some(primary_key) = primary_key {
             return self.get_header(&H256::from(primary_key.0), primary_key.1);
         }
-        return Ok(None);
+        Ok(None)
     }
 
     fn get_header_by_level(&self, level: i32) -> anyhow::Result<Option<IndexedBlockHeader>> {
@@ -70,7 +69,7 @@ impl ChainHeadReader for BlockStorage {
         if let Some(primary_key) = primary_key {
             return self.get_header(&H256::from(primary_key.0), primary_key.1);
         }
-        return Ok(None);
+        Ok(None)
     }
 }
 
@@ -85,7 +84,7 @@ impl ChainReader for BlockStorage {
         if let Some(primary_key) = primary_key {
             return self.get_block(&H256::from(primary_key.0), primary_key.1);
         }
-        return Ok(None);
+        Ok(None)
     }
 
     fn get_block_by_level(&self, level: i32) -> Result<Option<Block>> {
@@ -93,7 +92,7 @@ impl ChainReader for BlockStorage {
         if let Some(primary_key) = primary_key {
             return self.get_block(&H256::from(primary_key.0), primary_key.1);
         }
-        return Ok(None);
+        Ok(None)
     }
 }
 
@@ -124,7 +123,7 @@ impl BlockPrimaryStorage {
         if self.kv.contains(&block_key)? {
             return Ok(block_key);
         }
-        self.kv.put(block_key.clone(), block)?;
+        self.kv.put(block_key, block)?;
         Ok(block_key)
     }
     pub fn get_block(&self, block_key: &BlockPrimaryKey) -> Result<Option<Block>> {
@@ -143,7 +142,7 @@ impl BlockPrimaryStorage {
         &self,
         start_at: &BlockPrimaryKey,
     ) -> Result<StorageIterator<BlockPrimaryStorage>> {
-        self.kv.prefix_iter(&start_at)
+        self.kv.prefix_iter(start_at)
     }
 }
 
@@ -211,8 +210,4 @@ impl BlockByHash {
     pub fn get(&self, hash: &H256) -> Result<Option<BlockPrimaryKey>> {
         self.kv.get(hash.as_fixed_bytes())
     }
-}
-
-pub struct BlockHeadersStorage {
-    primary: Arc<BlockPrimaryStorage>,
 }

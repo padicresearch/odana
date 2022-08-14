@@ -1,18 +1,14 @@
 use std::collections::{BTreeSet, HashMap};
-use std::ops::Deref;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 use anyhow::bail;
 use anyhow::Result;
 use dashmap::DashMap;
 use libp2p::request_response::RequestId;
-use libp2p::swarm::KeepAlive::No;
 use libp2p::{Multiaddr, PeerId};
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::{Compact, U256};
-use tracing::level_enabled;
+use primitive_types::U256;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
 
@@ -23,6 +19,12 @@ pub struct PeerList {
     potential_peers: DashMap<Arc<PeerId>, RequestId>,
     connected_peers: DashMap<Arc<PeerId>, PeerNode>,
     addrs: DashMap<Arc<PeerId>, Multiaddr>,
+}
+
+impl Default for PeerList {
+    fn default() -> Self {
+        PeerList::new()
+    }
 }
 
 impl PeerList {
@@ -36,7 +38,7 @@ impl PeerList {
 
     pub fn add_potential_peer(&self, peer: PeerId, request_id: RequestId) {
         let peer_id = Arc::new(peer);
-        self.potential_peers.insert(peer_id.clone(), request_id);
+        self.potential_peers.insert(peer_id, request_id);
     }
 
     pub fn set_peer_address(&self, peer: PeerId, addr: Multiaddr) {
@@ -152,11 +154,11 @@ impl NetworkState {
                 let current_highest_peer_id = highest_know_head.clone();
                 let current_highest_block_header = peer_state
                     .get(&current_highest_peer_id)
-                    .ok_or(anyhow::anyhow!("Current highest peer not found"))?;
-                let mut new_highest = peer.clone();
+                    .ok_or_else(|| anyhow::anyhow!("Current highest peer not found"))?;
+                let new_highest = peer.clone();
                 if head.level() > current_highest_block_header.level() {
                     *highest_know_head = new_highest;
-                    peer_state.insert(peer.clone(), head.clone());
+                    peer_state.insert(peer.clone(), head);
                 }
             }
 
@@ -166,9 +168,9 @@ impl NetworkState {
                     tip: Some(head),
                 })?;
         } else {
-            let mut new_highest = Some(peer.clone());
+            let new_highest = Some(peer.clone());
             *highest_know_head = new_highest;
-            peer_state.insert(peer.clone(), head.clone());
+            peer_state.insert(peer.clone(), head);
             self.sender
                 .send(LocalEventMessage::NetworkHighestHeadChanged {
                     peer_id: peer.to_string(),
@@ -194,7 +196,7 @@ impl NetworkState {
 
     pub fn get_peer_state(&self, peer_id: &PeerId) -> Option<BlockHeader> {
         let peer_state = self.peer_state.read().unwrap();
-        return peer_state.get(peer_id).map(|value| value.clone());
+        return peer_state.get(peer_id).copied();
     }
 
     pub fn remove_peer(&self, peer_id: &PeerId) -> Result<()> {
@@ -222,28 +224,24 @@ impl NetworkState {
     }
 
     pub fn highest_peer(&self) -> Option<String> {
-        let mut highest_know_head = self.highest_know_head.read().unwrap();
-        match highest_know_head.clone() {
-            None => None,
-            Some(peer_id) => Some(peer_id.to_string()),
-        }
+        let highest_know_head = self.highest_know_head.read().unwrap();
+        highest_know_head
+            .as_ref()
+            .map(|peer_id| peer_id.to_string())
     }
 
     pub fn highest_peer_raw(&self) -> Option<Arc<PeerId>> {
-        let mut highest_know_head = self.highest_know_head.read().unwrap();
-        match highest_know_head.clone() {
-            None => None,
-            Some(peer_id) => Some(peer_id.clone()),
-        }
+        let highest_know_head = self.highest_know_head.read().unwrap();
+        highest_know_head.clone()
     }
 
     pub fn network_head(&self) -> Option<BlockHeader> {
-        let mut highest_peer = self.highest_peer_raw();
+        let highest_peer = self.highest_peer_raw();
         match highest_peer {
             None => None,
             Some(peer_id) => {
                 let peer_state = self.peer_state.clone();
-                let mut peer_state = peer_state.read().unwrap();
+                let peer_state = peer_state.read().unwrap();
                 peer_state.get(&peer_id).cloned()
             }
         }

@@ -1,5 +1,6 @@
-use codec::{ConsensusCodec, Encoder};
 use criterion::{criterion_group, criterion_main, Criterion};
+
+use codec::{ConsensusCodec, Encoder};
 use primitive_types::{H160, H256, U128, U256};
 use types::block::BlockHeader;
 

@@ -1,6 +1,7 @@
-use primitive_types::{Compact, H160, H256, H448, U192, U256};
 use ripemd::{Digest, Ripemd160};
 use sha2::Digest as ShaDigest;
+
+use primitive_types::{Compact, H160, H256, H448, U192, U256};
 
 pub mod ecdsa;
 mod error;

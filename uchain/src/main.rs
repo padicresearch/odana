@@ -1,21 +1,19 @@
 #![feature(map_first_last)]
 
-use crate::Commands::Config;
+use std::collections::BTreeSet;
+use std::fs::OpenOptions;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+use std::time::Duration;
+
 use anyhow::Result;
 use clap::{ArgEnum, Args, Parser, Subcommand};
 use directories::UserDirs;
 use indicatif::{ProgressBar, ProgressStyle};
+
 use p2p::identity::NodeIdentity;
-use primitive_types::{H160, U256};
-use serde_json::json;
-use std::collections::BTreeSet;
-use std::env::args;
-use std::f32::consts::E;
-use std::fs::OpenOptions;
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::time::Duration;
-use tracing::{span, tracing_subscriber, Level};
+use primitive_types::H160;
+use tracing::{tracing_subscriber, Level};
 use types::config::EnvironmentConfig;
 use types::network::Network;
 
@@ -33,9 +31,9 @@ enum LogLevel {
     Error,
 }
 
-impl Into<Level> for LogLevel {
-    fn into(self) -> Level {
-        match self {
+impl From<LogLevel> for Level {
+    fn from(level: LogLevel) -> Self {
+        match level {
             LogLevel::Trace => Level::TRACE,
             LogLevel::Debug => Level::DEBUG,
             LogLevel::Info => Level::INFO,
@@ -187,10 +185,8 @@ fn main() -> Result<()> {
 }
 
 fn create_file_path(datadir: Option<PathBuf>, filename: &str) -> Result<PathBuf> {
-    let user_dirs = UserDirs::new().ok_or(anyhow::anyhow!("user dir not found"))?;
-    let path = datadir
-        .clone()
-        .unwrap_or(PathBuf::from(user_dirs.home_dir()).join(".uchain"));
+    let user_dirs = UserDirs::new().ok_or_else(|| anyhow::anyhow!("user dir not found"))?;
+    let path = datadir.unwrap_or_else(|| PathBuf::from(user_dirs.home_dir()).join(".uchain"));
     fs_extra::dir::create_all(path.as_path(), false)?;
     Ok(path.join(filename))
 }
@@ -279,46 +275,7 @@ fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
         }
         ConfigCommands::Update(args) => {
             let config_file_path = create_file_path(args.datadir.clone(), "config.json")?;
-            let mut config: EnvironmentConfig = EnvironmentConfig::default();
-            {
-                let config_file = OpenOptions::new()
-                    .read(true)
-                    .open(config_file_path.as_path())?;
-                config = serde_json::from_reader(config_file)?;
-
-                if let Some(network) = args.network {
-                    config.network = network;
-                }
-
-                let mut peers: BTreeSet<_> = config.peers.iter().collect();
-                peers.extend(args.peer.iter());
-
-                config.peers = peers.into_iter().cloned().collect();
-
-                if let Some(network) = args.network {
-                    config.network = network;
-                }
-
-                if let Some(coinbase) = args.miner {
-                    config.miner = Some(coinbase)
-                }
-
-                if let Some(expected_pow) = args.expected_pow {
-                    config.expected_pow = expected_pow
-                }
-
-                if let Some(host) = &args.host {
-                    config.host = host.clone()
-                }
-
-                if let Some(p2p_port) = args.p2p_port {
-                    config.p2p_port = p2p_port
-                }
-
-                if let Some(rpc_port) = args.rpc_port {
-                    config.rpc_port = rpc_port
-                }
-            }
+            let config = sanitize_config_args(args, &config_file_path)?;
 
             // TODO; Make update safer by using temp file renaming
             let config_file = OpenOptions::new()
@@ -334,12 +291,54 @@ fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
             let config_file = OpenOptions::new()
                 .read(true)
                 .open(config_file_path.as_path())?;
-            let mut config: EnvironmentConfig = serde_json::from_reader(&config_file)?;
+            let config: EnvironmentConfig = serde_json::from_reader(&config_file)?;
             let json_string = serde_json::to_string_pretty(&config)?;
             println!("{}", json_string)
         }
     }
     Ok(())
+}
+
+fn sanitize_config_args(
+    args: &SetConfigArgs,
+    config_file_path: &Path,
+) -> Result<EnvironmentConfig> {
+    let config_file = OpenOptions::new().read(true).open(config_file_path)?;
+    let mut config: EnvironmentConfig = serde_json::from_reader(config_file)?;
+
+    if let Some(network) = args.network {
+        config.network = network;
+    }
+
+    let mut peers: BTreeSet<_> = config.peers.iter().collect();
+    peers.extend(args.peer.iter());
+
+    config.peers = peers.into_iter().cloned().collect();
+
+    if let Some(network) = args.network {
+        config.network = network;
+    }
+
+    if let Some(coinbase) = args.miner {
+        config.miner = Some(coinbase)
+    }
+
+    if let Some(expected_pow) = args.expected_pow {
+        config.expected_pow = expected_pow
+    }
+
+    if let Some(host) = &args.host {
+        config.host = host.clone()
+    }
+
+    if let Some(p2p_port) = args.p2p_port {
+        config.p2p_port = p2p_port
+    }
+
+    if let Some(rpc_port) = args.rpc_port {
+        config.rpc_port = rpc_port
+    }
+    Ok(config)
 }
 
 pub(crate) fn parse_multaddr(s: &str) -> Result<String, String> {
