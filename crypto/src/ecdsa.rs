@@ -158,9 +158,9 @@ impl Signature {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use rand_chacha::ChaCha20Rng;
     use rand_core::SeedableRng;
-    use super::*;
 
     #[test]
     fn test_pair_derivation() {
