@@ -17,8 +17,8 @@ use p2p::request_handler::RequestHandler;
 use p2p::start_p2p_server;
 use rpc::start_rpc_server;
 use storage::{PersistentStorage, PersistentStorageBackend};
-use tracing::{info, tracing_subscriber};
 use tracing::tracing_subscriber::fmt::writer::MakeWriterExt;
+use tracing::{info, tracing_subscriber};
 use traits::Handler;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 use types::events::LocalEventMessage;
@@ -53,12 +53,11 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     // Setup Log
     let log_level: Level = args.log_level.into();
     let debug_log = Arc::new(File::create(env.datadir.join("debug.log"))?);
-    let mk_writer = std::io::stderr
-        .with_max_level(Level::ERROR)
-        .or_else(std::io::stdout
+    let mk_writer = std::io::stderr.with_max_level(Level::ERROR).or_else(
+        std::io::stdout
             .with_max_level(log_level)
-            .and(debug_log.with_max_level(Level::DEBUG))
-        );
+            .and(debug_log.with_max_level(Level::DEBUG)),
+    );
 
     tracing_subscriber::fmt().with_writer(mk_writer).init();
 
@@ -245,7 +244,6 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
 
 fn setup_evironment(args: &RunArgs) -> Result<Arc<EnvironmentConfig>> {
     let mut config = EnvironmentConfig::default();
-
 
     if let Some(datadir) = &args.datadir {
         config.datadir = datadir.clone();

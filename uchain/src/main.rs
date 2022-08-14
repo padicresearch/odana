@@ -1,7 +1,7 @@
 #![feature(map_first_last)]
 
 use std::collections::BTreeSet;
-use std::fs::{OpenOptions};
+use std::fs::OpenOptions;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Duration;
@@ -13,7 +13,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use p2p::identity::NodeIdentity;
 use primitive_types::H160;
-use tracing::{Level};
+use tracing::Level;
 use types::config::EnvironmentConfig;
 use types::network::Network;
 

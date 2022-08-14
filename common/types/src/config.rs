@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use primitive_types::{H160, H256, U192};
-use directories::UserDirs;
 use crate::network::Network;
+use directories::UserDirs;
+use primitive_types::{H160, H256, U192};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeIdentityConfig {
