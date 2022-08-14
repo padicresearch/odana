@@ -158,6 +158,8 @@ impl Signature {
 
 #[cfg(test)]
 mod test {
+    use rand_chacha::ChaCha20Rng;
+    use rand_core::SeedableRng;
     use super::*;
 
     #[test]
