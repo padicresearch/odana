@@ -28,10 +28,7 @@
   **`MacOS`**
 
   ```shell
-  brew install --with-toolchain llvm
-  ```
-  ```shell
-  brew install cmake automake libtool
+  brew install llvm cmake automake libtool
   ```
 
 ### ⬇️ Download
