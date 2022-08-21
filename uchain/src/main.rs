@@ -13,7 +13,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use p2p::identity::NodeIdentity;
 use primitive_types::H160;
-use tracing::{tracing_subscriber, Level};
+use tracing::Level;
 use types::config::EnvironmentConfig;
 use types::network::Network;
 
@@ -156,8 +156,6 @@ fn main() -> Result<()> {
     let args: Cli = Cli::parse();
     match &args.command {
         Commands::Run(args) => {
-            let log_level: Level = args.log_level.into();
-            tracing_subscriber::fmt().with_max_level(log_level).init();
             node::run(args)?;
         }
         Commands::Identity(args) => match &args.command {
@@ -173,9 +171,9 @@ fn main() -> Result<()> {
                 AccountCommands::New => {
                     let account = account::create_account();
                     println!("{}", serde_json::to_string_pretty(&account).unwrap());
-                    // println!("You can share your public address with anyone. Others need it to interact with you.");
-                    // println!("You must NEVER share the secret key with anyone. Copy secret key a safe place");
-                    // println!("Secret key is not recoverable once it lost");
+                    println!("You can share your public address with anyone. Others need it to interact with you.");
+                    println!("You must NEVER share the secret key with anyone. Copy secret key a safe place");
+                    println!("Secret key is not recoverable once it lost");
                 }
             }
         }

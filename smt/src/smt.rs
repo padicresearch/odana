@@ -11,6 +11,8 @@ use crate::treehasher::TreeHasher;
 use crate::utils::{count_common_prefix, get_bits_at_from_msb};
 use crate::CopyStrategy;
 
+pub(crate) struct SideNodesForRootResult(Vec<H256>, Vec<H256>, Vec<u8>, Option<Vec<u8>>);
+
 impl TreeHasher for SparseMerkleTree {}
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -87,7 +89,7 @@ impl SparseMerkleTree {
 
     fn update_for_root(&self, key: &[u8], value: &[u8], root: H256) -> Result<H256> {
         let path = self.path(key);
-        let (side_nodes, path_nodes, old_lead_data, _) =
+        let SideNodesForRootResult(side_nodes, path_nodes, old_lead_data, _) =
             self.side_nodes_for_root(&path, &root, false)?;
 
         if value.is_empty() {
@@ -107,18 +109,28 @@ impl SparseMerkleTree {
         path: &H256,
         root: &H256,
         get_sibling_data: bool,
-    ) -> Result<(Vec<H256>, Vec<H256>, Vec<u8>, Option<Vec<u8>>)> {
+    ) -> Result<SideNodesForRootResult> {
         let mut side_nodes = Vec::with_capacity(self.depth());
         let mut path_nodes = Vec::with_capacity(self.depth() + 1);
         path_nodes.push(*root);
 
         if root.is_zero() {
-            return Ok((side_nodes, path_nodes, Vec::new(), None));
+            return Ok(SideNodesForRootResult(
+                side_nodes,
+                path_nodes,
+                Vec::new(),
+                None,
+            ));
         }
 
         let mut current_data = self.nodes.get(root.as_ref())?;
         if self.is_leaf(&current_data) {
-            return Ok((side_nodes, path_nodes, current_data, None));
+            return Ok(SideNodesForRootResult(
+                side_nodes,
+                path_nodes,
+                current_data,
+                None,
+            ));
         }
 
         let mut side_node = Vec::new();
@@ -154,7 +166,12 @@ impl SparseMerkleTree {
 
         side_nodes.reverse();
         path_nodes.reverse();
-        Ok((side_nodes, path_nodes, current_data, Some(sibling_data)))
+        Ok(SideNodesForRootResult(
+            side_nodes,
+            path_nodes,
+            current_data,
+            Some(sibling_data),
+        ))
     }
 
     fn delete_with_sides_nodes(
@@ -330,7 +347,7 @@ impl SparseMerkleTree {
 
     fn do_proof_for_root(&self, key: &[u8], root: &H256, is_updatable: bool) -> Result<Proof> {
         let path = self.path(key);
-        let (side_nodes, path_nodes, lead_data, sibling_data) =
+        let SideNodesForRootResult(side_nodes, path_nodes, lead_data, sibling_data) =
             self.side_nodes_for_root(&path, root, is_updatable)?;
         let mut non_empty_side_nodes = Vec::new();
         for v in side_nodes {

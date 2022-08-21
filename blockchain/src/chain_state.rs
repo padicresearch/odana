@@ -17,6 +17,7 @@ use types::ChainStateValue;
 
 use crate::block_storage::BlockStorage;
 use crate::errors::BlockChainError;
+use crate::errors::BlockChainError::FailedToVerifyHeader;
 
 pub type ChainStateStorageKV = dyn KVStore<ChainStateStorage> + Send + Sync;
 
@@ -211,7 +212,9 @@ impl ChainState {
             parent_state,
             block.transactions().clone(),
         )?;
-        consensus.verify_header(self.block_storage.clone(), &header)?;
+        consensus
+            .verify_header(self.block_storage.clone(), &header)
+            .map_err(|e| FailedToVerifyHeader(header.into(), (*block.header()).into(), e))?;
         if header.hash() != block.hash() {
             return Err(BlockChainError::InvalidBlock.into());
         }

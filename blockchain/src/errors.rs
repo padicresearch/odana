@@ -1,4 +1,6 @@
+use anyhow::Error;
 use thiserror::Error;
+use types::block::BlockHeader;
 
 #[derive(Error, Debug)]
 pub enum BlockChainError {
@@ -32,4 +34,6 @@ pub enum BlockChainError {
     InvalidBlock,
     #[error("UnknownError")]
     UnknownError,
+    #[error("Failed to verify header expected {0:#?} {1:#?} detail error {2}")]
+    FailedToVerifyHeader(Box<BlockHeader>, Box<BlockHeader>, Error),
 }

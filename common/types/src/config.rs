@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use primitive_types::{H160, H256, U192};
-
 use crate::network::Network;
+use directories::UserDirs;
+use primitive_types::{H160, H256, U192};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeIdentityConfig {
@@ -42,6 +42,8 @@ pub struct EnvironmentConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub identity_file: Option<PathBuf>,
+    #[serde(default)]
+    pub datadir: PathBuf,
     pub network: Network,
 }
 
@@ -61,10 +63,22 @@ impl EnvironmentConfig {
     pub fn network(&self) -> Network {
         self.network
     }
+    pub fn datadir(&self) -> &PathBuf {
+        &self.datadir
+    }
+    pub fn sanitize(&mut self) {
+        let default = Self::default();
+        if !self.datadir.exists() {
+            self.datadir = default.datadir
+        }
+    }
 }
 
 impl Default for EnvironmentConfig {
     fn default() -> Self {
+        let user_dir = UserDirs::new().unwrap();
+        let mut default_datadir = PathBuf::from(user_dir.home_dir());
+        default_datadir.push(".uchain");
         Self {
             miner: None,
             host: "0.0.0.0".to_string(),
@@ -73,6 +87,7 @@ impl Default for EnvironmentConfig {
             expected_pow: 26.0,
             peers: vec![],
             identity_file: None,
+            datadir: default_datadir,
             network: Network::Testnet,
         }
     }

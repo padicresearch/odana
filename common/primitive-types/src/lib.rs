@@ -464,27 +464,4 @@ mod tests {
             5913134931067755359633408.0,
         ));
     }
-
-    #[test]
-    fn print_difficulty() {
-        pub const NODE_POW_TARGET: U256 = U256([
-            0x0000000000000000u64,
-            0x0000000000000000u64,
-            0x0000000000000000u64,
-            0x00000fffff000000u64,
-        ]);
-        let pow = U256::from_f64_lossy(26.0);
-        let t = make_target(26.0);
-        let c = Compact::from_u256(NODE_POW_TARGET);
-        let tc = Compact::from_u256(t);
-        println!("Compact {}", c.to_f64());
-        println!("Compact {}", pow.as_u32());
-        println!("Compact P {:#?}", pow.0);
-        println!("Compact J {:#?}", NODE_POW_TARGET.0);
-        println!("Compact T {}", t);
-        println!("Compact T {:#?}", t.0);
-        println!("Compact T {}", tc.0);
-        println!("Compact T {}", tc.to_f64());
-        println!("Compact {}", c.0);
-    }
 }
