@@ -1,3 +1,5 @@
+use std::iter;
+use std::iter::Once;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicBool, AtomicI8, Ordering};
 use std::sync::{Arc, RwLock};
@@ -99,8 +101,6 @@ pub fn start_worker(
                 block_template.set_nonce(0.into());
             };
             *block_template.nonce_mut() += U128::one();
-            block_template.set_time(Utc::now().timestamp() as u32);
-
             if consensus
                 .verify_header(chain_header_reader.clone(), &block_template)
                 .is_ok()
@@ -120,10 +120,9 @@ pub fn start_worker(
                 info!(level = level, blockhash = format!("{}",hex::encode(hash)), txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
-                let blocks = vec![block.clone()];
                 chain.put_chain(
                     consensus.clone(),
-                    Box::new(blocks.into_iter()),
+                    Box::new(iter::once(block.clone())),
                     txpool.clone(),
                 )?;
                 lmpsc.send(LocalEventMessage::MindedBlock(block))?;

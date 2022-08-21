@@ -113,15 +113,8 @@ impl BarossaProtocol {
         retarget /= U256::from(TARGET_TIMESPAN_SECONDS);
 
         if retarget > maximum {
-            let mut debug = [0; 32];
-            let max_bit: U256 = max_work_bits.into();
-            max_bit.to_big_endian(&mut debug);
-            let mut debug = [0; 32];
-            retarget.to_big_endian(&mut debug);
             max_work_bits
         } else {
-            let mut debug = [0; 32];
-            retarget.to_big_endian(&mut debug);
             retarget.into()
         }
     }
@@ -333,7 +326,7 @@ impl Consensus for BarossaProtocol {
                 header.difficulty(),
                 &header.hash()
             ),
-            Error::BadPow
+            Error::BadPow(self.network.max_difficulty().into(),header.difficulty())
         );
         Ok(())
     }

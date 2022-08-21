@@ -63,6 +63,15 @@ impl EnvironmentConfig {
     pub fn network(&self) -> Network {
         self.network
     }
+    pub fn datadir(&self) -> &PathBuf {
+        &self.datadir
+    }
+    pub fn sanitize(&mut self) {
+        let default = Self::default();
+        if !self.datadir.exists() {
+            self.datadir = default.datadir
+        }
+    }
 }
 
 impl Default for EnvironmentConfig {

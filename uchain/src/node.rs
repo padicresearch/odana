@@ -49,17 +49,18 @@ pub(crate) fn run(args: &RunArgs) -> Result<()> {
 }
 
 async fn _start_node(args: &RunArgs) -> Result<()> {
-    let env = setup_evironment(args)?;
-    // Setup Log
+    let env = setup_environment(args)?;
+    // Setup Logging
     let log_level: Level = args.log_level.into();
     let debug_log = Arc::new(File::create(env.datadir.join("debug.log"))?);
-    let mk_writer = std::io::stderr.with_max_level(Level::ERROR).or_else(
-        std::io::stdout
-            .with_max_level(log_level)
-            .and(debug_log.with_max_level(Level::DEBUG)),
-    );
-
-    tracing_subscriber::fmt().with_writer(mk_writer).init();
+    let mk_writer = debug_log
+        .with_max_level(Level::DEBUG)
+        .and(std::io::stderr.with_max_level(Level::WARN))
+        .and(std::io::stdout.with_max_level(log_level));
+    tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .with_writer(mk_writer)
+        .init();
 
     // Communications
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();
@@ -126,7 +127,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         node_id,
         node_to_peer_receiver,
         peer_to_node_sender,
-        args.peer.clone(),
+        env.peers.clone(),
         identity_expected_pow,
         network_state.clone(),
         blockchain.chain(),
@@ -242,7 +243,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     }
 }
 
-fn setup_evironment(args: &RunArgs) -> Result<Arc<EnvironmentConfig>> {
+pub(crate) fn setup_environment(args: &RunArgs) -> Result<Arc<EnvironmentConfig>> {
     let mut config = EnvironmentConfig::default();
 
     if let Some(datadir) = &args.datadir {
@@ -303,6 +304,8 @@ fn setup_evironment(args: &RunArgs) -> Result<Arc<EnvironmentConfig>> {
     if let Some(identity_file) = &args.identity_file {
         config.identity_file = Some(identity_file.clone())
     }
+
+    config.sanitize();
 
     Ok(Arc::new(config))
 }
