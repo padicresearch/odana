@@ -212,7 +212,9 @@ impl ChainState {
             parent_state,
             block.transactions().clone(),
         )?;
-        consensus.verify_header(self.block_storage.clone(), &header).map_err(|e| FailedToVerifyHeader(header, *block.header(), e))?;
+        consensus
+            .verify_header(self.block_storage.clone(), &header)
+            .map_err(|e| FailedToVerifyHeader(header.into(), (*block.header()).into(), e))?;
         if header.hash() != block.hash() {
             return Err(BlockChainError::InvalidBlock.into());
         }

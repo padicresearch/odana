@@ -326,7 +326,7 @@ impl Consensus for BarossaProtocol {
                 header.difficulty(),
                 &header.hash()
             ),
-            Error::BadPow(self.network.max_difficulty().into(),header.difficulty())
+            Error::BadPow(self.network.max_difficulty().into(), header.difficulty())
         );
         Ok(())
     }

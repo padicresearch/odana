@@ -104,9 +104,11 @@ impl DatabaseBackend for RocksDB {
     }
 }
 
+type Column = DashMap<Vec<u8>, Vec<u8>>;
+
 #[derive(Debug, Clone)]
 pub(crate) struct MemoryStore {
-    inner: Arc<DashMap<&'static str, DashMap<Vec<u8>, Vec<u8>>>>,
+    inner: Arc<DashMap<&'static str, Column>>,
 }
 
 impl MemoryStore {
