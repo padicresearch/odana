@@ -5,7 +5,7 @@ package rpc;
 
 message CurrentHeadResponse {
   string hash = 1;
-  types.BlockHeader header = 2;
+  uchain.types.BlockHeader header = 2;
 }
 
 message GetBlockByHashRequest {
@@ -22,7 +22,7 @@ message GetBlocksRequest {
 }
 
 message GetBlocksResponse {
-  repeated types.BlockHeader blocks = 1;
+  repeated uchain.types.BlockHeader blocks = 1;
 }
 
 message GetBlockNumberResponse {
@@ -30,9 +30,9 @@ message GetBlockNumberResponse {
 }
 
 service ChainService {
-  rpc CurrentHead(types.Empty) returns (CurrentHeadResponse);
-  rpc BlockLevel(types.Empty) returns (GetBlockNumberResponse);
-  rpc GetBlockByHash (GetBlockByHashRequest) returns (types.Block);
-  rpc GetBlockByLevel (GetBlockByLevelRequest) returns (types.Block);
+  rpc CurrentHead(uchain.types.Empty) returns (CurrentHeadResponse);
+  rpc BlockLevel(uchain.types.Empty) returns (GetBlockNumberResponse);
+  rpc GetBlockByHash (GetBlockByHashRequest) returns (uchain.types.Block);
+  rpc GetBlockByLevel (GetBlockByLevelRequest) returns (uchain.types.Block);
   rpc GetBlocks (GetBlocksRequest) returns (GetBlocksResponse);
 }

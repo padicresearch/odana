@@ -122,6 +122,24 @@ mod serde {
     impl_fixed_hash_serde!(H512, 64);
     impl_fixed_hash_conversions!(H256, H160);
 }
+#[cfg(feature = "impl-bincode")]
+mod binarycodec {
+    use impl_bincode::{impl_fixed_hash_bincode, impl_uint_bincode};
+
+    use super::*;
+
+    impl_uint_bincode!(U128, 2);
+    impl_uint_bincode!(U192, 3);
+    impl_uint_bincode!(U256, 4);
+    impl_uint_bincode!(U512, 8);
+
+    impl_fixed_hash_bincode!(H128, 16);
+    impl_fixed_hash_bincode!(H160, 20);
+    impl_fixed_hash_bincode!(H192, 24);
+    impl_fixed_hash_bincode!(H256, 32);
+    impl_fixed_hash_bincode!(H448, 56);
+    impl_fixed_hash_bincode!(H512, 64);
+}
 
 #[cfg(feature = "impl-codec")]
 mod codec {
@@ -157,6 +175,34 @@ mod rlp {
     impl_fixed_hash_rlp!(H448, 56);
     impl_fixed_hash_rlp!(H512, 64);
 }
+
+macro_rules! impl_hex_primitives {
+    ($name: ident, $len: expr) => {
+        impl hex::ToHex for $name {
+            fn encode_hex(&self) -> String {
+                let bytes = self.to_be_bytes();
+                hex::encode_uint(&bytes)
+            }
+        }
+
+        impl hex::FromHex for $name {
+            fn from_hex(v: &str) -> Result<$name, hex::FromHexError> {
+                let mut raw = [0; $len];
+                let decoded = hex::decode(v)?;
+                let start_index = $len - decoded.len();
+                let mut iter = decoded.iter().copied();
+                for i in start_index..$len {
+                    raw[i] = iter.next().ok_or(hex::FromHexError::InvalidLength)?;
+                }
+                Ok($name::from_big_endian(&raw))
+            }
+        }
+    };
+}
+
+impl_hex_primitives!(U128, 16);
+impl_hex_primitives!(U192, 24);
+impl_hex_primitives!(U256, 32);
 
 impl U128 {
     /// Multiplies two 128-bit integers to produce full 256-bit integer.
@@ -411,7 +457,7 @@ impl Compact {
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use hex::{FromHex,ToHex};
     #[test]
     fn test_compact_to_u256() {
         assert_eq!(Compact::new(0x01003456).to_u256(), Ok(0.into()));
@@ -463,5 +509,20 @@ mod tests {
             Compact::new(0x12345678).to_f64(),
             5913134931067755359633408.0,
         ));
+    }
+
+
+    #[test]
+    fn should_encode_from_primitives() {
+        assert_eq!(U128::from_hex(&U128::from(20).encode_hex()).unwrap(), U128::from(20));
+        assert_eq!(U256::from_hex(&U256::from(20).encode_hex()).unwrap(), U256::from(20));
+        assert_eq!(U192::from_hex(&U128::from(20).encode_hex()).unwrap(), U192::from(20));
+        assert_eq!(U128::from_hex(&U128::from(1).encode_hex()).unwrap(), U128::from(1));
+        assert_eq!(U256::from_hex(&U256::from(1).encode_hex()).unwrap(), U256::from(1));
+        assert_eq!(U192::from_hex(&U128::from(1).encode_hex()).unwrap(), U192::from(1));
+        assert_eq!(U128::from_hex(&U128::from(0).encode_hex()).unwrap(), U128::from(0));
+        assert_eq!(U256::from_hex(&U256::from(0).encode_hex()).unwrap(), U256::from(0));
+        assert_eq!(U192::from_hex(&U128::from(0).encode_hex()).unwrap(), U192::from(0));
+
     }
 }

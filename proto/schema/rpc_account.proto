@@ -16,7 +16,7 @@ message GetAccountNonceResponse {
 }
 
 service AccountService {
-  rpc GetAccountBalance (GetAccountRequest) returns (GetAccountBalanceResponse);
-  rpc GetAccountNonce (GetAccountRequest) returns (GetAccountNonceResponse);
-  rpc GetAccountState (GetAccountRequest) returns (types.AccountState);
+  rpc GetBalance (GetAccountRequest) returns (GetAccountBalanceResponse);
+  rpc GetNonce (GetAccountRequest) returns (GetAccountNonceResponse);
+  rpc GetAccountState (GetAccountRequest) returns (uchain.types.AccountState);
 }

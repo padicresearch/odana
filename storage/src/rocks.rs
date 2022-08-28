@@ -1,4 +1,4 @@
-use codec::{Decoder, Encoder};
+use codec::{Decodable, Encodable};
 
 use crate::error::StorageError;
 use crate::{KVStore, Schema, StorageIterator};

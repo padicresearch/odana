@@ -23,7 +23,7 @@ impl AccountServiceImpl {
 
 #[tonic::async_trait]
 impl AccountService for AccountServiceImpl {
-    async fn get_account_balance(
+    async fn get_balance(
         &self,
         request: Request<GetAccountRequest>,
     ) -> Result<Response<GetAccountBalanceResponse>, Status> {
@@ -32,11 +32,11 @@ impl AccountService for AccountServiceImpl {
             .map_err(|_| Status::new(Code::InvalidArgument, "Invalid Request"))?;
         let balance = self.state.balance(&address);
         Ok(Response::new(GetAccountBalanceResponse {
-            balance: balance.to_string(),
+            balance: hex::encode(balance, true),
         }))
     }
 
-    async fn get_account_nonce(
+    async fn get_nonce(
         &self,
         request: Request<GetAccountRequest>,
     ) -> Result<Response<GetAccountNonceResponse>, Status> {

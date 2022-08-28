@@ -5,7 +5,7 @@ use std::sync::RwLock;
 
 use anyhow::Result;
 
-use codec::{Decoder, Encoder};
+use codec::{Decodable, Encodable};
 
 use crate::error::StorageError;
 use crate::Schema;

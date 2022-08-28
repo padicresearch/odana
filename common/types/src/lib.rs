@@ -1,15 +1,18 @@
 #![feature(test)]
+#![feature(slice_take)]
 extern crate test;
 
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use serde_big_array::big_array;
 
-use codec::impl_codec;
-use codec::{Decoder, Encoder};
+use codec::{Decodable, Encodable};
 use primitive_types::H160;
+use bincode::{Encode, Decode};
+use bytes::{Buf, BufMut};
+use prost::{DecodeError, Message};
+use prost::encoding::{DecodeContext, WireType};
 
 use crate::block::BlockHeader;
 
@@ -19,7 +22,6 @@ pub mod config;
 pub mod events;
 pub mod network;
 pub mod tx;
-mod uint_hex_codec;
 
 pub type Hash = [u8; 32];
 pub type Address = [u8; 20];
@@ -29,7 +31,60 @@ pub enum ChainStateValue {
     CurrentHeader(BlockHeader),
 }
 
-impl_codec!(ChainStateValue);
+impl Default for ChainStateValue {
+    fn default() -> Self {
+        Self::CurrentHeader(BlockHeader::default())
+    }
+}
+
+impl prost::Message for ChainStateValue {
+    fn encode_raw<B>(&self, buf: &mut B) where B: BufMut, Self: Sized {
+        match self {
+            ChainStateValue::CurrentHeader(header) => {
+                prost::encoding::message::encode(1, header, buf)
+            }
+        }
+    }
+
+    fn merge_field<B>(&mut self, tag: u32, wire_type: WireType, buf: &mut B, ctx: DecodeContext) -> Result<(), DecodeError> where B: Buf, Self: Sized {
+        match tag {
+            1 => {
+                match self {
+                    ChainStateValue::CurrentHeader(header) => {
+                        prost::encoding::message::merge(wire_type,header,buf, ctx)
+                    }
+                }
+
+            }
+            _ => panic!("invalid ChainStateValue tag: {}", tag)
+        }
+    }
+
+    fn encoded_len(&self) -> usize {
+        match self {
+            ChainStateValue::CurrentHeader(header) => {
+                prost::encoding::message::encoded_len(1u32, header)
+            }
+        }
+    }
+
+    fn clear(&mut self) {
+
+    }
+}
+
+impl Encodable for ChainStateValue {
+    fn encode(&self) -> anyhow::Result<Vec<u8>> {
+        Ok(self.encode_to_vec())
+    }
+}
+
+impl Decodable for ChainStateValue {
+    fn decode(buf: &[u8]) -> anyhow::Result<Self> {
+        <Self as prost::Message>::decode(buf).map_err(|e|e.into())
+    }
+}
+
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct TxPoolConfig {
@@ -68,4 +123,12 @@ where
     out
 }
 
-big_array! { BigArray; +33,65}
+
+pub mod prelude {
+    pub use crate::tx::*;
+    pub use crate::account::*;
+    pub use crate::block::*;
+    pub use crate::config::*;
+    pub use crate::events::*;
+    pub use crate::network::*;
+}

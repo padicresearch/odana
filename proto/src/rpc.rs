@@ -1,7 +1,7 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UnsignedTransactionRequest {
     #[prost(message, optional, tag="1")]
-    pub tx: ::core::option::Option<super::types::UnsignedTransaction>,
+    pub tx: ::core::option::Option<super::uchain::types::UnsignedTransaction>,
     #[prost(string, tag="2")]
     pub key: ::prost::alloc::string::String,
 }
@@ -10,7 +10,7 @@ pub struct SignedTransactionResponse {
     #[prost(string, tag="1")]
     pub hash: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
-    pub tx: ::core::option::Option<super::types::Transaction>,
+    pub tx: ::core::option::Option<super::uchain::types::SignedTransaction>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTransactionStatusResponse {
@@ -20,14 +20,14 @@ pub struct GetTransactionStatusResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PendingTransactionsResponse {
     #[prost(map="string, message", tag="1")]
-    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, super::types::TransactionList>,
+    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, super::uchain::types::TransactionList>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TxpoolContentResponse {
     #[prost(map="string, message", tag="1")]
-    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, super::types::TransactionList>,
+    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, super::uchain::types::TransactionList>,
     #[prost(map="string, message", tag="2")]
-    pub queued: ::std::collections::HashMap<::prost::alloc::string::String, super::types::TransactionList>,
+    pub queued: ::std::collections::HashMap<::prost::alloc::string::String, super::uchain::types::TransactionList>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHash {
@@ -43,6 +43,7 @@ pub struct TransactionHashes {
 pub mod transactions_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
     pub struct TransactionsServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -69,6 +70,10 @@ pub mod transactions_service_client {
             let inner = tonic::client::Grpc::new(inner);
             Self { inner }
         }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
@@ -88,19 +93,19 @@ pub mod transactions_service_client {
         {
             TransactionsServiceClient::new(InterceptedService::new(inner, interceptor))
         }
-        /// Compress requests with `gzip`.
+        /// Compress requests with the given encoding.
         ///
         /// This requires the server to support it otherwise it might respond with an
         /// error.
         #[must_use]
-        pub fn send_gzip(mut self) -> Self {
-            self.inner = self.inner.send_gzip();
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
             self
         }
-        /// Enable decompressing responses with `gzip`.
+        /// Enable decompressing responses.
         #[must_use]
-        pub fn accept_gzip(mut self) -> Self {
-            self.inner = self.inner.accept_gzip();
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
             self
         }
         pub async fn sign_transaction(
@@ -143,7 +148,9 @@ pub mod transactions_service_client {
         }
         pub async fn send_transaction(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::types::Transaction>,
+            request: impl tonic::IntoRequest<
+                super::super::uchain::types::SignedTransaction,
+            >,
         ) -> Result<tonic::Response<super::TransactionHash>, tonic::Status> {
             self.inner
                 .ready()
@@ -184,7 +191,7 @@ pub mod transactions_service_client {
         }
         pub async fn get_pending_transactions(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::types::Empty>,
+            request: impl tonic::IntoRequest<super::super::uchain::types::Empty>,
         ) -> Result<tonic::Response<super::PendingTransactionsResponse>, tonic::Status> {
             self.inner
                 .ready()
@@ -203,7 +210,7 @@ pub mod transactions_service_client {
         }
         pub async fn get_txpool_content(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::types::Empty>,
+            request: impl tonic::IntoRequest<super::super::uchain::types::Empty>,
         ) -> Result<tonic::Response<super::TxpoolContentResponse>, tonic::Status> {
             self.inner
                 .ready()
@@ -239,7 +246,7 @@ pub mod transactions_service_server {
         ) -> Result<tonic::Response<super::SignedTransactionResponse>, tonic::Status>;
         async fn send_transaction(
             &self,
-            request: tonic::Request<super::super::types::Transaction>,
+            request: tonic::Request<super::super::uchain::types::SignedTransaction>,
         ) -> Result<tonic::Response<super::TransactionHash>, tonic::Status>;
         async fn get_transaction_status(
             &self,
@@ -247,18 +254,18 @@ pub mod transactions_service_server {
         ) -> Result<tonic::Response<super::GetTransactionStatusResponse>, tonic::Status>;
         async fn get_pending_transactions(
             &self,
-            request: tonic::Request<super::super::types::Empty>,
+            request: tonic::Request<super::super::uchain::types::Empty>,
         ) -> Result<tonic::Response<super::PendingTransactionsResponse>, tonic::Status>;
         async fn get_txpool_content(
             &self,
-            request: tonic::Request<super::super::types::Empty>,
+            request: tonic::Request<super::super::uchain::types::Empty>,
         ) -> Result<tonic::Response<super::TxpoolContentResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct TransactionsServiceServer<T: TransactionsService> {
         inner: _Inner<T>,
-        accept_compression_encodings: (),
-        send_compression_encodings: (),
+        accept_compression_encodings: EnabledCompressionEncodings,
+        send_compression_encodings: EnabledCompressionEncodings,
     }
     struct _Inner<T>(Arc<T>);
     impl<T: TransactionsService> TransactionsServiceServer<T> {
@@ -281,6 +288,18 @@ pub mod transactions_service_server {
             F: tonic::service::Interceptor,
         {
             InterceptedService::new(Self::new(inner), interceptor)
+        }
+        /// Enable decompressing requests with the given encoding.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.accept_compression_encodings.enable(encoding);
+            self
+        }
+        /// Compress responses with the given encoding, if the client supports it.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.send_compression_encodings.enable(encoding);
+            self
         }
     }
     impl<T, B> tonic::codegen::Service<http::Request<B>> for TransactionsServiceServer<T>
@@ -386,8 +405,9 @@ pub mod transactions_service_server {
                     struct SendTransactionSvc<T: TransactionsService>(pub Arc<T>);
                     impl<
                         T: TransactionsService,
-                    > tonic::server::UnaryService<super::super::types::Transaction>
-                    for SendTransactionSvc<T> {
+                    > tonic::server::UnaryService<
+                        super::super::uchain::types::SignedTransaction,
+                    > for SendTransactionSvc<T> {
                         type Response = super::TransactionHash;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -395,7 +415,9 @@ pub mod transactions_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::types::Transaction>,
+                            request: tonic::Request<
+                                super::super::uchain::types::SignedTransaction,
+                            >,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move {
@@ -466,7 +488,7 @@ pub mod transactions_service_server {
                     struct GetPendingTransactionsSvc<T: TransactionsService>(pub Arc<T>);
                     impl<
                         T: TransactionsService,
-                    > tonic::server::UnaryService<super::super::types::Empty>
+                    > tonic::server::UnaryService<super::super::uchain::types::Empty>
                     for GetPendingTransactionsSvc<T> {
                         type Response = super::PendingTransactionsResponse;
                         type Future = BoxFuture<
@@ -475,7 +497,7 @@ pub mod transactions_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::types::Empty>,
+                            request: tonic::Request<super::super::uchain::types::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move {
@@ -506,7 +528,7 @@ pub mod transactions_service_server {
                     struct GetTxpoolContentSvc<T: TransactionsService>(pub Arc<T>);
                     impl<
                         T: TransactionsService,
-                    > tonic::server::UnaryService<super::super::types::Empty>
+                    > tonic::server::UnaryService<super::super::uchain::types::Empty>
                     for GetTxpoolContentSvc<T> {
                         type Response = super::TxpoolContentResponse;
                         type Future = BoxFuture<
@@ -515,7 +537,7 @@ pub mod transactions_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::types::Empty>,
+                            request: tonic::Request<super::super::uchain::types::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move {
@@ -576,7 +598,7 @@ pub mod transactions_service_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: TransactionsService> tonic::transport::NamedService
+    impl<T: TransactionsService> tonic::server::NamedService
     for TransactionsServiceServer<T> {
         const NAME: &'static str = "rpc.TransactionsService";
     }
@@ -600,6 +622,7 @@ pub struct GetAccountNonceResponse {
 pub mod account_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
     pub struct AccountServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -626,6 +649,10 @@ pub mod account_service_client {
             let inner = tonic::client::Grpc::new(inner);
             Self { inner }
         }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
@@ -645,22 +672,22 @@ pub mod account_service_client {
         {
             AccountServiceClient::new(InterceptedService::new(inner, interceptor))
         }
-        /// Compress requests with `gzip`.
+        /// Compress requests with the given encoding.
         ///
         /// This requires the server to support it otherwise it might respond with an
         /// error.
         #[must_use]
-        pub fn send_gzip(mut self) -> Self {
-            self.inner = self.inner.send_gzip();
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
             self
         }
-        /// Enable decompressing responses with `gzip`.
+        /// Enable decompressing responses.
         #[must_use]
-        pub fn accept_gzip(mut self) -> Self {
-            self.inner = self.inner.accept_gzip();
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
             self
         }
-        pub async fn get_account_balance(
+        pub async fn get_balance(
             &mut self,
             request: impl tonic::IntoRequest<super::GetAccountRequest>,
         ) -> Result<tonic::Response<super::GetAccountBalanceResponse>, tonic::Status> {
@@ -675,11 +702,11 @@ pub mod account_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/rpc.AccountService/GetAccountBalance",
+                "/rpc.AccountService/GetBalance",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn get_account_nonce(
+        pub async fn get_nonce(
             &mut self,
             request: impl tonic::IntoRequest<super::GetAccountRequest>,
         ) -> Result<tonic::Response<super::GetAccountNonceResponse>, tonic::Status> {
@@ -694,14 +721,17 @@ pub mod account_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/rpc.AccountService/GetAccountNonce",
+                "/rpc.AccountService/GetNonce",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
         pub async fn get_account_state(
             &mut self,
             request: impl tonic::IntoRequest<super::GetAccountRequest>,
-        ) -> Result<tonic::Response<super::super::types::AccountState>, tonic::Status> {
+        ) -> Result<
+            tonic::Response<super::super::uchain::types::AccountState>,
+            tonic::Status,
+        > {
             self.inner
                 .ready()
                 .await
@@ -726,24 +756,27 @@ pub mod account_service_server {
     ///Generated trait containing gRPC methods that should be implemented for use with AccountServiceServer.
     #[async_trait]
     pub trait AccountService: Send + Sync + 'static {
-        async fn get_account_balance(
+        async fn get_balance(
             &self,
             request: tonic::Request<super::GetAccountRequest>,
         ) -> Result<tonic::Response<super::GetAccountBalanceResponse>, tonic::Status>;
-        async fn get_account_nonce(
+        async fn get_nonce(
             &self,
             request: tonic::Request<super::GetAccountRequest>,
         ) -> Result<tonic::Response<super::GetAccountNonceResponse>, tonic::Status>;
         async fn get_account_state(
             &self,
             request: tonic::Request<super::GetAccountRequest>,
-        ) -> Result<tonic::Response<super::super::types::AccountState>, tonic::Status>;
+        ) -> Result<
+            tonic::Response<super::super::uchain::types::AccountState>,
+            tonic::Status,
+        >;
     }
     #[derive(Debug)]
     pub struct AccountServiceServer<T: AccountService> {
         inner: _Inner<T>,
-        accept_compression_encodings: (),
-        send_compression_encodings: (),
+        accept_compression_encodings: EnabledCompressionEncodings,
+        send_compression_encodings: EnabledCompressionEncodings,
     }
     struct _Inner<T>(Arc<T>);
     impl<T: AccountService> AccountServiceServer<T> {
@@ -767,6 +800,18 @@ pub mod account_service_server {
         {
             InterceptedService::new(Self::new(inner), interceptor)
         }
+        /// Enable decompressing requests with the given encoding.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.accept_compression_encodings.enable(encoding);
+            self
+        }
+        /// Compress responses with the given encoding, if the client supports it.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.send_compression_encodings.enable(encoding);
+            self
+        }
     }
     impl<T, B> tonic::codegen::Service<http::Request<B>> for AccountServiceServer<T>
     where
@@ -786,13 +831,13 @@ pub mod account_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/rpc.AccountService/GetAccountBalance" => {
+                "/rpc.AccountService/GetBalance" => {
                     #[allow(non_camel_case_types)]
-                    struct GetAccountBalanceSvc<T: AccountService>(pub Arc<T>);
+                    struct GetBalanceSvc<T: AccountService>(pub Arc<T>);
                     impl<
                         T: AccountService,
                     > tonic::server::UnaryService<super::GetAccountRequest>
-                    for GetAccountBalanceSvc<T> {
+                    for GetBalanceSvc<T> {
                         type Response = super::GetAccountBalanceResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -803,9 +848,7 @@ pub mod account_service_server {
                             request: tonic::Request<super::GetAccountRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_account_balance(request).await
-                            };
+                            let fut = async move { (*inner).get_balance(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -814,7 +857,7 @@ pub mod account_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = GetAccountBalanceSvc(inner);
+                        let method = GetBalanceSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -826,13 +869,13 @@ pub mod account_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/rpc.AccountService/GetAccountNonce" => {
+                "/rpc.AccountService/GetNonce" => {
                     #[allow(non_camel_case_types)]
-                    struct GetAccountNonceSvc<T: AccountService>(pub Arc<T>);
+                    struct GetNonceSvc<T: AccountService>(pub Arc<T>);
                     impl<
                         T: AccountService,
                     > tonic::server::UnaryService<super::GetAccountRequest>
-                    for GetAccountNonceSvc<T> {
+                    for GetNonceSvc<T> {
                         type Response = super::GetAccountNonceResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -843,9 +886,7 @@ pub mod account_service_server {
                             request: tonic::Request<super::GetAccountRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_account_nonce(request).await
-                            };
+                            let fut = async move { (*inner).get_nonce(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -854,7 +895,7 @@ pub mod account_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = GetAccountNonceSvc(inner);
+                        let method = GetNonceSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -873,7 +914,7 @@ pub mod account_service_server {
                         T: AccountService,
                     > tonic::server::UnaryService<super::GetAccountRequest>
                     for GetAccountStateSvc<T> {
-                        type Response = super::super::types::AccountState;
+                        type Response = super::super::uchain::types::AccountState;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -941,7 +982,7 @@ pub mod account_service_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: AccountService> tonic::transport::NamedService for AccountServiceServer<T> {
+    impl<T: AccountService> tonic::server::NamedService for AccountServiceServer<T> {
         const NAME: &'static str = "rpc.AccountService";
     }
 }
@@ -950,7 +991,7 @@ pub struct CurrentHeadResponse {
     #[prost(string, tag="1")]
     pub hash: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
-    pub header: ::core::option::Option<super::types::BlockHeader>,
+    pub header: ::core::option::Option<super::uchain::types::BlockHeader>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByHashRequest {
@@ -972,7 +1013,7 @@ pub struct GetBlocksRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlocksResponse {
     #[prost(message, repeated, tag="1")]
-    pub blocks: ::prost::alloc::vec::Vec<super::types::BlockHeader>,
+    pub blocks: ::prost::alloc::vec::Vec<super::uchain::types::BlockHeader>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockNumberResponse {
@@ -983,6 +1024,7 @@ pub struct GetBlockNumberResponse {
 pub mod chain_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
     pub struct ChainServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -1009,6 +1051,10 @@ pub mod chain_service_client {
             let inner = tonic::client::Grpc::new(inner);
             Self { inner }
         }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
@@ -1028,24 +1074,24 @@ pub mod chain_service_client {
         {
             ChainServiceClient::new(InterceptedService::new(inner, interceptor))
         }
-        /// Compress requests with `gzip`.
+        /// Compress requests with the given encoding.
         ///
         /// This requires the server to support it otherwise it might respond with an
         /// error.
         #[must_use]
-        pub fn send_gzip(mut self) -> Self {
-            self.inner = self.inner.send_gzip();
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
             self
         }
-        /// Enable decompressing responses with `gzip`.
+        /// Enable decompressing responses.
         #[must_use]
-        pub fn accept_gzip(mut self) -> Self {
-            self.inner = self.inner.accept_gzip();
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
             self
         }
         pub async fn current_head(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::types::Empty>,
+            request: impl tonic::IntoRequest<super::super::uchain::types::Empty>,
         ) -> Result<tonic::Response<super::CurrentHeadResponse>, tonic::Status> {
             self.inner
                 .ready()
@@ -1064,7 +1110,7 @@ pub mod chain_service_client {
         }
         pub async fn block_level(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::types::Empty>,
+            request: impl tonic::IntoRequest<super::super::uchain::types::Empty>,
         ) -> Result<tonic::Response<super::GetBlockNumberResponse>, tonic::Status> {
             self.inner
                 .ready()
@@ -1084,7 +1130,7 @@ pub mod chain_service_client {
         pub async fn get_block_by_hash(
             &mut self,
             request: impl tonic::IntoRequest<super::GetBlockByHashRequest>,
-        ) -> Result<tonic::Response<super::super::types::Block>, tonic::Status> {
+        ) -> Result<tonic::Response<super::super::uchain::types::Block>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -1103,7 +1149,7 @@ pub mod chain_service_client {
         pub async fn get_block_by_level(
             &mut self,
             request: impl tonic::IntoRequest<super::GetBlockByLevelRequest>,
-        ) -> Result<tonic::Response<super::super::types::Block>, tonic::Status> {
+        ) -> Result<tonic::Response<super::super::uchain::types::Block>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -1149,20 +1195,20 @@ pub mod chain_service_server {
     pub trait ChainService: Send + Sync + 'static {
         async fn current_head(
             &self,
-            request: tonic::Request<super::super::types::Empty>,
+            request: tonic::Request<super::super::uchain::types::Empty>,
         ) -> Result<tonic::Response<super::CurrentHeadResponse>, tonic::Status>;
         async fn block_level(
             &self,
-            request: tonic::Request<super::super::types::Empty>,
+            request: tonic::Request<super::super::uchain::types::Empty>,
         ) -> Result<tonic::Response<super::GetBlockNumberResponse>, tonic::Status>;
         async fn get_block_by_hash(
             &self,
             request: tonic::Request<super::GetBlockByHashRequest>,
-        ) -> Result<tonic::Response<super::super::types::Block>, tonic::Status>;
+        ) -> Result<tonic::Response<super::super::uchain::types::Block>, tonic::Status>;
         async fn get_block_by_level(
             &self,
             request: tonic::Request<super::GetBlockByLevelRequest>,
-        ) -> Result<tonic::Response<super::super::types::Block>, tonic::Status>;
+        ) -> Result<tonic::Response<super::super::uchain::types::Block>, tonic::Status>;
         async fn get_blocks(
             &self,
             request: tonic::Request<super::GetBlocksRequest>,
@@ -1171,8 +1217,8 @@ pub mod chain_service_server {
     #[derive(Debug)]
     pub struct ChainServiceServer<T: ChainService> {
         inner: _Inner<T>,
-        accept_compression_encodings: (),
-        send_compression_encodings: (),
+        accept_compression_encodings: EnabledCompressionEncodings,
+        send_compression_encodings: EnabledCompressionEncodings,
     }
     struct _Inner<T>(Arc<T>);
     impl<T: ChainService> ChainServiceServer<T> {
@@ -1195,6 +1241,18 @@ pub mod chain_service_server {
             F: tonic::service::Interceptor,
         {
             InterceptedService::new(Self::new(inner), interceptor)
+        }
+        /// Enable decompressing requests with the given encoding.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.accept_compression_encodings.enable(encoding);
+            self
+        }
+        /// Compress responses with the given encoding, if the client supports it.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.send_compression_encodings.enable(encoding);
+            self
         }
     }
     impl<T, B> tonic::codegen::Service<http::Request<B>> for ChainServiceServer<T>
@@ -1220,7 +1278,7 @@ pub mod chain_service_server {
                     struct CurrentHeadSvc<T: ChainService>(pub Arc<T>);
                     impl<
                         T: ChainService,
-                    > tonic::server::UnaryService<super::super::types::Empty>
+                    > tonic::server::UnaryService<super::super::uchain::types::Empty>
                     for CurrentHeadSvc<T> {
                         type Response = super::CurrentHeadResponse;
                         type Future = BoxFuture<
@@ -1229,7 +1287,7 @@ pub mod chain_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::types::Empty>,
+                            request: tonic::Request<super::super::uchain::types::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move {
@@ -1260,7 +1318,7 @@ pub mod chain_service_server {
                     struct BlockLevelSvc<T: ChainService>(pub Arc<T>);
                     impl<
                         T: ChainService,
-                    > tonic::server::UnaryService<super::super::types::Empty>
+                    > tonic::server::UnaryService<super::super::uchain::types::Empty>
                     for BlockLevelSvc<T> {
                         type Response = super::GetBlockNumberResponse;
                         type Future = BoxFuture<
@@ -1269,7 +1327,7 @@ pub mod chain_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::types::Empty>,
+                            request: tonic::Request<super::super::uchain::types::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move { (*inner).block_level(request).await };
@@ -1300,7 +1358,7 @@ pub mod chain_service_server {
                         T: ChainService,
                     > tonic::server::UnaryService<super::GetBlockByHashRequest>
                     for GetBlockByHashSvc<T> {
-                        type Response = super::super::types::Block;
+                        type Response = super::super::uchain::types::Block;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -1340,7 +1398,7 @@ pub mod chain_service_server {
                         T: ChainService,
                     > tonic::server::UnaryService<super::GetBlockByLevelRequest>
                     for GetBlockByLevelSvc<T> {
-                        type Response = super::super::types::Block;
+                        type Response = super::super::uchain::types::Block;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -1446,7 +1504,7 @@ pub mod chain_service_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: ChainService> tonic::transport::NamedService for ChainServiceServer<T> {
+    impl<T: ChainService> tonic::server::NamedService for ChainServiceServer<T> {
         const NAME: &'static str = "rpc.ChainService";
     }
 }

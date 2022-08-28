@@ -1,7 +1,7 @@
 use libp2p::{Multiaddr, PeerId};
 use serde::{Deserialize, Serialize};
 
-use codec::{impl_codec, Decoder, Encoder};
+use codec::{Decodable, Encodable};
 use types::block::{Block, BlockHeader};
 use types::tx::SignedTransaction;
 use types::Hash;
@@ -184,4 +184,14 @@ pub struct NodeToPeerMessage {
     pub message: PeerMessage,
 }
 
-impl_codec!(PeerMessage);
+impl Encodable for PeerMessage {
+    fn encode(&self) -> anyhow::Result<Vec<u8>> {
+        todo!()
+    }
+}
+
+impl Decodable for PeerMessage {
+    fn decode(buf: &[u8]) -> anyhow::Result<Self> {
+        todo!()
+    }
+}

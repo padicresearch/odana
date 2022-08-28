@@ -4,11 +4,11 @@ use std::sync::Arc;
 
 use anyhow::{bail, Result};
 use dashmap::DashMap;
-use hex::ToHex;
 use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
 use serde::{Deserialize, Serialize};
+use codec::{BinEncode, BinDecode};
 
-use codec::{Decoder, Encoder};
+use codec::{Decodable, Encodable};
 use primitive_types::H256;
 
 use crate::error::Error;
@@ -131,7 +131,7 @@ impl Database {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug, BinEncode, BinDecode)]
 pub struct ArchivedStorage {
     inner: DashMap<Vec<u8>, Vec<u8>>,
 }
@@ -144,12 +144,12 @@ impl ArchivedStorage {
 
     pub fn get(&self, key: &[u8]) -> Result<Vec<u8>> {
         let value = self.inner.get(key).map(|r| r.value().clone());
-        value.ok_or_else(|| Error::InvalidKey(key.encode_hex::<String>()).into())
+        value.ok_or_else(|| Error::InvalidKey(hex::encode(key,false)).into())
     }
 
     pub fn delete(&self, key: &[u8]) -> Result<()> {
         if !self.inner.contains_key(key) {
-            bail!(Error::InvalidKey(key.encode_hex::<String>()))
+            bail!(Error::InvalidKey(hex::encode(key,false)))
         }
         self.inner.remove(key);
         Ok(())

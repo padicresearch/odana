@@ -8,7 +8,7 @@ use crypto::SHA256;
 use primitive_types::H256;
 use proto::UnsignedTransaction;
 use types::account::Account;
-use types::tx::{SignedTransaction, Transaction};
+use types::tx::{SignedTransaction, UnsignedTransaction};
 use types::Address;
 
 pub fn make_sign_transaction(
@@ -19,19 +19,19 @@ pub fn make_sign_transaction(
     fee: u128,
     data: String,
 ) -> Result<SignedTransaction> {
-    let data = Transaction {
+    let data = UnsignedTransaction {
         nonce,
         to: to.into(),
         amount: amount.into(),
         fee: fee.into(),
         data,
     };
-    let sig = account.sign(SHA256::digest(data.sig_hash()).as_fixed_bytes())?;
+    let sig = account.sign(data.sig_hash())?;
     SignedTransaction::new(sig, data.into_proto()?)
 }
 
 pub fn sign_tx(secret: H256, tx: UnsignedTransaction) -> Result<SignedTransaction> {
-    let raw = Transaction::from_proto(&tx)?;
+    let raw = UnsignedTransaction::from_proto(&tx)?;
     let payload = raw.sig_hash();
     let secrete = SecretKey::from_bytes(secret.as_fixed_bytes())?;
     let sig = secrete

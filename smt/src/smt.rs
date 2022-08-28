@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 
-use codec::{Decoder, Encoder};
+use codec::{Decodable, Encodable};
 use primitive_types::H256;
 
 use crate::error::Error;
@@ -23,9 +23,9 @@ pub struct SparseMerkleTree {
     pub(crate) parent: H256,
 }
 
-impl Encoder for SparseMerkleTree {}
+impl Encodable for SparseMerkleTree {}
 
-impl Decoder for SparseMerkleTree {}
+impl Decodable for SparseMerkleTree {}
 
 impl SparseMerkleTree {
     pub fn new() -> Self {
@@ -419,16 +419,16 @@ mod tests {
     #[test]
     fn basic_get_set_check_root_test() {
         let mut smt = SparseMerkleTree::new();
-        smt.update(&[1, 2, 3], &[1, 2, 3]);
+        smt.update(&[1, 2, 3], &[1, 2, 3]).unwrap();
 
         println!("{:?}", smt.root);
 
         let mut smt_2 = smt.subtree(CopyStrategy::Partial, vec![]).unwrap();
-        smt_2.update(&[1, 2, 3], &[10, 20, 30]);
+        smt_2.update(&[1, 2, 3], &[10, 20, 30]).unwrap();
 
         println!("{:?}", smt_2.root);
 
-        smt.update(&[1, 2, 3], &[10, 20, 30]);
+        smt.update(&[1, 2, 3], &[10, 20, 30]).unwrap();
         println!("{:?}", smt.root);
         println!("{:?}", smt_2.root);
     }

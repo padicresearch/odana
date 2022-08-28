@@ -1,17 +1,20 @@
+use digest::Digest;
 use k256::ecdsa::signature::DigestSigner;
 use k256::ecdsa::signature::DigestVerifier;
 use k256::ecdsa::signature::Signature as Sig;
 use k256::ecdsa::{SigningKey, VerifyingKey};
+use k256::elliptic_curve::sec1::{Tag, ToEncodedPoint};
 use rand_core::{CryptoRng, RngCore};
-use sha2::Digest;
+use sha2::Sha256;
 
-use primitive_types::H256;
+use primitive_types::{H256, H512};
+use crate::{ keccak256};
 
 use crate::error::Error;
 use crate::error::Error::InternalError;
 
 pub const SECRET_KEY_LENGTH: usize = 32;
-pub const PUBLIC_KEY_LENGTH: usize = 33;
+pub const PUBLIC_KEY_LENGTH: usize = 65;
 pub const SIG_KEY_LENGTH: usize = 65;
 pub const KEYPAIR_KEY_LENGTH: usize = SECRET_KEY_LENGTH + PUBLIC_KEY_LENGTH;
 
@@ -30,11 +33,18 @@ impl Keypair {
         let public = secret.public();
         Self { secret, public }
     }
+
+    pub fn from_bytes<B : AsRef<[u8]>>(bytes: B) -> Result<Self, Error>
+    {
+        let secret = SecretKey::from_bytes(bytes.as_ref())?;
+        let public = secret.public();
+        Ok(Self { secret, public })
+    }
 }
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct SecretKey {
-    inner: k256::ecdsa::SigningKey,
+    inner: SigningKey,
 }
 
 impl SecretKey {
@@ -53,9 +63,9 @@ impl SecretKey {
     }
 
     pub fn sign(&self, msg: &[u8]) -> Result<Signature, Error> {
-        let mut prehash = sha2::Sha256::default();
+        let mut prehash = Sha256::default();
         prehash.update(msg);
-        let sig: k256::ecdsa::recoverable::Signature = self.inner.sign_digest(prehash);
+        let sig= self.inner.sign_digest(prehash);
         Ok(Signature { inner: sig })
     }
 
@@ -75,31 +85,51 @@ impl SecretKey {
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub struct PublicKey {
-    inner: k256::ecdsa::VerifyingKey,
+    inner: VerifyingKey,
 }
 
 impl PublicKey {
     #[inline]
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let point =
-            k256::EncodedPoint::from_bytes(bytes).map_err(|e| InternalError(format!("{}", e)))?;
-        let inner = VerifyingKey::from_encoded_point(&point)?;
+        let inner = VerifyingKey::from_sec1_bytes(bytes)?;
+        Ok(Self { inner })
+    }
+
+    #[inline]
+    pub fn from_fixed_bytes(bytes: &H512) -> Result<Self, Error> {
+        let mut raw_bytes = Vec::new();
+        raw_bytes.push(Tag::Uncompressed as u8);
+        raw_bytes.copy_from_slice(bytes.as_bytes());
+        let inner = VerifyingKey::from_sec1_bytes(&raw_bytes)?;
         Ok(Self { inner })
     }
 
     #[inline]
     pub fn to_bytes(&self) -> [u8; PUBLIC_KEY_LENGTH] {
+        let encoded_pk = self.inner.to_encoded_point(false);
         let mut pub_key = [0_u8; PUBLIC_KEY_LENGTH];
-        pub_key.copy_from_slice(self.inner.to_bytes().as_slice());
+        pub_key.copy_from_slice(encoded_pk.as_bytes());
+        pub_key
+    }
+
+    #[inline]
+    pub fn to_fixed_bytes(&self) -> H512 {
+        let encoded_pk = self.inner.to_encoded_point(false);
+        let pub_key = H512::from_slice(&encoded_pk.as_bytes()[1..]);
         pub_key
     }
 
     pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<(), Error> {
-        let mut prehash = sha2::Sha256::default();
+        let mut prehash = Sha256::default();
         prehash.update(msg);
         self.inner
             .verify_digest(prehash, &sig.inner)
             .map_err(|e| e.into())
+    }
+
+    pub fn hash(&self) -> H256 {
+        let encoded_pk = self.inner.to_encoded_point(false);
+        keccak256(&encoded_pk.as_bytes()[1..])
     }
 }
 
@@ -140,9 +170,9 @@ impl Signature {
     }
 
     pub fn recover_public_key(&self, msg: &[u8]) -> Result<PublicKey, Error> {
-        let mut prehash = sha2::Sha256::default();
+        let mut prehash = Sha256::default();
         prehash.update(msg);
-        let pk = self.inner.recover_verify_key_from_digest(prehash)?;
+        let pk = self.inner.recover_verifying_key_from_digest(prehash)?;
         Ok(PublicKey { inner: pk })
     }
 

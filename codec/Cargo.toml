@@ -9,5 +9,5 @@ edition = "2021"
 thiserror = "1.0"
 anyhow = "1.0.45"
 serde = { version = "1.0.130", features = ["derive"] }
-bincode = "1.0.130"
+bincode = "2.0.0-rc.1"
 primitive-types = { path = "../common/primitive-types" }

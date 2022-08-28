@@ -4,7 +4,7 @@ use anyhow::Result;
 use libp2p::PeerId;
 use serde::{Deserialize, Serialize};
 
-use crypto::{generate_pow_from_pub_key, SHA256};
+use crypto::{generate_pow_from_pub_key, sha256};
 use primitive_types::U256;
 use primitive_types::{H256, U192};
 use types::config::NodeIdentityConfig;
@@ -24,7 +24,7 @@ impl PeerNode {
         let mut pow_stamp = [0_u8; 56];
         pow_stamp[..24].copy_from_slice(&self.nonce.to_le_bytes());
         pow_stamp[24..].copy_from_slice(self.pub_key.as_bytes());
-        SHA256::digest(pow_stamp)
+        sha256(pow_stamp)
     }
 
     pub fn pub_key(&self) -> &H256 {
@@ -118,7 +118,7 @@ impl NodeIdentity {
         let mut pow_stamp = [0_u8; 56];
         pow_stamp[..24].copy_from_slice(&self.nonce.to_le_bytes());
         pow_stamp[24..].copy_from_slice(&self.pub_key.encode());
-        SHA256::digest(pow_stamp)
+        sha256(pow_stamp)
     }
 
     pub fn to_p2p_node(&self) -> PeerNode {

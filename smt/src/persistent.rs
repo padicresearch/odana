@@ -65,7 +65,7 @@ impl DatabaseBackend for RocksDB {
             .ok_or(Error::ColumnFamilyMissing(column_name))?;
 
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
-        value.ok_or_else(|| Error::InvalidKey(key.encode_hex::<String>()).into())
+        value.ok_or_else(|| Error::InvalidKey(hex::encode(key, false)).into())
     }
 
     fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()> {
@@ -129,13 +129,13 @@ impl DatabaseBackend for MemoryStore {
     fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>> {
         let column = self.inner.entry(column_name).or_default();
         let value = column.get(key).map(|r| r.value().clone());
-        value.ok_or_else(|| Error::InvalidKey(key.encode_hex::<String>()).into())
+        value.ok_or_else(|| Error::InvalidKey(hex::encode(key, false)).into())
     }
 
     fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()> {
         let column = self.inner.entry(column_name).or_default();
         if !column.contains_key(key) {
-            bail!(Error::InvalidKey(key.encode_hex::<String>()))
+            bail!(Error::InvalidKey(hex::encode(key, false)))
         }
         column.remove(key);
         Ok(())

@@ -12,8 +12,11 @@ rand_core = "0.6.3"
 anyhow = "1.0.45"
 storage = { path = "../storage" }
 serde = { version = "1.0.130", features = ["derive"] }
-hex = "0.4.3"
 primitive-types = { path = "../common/primitive-types" }
 crypto = { path = "../crypto" }
 codec = { path = "../codec" }
 types = { path = "../common/types" }
+tiny-bip39 = { path = "../common/tiny-bip39" }
+base58 = { path = "../common/base58" }
+bech32 = { path = "../common/bech32" }
+hex = { path = "../common/hex"}

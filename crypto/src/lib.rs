@@ -1,6 +1,8 @@
-use ripemd::{Digest, Ripemd160};
-use sha2::Digest as ShaDigest;
+extern crate core;
 
+pub use digest::Digest;
+use ripemd::Ripemd160;
+use sha2::Sha256;
 use primitive_types::{Compact, H160, H256, H448, U192, U256};
 
 pub mod ecdsa;
@@ -10,17 +12,9 @@ pub struct SHA256;
 
 impl SHA256 {
     pub fn digest<B: AsRef<[u8]>>(bytes: B) -> H256 {
-        let mut sha = sha2::Sha256::new();
+        let mut sha = Sha256::default();
         sha.update(bytes.as_ref());
-        H256::from_slice(sha.finalize().as_slice())
-    }
-
-    pub fn concat_digest<'a, I: IntoIterator<Item = &'a [u8]>>(items: I) -> H256 {
-        let mut sha = sha2::Sha256::new();
-        for i in items {
-            sha.update(i);
-        }
-        H256::from_slice(sha.finalize().as_slice())
+        H256::from_slice(sha.finalize().as_ref())
     }
 }
 
@@ -33,6 +27,36 @@ impl RIPEMD160 {
         let out: [u8; 20] = <[u8; 20]>::from(hasher.finalize());
         H160::from(out)
     }
+}
+
+#[inline]
+pub fn ripemd160<B: AsRef<[u8]>>(bytes: B) -> H160 {
+    let mut hasher = Ripemd160::default();
+    hasher.update(bytes);
+    H160::from_slice(hasher.finalize().as_ref())
+}
+#[inline]
+pub fn dhash160<B: AsRef<[u8]>>(bytes: B) -> H160 {
+    ripemd160(sha256(bytes))
+}
+
+#[inline]
+pub fn dhash256<B: AsRef<[u8]>>(bytes: B) -> H256 {
+   sha256(sha256(bytes))
+}
+#[inline]
+pub fn sha256<B: AsRef<[u8]>>(bytes: B) -> H256 {
+    let mut hasher = Sha256::default();
+    hasher.update(bytes);
+    H256::from_slice(hasher.finalize().as_ref())
+}
+
+#[inline]
+pub fn keccak256<B: AsRef<[u8]>>(bytes: B) -> H256 {
+    let mut hasher =sha3::Keccak256::default();
+    hasher.update(bytes.as_ref());
+    let out = hasher.finalize();
+    H256::from_slice(out.as_ref())
 }
 
 #[cfg(test)]

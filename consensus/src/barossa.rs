@@ -411,7 +411,7 @@ impl Consensus for BarossaProtocol {
             [0; 32].into(),
             [0; 20].into(),
             self.network.max_difficulty_compact().into(),
-            Self::CHAIN_ID,
+            self.network.chain_id(),
             0,
             0,
             0.into(),

@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::Result;
 use sled::Tree;
 
-use codec::{Decoder, Encoder};
+use codec::{Decodable, Encodable};
 
 use crate::{KVStore, Schema, StorageIterator};
 

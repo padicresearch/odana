@@ -1,18 +1,17 @@
 use core::cmp;
 use std::cmp::Ordering;
+use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use bytes::{Buf, Bytes, BytesMut};
+use codec::ConsensusCodec;
+use codec::{Decodable, Encodable};
+use crypto::{dhash256};
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-
-use codec::{impl_codec, ConsensusCodec};
-use codec::{Decoder, Encoder};
-use crypto::SHA256;
+use hex::{FromHex, ToHex};
 use primitive_types::{Compact, H256, U128, U256};
-use proto::{Block as ProtoBlock, BlockHeader as ProtoBlockHeader};
+use serde::{Deserialize, Serialize};
 
 use crate::tx::SignedTransaction;
 
@@ -20,10 +19,12 @@ use super::*;
 
 const HEADER_SIZE: usize = 180;
 
-#[derive(Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize, Encode, Decode,
+)]
 pub struct BlockPrimaryKey(pub Hash, pub i32);
 
-impl Encoder for BlockPrimaryKey {
+impl Encodable for BlockPrimaryKey {
     fn encode(&self) -> Result<Vec<u8>> {
         let mut encoded = Vec::with_capacity(36);
         encoded.extend(self.1.to_be_bytes());
@@ -31,12 +32,9 @@ impl Encoder for BlockPrimaryKey {
 
         Ok(encoded)
     }
-    fn encoded_size(&self) -> Result<u64> {
-        Ok(36)
-    }
 }
 
-impl Decoder for BlockPrimaryKey {
+impl Decodable for BlockPrimaryKey {
     fn decode(buf: &[u8]) -> Result<Self> {
         let mut level: [u8; 4] = [0; 4];
         level.copy_from_slice(&buf[..4]);
@@ -47,7 +45,9 @@ impl Decoder for BlockPrimaryKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Getters, Setters, MutGetters, CopyGetters)]
+#[derive(
+    Serialize, Deserialize, Copy, Clone, Debug, Default, Getters, Setters, MutGetters, CopyGetters,
+)]
 pub struct BlockHeader {
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
     parent_hash: H256,
@@ -62,7 +62,7 @@ pub struct BlockHeader {
     #[getset(set = "pub", get_mut = "pub")]
     difficulty: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
-    chain_id: u32,
+    chain_id: u16,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     level: i32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
@@ -79,7 +79,7 @@ impl BlockHeader {
         mix_nonce: U256,
         coinbase: H160,
         difficulty: u32,
-        chain_id: u32,
+        chain_id: u16,
         level: i32,
         time: u32,
         nonce: U128,
@@ -99,16 +99,11 @@ impl BlockHeader {
     }
 
     pub fn hash(&self) -> H256 {
-        SHA256::digest(self.consensus_encode())
+        dhash256(self.consensus_encode())
     }
 
     pub fn difficulty(&self) -> Compact {
         Compact::from(self.difficulty)
-    }
-
-    pub fn into_proto(self) -> Result<ProtoBlockHeader> {
-        let json_rep = serde_json::to_vec(&self)?;
-        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
 
@@ -137,7 +132,7 @@ impl ConsensusCodec for BlockHeader {
             mix_nonce: U256::from_big_endian(&bytes.copy_to_bytes(32)),
             coinbase: H160::from_slice(&bytes.copy_to_bytes(20)),
             difficulty: bytes.get_u32(),
-            chain_id: bytes.get_u32(),
+            chain_id: bytes.get_u16(),
             level: bytes.get_i32(),
             time: bytes.get_u32(),
             nonce: U128::from(bytes.get_u128()),
@@ -145,12 +140,219 @@ impl ConsensusCodec for BlockHeader {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+impl prost::Message for BlockHeader {
+    fn encode_raw<B>(&self, buf: &mut B)
+    where
+        B: BufMut,
+        Self: Sized,
+    {
+        prost::encoding::string::encode(1, &self.parent_hash.as_fixed_bytes().encode_hex(), buf);
+        prost::encoding::string::encode(2, &self.merkle_root.as_fixed_bytes().encode_hex(), buf);
+        prost::encoding::string::encode(3, &self.state_root.as_fixed_bytes().encode_hex(), buf);
+        prost::encoding::string::encode(4, &self.mix_nonce.encode_hex(), buf);
+        prost::encoding::string::encode(5, &self.coinbase.as_fixed_bytes().encode_hex(), buf);
+        prost::encoding::uint32::encode(6, &self.difficulty, buf);
+        prost::encoding::uint32::encode(7, &(self.chain_id as u32), buf);
+        prost::encoding::int32::encode(8, &self.level, buf);
+        prost::encoding::uint32::encode(9, &self.time, buf);
+        prost::encoding::string::encode(10, &self.nonce.encode_hex(), buf);
+    }
+
+    fn merge_field<B>(
+        &mut self,
+        tag: u32,
+        wire_type: WireType,
+        buf: &mut B,
+        ctx: DecodeContext,
+    ) -> std::result::Result<(), DecodeError>
+    where
+        B: Buf,
+        Self: Sized,
+    {
+        const STRUCT_NAME: &'static str = "BlockHeader";
+        match tag {
+            1 => {
+                let mut raw_value = String::new();
+                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "parent_hash");
+                        error
+                    },
+                )?;
+                self.parent_hash = H256::from_str(&raw_value).map_err(|error| {
+                    let mut error = DecodeError::new(error.to_string());
+                    error.push(STRUCT_NAME, "parent_hash");
+                    error
+                })?;
+                Ok(())
+            }
+            2 => {
+                let mut raw_value = String::new();
+                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "merkle_root");
+                        error
+                    },
+                )?;
+                self.merkle_root = H256::from_str(&raw_value).map_err(|error| {
+                    let mut error = DecodeError::new(error.to_string());
+                    error.push(STRUCT_NAME, "merkle_root");
+                    error
+                })?;
+                Ok(())
+            }
+            3 => {
+                let mut raw_value = String::new();
+                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "state_root");
+                        error
+                    },
+                )?;
+                self.state_root = H256::from_str(&raw_value).map_err(|error| {
+                    let mut error = DecodeError::new(error.to_string());
+                    error.push(STRUCT_NAME, "state_root");
+                    error
+                })?;
+                Ok(())
+            }
+            4 => {
+                let mut raw_value = String::new();
+                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "mix_nonce");
+                        error
+                    },
+                )?;
+                self.mix_nonce = U256::from_hex(&raw_value).map_err(|error| {
+                    let mut error = DecodeError::new(error.to_string());
+                    error.push(STRUCT_NAME, "mix_nonce");
+                    error
+                })?;
+                Ok(())
+            }
+            5 => {
+                let mut raw_value = String::new();
+                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "coinbase");
+                        error
+                    },
+                )?;
+                self.coinbase = H160::from_str(&raw_value).map_err(|error| {
+                    let mut error = DecodeError::new(error.to_string());
+                    error.push(STRUCT_NAME, "coinbase");
+                    error
+                })?;
+                Ok(())
+            }
+            6 => {
+                let value = &mut self.difficulty;
+                prost::encoding::uint32::merge(wire_type, value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "difficulty");
+                        error
+                    },
+                )
+            }
+            7 => {
+                let mut value : u32 = 0;
+                prost::encoding::uint32::merge(wire_type, &mut value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "difficulty");
+                        error
+                    },
+                )?;
+                self.chain_id = value as u16;
+                Ok(())
+            }
+            8 => {
+                let value = &mut self.level;
+                prost::encoding::int32::merge(wire_type, value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "level");
+                        error
+                    },
+                )
+            }
+            9 => {
+                let value = &mut self.time;
+                prost::encoding::uint32::merge(wire_type, value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "time");
+                        error
+                    },
+                )
+            }
+
+            10 => {
+                let mut raw_value = String::new();
+                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "nonce");
+                        error
+                    },
+                )?;
+                self.nonce = U128::from_hex(&raw_value).map_err(|error| {
+                    let mut error = DecodeError::new(error.to_string());
+                    error.push(STRUCT_NAME, "nonce");
+                    error
+                })?;
+                Ok(())
+            }
+
+            _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
+        }
+    }
+
+    fn encoded_len(&self) -> usize {
+        prost::encoding::string::encoded_len(1, &self.parent_hash.as_fixed_bytes().encode_hex())
+            + prost::encoding::string::encoded_len(
+                2,
+                &self.merkle_root.as_fixed_bytes().encode_hex(),
+            )
+            + prost::encoding::string::encoded_len(
+                3,
+                &self.state_root.as_fixed_bytes().encode_hex(),
+            )
+            + prost::encoding::string::encoded_len(4, &self.mix_nonce.encode_hex())
+            + prost::encoding::string::encoded_len(5, &self.coinbase.as_fixed_bytes().encode_hex())
+            + prost::encoding::uint32::encoded_len(6, &self.difficulty)
+            + prost::encoding::uint32::encoded_len(7, &(self.chain_id as u32))
+            + prost::encoding::int32::encoded_len(8, &self.level)
+            + prost::encoding::uint32::encoded_len(9, &self.time)
+            + prost::encoding::string::encoded_len(10, &self.nonce.encode_hex())
+    }
+
+    fn clear(&mut self) {
+        *self = BlockHeader::default()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Block {
     header: BlockHeader,
     transactions: Vec<SignedTransaction>,
     #[serde(skip)]
     hash: Arc<RwLock<Option<H256>>>,
+}
+
+impl prost::Message for Block {
+    fn encode_raw<B>(&self, buf: &mut B) where B: BufMut, Self: Sized {
+        todo!()
+    }
+
+    fn merge_field<B>(&mut self, tag: u32, wire_type: WireType, buf: &mut B, ctx: DecodeContext) -> std::result::Result<(), DecodeError> where B: Buf, Self: Sized {
+        todo!()
+    }
+
+    fn encoded_len(&self) -> usize {
+        todo!()
+    }
+
+    fn clear(&mut self) {
+        todo!()
+    }
 }
 
 impl Block {
@@ -159,8 +361,29 @@ impl Block {
     }
 }
 
-impl_codec!(Block);
-impl_codec!(BlockHeader);
+impl Encodable for BlockHeader {
+    fn encode(&self) -> Result<Vec<u8>> {
+        todo!()
+    }
+}
+
+impl Decodable for BlockHeader {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        todo!()
+    }
+}
+
+impl Encodable for Block {
+    fn encode(&self) -> Result<Vec<u8>> {
+        todo!()
+    }
+}
+
+impl Decodable for Block {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        todo!()
+    }
+}
 
 impl PartialEq for Block {
     fn eq(&self, other: &Self) -> bool {
@@ -199,15 +422,6 @@ impl Block {
     }
     pub fn parent_hash(&self) -> &H256 {
         self.header.parent_hash()
-    }
-    pub fn into_proto(self) -> Result<ProtoBlock> {
-        let jsblock = json!({
-            "hash" : self.hash(),
-            "header" : self.header(),
-            "txs" : self.transactions()
-        });
-        let json_rep = serde_json::to_vec(&jsblock)?;
-        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
 
@@ -300,17 +514,15 @@ fn test_proto_conversions() {
         U128::from(5),
     );
 
-    let pheader = block_header.into_proto().unwrap();
-
-    println!("{:#?}", pheader);
-    println!("{:#02x}", U128::from(5));
+    let pheader = block_header.encode_to_vec();
+    println!("{}", hex::encode(pheader, false))
 }
 
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
-
     use chrono::Utc;
+    use prost::Message;
 
     use codec::ConsensusCodec;
     use primitive_types::{H160, H256, U128, U256};
@@ -334,10 +546,10 @@ mod tests {
             Utc::now().timestamp_subsec_millis(),
             U128::from(5),
         );
-        let a = block_header.into_proto();
+        let a = block_header.encode_to_vec();
         let encoded = block_header.consensus_encode();
         let block_header = BlockHeader::consensus_decode(&encoded).unwrap();
-        let b = block_header.into_proto();
-        assert_eq!(a.unwrap(), b.unwrap());
+        let b = block_header.encode_to_vec();
+        assert_eq!(a, b);
     }
 }

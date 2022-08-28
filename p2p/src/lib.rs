@@ -34,7 +34,7 @@ use libp2p::tcp::TokioTcpConfig;
 use libp2p::NetworkBehaviour;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use codec::{Decoder, Encoder};
+use codec::{Decodable, Encodable};
 use primitive_types::{Compact, U256};
 use tracing::{debug, info, warn};
 use traits::Blockchain;

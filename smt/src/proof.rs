@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use hex::ToHex;
 use serde::{Deserialize, Serialize};
 
-use codec::{Decoder, Encoder};
+use codec::{Decodable, Encodable};
 use primitive_types::H256;
 
 use crate::error::Error;
@@ -17,9 +17,9 @@ pub struct Proof {
     pub sibling_data: Option<Vec<u8>>,
 }
 
-impl Encoder for Proof {}
+impl Encodable for Proof {}
 
-impl Decoder for Proof {}
+impl Decodable for Proof {}
 
 #[derive(Serialize, Deserialize)]
 pub struct CompatProof {
@@ -57,8 +57,8 @@ pub(crate) fn verify_proof_with_updates(
             let (actual_path, value_hash) = th.parse_leaf(non_membership_leaf_data);
             if actual_path.eq(path.as_bytes()) {
                 return Err(Error::NonMembershipPathError(
-                    actual_path.encode_hex::<String>(),
-                    path.as_bytes().encode_hex::<String>(),
+                    hex::encode(actual_path, false),
+                    hex::encode(path.as_bytes(), false),
                 ));
             }
             let (l, current_data) = th.digest_leaf(actual_path, value_hash);

@@ -7,7 +7,7 @@ use anyhow::Result;
 use hex::ToHex;
 use serde::{Deserialize, Serialize};
 
-use codec::{Codec, Decoder, Encoder};
+use codec::{Codec, Decodable, Encodable, BinDecode, BinEncode};
 use primitive_types::H256;
 use tracing::{debug, error};
 
@@ -35,15 +35,15 @@ impl Default for Options {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, BinEncode, BinDecode)]
 pub enum IValue {
     Deleted,
     Value(Vec<u8>),
 }
 
-impl Encoder for IValue {}
+impl Encodable for IValue {}
 
-impl Decoder for IValue {}
+impl Decodable for IValue {}
 
 pub enum Op<K: Codec, V: Codec> {
     Delete(K),
@@ -263,7 +263,7 @@ where
         let raw_key = key.encode()?;
         let value = self
             .get(key)?
-            .ok_or_else(|| Error::InvalidKey(raw_key.encode_hex()))?;
+            .ok_or_else(|| Error::InvalidKey(hex::encode(raw_key.as_slice(), false)))?;
         let proof = head.proof(&raw_key)?;
         Ok((value, proof))
     }
@@ -546,7 +546,7 @@ mod tests {
             },
         )
         .unwrap();
-        tree.commit(true);
+        tree.commit(true).unwrap();
         println!("{:#?}", tree.root().unwrap());
         println!("{:?}", tree.root().unwrap().0);
     }

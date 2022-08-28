@@ -1,0 +1,12 @@
+[package]
+name = "bech32"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["std"]
+std = []
+# Only for CI to make all warnings errors, do not activate otherwise (may break forward compatibility)
+strict = []
+[dependencies]

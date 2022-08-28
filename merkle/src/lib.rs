@@ -2,10 +2,10 @@ use std::hash::{Hash, Hasher};
 
 use bloomfilter::Bloom;
 
-use crate::crypto::{HashFunction, HASH_LEN, SHA256};
+use crate::hasher::{HashFunction, HASH_LEN, Sha3Keccak256};
 use crate::errors::*;
 
-mod crypto;
+mod hasher;
 mod errors;
 
 const BITMAP_SIZE: usize = 32 * 1024 * 1024;
@@ -56,14 +56,14 @@ where
     hasher: H,
 }
 
-impl Default for Merkle<SHA256> {
+impl Default for Merkle<Sha3Keccak256> {
     fn default() -> Self {
         Merkle {
             pre_leaves_len: 0,
             root: None,
             leaves: Vec::new(),
             bloom_filter: Bloom::new(BITMAP_SIZE, 1000),
-            hasher: SHA256,
+            hasher: Sha3Keccak256,
         }
     }
 }
@@ -203,7 +203,7 @@ pub fn hash_pair(h: &dyn HashFunction, pair: (&[u8; HASH_LEN], &[u8; HASH_LEN]))
 
 #[cfg(test)]
 mod tests {
-    use crate::crypto::SHA256;
+    use crate::hasher::Sha3Keccak256;
     use crate::{hash_pair, HashFunction, Merkle};
 
     #[test]
@@ -215,7 +215,7 @@ mod tests {
         merkle.update("market".as_bytes());
         let root = merkle.finalize();
 
-        let hasher = SHA256;
+        let hasher = Sha3Keccak256;
         let h_a = hasher.digest("hello".as_bytes());
         let h_b = hasher.digest("world".as_bytes());
         let h_c = hasher.digest("job".as_bytes());
@@ -268,7 +268,7 @@ mod tests {
         merkle.update("great".as_bytes());
         let root = merkle.finalize();
 
-        let hasher = SHA256;
+        let hasher = Sha3Keccak256;
         let h_a = hasher.digest("hello".as_bytes());
         let h_b = hasher.digest("world".as_bytes());
         let h_c = hasher.digest("job".as_bytes());

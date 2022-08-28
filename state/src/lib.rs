@@ -5,8 +5,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use codec::impl_codec;
-use codec::{Decoder, Encoder};
+use codec::{Decodable, Encodable};
 use primitive_types::{H160, H256};
 use smt::proof::Proof;
 use smt::{Op, Tree};
@@ -367,7 +366,6 @@ pub fn get_operations(tx: &SignedTransaction) -> Vec<StateOperation> {
     });
     ops
 }
-impl_codec!(StateOperation);
 
 pub trait MorphCheckPoint {
     fn checkpoint(&self) -> State;
