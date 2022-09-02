@@ -131,4 +131,7 @@ pub mod prelude {
     pub use crate::config::*;
     pub use crate::events::*;
     pub use crate::network::*;
+
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Empty;
 }

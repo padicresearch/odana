@@ -1,7 +1,7 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UnsignedTransactionRequest {
     #[prost(message, optional, tag="1")]
-    pub tx: ::core::option::Option<super::uchain::types::UnsignedTransaction>,
+    pub tx: ::core::option::Option<::types::prelude::UnsignedTransaction>,
     #[prost(string, tag="2")]
     pub key: ::prost::alloc::string::String,
 }
@@ -10,7 +10,7 @@ pub struct SignedTransactionResponse {
     #[prost(string, tag="1")]
     pub hash: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
-    pub tx: ::core::option::Option<super::uchain::types::SignedTransaction>,
+    pub tx: ::core::option::Option<::types::prelude::SignedTransaction>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTransactionStatusResponse {
@@ -20,14 +20,14 @@ pub struct GetTransactionStatusResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PendingTransactionsResponse {
     #[prost(map="string, message", tag="1")]
-    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, super::uchain::types::TransactionList>,
+    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, ::types::prelude::TransactionList>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TxpoolContentResponse {
     #[prost(map="string, message", tag="1")]
-    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, super::uchain::types::TransactionList>,
+    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, ::types::prelude::TransactionList>,
     #[prost(map="string, message", tag="2")]
-    pub queued: ::std::collections::HashMap<::prost::alloc::string::String, super::uchain::types::TransactionList>,
+    pub queued: ::std::collections::HashMap<::prost::alloc::string::String, ::types::prelude::TransactionList>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHash {
@@ -148,9 +148,7 @@ pub mod transactions_service_client {
         }
         pub async fn send_transaction(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::super::uchain::types::SignedTransaction,
-            >,
+            request: impl tonic::IntoRequest<::types::prelude::SignedTransaction>,
         ) -> Result<tonic::Response<super::TransactionHash>, tonic::Status> {
             self.inner
                 .ready()
@@ -191,7 +189,7 @@ pub mod transactions_service_client {
         }
         pub async fn get_pending_transactions(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::uchain::types::Empty>,
+            request: impl tonic::IntoRequest<::types::prelude::Empty>,
         ) -> Result<tonic::Response<super::PendingTransactionsResponse>, tonic::Status> {
             self.inner
                 .ready()
@@ -210,7 +208,7 @@ pub mod transactions_service_client {
         }
         pub async fn get_txpool_content(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::uchain::types::Empty>,
+            request: impl tonic::IntoRequest<::types::prelude::Empty>,
         ) -> Result<tonic::Response<super::TxpoolContentResponse>, tonic::Status> {
             self.inner
                 .ready()
@@ -246,7 +244,7 @@ pub mod transactions_service_server {
         ) -> Result<tonic::Response<super::SignedTransactionResponse>, tonic::Status>;
         async fn send_transaction(
             &self,
-            request: tonic::Request<super::super::uchain::types::SignedTransaction>,
+            request: tonic::Request<::types::prelude::SignedTransaction>,
         ) -> Result<tonic::Response<super::TransactionHash>, tonic::Status>;
         async fn get_transaction_status(
             &self,
@@ -254,11 +252,11 @@ pub mod transactions_service_server {
         ) -> Result<tonic::Response<super::GetTransactionStatusResponse>, tonic::Status>;
         async fn get_pending_transactions(
             &self,
-            request: tonic::Request<super::super::uchain::types::Empty>,
+            request: tonic::Request<::types::prelude::Empty>,
         ) -> Result<tonic::Response<super::PendingTransactionsResponse>, tonic::Status>;
         async fn get_txpool_content(
             &self,
-            request: tonic::Request<super::super::uchain::types::Empty>,
+            request: tonic::Request<::types::prelude::Empty>,
         ) -> Result<tonic::Response<super::TxpoolContentResponse>, tonic::Status>;
     }
     #[derive(Debug)]
@@ -405,9 +403,8 @@ pub mod transactions_service_server {
                     struct SendTransactionSvc<T: TransactionsService>(pub Arc<T>);
                     impl<
                         T: TransactionsService,
-                    > tonic::server::UnaryService<
-                        super::super::uchain::types::SignedTransaction,
-                    > for SendTransactionSvc<T> {
+                    > tonic::server::UnaryService<::types::prelude::SignedTransaction>
+                    for SendTransactionSvc<T> {
                         type Response = super::TransactionHash;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
@@ -415,9 +412,7 @@ pub mod transactions_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::super::uchain::types::SignedTransaction,
-                            >,
+                            request: tonic::Request<::types::prelude::SignedTransaction>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move {
@@ -488,7 +483,7 @@ pub mod transactions_service_server {
                     struct GetPendingTransactionsSvc<T: TransactionsService>(pub Arc<T>);
                     impl<
                         T: TransactionsService,
-                    > tonic::server::UnaryService<super::super::uchain::types::Empty>
+                    > tonic::server::UnaryService<::types::prelude::Empty>
                     for GetPendingTransactionsSvc<T> {
                         type Response = super::PendingTransactionsResponse;
                         type Future = BoxFuture<
@@ -497,7 +492,7 @@ pub mod transactions_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::uchain::types::Empty>,
+                            request: tonic::Request<::types::prelude::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move {
@@ -528,7 +523,7 @@ pub mod transactions_service_server {
                     struct GetTxpoolContentSvc<T: TransactionsService>(pub Arc<T>);
                     impl<
                         T: TransactionsService,
-                    > tonic::server::UnaryService<super::super::uchain::types::Empty>
+                    > tonic::server::UnaryService<::types::prelude::Empty>
                     for GetTxpoolContentSvc<T> {
                         type Response = super::TxpoolContentResponse;
                         type Future = BoxFuture<
@@ -537,7 +532,7 @@ pub mod transactions_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::uchain::types::Empty>,
+                            request: tonic::Request<::types::prelude::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move {
@@ -728,10 +723,7 @@ pub mod account_service_client {
         pub async fn get_account_state(
             &mut self,
             request: impl tonic::IntoRequest<super::GetAccountRequest>,
-        ) -> Result<
-            tonic::Response<super::super::uchain::types::AccountState>,
-            tonic::Status,
-        > {
+        ) -> Result<tonic::Response<::types::prelude::AccountState>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -767,10 +759,7 @@ pub mod account_service_server {
         async fn get_account_state(
             &self,
             request: tonic::Request<super::GetAccountRequest>,
-        ) -> Result<
-            tonic::Response<super::super::uchain::types::AccountState>,
-            tonic::Status,
-        >;
+        ) -> Result<tonic::Response<::types::prelude::AccountState>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct AccountServiceServer<T: AccountService> {
@@ -914,7 +903,7 @@ pub mod account_service_server {
                         T: AccountService,
                     > tonic::server::UnaryService<super::GetAccountRequest>
                     for GetAccountStateSvc<T> {
-                        type Response = super::super::uchain::types::AccountState;
+                        type Response = ::types::prelude::AccountState;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -991,7 +980,7 @@ pub struct CurrentHeadResponse {
     #[prost(string, tag="1")]
     pub hash: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
-    pub header: ::core::option::Option<super::uchain::types::BlockHeader>,
+    pub header: ::core::option::Option<::types::prelude::BlockHeader>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByHashRequest {
@@ -1013,7 +1002,7 @@ pub struct GetBlocksRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlocksResponse {
     #[prost(message, repeated, tag="1")]
-    pub blocks: ::prost::alloc::vec::Vec<super::uchain::types::BlockHeader>,
+    pub blocks: ::prost::alloc::vec::Vec<::types::prelude::BlockHeader>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockNumberResponse {
@@ -1091,7 +1080,7 @@ pub mod chain_service_client {
         }
         pub async fn current_head(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::uchain::types::Empty>,
+            request: impl tonic::IntoRequest<::types::prelude::Empty>,
         ) -> Result<tonic::Response<super::CurrentHeadResponse>, tonic::Status> {
             self.inner
                 .ready()
@@ -1110,7 +1099,7 @@ pub mod chain_service_client {
         }
         pub async fn block_level(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::uchain::types::Empty>,
+            request: impl tonic::IntoRequest<::types::prelude::Empty>,
         ) -> Result<tonic::Response<super::GetBlockNumberResponse>, tonic::Status> {
             self.inner
                 .ready()
@@ -1130,7 +1119,7 @@ pub mod chain_service_client {
         pub async fn get_block_by_hash(
             &mut self,
             request: impl tonic::IntoRequest<super::GetBlockByHashRequest>,
-        ) -> Result<tonic::Response<super::super::uchain::types::Block>, tonic::Status> {
+        ) -> Result<tonic::Response<::types::prelude::Block>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -1149,7 +1138,7 @@ pub mod chain_service_client {
         pub async fn get_block_by_level(
             &mut self,
             request: impl tonic::IntoRequest<super::GetBlockByLevelRequest>,
-        ) -> Result<tonic::Response<super::super::uchain::types::Block>, tonic::Status> {
+        ) -> Result<tonic::Response<::types::prelude::Block>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -1195,20 +1184,20 @@ pub mod chain_service_server {
     pub trait ChainService: Send + Sync + 'static {
         async fn current_head(
             &self,
-            request: tonic::Request<super::super::uchain::types::Empty>,
+            request: tonic::Request<::types::prelude::Empty>,
         ) -> Result<tonic::Response<super::CurrentHeadResponse>, tonic::Status>;
         async fn block_level(
             &self,
-            request: tonic::Request<super::super::uchain::types::Empty>,
+            request: tonic::Request<::types::prelude::Empty>,
         ) -> Result<tonic::Response<super::GetBlockNumberResponse>, tonic::Status>;
         async fn get_block_by_hash(
             &self,
             request: tonic::Request<super::GetBlockByHashRequest>,
-        ) -> Result<tonic::Response<super::super::uchain::types::Block>, tonic::Status>;
+        ) -> Result<tonic::Response<::types::prelude::Block>, tonic::Status>;
         async fn get_block_by_level(
             &self,
             request: tonic::Request<super::GetBlockByLevelRequest>,
-        ) -> Result<tonic::Response<super::super::uchain::types::Block>, tonic::Status>;
+        ) -> Result<tonic::Response<::types::prelude::Block>, tonic::Status>;
         async fn get_blocks(
             &self,
             request: tonic::Request<super::GetBlocksRequest>,
@@ -1278,7 +1267,7 @@ pub mod chain_service_server {
                     struct CurrentHeadSvc<T: ChainService>(pub Arc<T>);
                     impl<
                         T: ChainService,
-                    > tonic::server::UnaryService<super::super::uchain::types::Empty>
+                    > tonic::server::UnaryService<::types::prelude::Empty>
                     for CurrentHeadSvc<T> {
                         type Response = super::CurrentHeadResponse;
                         type Future = BoxFuture<
@@ -1287,7 +1276,7 @@ pub mod chain_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::uchain::types::Empty>,
+                            request: tonic::Request<::types::prelude::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move {
@@ -1318,7 +1307,7 @@ pub mod chain_service_server {
                     struct BlockLevelSvc<T: ChainService>(pub Arc<T>);
                     impl<
                         T: ChainService,
-                    > tonic::server::UnaryService<super::super::uchain::types::Empty>
+                    > tonic::server::UnaryService<::types::prelude::Empty>
                     for BlockLevelSvc<T> {
                         type Response = super::GetBlockNumberResponse;
                         type Future = BoxFuture<
@@ -1327,7 +1316,7 @@ pub mod chain_service_server {
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::super::uchain::types::Empty>,
+                            request: tonic::Request<::types::prelude::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move { (*inner).block_level(request).await };
@@ -1358,7 +1347,7 @@ pub mod chain_service_server {
                         T: ChainService,
                     > tonic::server::UnaryService<super::GetBlockByHashRequest>
                     for GetBlockByHashSvc<T> {
-                        type Response = super::super::uchain::types::Block;
+                        type Response = ::types::prelude::Block;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -1398,7 +1387,7 @@ pub mod chain_service_server {
                         T: ChainService,
                     > tonic::server::UnaryService<super::GetBlockByLevelRequest>
                     for GetBlockByLevelSvc<T> {
-                        type Response = super::super::uchain::types::Block;
+                        type Response = ::types::prelude::Block;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
