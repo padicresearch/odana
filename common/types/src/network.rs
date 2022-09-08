@@ -56,7 +56,7 @@ impl Network {
         }
     }
 
-    pub fn chain_id(&self) -> u16 {
+    pub fn chain_id(&self) -> u32 {
         match self {
             Network::Mainnet => 0,
             Network::Testnet => 1,
@@ -64,12 +64,12 @@ impl Network {
         }
     }
 
-    pub fn from_u32(chain_id : u16) -> Self {
+    pub fn from_chain_id(chain_id: u32) -> Self {
         match chain_id {
-           0 => Network::Mainnet,
+            0 => Network::Mainnet,
             1 => Network::Testnet,
-         2 => Network::Alphanet,
-            _ => Network::Testnet
+            2 => Network::Alphanet,
+            _ => Network::Testnet,
         }
     }
     pub fn hrp(&self) -> &'static str {

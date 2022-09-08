@@ -2,42 +2,49 @@
 pub struct UnsignedTransactionRequest {
     #[prost(message, optional, tag="1")]
     pub tx: ::core::option::Option<::types::prelude::UnsignedTransaction>,
-    #[prost(string, tag="2")]
-    pub key: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="2")]
+    pub secret_key: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SignedTransactionResponse {
-    #[prost(string, tag="1")]
-    pub hash: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="1")]
+    pub hash: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag="2")]
     pub tx: ::core::option::Option<::types::prelude::SignedTransaction>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTransactionStatusResponse {
-    #[prost(string, repeated, tag="1")]
-    pub status: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration="::types::prelude::TransactionStatus", repeated, tag="1")]
+    pub status: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PendingTransactionsResponse {
-    #[prost(map="string, message", tag="1")]
-    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, ::types::prelude::TransactionList>,
+    #[prost(message, repeated, tag="1")]
+    pub pending: ::prost::alloc::vec::Vec<AddressTransactionList>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddressTransactionList {
+    #[prost(bytes="vec", tag="1")]
+    pub address: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag="2")]
+    pub txs: ::core::option::Option<::types::prelude::TransactionList>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TxpoolContentResponse {
-    #[prost(map="string, message", tag="1")]
-    pub pending: ::std::collections::HashMap<::prost::alloc::string::String, ::types::prelude::TransactionList>,
-    #[prost(map="string, message", tag="2")]
-    pub queued: ::std::collections::HashMap<::prost::alloc::string::String, ::types::prelude::TransactionList>,
+    #[prost(message, repeated, tag="1")]
+    pub pending: ::prost::alloc::vec::Vec<AddressTransactionList>,
+    #[prost(message, repeated, tag="2")]
+    pub queued: ::prost::alloc::vec::Vec<AddressTransactionList>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHash {
-    #[prost(string, tag="1")]
-    pub hash: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="1")]
+    pub hash: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHashes {
-    #[prost(string, repeated, tag="1")]
-    pub tx_hashes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bytes="vec", repeated, tag="1")]
+    pub txs: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
 }
 /// Generated client implementations.
 pub mod transactions_service_client {
@@ -600,18 +607,18 @@ pub mod transactions_service_server {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountRequest {
-    #[prost(string, tag="1")]
-    pub address: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="1")]
+    pub address: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountBalanceResponse {
-    #[prost(string, tag="1")]
-    pub balance: ::prost::alloc::string::String,
+    #[prost(uint64, tag="1")]
+    pub balance: u64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountNonceResponse {
-    #[prost(string, tag="1")]
-    pub nonce: ::prost::alloc::string::String,
+    #[prost(uint64, tag="1")]
+    pub nonce: u64,
 }
 /// Generated client implementations.
 pub mod account_service_client {
@@ -977,15 +984,15 @@ pub mod account_service_server {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CurrentHeadResponse {
-    #[prost(string, tag="1")]
-    pub hash: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="1")]
+    pub hash: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag="2")]
     pub header: ::core::option::Option<::types::prelude::BlockHeader>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByHashRequest {
-    #[prost(string, tag="1")]
-    pub hash: ::prost::alloc::string::String,
+    #[prost(bytes="vec", tag="1")]
+    pub hash: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByLevelRequest {
@@ -994,8 +1001,8 @@ pub struct GetBlockByLevelRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlocksRequest {
-    #[prost(int32, tag="1")]
-    pub from: i32,
+    #[prost(uint32, tag="1")]
+    pub from: u32,
     #[prost(uint32, tag="2")]
     pub count: u32,
 }
@@ -1006,8 +1013,8 @@ pub struct GetBlocksResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockNumberResponse {
-    #[prost(int32, tag="1")]
-    pub level: i32,
+    #[prost(uint32, tag="1")]
+    pub level: u32,
 }
 /// Generated client implementations.
 pub mod chain_service_client {

@@ -25,23 +25,23 @@ impl BlockStorage {
 
     pub fn put(&self, block: Block) -> Result<()> {
         let block_key = self.primary.put(block)?;
-        self.block_by_hash.put(block_key.0, block_key)?;
-        self.block_by_level.put(block_key.1, block_key)?;
+        self.block_by_hash.put(block_key.1, block_key)?;
+        self.block_by_level.put(block_key.0, block_key)?;
         Ok(())
     }
 
-    pub fn delete(&self, hash: &H256, level: i32) -> Result<()> {
-        let block_key = BlockPrimaryKey(hash.to_fixed_bytes(), level);
-        self.block_by_level.delete(block_key.1)?;
+    pub fn delete(&self, hash: &H256, level: u32) -> Result<()> {
+        let block_key = BlockPrimaryKey( level, *hash);
+        self.block_by_level.delete(block_key.0)?;
         Ok(())
     }
 
     pub fn get_blocks<'a>(
         &'a self,
-        hash: &'a Hash,
-        level: i32,
+        hash: &'a H256,
+        level: u32,
     ) -> Result<Box<dyn 'a + Send + Iterator<Item = Result<Block>>>> {
-        let primary_key = BlockPrimaryKey(*hash, level);
+        let primary_key = BlockPrimaryKey(level, *hash);
         Ok(Box::new(
             self.primary.get_blocks(&primary_key)?.map(|(_k, v)| v),
         ))
@@ -49,8 +49,8 @@ impl BlockStorage {
 }
 
 impl ChainHeadReader for BlockStorage {
-    fn get_header(&self, hash: &H256, level: i32) -> anyhow::Result<Option<IndexedBlockHeader>> {
-        let primary_key = BlockPrimaryKey(hash.to_fixed_bytes(), level);
+    fn get_header(&self, hash: &H256, level: u32) -> anyhow::Result<Option<IndexedBlockHeader>> {
+        let primary_key = BlockPrimaryKey(level, *hash);
         self.primary
             .get_block(&primary_key)
             .map(|opt_block| opt_block.map(|b| (*b.header()).into()))
@@ -59,7 +59,7 @@ impl ChainHeadReader for BlockStorage {
     fn get_header_by_hash(&self, hash: &H256) -> anyhow::Result<Option<IndexedBlockHeader>> {
         let primary_key = self.block_by_hash.get(hash)?;
         if let Some(primary_key) = primary_key {
-            return self.get_header(&H256::from(primary_key.0), primary_key.1);
+            return self.get_header(&primary_key.1, primary_key.0);
         }
         Ok(None)
     }
@@ -67,22 +67,22 @@ impl ChainHeadReader for BlockStorage {
     fn get_header_by_level(&self, level: i32) -> anyhow::Result<Option<IndexedBlockHeader>> {
         let primary_key = self.block_by_level.get(level)?;
         if let Some(primary_key) = primary_key {
-            return self.get_header(&H256::from(primary_key.0), primary_key.1);
+            return self.get_header(&primary_key.1, primary_key.0);
         }
         Ok(None)
     }
 }
 
 impl ChainReader for BlockStorage {
-    fn get_block(&self, hash: &H256, level: i32) -> anyhow::Result<Option<Block>> {
-        let primary_key = BlockPrimaryKey(hash.to_fixed_bytes(), level);
+    fn get_block(&self, hash: &H256, level: u32) -> anyhow::Result<Option<Block>> {
+        let primary_key = BlockPrimaryKey( level, *hash);
         self.primary.get_block(&primary_key)
     }
 
     fn get_block_by_hash(&self, hash: &H256) -> anyhow::Result<Option<Block>> {
         let primary_key = self.block_by_hash.get(hash)?;
         if let Some(primary_key) = primary_key {
-            return self.get_block(&H256::from(primary_key.0), primary_key.1);
+            return self.get_block(&primary_key.1, primary_key.0);
         }
         Ok(None)
     }
@@ -90,7 +90,7 @@ impl ChainReader for BlockStorage {
     fn get_block_by_level(&self, level: i32) -> Result<Option<Block>> {
         let primary_key = self.block_by_level.get(level)?;
         if let Some(primary_key) = primary_key {
-            return self.get_block(&H256::from(primary_key.0), primary_key.1);
+            return self.get_block(&primary_key.1, primary_key.0);
         }
         Ok(None)
     }
@@ -119,7 +119,7 @@ impl BlockPrimaryStorage {
     pub fn put(&self, block: Block) -> Result<BlockPrimaryKey> {
         let hash = block.hash();
         let level = block.level();
-        let block_key = BlockPrimaryKey(hash.to_fixed_bytes(), level);
+        let block_key = BlockPrimaryKey(level, hash);
         if self.kv.contains(&block_key)? {
             return Ok(block_key);
         }
@@ -166,17 +166,17 @@ impl BlockByLevel {
     pub fn new(kv: Arc<BlockByLevelStorageKV>) -> Self {
         Self { kv }
     }
-    pub fn put(&self, level: i32, primary_key: BlockPrimaryKey) -> Result<()> {
-        if !self.kv.contains(&(level as u32))? {
-            return self.kv.put(level as u32, primary_key);
+    pub fn put(&self, level: u32, primary_key: BlockPrimaryKey) -> Result<()> {
+        if !self.kv.contains(&level)? {
+            return self.kv.put(level, primary_key);
         }
         Ok(())
     }
-    pub fn get(&self, level: i32) -> Result<Option<BlockPrimaryKey>> {
-        self.kv.get(&(level as u32))
+    pub fn get(&self, level: u32) -> Result<Option<BlockPrimaryKey>> {
+        self.kv.get(&level)
     }
 
-    pub fn delete(&self, key: i32) -> Result<()> {
+    pub fn delete(&self, key: u32) -> Result<()> {
         self.kv.delete(&(key as u32))
     }
 }
@@ -189,7 +189,7 @@ pub struct BlockByHash {
 }
 
 impl Schema for BlockByHash {
-    type Key = Hash;
+    type Key = H256;
     type Value = BlockPrimaryKey;
 
     fn column() -> &'static str {
@@ -201,13 +201,13 @@ impl BlockByHash {
     pub fn new(kv: Arc<BlockByHashStorageKV>) -> Self {
         Self { kv }
     }
-    pub fn put(&self, hash: Hash, primary_key: BlockPrimaryKey) -> Result<()> {
+    pub fn put(&self, hash: H256, primary_key: BlockPrimaryKey) -> Result<()> {
         self.kv.put(hash, primary_key)
     }
     pub fn delete(&self, hash: &H256) -> Result<()> {
-        self.kv.delete(hash.as_fixed_bytes())
+        self.kv.delete(hash)
     }
     pub fn get(&self, hash: &H256) -> Result<Option<BlockPrimaryKey>> {
-        self.kv.get(hash.as_fixed_bytes())
+        self.kv.get(hash)
     }
 }

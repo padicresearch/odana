@@ -3,44 +3,44 @@ package uchain.types;
 message Empty {}
 
 message BlockHeader {
-  string parent_hash = 1;
-  string merkle_root = 2;
-  string state_root = 3;
-  string mix_nonce = 4;
-  string coinbase = 5;
+  bytes parent_hash = 1;
+  bytes merkle_root = 2;
+  bytes state_root = 3;
+  bytes mix_nonce = 4;
+  bytes coinbase = 5;
   uint32 difficulty = 6;
   uint32 chain_id = 7;
-  int32 level = 8;
+  uint32 level = 8;
   uint32 time = 9;
-  string nonce = 10;
+  uint64 nonce = 10;
 }
 
 message Block {
-  string hash = 1;
+  bytes hash = 1;
   BlockHeader header = 2;
   repeated SignedTransaction txs = 3;
 }
 
 message PaymentTx {
-  string to = 1;
-  string amount = 2;
+  bytes to = 1;
+  uint64 amount = 2;
 }
 
 message AnyType {
   string type_info = 1;
-  string value = 2;
+  bytes value = 2;
 }
 
 message ApplicationCallTx{
-  string app_id = 1;
-  AnyType args = 2;
+  uint32 app_id = 1;
+  AnyType params = 2;
 }
 
 message UnsignedTransaction {
-  string nonce = 1;
-  string chain_id = 2;
-  string genesis_hash = 3;
-  string fee = 4;
+  uint64 nonce = 1;
+  uint32 chain_id = 2;
+  bytes genesis_hash = 3;
+  uint64 fee = 4;
   oneof data {
     PaymentTx payment = 5;
     ApplicationCallTx call = 6;
@@ -49,18 +49,18 @@ message UnsignedTransaction {
 }
 
 message SignedTransaction {
-  string nonce = 1;
-  string chain_id = 2;
-  string genesis_hash = 3;
-  string fee = 4;
+  uint64 nonce = 1;
+  uint32 chain_id = 2;
+  bytes genesis_hash = 3;
+  uint64 fee = 4;
   oneof data {
     PaymentTx payment = 5;
     ApplicationCallTx call = 6;
-    string raw = 7;
+    bytes raw = 7;
   }
-  string r = 8;
-  string s = 9;
-  string v = 10;
+  bytes r = 8;
+  bytes s = 9;
+  uint32 v = 10;
 }
 
 message TransactionList {
@@ -68,9 +68,9 @@ message TransactionList {
 }
 
 message AccountState {
-  string free_balance = 1;
-  string reserve_balance = 2;
-  string nonce = 3;
+  uint64 free_balance = 1;
+  uint64 reserve_balance = 2;
+  uint64 nonce = 3;
 }
 
 enum TransactionStatus {

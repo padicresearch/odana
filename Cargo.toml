@@ -36,3 +36,6 @@ members = [
     "common/base58",
     "common/bech32",
 ]
+
+[patch.crates-io]
+prost = { git = 'https://github.com/mambisi/prost',  branch = "bytes-mod" }

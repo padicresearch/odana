@@ -6,7 +6,7 @@ use core::fmt;
 
 static CHARS: &[u8] = b"0123456789abcdef";
 
-pub use crate::serde::{serialize, deserialize};
+pub use crate::serde::{deserialize, serialize};
 
 pub trait ToHex {
     /// Encode the hex strict representing `self` into the result. Lower case
@@ -20,6 +20,21 @@ pub trait FromHex: Sized {
     /// Both, upper and lower case characters are valid and can even be
     /// mixed (e.g. `f9b4ca`, `F9B4CA` and `f9B4Ca` are all valid strings).
     fn from_hex(hex: &str) -> Result<Self, FromHexError>;
+}
+
+impl ToHex for Vec<u8> {
+    fn encode_hex(&self) -> String {
+        encode(self, true)
+    }
+}
+impl FromHex for Vec<u8> {
+    fn from_hex(hex: &str) -> Result<Self, FromHexError> {
+        decode(hex)
+    }
+}
+
+pub trait HexEncodeLen {
+    fn encoded_hex_len(&self) -> usize;
 }
 /// Serialize given bytes to a 0x-prefixed hex string.
 ///
@@ -206,23 +221,6 @@ impl_hex_uint!(u16, 2);
 impl_hex_uint!(u32, 4);
 impl_hex_uint!(u64, 8);
 impl_hex_uint!(u128, 16);
-
-/*
-        let bytes = self.as_bytes();
-        if self.skip_leading_zero() {
-            let non_zero = bytes.iter().take_while(|b| **b == 0).count();
-            let bytes = &bytes[non_zero..];
-            if bytes.is_empty() {
-                return "0x0".len()
-            } else {
-                (bytes.len() + 1) * 2
-            }
-        } else if bytes.is_empty() {
-            "0x".len()
-        } else {
-            (bytes.len() + 1) * 2
-        }
- */
 
 macro_rules! from_hex_array_impl {
     ($($len:expr)+) => {$(

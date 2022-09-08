@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use anyhow::{bail, Result};
 use dashmap::DashMap;
-use hex::ToHex;
 use rocksdb::checkpoint::Checkpoint;
 use rocksdb::DB;
 

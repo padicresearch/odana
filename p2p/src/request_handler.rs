@@ -84,7 +84,7 @@ impl RequestHandler {
                     .blockchain
                     .chain()
                     .block_storage()
-                    .get_blocks(&[0; 32], msg.from)
+                    .get_blocks(H256::zero(), msg.from)
                     .unwrap()
                     .take(msg.limit as usize)
                     .collect();

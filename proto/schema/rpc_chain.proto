@@ -4,12 +4,12 @@ import "types.proto";
 package rpc;
 
 message CurrentHeadResponse {
-  string hash = 1;
+  bytes hash = 1;
   uchain.types.BlockHeader header = 2;
 }
 
 message GetBlockByHashRequest {
-  string hash = 1;
+  bytes hash = 1;
 }
 
 message GetBlockByLevelRequest {
@@ -17,7 +17,7 @@ message GetBlockByLevelRequest {
 }
 
 message GetBlocksRequest {
-  int32 from = 1;
+  uint32 from = 1;
   uint32 count = 2;
 }
 
@@ -26,7 +26,7 @@ message GetBlocksResponse {
 }
 
 message GetBlockNumberResponse {
-  int32 level = 1;
+  uint32 level = 1;
 }
 
 service ChainService {

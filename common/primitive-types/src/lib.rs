@@ -17,7 +17,6 @@
 #![allow(clippy::assign_op_pattern)]
 
 use core::convert::TryFrom;
-
 #[cfg(feature = "scale-info")]
 use scale_info_crate::TypeInfo;
 
@@ -181,7 +180,7 @@ macro_rules! impl_hex_primitives {
         impl hex::ToHex for $name {
             fn encode_hex(&self) -> String {
                 let bytes = self.to_be_bytes();
-                hex::encode_uint(&bytes)
+                hex::encode(&bytes, true)
             }
         }
 
@@ -203,6 +202,68 @@ macro_rules! impl_hex_primitives {
 impl_hex_primitives!(U128, 16);
 impl_hex_primitives!(U192, 24);
 impl_hex_primitives!(U256, 32);
+
+macro_rules! impl_byte_adapter_hash {
+    ($name: ident, $len: expr) => {
+        impl prost::encoding::BytesAdapter for $name {
+            fn len(&self) -> usize {
+                $len
+            }
+
+            fn replace_with<B>(&mut self, mut buf: B)
+            where
+                B: prost::bytes::Buf,
+            {
+                let buf = buf.copy_to_bytes(buf.remaining());
+                *self = $name::from_slice(buf.as_ref());
+            }
+
+            fn append_to<B>(&self, buf: &mut B)
+            where
+                B: prost::bytes::BufMut,
+            {
+                buf.put_slice(self.as_bytes())
+            }
+        }
+    };
+}
+
+macro_rules! impl_byte_adapter_uint {
+    ($name: ident, $len: expr) => {
+        impl prost::encoding::BytesAdapter for $name {
+            fn len(&self) -> usize {
+                $len * 8
+            }
+
+            fn replace_with<B>(&mut self, mut buf: B)
+            where
+                B: prost::bytes::Buf,
+            {
+                let buf = buf.copy_to_bytes(buf.remaining());
+                *self = $name::from_big_endian(buf.as_ref());
+            }
+
+            fn append_to<B>(&self, buf: &mut B)
+            where
+                B: prost::bytes::BufMut,
+            {
+                buf.put_slice(&self.to_be_bytes())
+            }
+        }
+    };
+}
+
+impl_byte_adapter_uint!(U128, 2);
+impl_byte_adapter_uint!(U192, 3);
+impl_byte_adapter_uint!(U256, 4);
+impl_byte_adapter_uint!(U512, 8);
+
+impl_byte_adapter_hash!(H128, 16);
+impl_byte_adapter_hash!(H160, 20);
+impl_byte_adapter_hash!(H192, 24);
+impl_byte_adapter_hash!(H256, 32);
+impl_byte_adapter_hash!(H448, 56);
+impl_byte_adapter_hash!(H512, 64);
 
 impl U128 {
     /// Multiplies two 128-bit integers to produce full 256-bit integer.
@@ -245,6 +306,14 @@ impl U256 {
     #[inline(always)]
     pub fn to_be_bytes(self) -> [u8; 32] {
         let mut out = [0_u8; 32];
+        self.to_big_endian(&mut out);
+        out
+    }
+}
+impl U512 {
+    #[inline(always)]
+    pub fn to_be_bytes(self) -> [u8; 64] {
+        let mut out = [0_u8; 64];
         self.to_big_endian(&mut out);
         out
     }
@@ -457,7 +526,7 @@ impl Compact {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hex::{FromHex,ToHex};
+    use hex::{FromHex, ToHex};
     #[test]
     fn test_compact_to_u256() {
         assert_eq!(Compact::new(0x01003456).to_u256(), Ok(0.into()));
@@ -511,18 +580,43 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn should_encode_from_primitives() {
-        assert_eq!(U128::from_hex(&U128::from(20).encode_hex()).unwrap(), U128::from(20));
-        assert_eq!(U256::from_hex(&U256::from(20).encode_hex()).unwrap(), U256::from(20));
-        assert_eq!(U192::from_hex(&U128::from(20).encode_hex()).unwrap(), U192::from(20));
-        assert_eq!(U128::from_hex(&U128::from(1).encode_hex()).unwrap(), U128::from(1));
-        assert_eq!(U256::from_hex(&U256::from(1).encode_hex()).unwrap(), U256::from(1));
-        assert_eq!(U192::from_hex(&U128::from(1).encode_hex()).unwrap(), U192::from(1));
-        assert_eq!(U128::from_hex(&U128::from(0).encode_hex()).unwrap(), U128::from(0));
-        assert_eq!(U256::from_hex(&U256::from(0).encode_hex()).unwrap(), U256::from(0));
-        assert_eq!(U192::from_hex(&U128::from(0).encode_hex()).unwrap(), U192::from(0));
-
+        assert_eq!(
+            U128::from_hex(&U128::from(20).encode_hex()).unwrap(),
+            U128::from(20)
+        );
+        assert_eq!(
+            U256::from_hex(&U256::from(20).encode_hex()).unwrap(),
+            U256::from(20)
+        );
+        assert_eq!(
+            U192::from_hex(&U128::from(20).encode_hex()).unwrap(),
+            U192::from(20)
+        );
+        assert_eq!(
+            U128::from_hex(&U128::from(1).encode_hex()).unwrap(),
+            U128::from(1)
+        );
+        assert_eq!(
+            U256::from_hex(&U256::from(1).encode_hex()).unwrap(),
+            U256::from(1)
+        );
+        assert_eq!(
+            U192::from_hex(&U128::from(1).encode_hex()).unwrap(),
+            U192::from(1)
+        );
+        assert_eq!(
+            U128::from_hex(&U128::from(0).encode_hex()).unwrap(),
+            U128::from(0)
+        );
+        assert_eq!(
+            U256::from_hex(&U256::from(0).encode_hex()).unwrap(),
+            U256::from(0)
+        );
+        assert_eq!(
+            U192::from_hex(&U128::from(0).encode_hex()).unwrap(),
+            U192::from(0)
+        );
     }
 }

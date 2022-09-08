@@ -1,25 +1,36 @@
 use std::fmt::Debug;
 
-use hex::ToHex;
 use serde::{Deserialize, Serialize};
 
 use codec::{Decodable, Encodable};
+use bincode::{Encode,Decode};
 use primitive_types::H256;
 
 use crate::error::Error;
 use crate::treehasher::TreeHasher;
 use crate::utils::get_bits_at_from_msb;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Encode, Decode)]
 pub struct Proof {
     pub side_nodes: Vec<H256>,
     pub non_membership_leaf_data: Option<Vec<u8>>,
     pub sibling_data: Option<Vec<u8>>,
 }
 
-impl Encodable for Proof {}
+impl Encodable for Proof {
+    fn encode(&self) -> anyhow::Result<Vec<u8>> {
+        bincode::encode_to_vec(self, codec::config()).map_err(|e| e.into())
+    }
+}
 
-impl Decodable for Proof {}
+impl Decodable for Proof {
+    fn decode(buf: &[u8]) -> anyhow::Result<Self> {
+        bincode::decode_from_slice(buf, codec::config())
+            .map(|(output, _)| output)
+            .map_err(|e| e.into())
+    }
+}
+
 
 #[derive(Serialize, Deserialize)]
 pub struct CompatProof {

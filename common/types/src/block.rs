@@ -2,12 +2,14 @@ use core::cmp;
 use std::cmp::Ordering;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
+use std::u32;
 
 use anyhow::Result;
 use bytes::{Buf, Bytes, BytesMut};
+use codec::impl_codec_using_prost;
 use codec::ConsensusCodec;
 use codec::{Decodable, Encodable};
-use crypto::{dhash256};
+use crypto::dhash256;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use hex::{FromHex, ToHex};
 use primitive_types::{Compact, H256, U128, U256};
@@ -22,13 +24,13 @@ const HEADER_SIZE: usize = 180;
 #[derive(
     Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize, Encode, Decode,
 )]
-pub struct BlockPrimaryKey(pub Hash, pub i32);
+pub struct BlockPrimaryKey(pub u32, pub H256);
 
 impl Encodable for BlockPrimaryKey {
     fn encode(&self) -> Result<Vec<u8>> {
         let mut encoded = Vec::with_capacity(36);
-        encoded.extend(self.1.to_be_bytes());
-        encoded.extend(self.0.iter());
+        encoded.extend_from_slice(&self.0.to_be_bytes());
+        encoded.extend_from_slice(self.1.as_bytes());
 
         Ok(encoded)
     }
@@ -38,10 +40,10 @@ impl Decodable for BlockPrimaryKey {
     fn decode(buf: &[u8]) -> Result<Self> {
         let mut level: [u8; 4] = [0; 4];
         level.copy_from_slice(&buf[..4]);
-        let level = i32::from_be_bytes(level);
+        let level = u32::from_be_bytes(level);
         let mut hash: [u8; 32] = [0; 32];
         hash.copy_from_slice(&buf[4..]);
-        Ok(Self(hash, level))
+        Ok(Self( level, hash.into()))
     }
 }
 
@@ -62,13 +64,13 @@ pub struct BlockHeader {
     #[getset(set = "pub", get_mut = "pub")]
     difficulty: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
-    chain_id: u16,
+    chain_id: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
-    level: i32,
+    level: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
     time: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
-    nonce: U128,
+    nonce: u64,
 }
 #[allow(clippy::too_many_arguments)]
 impl BlockHeader {
@@ -79,10 +81,10 @@ impl BlockHeader {
         mix_nonce: U256,
         coinbase: H160,
         difficulty: u32,
-        chain_id: u16,
-        level: i32,
+        chain_id: u32,
+        level: u32,
         time: u32,
-        nonce: U128,
+        nonce: u64,
     ) -> Self {
         Self {
             parent_hash,
@@ -132,10 +134,10 @@ impl ConsensusCodec for BlockHeader {
             mix_nonce: U256::from_big_endian(&bytes.copy_to_bytes(32)),
             coinbase: H160::from_slice(&bytes.copy_to_bytes(20)),
             difficulty: bytes.get_u32(),
-            chain_id: bytes.get_u16(),
-            level: bytes.get_i32(),
+            chain_id: bytes.get_u32(),
+            level: bytes.get_u32(),
             time: bytes.get_u32(),
-            nonce: U128::from(bytes.get_u128()),
+            nonce: bytes.get_u64(),
         })
     }
 }
@@ -146,16 +148,16 @@ impl prost::Message for BlockHeader {
         B: BufMut,
         Self: Sized,
     {
-        prost::encoding::string::encode(1, &self.parent_hash.as_fixed_bytes().encode_hex(), buf);
-        prost::encoding::string::encode(2, &self.merkle_root.as_fixed_bytes().encode_hex(), buf);
-        prost::encoding::string::encode(3, &self.state_root.as_fixed_bytes().encode_hex(), buf);
-        prost::encoding::string::encode(4, &self.mix_nonce.encode_hex(), buf);
-        prost::encoding::string::encode(5, &self.coinbase.as_fixed_bytes().encode_hex(), buf);
+        prost::encoding::bytes::encode(1, &self.parent_hash, buf);
+        prost::encoding::bytes::encode(2, &self.merkle_root, buf);
+        prost::encoding::bytes::encode(3, &self.state_root, buf);
+        prost::encoding::bytes::encode(4, &self.mix_nonce, buf);
+        prost::encoding::bytes::encode(5, &self.coinbase, buf);
         prost::encoding::uint32::encode(6, &self.difficulty, buf);
-        prost::encoding::uint32::encode(7, &(self.chain_id as u32), buf);
-        prost::encoding::int32::encode(8, &self.level, buf);
+        prost::encoding::uint32::encode(7, &self.chain_id, buf);
+        prost::encoding::uint32::encode(8, &self.level, buf);
         prost::encoding::uint32::encode(9, &self.time, buf);
-        prost::encoding::string::encode(10, &self.nonce.encode_hex(), buf);
+        prost::encoding::uint64::encode(10, &self.nonce, buf);
     }
 
     fn merge_field<B>(
@@ -171,157 +173,84 @@ impl prost::Message for BlockHeader {
     {
         const STRUCT_NAME: &'static str = "BlockHeader";
         match tag {
-            1 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "parent_hash");
-                        error
-                    },
-                )?;
-                self.parent_hash = H256::from_str(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
+            1 => prost::encoding::bytes::merge(wire_type, &mut self.parent_hash, buf, ctx).map_err(
+                |mut error| {
                     error.push(STRUCT_NAME, "parent_hash");
                     error
-                })?;
-                Ok(())
-            }
-            2 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "merkle_root");
-                        error
-                    },
-                )?;
-                self.merkle_root = H256::from_str(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
+                },
+            ),
+            2 => prost::encoding::bytes::merge(wire_type, &mut self.merkle_root, buf, ctx).map_err(
+                |mut error| {
                     error.push(STRUCT_NAME, "merkle_root");
                     error
-                })?;
-                Ok(())
-            }
-            3 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "state_root");
-                        error
-                    },
-                )?;
-                self.state_root = H256::from_str(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
+                },
+            ),
+            3 => prost::encoding::bytes::merge(wire_type, &mut self.state_root, buf, ctx).map_err(
+                |mut error| {
                     error.push(STRUCT_NAME, "state_root");
                     error
-                })?;
-                Ok(())
-            }
-            4 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "mix_nonce");
-                        error
-                    },
-                )?;
-                self.mix_nonce = U256::from_hex(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
+                },
+            ),
+            4 => prost::encoding::bytes::merge(wire_type, &mut self.mix_nonce, buf, ctx).map_err(
+                |mut error| {
                     error.push(STRUCT_NAME, "mix_nonce");
                     error
-                })?;
-                Ok(())
-            }
-            5 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "coinbase");
-                        error
-                    },
-                )?;
-                self.coinbase = H160::from_str(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
+                },
+            ),
+            5 => prost::encoding::bytes::merge(wire_type, &mut self.coinbase, buf, ctx).map_err(
+                |mut error| {
                     error.push(STRUCT_NAME, "coinbase");
                     error
-                })?;
-                Ok(())
-            }
-            6 => {
-                let value = &mut self.difficulty;
-                prost::encoding::uint32::merge(wire_type, value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "difficulty");
-                        error
-                    },
-                )
-            }
-            7 => {
-                let mut value : u32 = 0;
-                prost::encoding::uint32::merge(wire_type, &mut value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "difficulty");
-                        error
-                    },
-                )?;
-                self.chain_id = value as u16;
-                Ok(())
-            }
-            8 => {
-                let value = &mut self.level;
-                prost::encoding::int32::merge(wire_type, value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "level");
-                        error
-                    },
-                )
-            }
+                },
+            ),
+            6 => prost::encoding::uint32::merge(wire_type, &mut self.difficulty, buf, ctx).map_err(
+                |mut error| {
+                    error.push(STRUCT_NAME, "difficulty");
+                    error
+                },
+            ),
+            7 => prost::encoding::uint32::merge(wire_type, &mut self.chain_id, buf, ctx).map_err(
+                |mut error| {
+                    error.push(STRUCT_NAME, "chain_id");
+                    error
+                },
+            ),
+            8 => prost::encoding::uint32::merge(wire_type, &mut self.level, buf, ctx).map_err(
+                |mut error| {
+                    error.push(STRUCT_NAME, "level");
+                    error
+                },
+            ),
             9 => {
                 let value = &mut self.time;
-                prost::encoding::uint32::merge(wire_type, value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "time");
-                        error
-                    },
-                )
+                prost::encoding::uint32::merge(wire_type, value, buf, ctx).map_err(|mut error| {
+                    error.push(STRUCT_NAME, "time");
+                    error
+                })
             }
 
-            10 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "nonce");
-                        error
-                    },
-                )?;
-                self.nonce = U128::from_hex(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
+            10 => prost::encoding::uint64::merge(wire_type, &mut self.nonce, buf, ctx).map_err(
+                |mut error| {
                     error.push(STRUCT_NAME, "nonce");
                     error
-                })?;
-                Ok(())
-            }
+                },
+            ),
 
             _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
         }
     }
 
     fn encoded_len(&self) -> usize {
-        prost::encoding::string::encoded_len(1, &self.parent_hash.as_fixed_bytes().encode_hex())
-            + prost::encoding::string::encoded_len(
-                2,
-                &self.merkle_root.as_fixed_bytes().encode_hex(),
-            )
-            + prost::encoding::string::encoded_len(
-                3,
-                &self.state_root.as_fixed_bytes().encode_hex(),
-            )
-            + prost::encoding::string::encoded_len(4, &self.mix_nonce.encode_hex())
-            + prost::encoding::string::encoded_len(5, &self.coinbase.as_fixed_bytes().encode_hex())
+        0 + prost::encoding::bytes::encoded_len(1, &self.parent_hash)
+            + prost::encoding::bytes::encoded_len(2, &self.merkle_root)
+            + prost::encoding::bytes::encoded_len(3, &self.state_root)
+            + prost::encoding::bytes::encoded_len(4, &self.mix_nonce)
+            + prost::encoding::bytes::encoded_len(5, &self.coinbase)
             + prost::encoding::uint32::encoded_len(6, &self.difficulty)
-            + prost::encoding::uint32::encoded_len(7, &(self.chain_id as u32))
-            + prost::encoding::int32::encoded_len(8, &self.level)
+            + prost::encoding::uint32::encoded_len(7, &self.chain_id)
+            + prost::encoding::uint32::encoded_len(8, &self.level)
             + prost::encoding::uint32::encoded_len(9, &self.time)
-            + prost::encoding::string::encoded_len(10, &self.nonce.encode_hex())
+            + prost::encoding::uint64::encoded_len(10, &self.nonce)
     }
 
     fn clear(&mut self) {
@@ -338,20 +267,55 @@ pub struct Block {
 }
 
 impl prost::Message for Block {
-    fn encode_raw<B>(&self, buf: &mut B) where B: BufMut, Self: Sized {
-        todo!()
+    fn encode_raw<B>(&self, buf: &mut B)
+    where
+        B: BufMut,
+        Self: Sized,
+    {
+        prost::encoding::message::encode(1, &self.header, buf);
+        prost::encoding::message::encode_repeated(2, &self.transactions, buf);
     }
 
-    fn merge_field<B>(&mut self, tag: u32, wire_type: WireType, buf: &mut B, ctx: DecodeContext) -> std::result::Result<(), DecodeError> where B: Buf, Self: Sized {
-        todo!()
+    fn merge_field<B>(
+        &mut self,
+        tag: u32,
+        wire_type: WireType,
+        buf: &mut B,
+        ctx: DecodeContext,
+    ) -> std::result::Result<(), DecodeError>
+    where
+        B: Buf,
+        Self: Sized,
+    {
+        const STRUCT_NAME: &'static str = "Block";
+        match tag {
+            1 => {
+                let value = &mut self.header;
+                prost::encoding::message::merge(wire_type, value, buf, ctx).map_err(|mut error| {
+                    error.push(STRUCT_NAME, "header");
+                    error
+                })
+            }
+            2 => {
+                let value = &mut self.transactions;
+                prost::encoding::message::merge_repeated(wire_type, value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, "transactions");
+                        error
+                    },
+                )
+            }
+            _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
+        }
     }
 
     fn encoded_len(&self) -> usize {
-        todo!()
+        0 + prost::encoding::message::encoded_len(1, &self.header)
+            + prost::encoding::message::encoded_len_repeated(2, &self.transactions)
     }
 
     fn clear(&mut self) {
-        todo!()
+        *self = Default::default()
     }
 }
 
@@ -361,29 +325,8 @@ impl Block {
     }
 }
 
-impl Encodable for BlockHeader {
-    fn encode(&self) -> Result<Vec<u8>> {
-        todo!()
-    }
-}
-
-impl Decodable for BlockHeader {
-    fn decode(buf: &[u8]) -> Result<Self> {
-        todo!()
-    }
-}
-
-impl Encodable for Block {
-    fn encode(&self) -> Result<Vec<u8>> {
-        todo!()
-    }
-}
-
-impl Decodable for Block {
-    fn decode(buf: &[u8]) -> Result<Self> {
-        todo!()
-    }
-}
+impl_codec_using_prost!(BlockHeader);
+impl_codec_using_prost!(Block);
 
 impl PartialEq for Block {
     fn eq(&self, other: &Self) -> bool {
@@ -417,7 +360,7 @@ impl Block {
     pub fn header(&self) -> &BlockHeader {
         &self.header
     }
-    pub fn level(&self) -> i32 {
+    pub fn level(&self) -> u32 {
         self.header.level
     }
     pub fn parent_hash(&self) -> &H256 {
@@ -511,7 +454,7 @@ fn test_proto_conversions() {
         30,
         30,
         10000000,
-        U128::from(5),
+        5,
     );
 
     let pheader = block_header.encode_to_vec();
@@ -520,9 +463,12 @@ fn test_proto_conversions() {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
     use chrono::Utc;
     use prost::Message;
+    use std::str::FromStr;
+
+    #[cfg(test)]
+    use pretty_assertions::{assert_eq, assert_ne};
 
     use codec::ConsensusCodec;
     use primitive_types::{H160, H256, U128, U256};
@@ -543,13 +489,37 @@ mod tests {
             30,
             30,
             30,
-            Utc::now().timestamp_subsec_millis(),
-            U128::from(5),
+            1662512256,
+            5,
         );
         let a = block_header.encode_to_vec();
+        let c = "0x0a200000014f092233bd0d41ab40817649d9a188ef86dc2f631a4c96e159970804991220\
+        00000000000000000000000000000000000000000000000000000000000000001a200c191dd909dad74ef2f9\
+        6ed5dad8e9778e75b46979178cfb61f051ec06882ea822200000000000000000000000000000000000000000\
+        0000000000000000000000012a14350dc631bd1dc8f21d76a636ecea2ed4482a0a97301e381e401e4880d9df\
+        98065005";
+
         let encoded = block_header.consensus_encode();
+        println!("{:#?}", block_header);
+        println!("{}", hex::encode(&a, false));
+        assert_eq!(hex::encode(&a, false), c);
         let block_header = BlockHeader::consensus_decode(&encoded).unwrap();
         let b = block_header.encode_to_vec();
         assert_eq!(a, b);
+    }
+
+    pub const MAX_BLOCK_HEIGHT: u128 = 25_000_000;
+    pub const INITIAL_REWARD: u128 = 10 * 1_000_000_000 /*TODO: Use TUC constant*/;
+    pub const SPREAD: u128 = MAX_BLOCK_HEIGHT.pow(4) / INITIAL_REWARD;
+    pub const PRECISION_CORRECTION: u128 = 5012475762;
+    pub const MAX_SUPPLY_APPROX: u128 =
+        (INITIAL_REWARD * MAX_BLOCK_HEIGHT) - (MAX_BLOCK_HEIGHT.pow(5) / (5 * SPREAD));
+    pub const MAX_SUPPLY_PRECOMPUTED: u128 = MAX_SUPPLY_APPROX + PRECISION_CORRECTION;
+
+    #[test]
+    fn total_supply() {
+        let t = 1_000_000_u128;
+        println!("{}", ((u64::MAX) as u128) - MAX_SUPPLY_PRECOMPUTED);
+        assert!(((u64::MAX) as u128) > MAX_SUPPLY_PRECOMPUTED)
     }
 }

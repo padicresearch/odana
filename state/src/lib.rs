@@ -11,7 +11,7 @@ use smt::proof::Proof;
 use smt::{Op, Tree};
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
-use types::account::AccountState;
+use types::account::{AccountState, Address42};
 use types::tx::SignedTransaction;
 use types::Hash;
 
@@ -27,7 +27,7 @@ pub struct ReadProof {
 
 #[derive(Clone)]
 pub struct State {
-    trie: Arc<Tree<H160, AccountState>>,
+    trie: Arc<Tree<Address42, AccountState>>,
     path: PathBuf,
     read_only: bool,
 }
@@ -37,7 +37,7 @@ unsafe impl Sync for State {}
 unsafe impl Send for State {}
 
 impl StateDB for State {
-    fn nonce(&self, address: &H160) -> u64 {
+    fn nonce(&self, address: &Address42) -> u64 {
         self.trie
             .get(address)
             .map(|account_state| account_state.map(|account_state| account_state.nonce))
@@ -45,18 +45,18 @@ impl StateDB for State {
             .unwrap_or_default()
     }
 
-    fn account_state(&self, address: &H160) -> AccountState {
+    fn account_state(&self, address: &Address42) -> AccountState {
         self.trie
             .get(address)
             .unwrap_or_default()
             .unwrap_or_default()
     }
 
-    fn balance(&self, address: &H160) -> u128 {
+    fn balance(&self, address: &Address42) -> u64 {
         self.account_state(address).free_balance
     }
 
-    fn credit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
+    fn credit_balance(&self, address: &Address42, amount: u64) -> Result<H256> {
         let action = StateOperation::CreditBalance {
             account: *address,
             amount,
@@ -66,7 +66,7 @@ impl StateDB for State {
         Ok(self.root_hash()?.into())
     }
 
-    fn debit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
+    fn debit_balance(&self, address: &Address42, amount: u64) -> Result<H256> {
         let action = StateOperation::DebitBalance {
             account: *address,
             amount,
@@ -113,8 +113,8 @@ impl State {
     }
 
     pub fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<()> {
-        let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
-        let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
+        let mut accounts: BTreeMap<Address42, TransactionsByNonceAndPrice> = BTreeMap::new();
+        let mut states: BTreeMap<Address42, AccountState> = BTreeMap::new();
 
         for tx in txs {
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
@@ -144,12 +144,12 @@ impl State {
     pub fn apply_txs_no_commit(
         &self,
         at_root: H256,
-        reward: u128,
-        coinbase: H160,
+        reward: u64,
+        coinbase: Address42,
         txs: Vec<SignedTransaction>,
     ) -> Result<Hash> {
-        let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
-        let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
+        let mut accounts: BTreeMap<Address42, TransactionsByNonceAndPrice> = BTreeMap::new();
+        let mut states: BTreeMap<Address42, AccountState> = BTreeMap::new();
 
         for tx in txs {
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
@@ -196,7 +196,7 @@ impl State {
     fn apply_transaction(
         &self,
         transaction: SignedTransaction,
-        states: &mut BTreeMap<H160, AccountState>,
+        states: &mut BTreeMap<Address42, AccountState>,
     ) -> Result<()> {
         //TODO: verify transaction (probably)
         let mut from_account_state = states.get(&transaction.from()).copied().unwrap_or_default();
@@ -278,7 +278,7 @@ impl State {
         }
     }
 
-    fn get_account_state(&self, address: &H160) -> Result<AccountState> {
+    fn get_account_state(&self, address: &Address42) -> Result<AccountState> {
         Ok(self
             .trie
             .get(address)
@@ -286,7 +286,7 @@ impl State {
             .unwrap_or_default())
     }
 
-    fn get_account_state_at_root(&self, at_root: &H256, address: &H160) -> Result<AccountState> {
+    fn get_account_state_at_root(&self, at_root: &H256, address: &Address42) -> Result<AccountState> {
         Ok(self
             .trie
             .get_at_root(at_root, address)
@@ -302,7 +302,7 @@ impl State {
         }))
     }
 
-    fn get_account_state_with_proof(&self, address: &H160) -> Result<(AccountState, ReadProof)> {
+    fn get_account_state_with_proof(&self, address: &Address42) -> Result<(AccountState, ReadProof)> {
         let (account_state, proof) = self.trie.get_with_proof(address)?;
         let root = self.trie.root()?;
         Ok((account_state, ReadProof { proof, root }))
@@ -320,24 +320,24 @@ impl State {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum StateOperation {
     DebitBalance {
-        account: H160,
-        amount: u128,
+        account: Address42,
+        amount: u64,
         tx_hash: Hash,
     },
     CreditBalance {
-        account: H160,
-        amount: u128,
+        account: Address42,
+        amount: u64,
         tx_hash: Hash,
     },
     UpdateNonce {
-        account: H160,
+        account: Address42,
         nonce: u64,
         tx_hash: Hash,
     },
 }
 
 impl StateOperation {
-    fn get_address(&self) -> H160 {
+    fn get_address(&self) -> Address42 {
         match self {
             StateOperation::DebitBalance { account, .. } => *account,
             StateOperation::CreditBalance { account, .. } => *account,
@@ -376,6 +376,7 @@ mod tests {
     use tempdir::TempDir;
 
     use account::create_account;
+    use types::network::Network;
 
     use super::*;
 
@@ -383,9 +384,9 @@ mod tests {
     fn test_morph() {
         let path = TempDir::new("state").unwrap();
         let state = State::new(path.path()).unwrap();
-        let alice = create_account();
-        let _bob = create_account();
-        let _jake = create_account();
+        let alice = create_account(Network::Testnet);
+        let _bob = create_account(Network::Testnet);
+        let _jake = create_account(Network::Testnet);
         println!(
             "{}",
             state.credit_balance(&alice.address, 1_000_000).unwrap()

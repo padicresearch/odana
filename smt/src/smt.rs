@@ -1,5 +1,4 @@
 use anyhow::{bail, Result};
-use serde::{Deserialize, Serialize};
 
 use codec::{Decodable, Encodable};
 use primitive_types::H256;
@@ -10,12 +9,12 @@ use crate::store::ArchivedStorage;
 use crate::treehasher::TreeHasher;
 use crate::utils::{count_common_prefix, get_bits_at_from_msb};
 use crate::CopyStrategy;
-
+use bincode::{Decode, Encode};
 pub(crate) struct SideNodesForRootResult(Vec<H256>, Vec<H256>, Vec<u8>, Option<Vec<u8>>);
 
 impl TreeHasher for SparseMerkleTree {}
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Encode, Decode, Clone, Debug, Default)]
 pub struct SparseMerkleTree {
     pub(crate) nodes: ArchivedStorage,
     pub(crate) values: ArchivedStorage,
@@ -23,9 +22,19 @@ pub struct SparseMerkleTree {
     pub(crate) parent: H256,
 }
 
-impl Encodable for SparseMerkleTree {}
+impl Encodable for SparseMerkleTree {
+    fn encode(&self) -> Result<Vec<u8>> {
+        bincode::encode_to_vec(self, bincode::config::standard()).map_err(|e| e.into())
+    }
+}
 
-impl Decodable for SparseMerkleTree {}
+impl Decodable for SparseMerkleTree {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        bincode::decode_from_slice(buf, bincode::config::standard())
+            .map(|(t, _)| t)
+            .map_err(|e| e.into())
+    }
+}
 
 impl SparseMerkleTree {
     pub fn new() -> Self {

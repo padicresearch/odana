@@ -4,15 +4,15 @@ import "types.proto";
 package rpc;
 
 message GetAccountRequest {
-  string address = 1;
+  bytes address = 1;
 }
 
 message GetAccountBalanceResponse {
-  string balance = 1;
+  uint64 balance = 1;
 }
 
 message GetAccountNonceResponse {
-  string nonce = 1;
+  uint64 nonce = 1;
 }
 
 service AccountService {

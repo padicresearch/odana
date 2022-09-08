@@ -6,33 +6,23 @@ use anyhow::{anyhow, Result};
 use crypto::ecdsa::SecretKey;
 use crypto::SHA256;
 use primitive_types::H256;
-use proto::UnsignedTransaction;
-use types::account::Account;
-use types::tx::{SignedTransaction, UnsignedTransaction};
+use types::account::{Account, Address42};
+use types::tx::{SignedTransaction, TransactionBuilder, UnsignedTransaction};
 use types::Address;
+use types::network::Network;
 
 pub fn make_sign_transaction(
     account: &Account,
     nonce: u64,
-    to: Address,
-    amount: u128,
-    fee: u128,
-    data: String,
+    to: Address42,
+    amount: u64,
+    fee: u64,
 ) -> Result<SignedTransaction> {
-    let data = UnsignedTransaction {
-        nonce,
-        to: to.into(),
-        amount: amount.into(),
-        fee: fee.into(),
-        data,
-    };
-    let sig = account.sign(data.sig_hash())?;
-    SignedTransaction::new(sig, data.into_proto()?)
+    TransactionBuilder::with_signer(account)?.nonce(nonce).fee(fee).transfer().to(to).amount(amount).build()
 }
 
 pub fn sign_tx(secret: H256, tx: UnsignedTransaction) -> Result<SignedTransaction> {
-    let raw = UnsignedTransaction::from_proto(&tx)?;
-    let payload = raw.sig_hash();
+    let payload = tx.sig_hash();
     let secrete = SecretKey::from_bytes(secret.as_fixed_bytes())?;
     let sig = secrete
         .sign(payload.as_bytes())

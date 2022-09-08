@@ -1,19 +1,19 @@
 use std::convert::TryInto;
 
 use anyhow::Result;
-pub use bincode::{Encode as BinEncode, Decode as BinDecode};
+use bincode::config::{BigEndian, Fixint, NoLimit, SkipFixedArrayLength};
 use primitive_types::{H160, H256};
 
-pub trait ConsensusCodec: Sized{
+pub trait ConsensusCodec: Sized {
     fn consensus_encode(self) -> Vec<u8>;
     fn consensus_decode(buf: &[u8]) -> Result<Self>;
 }
 
-pub trait Encodable: Sized{
+pub trait Encodable: Sized {
     fn encode(&self) -> Result<Vec<u8>>;
 }
 
-pub trait Decodable: Sized{
+pub trait Decodable: Sized {
     fn decode(buf: &[u8]) -> Result<Self>;
 }
 
@@ -48,6 +48,23 @@ macro_rules! impl_codec_primitives {
         impl Decodable for $name {
             fn decode(buf: &[u8]) -> Result<$name> {
                 Ok($name::from_be_bytes(buf.try_into()?))
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_codec_using_prost {
+    ($name : ident) => {
+        impl Encodable for $name {
+            fn encode(&self) -> Result<Vec<u8>> {
+                Ok(prost::Message::encode_to_vec(self))
+            }
+        }
+
+        impl Decodable for $name {
+            fn decode(buf: &[u8]) -> Result<$name> {
+                prost::Message::decode(buf).map_err(|e| e.into())
             }
         }
     };
@@ -93,4 +110,12 @@ impl Decodable for H256 {
     fn decode(buf: &[u8]) -> Result<Self> {
         Ok(H256::from_slice(buf))
     }
+}
+
+pub fn config() -> bincode::config::Configuration<BigEndian, Fixint, SkipFixedArrayLength, NoLimit>
+{
+    bincode::config::standard()
+        .with_big_endian()
+        .with_fixed_int_encoding()
+        .skip_fixed_array_length()
 }

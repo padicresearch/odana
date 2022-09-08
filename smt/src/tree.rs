@@ -4,10 +4,10 @@ use std::path::Path;
 use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
-use hex::ToHex;
 use serde::{Deserialize, Serialize};
 
-use codec::{Codec, Decodable, Encodable, BinDecode, BinEncode};
+use codec::{Codec, Decodable, Encodable};
+use bincode::{Encode,Decode};
 use primitive_types::H256;
 use tracing::{debug, error};
 
@@ -35,15 +35,25 @@ impl Default for Options {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, BinEncode, BinDecode)]
+#[derive(Serialize, Deserialize, Clone, Encode, Decode)]
 pub enum IValue {
     Deleted,
     Value(Vec<u8>),
 }
 
-impl Encodable for IValue {}
+impl Encodable for IValue {
+    fn encode(&self) -> Result<Vec<u8>> {
+        bincode::encode_to_vec(self, codec::config()).map_err(|e| e.into())
+    }
+}
 
-impl Decodable for IValue {}
+impl Decodable for IValue {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        bincode::decode_from_slice(buf, codec::config())
+            .map(|(output, _)| output)
+            .map_err(|e| e.into())
+    }
+}
 
 pub enum Op<K: Codec, V: Codec> {
     Delete(K),
@@ -159,9 +169,9 @@ where
         let res: Result<HashMap<_, _>> = batch
             .into_iter()
             .map(|op| match op {
-                Op::Delete(key) => Ok((key.encode()?, IValue::Deleted.encode()?)),
+                Op::Delete(key) => Ok((key.encode()?, Encodable::encode(&IValue::Deleted)?)),
                 Op::Put(key, value) => {
-                    Ok((key.encode()?, IValue::Value(value.encode()?).encode()?))
+                    Ok((key.encode()?, Encodable::encode(&IValue::Value(value.encode()?))?))
                 }
             })
             .collect();
@@ -186,9 +196,9 @@ where
         let res: Result<HashMap<_, _>> = batch
             .into_iter()
             .map(|op| match op {
-                Op::Delete(key) => Ok((key.encode()?, IValue::Deleted.encode()?)),
+                Op::Delete(key) => Ok((key.encode()?, Encodable::encode(&IValue::Deleted)?)),
                 Op::Put(key, value) => {
-                    Ok((key.encode()?, IValue::Value(value.encode()?).encode()?))
+                    Ok((key.encode()?, Encodable::encode(&IValue::Value(value.encode()?))?))
                 }
             })
             .collect();
@@ -207,6 +217,7 @@ where
         let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
 
         if head.root == staging.root {
+            println!("head.root == staging.root");
             return Ok(head.root);
         }
         if persist {
@@ -225,14 +236,14 @@ where
     }
 
     pub fn put(&self, key: K, value: V) -> Result<()> {
-        let (key, value) = (key.encode()?, IValue::Value(value.encode()?).encode()?);
+        let (key, value) = (key.encode()?, Encodable::encode(&IValue::Value(value.encode()?))?);
         let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
         let _root = staging.update(key, value)?;
         Ok(())
     }
 
     pub fn delete(&self, key: &K) -> Result<()> {
-        let (key, value) = (key.encode()?, IValue::Deleted.encode()?);
+        let (key, value) = (key.encode()?,Encodable::encode(&IValue::Deleted)?);
         let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
         staging.update(key, value)?;
         Ok(())
@@ -288,7 +299,7 @@ where
         if value.is_empty() {
             return Ok(None);
         }
-        let decoded_value = IValue::decode(&value)?;
+        let decoded_value = <IValue as Decodable>::decode(&value)?;
         match decoded_value {
             IValue::Deleted => Ok(None),
             IValue::Value(value) => Ok(Some(V::decode(&value)?)),
@@ -314,7 +325,7 @@ where
         if value.is_empty() {
             return Ok(None);
         }
-        let decoded_value = IValue::decode(&value)?;
+        let decoded_value = <IValue as Decodable>::decode(&value)?;
         match decoded_value {
             IValue::Deleted => Ok(None),
             IValue::Value(value) => Ok(Some(V::decode(&value)?)),
@@ -351,7 +362,7 @@ impl Verifier {
         V: Codec,
     {
         let key = key.encode()?;
-        let value = IValue::Value(value.encode()?).encode()?;
+        let value = Encodable::encode(&IValue::Value(value.encode()?))?;
         verify_proof_with_updates(proof, root, &key, &value)
             .map(|_| ())
             .map_err(|e| e.into())
@@ -364,7 +375,6 @@ mod tests {
 
     use primitive_types::{H160, H256};
     use types::account::AccountState;
-
     use crate::{Tree, Verifier};
 
     #[test]
@@ -411,6 +421,7 @@ mod tests {
         )
         .unwrap();
         let root_1 = tree.commit(true).unwrap();
+        println!("ROOT {:?}", root_1);
         tree.put(
             H256::from_slice(&[24; 32]),
             AccountState {
@@ -462,6 +473,8 @@ mod tests {
         .unwrap();
 
         let root_2 = tree.commit(true).unwrap();
+        println!("ROOT {:?}", root_2);
+
 
         assert_eq!(
             tree.get_descend(&H256::from_slice(&[3; 32]), true).unwrap(),

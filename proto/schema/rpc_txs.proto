@@ -5,32 +5,37 @@ package rpc;
 
 message UnsignedTransactionRequest {
   uchain.types.UnsignedTransaction tx = 1;
-  string key = 2;
+  bytes secret_key = 2;
 }
 
 message SignedTransactionResponse {
-  string hash = 1;
-uchain.types.SignedTransaction tx = 2;
+  bytes hash = 1;
+  uchain.types.SignedTransaction tx = 2;
 }
 
 message GetTransactionStatusResponse {
-  repeated string status = 1;
+  repeated uchain.types.TransactionStatus status = 1;
 }
 
 message PendingTransactionsResponse {
-  map<string, uchain.types.TransactionList> pending = 1;
+  repeated AddressTransactionList pending = 1;
+}
+
+message AddressTransactionList {
+  bytes address = 1;
+  uchain.types.TransactionList txs = 2;
 }
 
 message TxpoolContentResponse {
-  map<string, uchain.types.TransactionList> pending = 1;
-  map<string, uchain.types.TransactionList> queued = 2;
+  repeated AddressTransactionList pending = 1;
+  repeated AddressTransactionList queued = 2;
 }
 message TransactionHash {
-  string hash = 1;
+  bytes hash = 1;
 }
 
 message TransactionHashes {
-  repeated string tx_hashes = 1;
+  repeated bytes txs = 1;
 }
 
 service TransactionsService {

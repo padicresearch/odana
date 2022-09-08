@@ -1,30 +1,51 @@
 use std::cmp::Ordering;
-use std::fmt::Formatter;
-use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::u128;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 use bytes::{Buf, BufMut};
 use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
-use prost_types::Any;
 use serde::{Deserialize, Serialize};
 
-use codec::{Decodable, Encodable};
 use crypto::ecdsa::{PublicKey, Signature};
-use crypto::{keccak256, sha256, SHA256};
-use hex::{FromHex, ToHex};
-use primitive_types::{H160, H256, U128};
+use crypto::{ sha256};
+use primitive_types::{H160, H256};
 
-use crate::account::{get_address_from_pub_key, Account};
+use crate::account::{get_address_from_pub_key, Account, Address42};
 use crate::network::Network;
 use crate::{cache, Hash};
+use bincode::{Encode, Decode};
+
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TransactionStatus {
+    Confirmed = 0,
+    Pending = 1,
+    Queued = 2,
+    NotFound = 3,
+}
+impl TransactionStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            TransactionStatus::Confirmed => "Confirmed",
+            TransactionStatus::Pending => "Pending",
+            TransactionStatus::Queued => "Queued",
+            TransactionStatus::NotFound => "NotFound",
+        }
+    }
+}
+
 
 #[derive(Serialize, Deserialize, PartialEq, Default, Debug, Clone)]
 pub struct PaymentTx {
-    pub to: H160,
-    pub amount: U128,
+    pub to: Address42,
+    pub amount: u64,
 }
 
 impl Message for PaymentTx {
@@ -33,8 +54,8 @@ impl Message for PaymentTx {
         B: BufMut,
         Self: Sized,
     {
-        prost::encoding::string::encode(1, &self.to.as_fixed_bytes().encode_hex(), buf);
-        prost::encoding::string::encode(2, &self.amount.encode_hex(), buf);
+        prost::encoding::bytes::encode(1, &self.to, buf);
+        prost::encoding::uint64::encode(2, &self.amount, buf);
     }
 
     fn merge_field<B>(
@@ -51,42 +72,28 @@ impl Message for PaymentTx {
         const STRUCT_NAME: &'static str = "PaymentTx";
         match tag {
             1 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                prost::encoding::bytes::merge(wire_type, &mut  self.to, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "to");
                         error
                     },
-                )?;
-                self.to = H160::from_str(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
-                    error.push(STRUCT_NAME, "to");
-                    error
-                })?;
-                Ok(())
+                )
             }
             2 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                prost::encoding::uint64::merge(wire_type, &mut self.amount, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "amount");
                         error
                     },
-                )?;
-                self.amount = U128::from_hex(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
-                    error.push(STRUCT_NAME, "amount");
-                    error
-                })?;
-                Ok(())
+                )
             }
             _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
         }
     }
 
     fn encoded_len(&self) -> usize {
-        0 + prost::encoding::string::encoded_len(1, &self.to.as_fixed_bytes().encode_hex())
-            + prost::encoding::string::encoded_len(2, &self.amount.encode_hex())
+        0 + prost::encoding::bytes::encoded_len(1, &self.to)
+            + prost::encoding::uint64::encoded_len(2, &self.amount)
     }
 
     fn clear(&mut self) {}
@@ -98,8 +105,9 @@ pub struct AnyType {
     #[prost(string, tag = "1")]
     pub type_info: ::prost::alloc::string::String,
     /// Must be a hex encoded valid serialized protocol buffer of the above specified type.
-    #[prost(string, tag = "2")]
-    pub value: ::prost::alloc::string::String,
+    #[prost(bytes, tag = "2")]
+    #[serde(with = "hex")]
+    pub value: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, prost::Message, Clone)]
@@ -132,11 +140,10 @@ const STRUCT_NAME: &'static str = "Transaction";
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Clone)]
 pub struct UnsignedTransaction {
-    #[serde(with = "hex")]
     pub nonce: u64,
-    pub chain_id: u16,
+    pub chain_id: u32,
     pub genesis_hash: H256,
-    pub fee: U128,
+    pub fee: u64,
     #[serde(flatten)]
     pub data: TransactionData,
 }
@@ -160,7 +167,7 @@ impl<'a> TransactionBuilder<'a> {
         })
     }
 
-    pub fn chain_id(&mut self, chain_id: u16) -> &mut Self {
+    pub fn chain_id(&mut self, chain_id: u32) -> &mut Self {
         self.tx.chain_id = chain_id;
         self
     }
@@ -175,8 +182,8 @@ impl<'a> TransactionBuilder<'a> {
         self
     }
 
-    pub fn fee(&mut self, fee: u128) -> &mut Self {
-        self.tx.fee = fee.into();
+    pub fn fee(&mut self, fee: u64) -> &mut Self {
+        self.tx.fee = fee;
         self
     }
 
@@ -206,7 +213,7 @@ pub struct TransferTransactionBuilder<'a> {
 }
 
 impl<'a> TransferTransactionBuilder<'a> {
-    pub fn to(&mut self, to: H160) -> &mut Self {
+    pub fn to(&mut self, to: Address42) -> &mut Self {
         match &mut self.inner.tx.data {
             TransactionData::Payment(pmt) => pmt.to = to,
             _ => {}
@@ -214,7 +221,7 @@ impl<'a> TransferTransactionBuilder<'a> {
         self
     }
 
-    pub fn amount(&mut self, amount: u128) -> &mut Self {
+    pub fn amount(&mut self, amount: u64) -> &mut Self {
         match &mut self.inner.tx.data {
             TransactionData::Payment(pmt) => {
                 pmt.amount = amount.into();
@@ -286,10 +293,10 @@ impl prost::Message for UnsignedTransaction {
         B: BufMut,
         Self: Sized,
     {
-        prost::encoding::string::encode(1, &self.nonce.encode_hex(), buf);
-        prost::encoding::string::encode(2, &self.chain_id.encode_hex(), buf);
-        prost::encoding::string::encode(3, &self.genesis_hash.as_fixed_bytes().encode_hex(), buf);
-        prost::encoding::string::encode(4, &self.fee.encode_hex(), buf);
+        prost::encoding::uint64::encode(1, &self.nonce, buf);
+        prost::encoding::uint32::encode(2, &self.chain_id, buf);
+        prost::encoding::bytes::encode(3, &self.genesis_hash, buf);
+        prost::encoding::uint64::encode(4, &self.fee, buf);
         self.data.encode(buf);
     }
 
@@ -306,64 +313,40 @@ impl prost::Message for UnsignedTransaction {
     {
         match tag {
             1 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                let raw_value = &mut self.nonce;
+                prost::encoding::uint64::merge(wire_type, raw_value, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "nonce");
                         error
                     },
-                )?;
-                self.nonce = u64::from_hex(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
-                    error.push(STRUCT_NAME, "nonce");
-                    error
-                })?;
-                Ok(())
+                )
             }
             2 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                let raw_value = &mut self.chain_id;
+                prost::encoding::uint32::merge(wire_type, raw_value, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "chain_id");
                         error
                     },
-                )?;
-                self.chain_id = u16::from_hex(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
-                    error.push(STRUCT_NAME, "chain_id");
-                    error
-                })?;
-                Ok(())
+                )
             }
             3 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                let raw_value = &mut self.genesis_hash;
+                prost::encoding::bytes::merge(wire_type, raw_value, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "genesis_hash");
                         error
                     },
-                )?;
-                self.genesis_hash = H256::from_str(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
-                    error.push(STRUCT_NAME, "genesis_hash");
-                    error
-                })?;
-                Ok(())
+                )
             }
             4 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                let raw_value = &mut self.fee;
+                prost::encoding::uint64::merge(wire_type, raw_value, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "fee");
                         error
                     },
-                )?;
-                self.fee = U128::from_str(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
-                    error.push(STRUCT_NAME, "fee");
-                    error
-                })?;
-                Ok(())
+                )
             }
             5 | 6 | 7 => {
                 let mut value: Option<TransactionData> = None;
@@ -388,13 +371,13 @@ impl prost::Message for UnsignedTransaction {
     }
 
     fn encoded_len(&self) -> usize {
-        0 + prost::encoding::string::encoded_len(1, &self.nonce.encode_hex())
-            + prost::encoding::string::encoded_len(2, &self.chain_id.encode_hex())
-            + prost::encoding::string::encoded_len(
+        0 + prost::encoding::uint64::encoded_len(1, &self.nonce)
+            + prost::encoding::uint32::encoded_len(2, &self.chain_id)
+            + prost::encoding::bytes::encoded_len(
                 3,
-                &self.genesis_hash.as_fixed_bytes().encode_hex(),
+                &self.genesis_hash,
             )
-            + prost::encoding::string::encoded_len(4, &self.fee.encode_hex())
+            + prost::encoding::uint64::encoded_len(4, &self.fee)
             + self.data.encoded_len()
     }
 
@@ -403,7 +386,7 @@ impl prost::Message for UnsignedTransaction {
 
 impl UnsignedTransaction {
     pub fn sig_hash(&self) -> H256 {
-        let mut pack = self.pack();
+        let pack = self.pack();
         sha256(pack)
     }
 
@@ -425,7 +408,7 @@ impl UnsignedTransaction {
                 match &call.args {
                     None => {}
                     Some(args) => {
-                        pack.extend_from_slice(&args.value.as_bytes());
+                        pack.extend_from_slice(&args.value);
                     }
                 }
             }
@@ -518,7 +501,7 @@ pub struct SignedTransaction {
     #[serde(skip)]
     hash: Arc<RwLock<Option<Hash>>>,
     #[serde(skip)]
-    from: Arc<RwLock<Option<H160>>>,
+    from: Arc<RwLock<Option<Address42>>>,
 }
 
 impl PartialEq for SignedTransaction {
@@ -576,19 +559,19 @@ impl SignedTransaction {
     pub fn nonce(&self) -> u64 {
         self.tx.nonce
     }
-    pub fn sender(&self) -> H160 {
+    pub fn sender(&self) -> Address42 {
         self.from()
     }
 
-    pub fn to(&self) -> H160 {
+    pub fn to(&self) -> Address42 {
         match &self.tx.data {
             TransactionData::Payment(pmt) => pmt.to,
-            TransactionData::Call(_) => H160::default(),
-            TransactionData::RawData(_) => H160::default(),
+            TransactionData::Call(_) => Default::default(),
+            TransactionData::RawData(_) => Default::default(),
         }
     }
 
-    pub fn origin(&self) -> H160 {
+    pub fn origin(&self) -> Address42 {
         self.from()
     }
 
@@ -598,7 +581,7 @@ impl SignedTransaction {
         Ok(pub_key)
     }
 
-    pub fn from(&self) -> H160 {
+    pub fn from(&self) -> Address42 {
         cache(&self.from, || {
             Signature::from_rsv((&self.r, &self.s, self.v))
                 .map_err(|e| anyhow::anyhow!(e))
@@ -608,9 +591,7 @@ impl SignedTransaction {
                             .recover_public_key(&sig_hash)
                             .map_err(|e| anyhow::anyhow!(e))
                             .map(|key| {
-                                get_address_from_pub_key(key, Network::from_u32(self.tx.chain_id))
-                                    .to_address20()
-                                    .unwrap()
+                                get_address_from_pub_key(key, Network::from_chain_id(self.tx.chain_id))
                             })
                     })
                 })
@@ -618,15 +599,15 @@ impl SignedTransaction {
         })
     }
 
-    pub fn fees(&self) -> u128 {
-        self.tx.fee.as_u128()
+    pub fn fees(&self) -> u64 {
+        self.tx.fee
     }
 
-    pub fn price(&self) -> u128 {
+    pub fn price(&self) -> u64 {
         match &self.tx.data {
-            TransactionData::Payment(p) => p.amount.as_u128(),
+            TransactionData::Payment(p) => p.amount,
             TransactionData::Call(_) => 10_000_000,
-            TransactionData::RawData(s) => (s.len() as u128) * 1000,
+            TransactionData::RawData(s) => (s.len() as u64) * 1000,
         }
     }
 
@@ -647,9 +628,9 @@ impl prost::Message for SignedTransaction {
         Self: Sized,
     {
         self.tx.encode_raw(buf);
-        prost::encoding::string::encode(8, &self.r.as_fixed_bytes().encode_hex(), buf);
-        prost::encoding::string::encode(9, &self.s.as_fixed_bytes().encode_hex(), buf);
-        prost::encoding::string::encode(10, &self.v.encode_hex(), buf);
+        prost::encoding::bytes::encode(8, &self.r, buf);
+        prost::encoding::bytes::encode(9, &self.s, buf);
+        prost::encoding::bytes::encode(10, &self.v, buf);
     }
 
     fn merge_field<B>(
@@ -666,49 +647,28 @@ impl prost::Message for SignedTransaction {
         match tag {
             1..=7 => self.tx.merge_field(tag, wire_type, buf, ctx),
             8 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                prost::encoding::bytes::merge(wire_type, &mut self.r, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "r");
                         error
                     },
-                )?;
-                self.r = H256::from_str(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
-                    error.push(STRUCT_NAME, "r");
-                    error
-                })?;
-                Ok(())
+                )
             }
             9 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                prost::encoding::bytes::merge(wire_type, &mut self.s, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "s");
                         error
                     },
-                )?;
-                self.s = H256::from_str(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
-                    error.push(STRUCT_NAME, "s");
-                    error
-                })?;
-                Ok(())
+                )
             }
             10 => {
-                let mut raw_value = String::new();
-                prost::encoding::string::merge(wire_type, &mut raw_value, buf, ctx).map_err(
+                prost::encoding::bytes::merge(wire_type, &mut self.v, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "v");
                         error
                     },
-                )?;
-                self.v = u8::from_hex(&raw_value).map_err(|error| {
-                    let mut error = DecodeError::new(error.to_string());
-                    error.push(STRUCT_NAME, "v");
-                    error
-                })?;
-                Ok(())
+                )
             }
             _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
         }
@@ -716,9 +676,9 @@ impl prost::Message for SignedTransaction {
 
     fn encoded_len(&self) -> usize {
         0 + self.tx.encoded_len()
-            + prost::encoding::string::encoded_len(8, &self.r.as_fixed_bytes().encode_hex())
-            + prost::encoding::string::encoded_len(9, &self.s.as_fixed_bytes().encode_hex())
-            + prost::encoding::string::encoded_len(10, &self.v.encode_hex())
+            + prost::encoding::bytes::encoded_len(8, &self.r)
+            + prost::encoding::bytes::encoded_len(9, &self.s)
+            + prost::encoding::bytes::encoded_len(10, &self.v)
     }
 
     fn clear(&mut self) {}
@@ -729,7 +689,7 @@ mod tests {
     use std::sync::Arc;
     use crate::account::{get_address_from_pub_key, Account};
     use crate::network::Network;
-    use crate::tx::{AnyType, UnsignedTransaction, TransactionBuilder};
+    use crate::tx::{AnyType, TransactionBuilder};
     use crypto::ecdsa::Keypair;
     use primitive_types::{H160, H256};
     use rand_chacha::ChaCha20Rng;
@@ -774,6 +734,7 @@ mod tests {
             .to(user2.address.to_address20().unwrap())
             .amount(1_000_000)
             .build().unwrap();
+        println!("{}", hex::encode(tx.encode_to_vec(), false));
         txs.as_mut().push(Arc::new(tx));
          let tx = TransactionBuilder::with_signer(&user1)
             .unwrap()
@@ -791,7 +752,7 @@ mod tests {
                          to: H160::zero().as_fixed_bytes().encode_hex(),
                          amount: 100000_u128.encode_hex(),
                      };
-                     hex::encode(t.encode_to_vec(), false)
+                    prost::Message::encode_to_vec(&t)
                  }
              }))
             .build().unwrap();
@@ -803,6 +764,9 @@ mod tests {
             .genesis_hash(genesis)
             .build().unwrap();
         txs.as_mut().push(Arc::new(tx));
+
+        let txs_ctl = TransactionList::decode(txs.encode_to_vec().as_slice()).unwrap();
+        assert_eq!(txs,txs_ctl);
         println!("{}",serde_json::to_string_pretty(&txs).unwrap());
     }
 

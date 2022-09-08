@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -6,9 +7,9 @@ use anyhow::{bail, Result};
 use dashmap::DashMap;
 use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
 use serde::{Deserialize, Serialize};
-use codec::{BinEncode, BinDecode};
 
 use codec::{Decodable, Encodable};
+use bincode::{Encode,Decode};
 use primitive_types::H256;
 
 use crate::error::Error;
@@ -103,25 +104,25 @@ impl Database {
 
     pub(crate) fn put(&self, key: H256, value: SparseMerkleTree) -> Result<()> {
         self.inner
-            .put(COLUMN_TREES, &key.encode()?, &value.encode()?)
+            .put(COLUMN_TREES, &Encodable::encode(&key)?, &Encodable::encode(&value)?)
     }
 
     pub(crate) fn set_root(&self, new_root: H256) -> Result<()> {
-        self.inner.put(COLUMN_ROOT, b"root", &new_root.encode()?)
+        self.inner.put(COLUMN_ROOT, b"root", &Encodable::encode(&new_root)?)
     }
 
     pub(crate) fn load_root(&self) -> Result<SparseMerkleTree> {
         let root = self.inner.get(COLUMN_ROOT, b"root")?;
-        let root = H256::decode(&root)?;
+        let root = <H256 as Decodable>::decode(&root)?;
         self.get(&root)
     }
 
     pub(crate) fn get(&self, key: &H256) -> Result<SparseMerkleTree> {
-        SparseMerkleTree::decode(&self.inner.get(COLUMN_TREES, &key.encode()?)?)
+        <SparseMerkleTree as Decodable>::decode(&self.inner.get(COLUMN_TREES, &Encodable::encode(key)?)?)
     }
 
     pub(crate) fn delete(&self, key: &H256) -> Result<()> {
-        self.inner.delete(COLUMN_TREES, &key.encode()?)
+        self.inner.delete(COLUMN_TREES, &Encodable::encode(key)?)
     }
 
     pub(crate) fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Database> {
@@ -131,8 +132,11 @@ impl Database {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, BinEncode, BinDecode)]
+
+
+#[derive(Serialize, Deserialize, Clone, Default, Debug, Encode, Decode)]
 pub struct ArchivedStorage {
+    #[bincode(with_serde)]
     inner: DashMap<Vec<u8>, Vec<u8>>,
 }
 

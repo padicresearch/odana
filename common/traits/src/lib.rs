@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use primitive_types::{Compact, H160, H256};
-use types::account::AccountState;
+use types::account::{AccountState, Address42};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::SignedTransaction;
 use types::Hash;
@@ -15,11 +15,11 @@ pub trait Blockchain: ChainReader {
 }
 
 pub trait StateDB: Send + Sync {
-    fn nonce(&self, address: &H160) -> u64;
-    fn account_state(&self, address: &H160) -> AccountState;
-    fn balance(&self, address: &H160) -> u128;
-    fn credit_balance(&self, address: &H160, amount: u128) -> Result<H256>;
-    fn debit_balance(&self, address: &H160, amount: u128) -> Result<H256>;
+    fn nonce(&self, address: &Address42) -> u64;
+    fn account_state(&self, address: &Address42) -> AccountState;
+    fn balance(&self, address: &Address42) -> u64;
+    fn credit_balance(&self, address: &Address42, amount: u64) -> Result<H256>;
+    fn debit_balance(&self, address: &Address42, amount: u64) -> Result<H256>;
     fn reset(&self, root: H256) -> Result<()>;
     fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256>;
     fn root(&self) -> Hash;
@@ -45,7 +45,7 @@ pub trait Saturating {
 }
 
 pub trait ChainHeadReader: Send + Sync {
-    fn get_header(&self, hash: &H256, level: i32) -> Result<Option<IndexedBlockHeader>>;
+    fn get_header(&self, hash: &H256, level: u32) -> Result<Option<IndexedBlockHeader>>;
     fn get_header_by_hash(&self, hash: &H256) -> Result<Option<IndexedBlockHeader>>;
     fn get_header_by_level(&self, level: i32) -> Result<Option<IndexedBlockHeader>>;
 }
