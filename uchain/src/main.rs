@@ -12,8 +12,8 @@ use directories::UserDirs;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use p2p::identity::NodeIdentity;
-use primitive_types::H160;
 use tracing::Level;
+use types::account::Address42;
 use types::config::EnvironmentConfig;
 use types::network::Network;
 
@@ -76,7 +76,7 @@ struct RunArgs {
     #[clap(long)]
     expected_pow: Option<f64>,
     #[clap(long, value_parser = parse_miner_address)]
-    miner: Option<H160>,
+    miner: Option<Address42>,
     #[clap(arg_enum, long)]
     network: Option<Network>,
     #[clap(long)]
@@ -122,7 +122,7 @@ struct SetConfigArgs {
     #[clap(long)]
     host: Option<String>,
     #[clap(long, value_parser = parse_miner_address)]
-    miner: Option<H160>,
+    miner: Option<Address42>,
     #[clap(long)]
     datadir: Option<PathBuf>,
     #[clap(long)]
@@ -149,7 +149,13 @@ struct AccountArgs {
 
 #[derive(Subcommand, Debug)]
 enum AccountCommands {
-    New,
+    New(NewAccountCommandArgs),
+}
+
+#[derive(Args, Debug)]
+struct NewAccountCommandArgs {
+    #[clap(arg_enum, long)]
+    network: Network,
 }
 
 fn main() -> Result<()> {
@@ -167,9 +173,9 @@ fn main() -> Result<()> {
             handle_config_commands(&args.command)?;
         }
         Commands::Account(args) => {
-            match args.command {
-                AccountCommands::New => {
-                    let account = account::create_account();
+            match &args.command {
+                AccountCommands::New(args) => {
+                    let account = account::create_account(args.network);
                     println!("{}", serde_json::to_string_pretty(&account).unwrap());
                     println!("You can share your public address with anyone. Others need it to interact with you.");
                     println!("You must NEVER share the secret key with anyone. Copy secret key a safe place");
@@ -346,8 +352,8 @@ pub(crate) fn parse_multaddr(s: &str) -> Result<String, String> {
     }
 }
 
-pub(crate) fn parse_miner_address(s: &str) -> Result<H160, String> {
-    match H160::from_str(s) {
+pub(crate) fn parse_miner_address(s: &str) -> Result<Address42, String> {
+    match Address42::from_str(s) {
         Ok(s) => Ok(s),
         Err(error) => Err(format!("{}", error)),
     }

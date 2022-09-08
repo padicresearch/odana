@@ -24,7 +24,7 @@ macro_rules! test_maybe_wasm {
         fn $name() {
             $body
         }
-    }
+    };
 }
 
 test_maybe_wasm!(generate_12_english, {

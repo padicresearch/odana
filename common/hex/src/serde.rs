@@ -1,10 +1,7 @@
-use serde::{Serializer, Serialize, Deserialize, Deserializer};
 use crate::{FromHex, ToHex};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-pub fn serialize<S: Serializer, T: ToHex>(
-    t: &T,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
+pub fn serialize<S: Serializer, T: ToHex>(t: &T, serializer: S) -> Result<S::Ok, S::Error> {
     let encoded_hex_string = t.encode_hex();
     encoded_hex_string.serialize(serializer)
 }

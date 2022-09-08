@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 use anyhow::{anyhow, bail, Result};
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::{H160, H256};
+use primitive_types::H256;
 use state::State;
 use storage::{KVStore, Schema};
 use tracing::{debug, info, trace, warn};
@@ -13,6 +13,7 @@ use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
+use types::prelude::Address42;
 use types::ChainStateValue;
 
 use crate::block_storage::BlockStorage;
@@ -82,7 +83,7 @@ impl ChainState {
             info!(blockhash = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
         } else {
             let mut genesis = consensus.get_genesis_header();
-            state.credit_balance(&H160::from(&[0; 20]), 1_000_000_000_000)?;
+            state.credit_balance(&Address42::default(), 1_000_000_000_000)?;
             state.commit()?;
             genesis.set_state_root(H256::from(state.root()));
             let block = Block::new(genesis, vec![]);
@@ -302,7 +303,7 @@ impl Blockchain for ChainState {
 }
 
 impl ChainReader for ChainState {
-    fn get_block(&self, hash: &H256, level: i32) -> Result<Option<Block>> {
+    fn get_block(&self, hash: &H256, level: u32) -> Result<Option<Block>> {
         self.block_storage.get_block(hash, level)
     }
 
@@ -310,7 +311,7 @@ impl ChainReader for ChainState {
         self.block_storage.get_block_by_hash(hash)
     }
 
-    fn get_block_by_level(&self, level: i32) -> Result<Option<Block>> {
+    fn get_block_by_level(&self, level: u32) -> Result<Option<Block>> {
         self.block_storage.get_block_by_level(level)
     }
 }

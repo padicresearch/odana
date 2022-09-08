@@ -6,8 +6,8 @@ use std::sync::{Arc, RwLock};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
+use bincode::{Decode, Encode};
 use codec::{Codec, Decodable, Encodable};
-use bincode::{Encode,Decode};
 use primitive_types::H256;
 use tracing::{debug, error};
 
@@ -170,9 +170,10 @@ where
             .into_iter()
             .map(|op| match op {
                 Op::Delete(key) => Ok((key.encode()?, Encodable::encode(&IValue::Deleted)?)),
-                Op::Put(key, value) => {
-                    Ok((key.encode()?, Encodable::encode(&IValue::Value(value.encode()?))?))
-                }
+                Op::Put(key, value) => Ok((
+                    key.encode()?,
+                    Encodable::encode(&IValue::Value(value.encode()?))?,
+                )),
             })
             .collect();
 
@@ -197,9 +198,10 @@ where
             .into_iter()
             .map(|op| match op {
                 Op::Delete(key) => Ok((key.encode()?, Encodable::encode(&IValue::Deleted)?)),
-                Op::Put(key, value) => {
-                    Ok((key.encode()?, Encodable::encode(&IValue::Value(value.encode()?))?))
-                }
+                Op::Put(key, value) => Ok((
+                    key.encode()?,
+                    Encodable::encode(&IValue::Value(value.encode()?))?,
+                )),
             })
             .collect();
 
@@ -236,14 +238,17 @@ where
     }
 
     pub fn put(&self, key: K, value: V) -> Result<()> {
-        let (key, value) = (key.encode()?, Encodable::encode(&IValue::Value(value.encode()?))?);
+        let (key, value) = (
+            key.encode()?,
+            Encodable::encode(&IValue::Value(value.encode()?))?,
+        );
         let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
         let _root = staging.update(key, value)?;
         Ok(())
     }
 
     pub fn delete(&self, key: &K) -> Result<()> {
-        let (key, value) = (key.encode()?,Encodable::encode(&IValue::Deleted)?);
+        let (key, value) = (key.encode()?, Encodable::encode(&IValue::Deleted)?);
         let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
         staging.update(key, value)?;
         Ok(())
@@ -373,9 +378,9 @@ impl Verifier {
 mod tests {
     use tempdir::TempDir;
 
+    use crate::{Tree, Verifier};
     use primitive_types::{H160, H256};
     use types::account::AccountState;
-    use crate::{Tree, Verifier};
 
     #[test]
     fn basic_test() {
@@ -474,7 +479,6 @@ mod tests {
 
         let root_2 = tree.commit(true).unwrap();
         println!("ROOT {:?}", root_2);
-
 
         assert_eq!(
             tree.get_descend(&H256::from_slice(&[3; 32]), true).unwrap(),

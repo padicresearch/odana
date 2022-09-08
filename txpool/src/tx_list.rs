@@ -139,7 +139,7 @@ impl TxList {
 
     pub fn filter(
         &mut self,
-        price_limit: u128,
+        price_limit: u64,
     ) -> Option<(Vec<TransactionRef>, Vec<TransactionRef>)> {
         if price_limit == 0 {
             return None;
@@ -318,14 +318,15 @@ impl TxPricedList {
 #[cfg(test)]
 mod tests {
     use account::create_account;
+    use types::network::Network;
 
     use crate::tests::make_tx;
     use crate::tx_list::TxList;
 
     #[test]
     fn test_txlist() {
-        let alice = create_account();
-        let bob = create_account();
+        let alice = create_account(Network::Testnet);
+        let bob = create_account(Network::Testnet);
         let mut list = TxList::new(true);
         list.add(make_tx(&alice, &bob, 1, 100, 0), 10);
         list.add(make_tx(&alice, &bob, 2, 200, 0), 10);

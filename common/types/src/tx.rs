@@ -1,22 +1,19 @@
 use std::cmp::Ordering;
 use std::sync::{Arc, RwLock};
-use std::u128;
 
-use anyhow::{Result};
+use anyhow::Result;
 use bytes::{Buf, BufMut};
 use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
 use serde::{Deserialize, Serialize};
 
 use crypto::ecdsa::{PublicKey, Signature};
-use crypto::{ sha256};
-use primitive_types::{H160, H256};
+use crypto::sha256;
+use primitive_types::H256;
 
 use crate::account::{get_address_from_pub_key, Account, Address42};
 use crate::network::Network;
 use crate::{cache, Hash};
-use bincode::{Encode, Decode};
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -41,8 +38,7 @@ impl TransactionStatus {
     }
 }
 
-
-#[derive(Serialize, Deserialize, PartialEq, Default, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Default, Debug, Clone)]
 pub struct PaymentTx {
     pub to: Address42,
     pub amount: u64,
@@ -69,37 +65,33 @@ impl Message for PaymentTx {
         B: Buf,
         Self: Sized,
     {
-        const STRUCT_NAME: &'static str = "PaymentTx";
+        const STRUCT_NAME: &str = "PaymentTx";
         match tag {
-            1 => {
-                prost::encoding::bytes::merge(wire_type, &mut  self.to, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "to");
-                        error
-                    },
-                )
-            }
-            2 => {
-                prost::encoding::uint64::merge(wire_type, &mut self.amount, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "amount");
-                        error
-                    },
-                )
-            }
+            1 => prost::encoding::bytes::merge(wire_type, &mut self.to, buf, ctx).map_err(
+                |mut error| {
+                    error.push(STRUCT_NAME, "to");
+                    error
+                },
+            ),
+            2 => prost::encoding::uint64::merge(wire_type, &mut self.amount, buf, ctx).map_err(
+                |mut error| {
+                    error.push(STRUCT_NAME, "amount");
+                    error
+                },
+            ),
             _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
         }
     }
 
     fn encoded_len(&self) -> usize {
-        0 + prost::encoding::bytes::encoded_len(1, &self.to)
+        prost::encoding::bytes::encoded_len(1, &self.to)
             + prost::encoding::uint64::encoded_len(2, &self.amount)
     }
 
     fn clear(&mut self) {}
 }
 
-#[derive(Clone, PartialEq, Serialize, Deserialize, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, ::prost::Message)]
 pub struct AnyType {
     /// used with implementation specific semantics.
     #[prost(string, tag = "1")]
@@ -110,7 +102,7 @@ pub struct AnyType {
     pub value: Vec<u8>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, prost::Message, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]
 pub struct ApplicationCallTx {
     #[prost(uint32, tag = "1")]
     pub app_id: u32,
@@ -118,7 +110,7 @@ pub struct ApplicationCallTx {
     pub args: Option<AnyType>,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, prost::Oneof)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, prost::Oneof)]
 #[serde(rename_all = "snake_case")]
 pub enum TransactionData {
     #[prost(message, tag = "5")]
@@ -136,9 +128,9 @@ impl Default for TransactionData {
     }
 }
 
-const STRUCT_NAME: &'static str = "Transaction";
+const STRUCT_NAME: &str = "Transaction";
 
-#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
 pub struct UnsignedTransaction {
     pub nonce: u64,
     pub chain_id: u32,
@@ -161,10 +153,7 @@ impl<'a> TransactionBuilder<'a> {
             .network()
             .ok_or_else(|| anyhow::anyhow!("network not specified on signer"))?
             .chain_id();
-        Ok(Self {
-            tx,
-            account,
-        })
+        Ok(Self { tx, account })
     }
 
     pub fn chain_id(&mut self, chain_id: u32) -> &mut Self {
@@ -189,81 +178,71 @@ impl<'a> TransactionBuilder<'a> {
 
     pub fn call(&'a mut self) -> AppCallTransactionBuilder<'a> {
         self.tx.data = TransactionData::Call(ApplicationCallTx::default());
-        AppCallTransactionBuilder {
-            inner: self
-        }
+        AppCallTransactionBuilder { inner: self }
     }
 
     pub fn transfer(&'a mut self) -> TransferTransactionBuilder<'a> {
         self.tx.data = TransactionData::Payment(PaymentTx::default());
-        TransferTransactionBuilder {
-            inner: self
-        }
+        TransferTransactionBuilder { inner: self }
     }
 
     pub fn build(&'a mut self) -> Result<SignedTransaction> {
-        self.account.sign(self.tx.sig_hash().as_bytes()).and_then(|sig| {
-            SignedTransaction::new(sig, self.tx.clone())
-        })
+        self.account
+            .sign(self.tx.sig_hash().as_bytes())
+            .and_then(|sig| SignedTransaction::new(sig, self.tx.clone()))
     }
 }
 
 pub struct TransferTransactionBuilder<'a> {
-    inner: &'a mut TransactionBuilder<'a>
+    inner: &'a mut TransactionBuilder<'a>,
 }
 
 impl<'a> TransferTransactionBuilder<'a> {
     pub fn to(&mut self, to: Address42) -> &mut Self {
-        match &mut self.inner.tx.data {
-            TransactionData::Payment(pmt) => pmt.to = to,
-            _ => {}
+        if let TransactionData::Payment(pmt) = &mut self.inner.tx.data {
+            pmt.to = to
         }
         self
     }
 
     pub fn amount(&mut self, amount: u64) -> &mut Self {
-        match &mut self.inner.tx.data {
-            TransactionData::Payment(pmt) => {
-                pmt.amount = amount.into();
-            }
-            _ => {}
+        if let TransactionData::Payment(pmt) = &mut self.inner.tx.data {
+            pmt.amount = amount
         }
         self
     }
 
     pub fn build(&mut self) -> Result<SignedTransaction> {
-        self.inner.account.sign(self.inner.tx.sig_hash().as_bytes()).and_then(|sig| {
-            SignedTransaction::new(sig, self.inner.tx.clone())
-        })
+        self.inner
+            .account
+            .sign(self.inner.tx.sig_hash().as_bytes())
+            .and_then(|sig| SignedTransaction::new(sig, self.inner.tx.clone()))
     }
 }
 pub struct AppCallTransactionBuilder<'a> {
-    inner: &'a mut TransactionBuilder<'a>
+    inner: &'a mut TransactionBuilder<'a>,
 }
 
 impl<'a> AppCallTransactionBuilder<'a> {
     pub fn app_id(&mut self, app_id: u32) -> &mut Self {
-        match &mut self.inner.tx.data {
-            TransactionData::Call(call) => call.app_id = app_id,
-            _ => {}
+        if let TransactionData::Call(call) = &mut self.inner.tx.data {
+            call.app_id = app_id
         }
         self
     }
 
     pub fn args(&mut self, args: Option<AnyType>) -> &mut Self {
-        match &mut self.inner.tx.data {
-            TransactionData::Call(call) => {
-                call.args = args;
-            }
-            _ => {}
+        if let TransactionData::Call(call) = &mut self.inner.tx.data {
+            call.args = args
         }
         self
     }
 
     pub fn build(&mut self) -> Result<SignedTransaction> {
-        self.inner.account.sign(self.inner.tx.sig_hash().as_bytes()).and_then(|sig| {
-            SignedTransaction::new(sig, self.inner.tx.clone())
-        })
+        self.inner
+            .account
+            .sign(self.inner.tx.sig_hash().as_bytes())
+            .and_then(|sig| SignedTransaction::new(sig, self.inner.tx.clone()))
     }
 }
 pub struct RawDataTransactionBuilder<'a> {
@@ -273,17 +252,16 @@ pub struct RawDataTransactionBuilder<'a> {
 
 impl<'a> RawDataTransactionBuilder<'a> {
     pub fn with_raw(&mut self, data: String) -> &mut Self {
-        match &mut self.tx.data {
-            TransactionData::RawData(raw) => *raw = data,
-            _ => {}
+        if let TransactionData::RawData(raw) = &mut self.tx.data {
+            *raw = data
         }
         self
     }
 
     pub fn build(self) -> Result<SignedTransaction> {
-        self.account.sign(self.tx.sig_hash().as_bytes()).and_then(|sig| {
-            SignedTransaction::new(sig, self.tx)
-        })
+        self.account
+            .sign(self.tx.sig_hash().as_bytes())
+            .and_then(|sig| SignedTransaction::new(sig, self.tx))
     }
 }
 
@@ -358,9 +336,7 @@ impl prost::Message for UnsignedTransaction {
                 )?;
 
                 match value {
-                    None => {
-                        self.data = TransactionData::RawData(Default::default())
-                    }
+                    None => self.data = TransactionData::RawData(Default::default()),
                     Some(data) => self.data = data,
                 }
 
@@ -371,12 +347,9 @@ impl prost::Message for UnsignedTransaction {
     }
 
     fn encoded_len(&self) -> usize {
-        0 + prost::encoding::uint64::encoded_len(1, &self.nonce)
+        prost::encoding::uint64::encoded_len(1, &self.nonce)
             + prost::encoding::uint32::encoded_len(2, &self.chain_id)
-            + prost::encoding::bytes::encoded_len(
-                3,
-                &self.genesis_hash,
-            )
+            + prost::encoding::bytes::encoded_len(3, &self.genesis_hash)
             + prost::encoding::uint64::encoded_len(4, &self.fee)
             + self.data.encoded_len()
     }
@@ -394,13 +367,13 @@ impl UnsignedTransaction {
         let mut pack = Vec::new();
         pack.extend_from_slice(&self.nonce.to_be_bytes());
         pack.extend_from_slice(&self.chain_id.to_be_bytes());
-        pack.extend_from_slice(&self.genesis_hash.as_bytes());
+        pack.extend_from_slice(self.genesis_hash.as_bytes());
         pack.extend_from_slice(&self.fee.to_be_bytes());
         match &self.data {
             TransactionData::Payment(pmt) => {
                 pack.extend_from_slice(&1u32.to_be_bytes());
                 pack.extend_from_slice(&pmt.amount.to_be_bytes());
-                pack.extend_from_slice(&pmt.to.as_bytes());
+                pack.extend_from_slice(pmt.to.as_bytes());
             }
             TransactionData::Call(call) => {
                 pack.extend_from_slice(&2u32.to_be_bytes());
@@ -415,29 +388,43 @@ impl UnsignedTransaction {
             TransactionData::RawData(raw) => {
                 pack.extend_from_slice(&3u32.to_be_bytes());
                 pack.extend_from_slice(raw.as_bytes())
-            },
+            }
         }
         pack
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq,  Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug, Default)]
 pub struct TransactionList {
     pub txs: Vec<Arc<SignedTransaction>>,
 }
 
 impl Message for TransactionList {
-    fn encode_raw<B>(&self, buf: &mut B) where B: BufMut, Self: Sized {
+    fn encode_raw<B>(&self, buf: &mut B)
+    where
+        B: BufMut,
+        Self: Sized,
+    {
         for msg in &self.txs {
             prost::encoding::message::encode(1u32, msg.as_ref(), buf);
         }
     }
 
-    fn merge_field<B>(&mut self, tag: u32, wire_type: WireType, buf: &mut B, ctx: DecodeContext) -> std::result::Result<(), DecodeError> where B: Buf, Self: Sized {
-        const STRUCT_NAME: &'static str = "TransactionList";
+    fn merge_field<B>(
+        &mut self,
+        tag: u32,
+        wire_type: WireType,
+        buf: &mut B,
+        ctx: DecodeContext,
+    ) -> std::result::Result<(), DecodeError>
+    where
+        B: Buf,
+        Self: Sized,
+    {
+        const STRUCT_NAME: &str = "TransactionList";
         match tag {
             1 => {
-                let mut value : Vec<SignedTransaction> = Vec::new();
+                let mut value: Vec<SignedTransaction> = Vec::new();
                 prost::encoding::message::merge_repeated(wire_type, &mut value, buf, ctx).map_err(
                     |mut error| {
                         error.push(STRUCT_NAME, "txs");
@@ -454,13 +441,14 @@ impl Message for TransactionList {
     }
 
     fn encoded_len(&self) -> usize {
-        0 + prost::encoding::key_len(1) * self.txs.len()
-            + self.txs
-            .iter()
-            .map(|tx| tx.as_ref())
-            .map(Message::encoded_len)
-            .map(|len| len + prost::encoding::encoded_len_varint(len as u64))
-            .sum::<usize>()
+        prost::encoding::key_len(1) * self.txs.len()
+            + self
+                .txs
+                .iter()
+                .map(|tx| tx.as_ref())
+                .map(Message::encoded_len)
+                .map(|len| len + prost::encoding::encoded_len_varint(len as u64))
+                .sum::<usize>()
     }
 
     fn clear(&mut self) {
@@ -591,7 +579,10 @@ impl SignedTransaction {
                             .recover_public_key(&sig_hash)
                             .map_err(|e| anyhow::anyhow!(e))
                             .map(|key| {
-                                get_address_from_pub_key(key, Network::from_chain_id(self.tx.chain_id))
+                                get_address_from_pub_key(
+                                    key,
+                                    Network::from_chain_id(self.tx.chain_id),
+                                )
                             })
                     })
                 })
@@ -646,36 +637,30 @@ impl prost::Message for SignedTransaction {
     {
         match tag {
             1..=7 => self.tx.merge_field(tag, wire_type, buf, ctx),
-            8 => {
-                prost::encoding::bytes::merge(wire_type, &mut self.r, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "r");
-                        error
-                    },
-                )
-            }
-            9 => {
-                prost::encoding::bytes::merge(wire_type, &mut self.s, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "s");
-                        error
-                    },
-                )
-            }
-            10 => {
-                prost::encoding::bytes::merge(wire_type, &mut self.v, buf, ctx).map_err(
-                    |mut error| {
-                        error.push(STRUCT_NAME, "v");
-                        error
-                    },
-                )
-            }
+            8 => prost::encoding::bytes::merge(wire_type, &mut self.r, buf, ctx).map_err(
+                |mut error| {
+                    error.push(STRUCT_NAME, "r");
+                    error
+                },
+            ),
+            9 => prost::encoding::bytes::merge(wire_type, &mut self.s, buf, ctx).map_err(
+                |mut error| {
+                    error.push(STRUCT_NAME, "s");
+                    error
+                },
+            ),
+            10 => prost::encoding::bytes::merge(wire_type, &mut self.v, buf, ctx).map_err(
+                |mut error| {
+                    error.push(STRUCT_NAME, "v");
+                    error
+                },
+            ),
             _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
         }
     }
 
     fn encoded_len(&self) -> usize {
-        0 + self.tx.encoded_len()
+        self.tx.encoded_len()
             + prost::encoding::bytes::encoded_len(8, &self.r)
             + prost::encoding::bytes::encoded_len(9, &self.s)
             + prost::encoding::bytes::encoded_len(10, &self.v)
@@ -686,17 +671,17 @@ impl prost::Message for SignedTransaction {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
     use crate::account::{get_address_from_pub_key, Account};
     use crate::network::Network;
+    use crate::prelude::{SignedTransaction, TransactionList};
     use crate::tx::{AnyType, TransactionBuilder};
     use crypto::ecdsa::Keypair;
+    use hex::ToHex;
     use primitive_types::{H160, H256};
+    use prost::Message;
     use rand_chacha::ChaCha20Rng;
     use rand_core::SeedableRng;
-    use hex::ToHex;
-    use prost::Message;
-    use crate::prelude::{SignedTransaction, TransactionList};
+    use std::sync::Arc;
 
     pub fn create_account(network: Network) -> Account {
         let mut csprng = ChaCha20Rng::from_entropy();
@@ -718,7 +703,6 @@ mod tests {
         pub amount: String,
     }
 
-
     #[test]
     fn test_encoding_and_decoding() {
         let genesis = H256::random();
@@ -733,41 +717,44 @@ mod tests {
             .transfer()
             .to(user2.address.to_address20().unwrap())
             .amount(1_000_000)
-            .build().unwrap();
+            .build()
+            .unwrap();
         println!("{}", hex::encode(tx.encode_to_vec(), false));
         txs.as_mut().push(Arc::new(tx));
-         let tx = TransactionBuilder::with_signer(&user1)
+        let tx = TransactionBuilder::with_signer(&user1)
             .unwrap()
             .nonce(1)
             .fee(100_000)
             .genesis_hash(genesis)
-             .call()
-             .app_id(20)
-             .args(Some(AnyType {
-                 type_info: "TransferToken".to_string(),
-                 value: {
-                     let t = TransferToken {
-                         token_id: 10,
-                         from: H160::zero().as_fixed_bytes().encode_hex(),
-                         to: H160::zero().as_fixed_bytes().encode_hex(),
-                         amount: 100000_u128.encode_hex(),
-                     };
+            .call()
+            .app_id(20)
+            .args(Some(AnyType {
+                type_info: "TransferToken".to_string(),
+                value: {
+                    let t = TransferToken {
+                        token_id: 10,
+                        from: H160::zero().as_fixed_bytes().encode_hex(),
+                        to: H160::zero().as_fixed_bytes().encode_hex(),
+                        amount: 100000_u128.encode_hex(),
+                    };
                     prost::Message::encode_to_vec(&t)
-                 }
-             }))
-            .build().unwrap();
+                },
+            }))
+            .build()
+            .unwrap();
         txs.as_mut().push(Arc::new(tx));
-         let tx = TransactionBuilder::with_signer(&user1)
+        let tx = TransactionBuilder::with_signer(&user1)
             .unwrap()
             .nonce(1)
             .fee(100_000)
             .genesis_hash(genesis)
-            .build().unwrap();
+            .build()
+            .unwrap();
         txs.as_mut().push(Arc::new(tx));
 
         let txs_ctl = TransactionList::decode(txs.encode_to_vec().as_slice()).unwrap();
-        assert_eq!(txs,txs_ctl);
-        println!("{}",serde_json::to_string_pretty(&txs).unwrap());
+        assert_eq!(txs, txs_ctl);
+        println!("{}", serde_json::to_string_pretty(&txs).unwrap());
     }
 
     #[test]
@@ -781,7 +768,6 @@ mod tests {
         62623465353236663333616665646562306663635203307830";
         let tx = SignedTransaction::decode(hex::decode(a).unwrap().as_slice()).unwrap();
         let b = hex::encode(tx.encode_to_vec(), false);
-        assert_eq!(a,b)
+        assert_eq!(a, b)
     }
-
 }

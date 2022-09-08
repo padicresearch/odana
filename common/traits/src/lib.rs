@@ -47,13 +47,13 @@ pub trait Saturating {
 pub trait ChainHeadReader: Send + Sync {
     fn get_header(&self, hash: &H256, level: u32) -> Result<Option<IndexedBlockHeader>>;
     fn get_header_by_hash(&self, hash: &H256) -> Result<Option<IndexedBlockHeader>>;
-    fn get_header_by_level(&self, level: i32) -> Result<Option<IndexedBlockHeader>>;
+    fn get_header_by_level(&self, level: u32) -> Result<Option<IndexedBlockHeader>>;
 }
 
 pub trait ChainReader: Send + Sync {
-    fn get_block(&self, hash: &H256, level: i32) -> Result<Option<Block>>;
+    fn get_block(&self, hash: &H256, level: u32) -> Result<Option<Block>>;
     fn get_block_by_hash(&self, hash: &H256) -> Result<Option<Block>>;
-    fn get_block_by_level(&self, level: i32) -> Result<Option<Block>>;
+    fn get_block_by_level(&self, level: u32) -> Result<Option<Block>>;
 }
 
 pub trait Consensus: Send + Sync {
@@ -84,7 +84,7 @@ pub trait Consensus: Send + Sync {
         time: u32,
     ) -> Result<Compact>;
     fn is_genesis(&self, header: &BlockHeader) -> bool;
-    fn miner_reward(&self, block_level: i32) -> u128;
+    fn miner_reward(&self, block_level: u32) -> u64;
     fn get_genesis_header(&self) -> BlockHeader;
 }
 

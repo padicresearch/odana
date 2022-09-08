@@ -93,7 +93,7 @@ impl BarossaProtocol {
         chain: Arc<dyn ChainHeadReader>,
         max_work_bits: Compact,
     ) -> Compact {
-        let retarget_ref = (height - RETARGETING_INTERVAL) as i32;
+        let retarget_ref = height - RETARGETING_INTERVAL;
         let retarget_header = chain
             .get_header_by_level(retarget_ref)
             .unwrap()
@@ -289,7 +289,7 @@ impl BarossaProtocol {
         // Get the first suitable block of the difficulty interval.
         let first_level = last_level - 144;
         let first_header = chain
-            .get_header_by_level(first_level as i32)
+            .get_header_by_level(first_level)
             .unwrap()
             .expect("last_level >= retargeting_interval; retargeting_interval - 144 > 0; qed");
         let first_header = suitable_block(first_header, chain.clone());
@@ -387,16 +387,20 @@ impl Consensus for BarossaProtocol {
         let parent_header = chain
             .get_header_by_hash(parent)?
             .ok_or(Error::ParentBlockNotFound)?;
-        let level = parent_header.raw.level() as u32;
-        Ok(self.work_required(parent_header.hash, time, level + 1, chain))
+        Ok(self.work_required(
+            parent_header.hash,
+            time,
+            parent_header.raw.level() + 1,
+            chain,
+        ))
     }
 
     fn is_genesis(&self, _header: &BlockHeader) -> bool {
         todo!()
     }
 
-    fn miner_reward(&self, block_level: i32) -> u128 {
-        miner_reward(block_level as u128)
+    fn miner_reward(&self, block_level: u32) -> u64 {
+        miner_reward(block_level as u128) as u64
     }
 
     fn get_genesis_header(&self) -> BlockHeader {
@@ -409,12 +413,12 @@ impl Consensus for BarossaProtocol {
             ]
             .into(),
             [0; 32].into(),
-            [0; 20].into(),
+            [0; 42].into(),
             self.network.max_difficulty_compact().into(),
             self.network.chain_id(),
             0,
             0,
-            0.into(),
+            0,
         )
     }
 }
@@ -454,7 +458,7 @@ mod tests {
         fn get_header(
             &self,
             hash: &H256,
-            _level: i32,
+            _level: u32,
         ) -> anyhow::Result<Option<IndexedBlockHeader>> {
             self.get_header_by_hash(hash)
         }
@@ -467,7 +471,7 @@ mod tests {
             }))
         }
 
-        fn get_header_by_level(&self, level: i32) -> anyhow::Result<Option<IndexedBlockHeader>> {
+        fn get_header_by_level(&self, level: u32) -> anyhow::Result<Option<IndexedBlockHeader>> {
             let by_height = self.by_height.read().unwrap();
             Ok(by_height.get(level as usize).cloned())
         }
@@ -497,18 +501,18 @@ mod tests {
             ]
             .into(),
             [0; 32].into(),
-            [0; 20].into(),
+            [0; 42].into(),
             initial_bits.into(),
             0,
             0,
             1269211443,
-            0.into(),
+            0,
         ));
 
         // Pile up some blocks every 10 mins to establish some history.
         for height in 1..2050 {
             let mut header = header_provider
-                .get_header_by_level((height - 1) as i32)
+                .get_header_by_level(height - 1)
                 .unwrap()
                 .unwrap();
 
@@ -519,10 +523,7 @@ mod tests {
         }
 
         // Difficulty stays the same as long as we produce a block every 10 mins.
-        let header = header_provider
-            .get_header_by_level(2049.into())
-            .unwrap()
-            .unwrap();
+        let header = header_provider.get_header_by_level(2049).unwrap().unwrap();
         let current_bits = barossa.work_required(
             header.hash,
             Utc::now().timestamp() as u32,
@@ -554,10 +555,7 @@ mod tests {
 
         // Make sure we skip over blocks that are out of wack. To do so, we produce
         // a block that is far in the future
-        let mut header = header_provider
-            .get_header_by_level(2059.into())
-            .unwrap()
-            .unwrap();
+        let mut header = header_provider.get_header_by_level(2059).unwrap().unwrap();
         *header.raw.parent_hash_mut() = header.hash.into();
         *header.raw.time_mut() = header.raw.time() + 6000;
         *header.raw.difficulty_mut() = current_bits.into();
@@ -567,10 +565,7 @@ mod tests {
         debug_assert_eq!(calculated_bits, current_bits);
 
         // .. and then produce a block with the expected timestamp.
-        let mut header = header_provider
-            .get_header_by_level(2060.into())
-            .unwrap()
-            .unwrap();
+        let mut header = header_provider.get_header_by_level(2060).unwrap().unwrap();
         *header.raw.parent_hash_mut() = header.hash.into();
         *header.raw.time_mut() = header.raw.time() + 2 * 600 - 6000;
         *header.raw.difficulty_mut() = current_bits.into();

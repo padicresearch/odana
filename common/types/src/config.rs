@@ -5,9 +5,10 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
+use crate::account::Address42;
 use crate::network::Network;
 use directories::UserDirs;
-use primitive_types::{H160, H256, U192};
+use primitive_types::{H256, U192};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeIdentityConfig {
@@ -31,7 +32,7 @@ impl NodeIdentityConfig {
 pub struct EnvironmentConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub miner: Option<H160>,
+    pub miner: Option<Address42>,
     pub host: String,
     pub p2p_port: u16,
     pub rpc_port: u16,

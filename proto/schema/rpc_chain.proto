@@ -13,7 +13,7 @@ message GetBlockByHashRequest {
 }
 
 message GetBlockByLevelRequest {
-  int32 level = 1;
+  uint32 level = 1;
 }
 
 message GetBlocksRequest {

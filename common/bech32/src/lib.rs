@@ -30,8 +30,8 @@
 //! has more details.
 //!
 #![cfg_attr(
-feature = "std",
-doc = "
+    feature = "std",
+    doc = "
 # Examples
 ```
 use bech32::{self, FromBase32, ToBase32, Variant};
@@ -722,8 +722,8 @@ impl std::error::Error for Error {
 /// assert_eq!(base5.unwrap(), vec![0x1f, 0x1c]);
 /// ```
 pub fn convert_bits<T>(data: &[T], from: u32, to: u32, pad: bool) -> Result<Vec<u8>, Error>
-    where
-        T: Into<u8> + Copy,
+where
+    T: Into<u8> + Copy,
 {
     if from > 8 || to > 8 || from == 0 || to == 0 {
         panic!("convert_bits `from` and `to` parameters 0 or greater than 8");

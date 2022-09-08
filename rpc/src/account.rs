@@ -1,14 +1,12 @@
-use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
-use tonic::{Code, Request, Response, Status};
+use tonic::{Request, Response, Status};
 
-use primitive_types::H160;
 use proto::rpc::account_service_server::AccountService;
 use proto::rpc::{GetAccountBalanceResponse, GetAccountNonceResponse, GetAccountRequest};
-use proto::AccountState;
 use traits::StateDB;
 use txpool::TxPool;
+use types::account::{AccountState, Address42};
 
 pub(crate) struct AccountServiceImpl {
     state: Arc<dyn StateDB>,
@@ -27,13 +25,10 @@ impl AccountService for AccountServiceImpl {
         &self,
         request: Request<GetAccountRequest>,
     ) -> Result<Response<GetAccountBalanceResponse>, Status> {
-        let req = request.into_inner();
-        let address = H160::from_str(&req.address)
-            .map_err(|_| Status::new(Code::InvalidArgument, "Invalid Request"))?;
+        let req = request.get_ref();
+        let address = Address42::from_slice(&req.address);
         let balance = self.state.balance(&address);
-        Ok(Response::new(GetAccountBalanceResponse {
-            balance: hex::encode(balance, true),
-        }))
+        Ok(Response::new(GetAccountBalanceResponse { balance }))
     }
 
     async fn get_nonce(
@@ -41,13 +36,10 @@ impl AccountService for AccountServiceImpl {
         request: Request<GetAccountRequest>,
     ) -> Result<Response<GetAccountNonceResponse>, Status> {
         let req = request.into_inner();
-        let address = H160::from_str(&req.address)
-            .map_err(|_| Status::new(Code::InvalidArgument, "Invalid Request"))?;
+        let address = Address42::from_slice(&req.address);
         let txpool = self.txpool.read().unwrap();
         let nonce = txpool.nonce(&address);
-        Ok(Response::new(GetAccountNonceResponse {
-            nonce: format!("{:#02x}", nonce),
-        }))
+        Ok(Response::new(GetAccountNonceResponse { nonce }))
     }
 
     async fn get_account_state(
@@ -55,9 +47,8 @@ impl AccountService for AccountServiceImpl {
         request: Request<GetAccountRequest>,
     ) -> Result<Response<AccountState>, Status> {
         let req = request.into_inner();
-        let address = H160::from_str(&req.address)
-            .map_err(|_| Status::new(Code::InvalidArgument, "Invalid Request"))?;
+        let address = Address42::from_slice(&req.address);
         let account_state = self.state.account_state(&address);
-        Ok(Response::new(account_state.into_proto().unwrap()))
+        Ok(Response::new(account_state))
     }
 }

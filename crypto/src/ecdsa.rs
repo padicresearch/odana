@@ -7,8 +7,8 @@ use k256::elliptic_curve::sec1::{Tag, ToEncodedPoint};
 use rand_core::{CryptoRng, RngCore};
 use sha2::Sha256;
 
+use crate::keccak256;
 use primitive_types::{H256, H512};
-use crate::{ keccak256};
 
 use crate::error::Error;
 use crate::error::Error::InternalError;
@@ -34,8 +34,7 @@ impl Keypair {
         Self { secret, public }
     }
 
-    pub fn from_bytes<B : AsRef<[u8]>>(bytes: B) -> Result<Self, Error>
-    {
+    pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Self, Error> {
         let secret = SecretKey::from_bytes(bytes.as_ref())?;
         let public = secret.public();
         Ok(Self { secret, public })
@@ -65,7 +64,7 @@ impl SecretKey {
     pub fn sign(&self, msg: &[u8]) -> Result<Signature, Error> {
         let mut prehash = Sha256::default();
         prehash.update(msg);
-        let sig= self.inner.sign_digest(prehash);
+        let sig = self.inner.sign_digest(prehash);
         Ok(Signature { inner: sig })
     }
 
@@ -97,8 +96,7 @@ impl PublicKey {
 
     #[inline]
     pub fn from_fixed_bytes(bytes: &H512) -> Result<Self, Error> {
-        let mut raw_bytes = Vec::new();
-        raw_bytes.push(Tag::Uncompressed as u8);
+        let mut raw_bytes = vec![Tag::Uncompressed as u8];
         raw_bytes.copy_from_slice(bytes.as_bytes());
         let inner = VerifyingKey::from_sec1_bytes(&raw_bytes)?;
         Ok(Self { inner })

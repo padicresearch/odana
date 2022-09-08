@@ -6,7 +6,6 @@ use primitive_types::H256;
 use storage::{KVStore, PersistentStorage, Schema, StorageIterator};
 use traits::{ChainHeadReader, ChainReader};
 use types::block::{Block, BlockPrimaryKey, IndexedBlockHeader};
-use types::Hash;
 
 pub struct BlockStorage {
     primary: Arc<BlockPrimaryStorage>,
@@ -31,7 +30,7 @@ impl BlockStorage {
     }
 
     pub fn delete(&self, hash: &H256, level: u32) -> Result<()> {
-        let block_key = BlockPrimaryKey( level, *hash);
+        let block_key = BlockPrimaryKey(level, *hash);
         self.block_by_level.delete(block_key.0)?;
         Ok(())
     }
@@ -64,7 +63,7 @@ impl ChainHeadReader for BlockStorage {
         Ok(None)
     }
 
-    fn get_header_by_level(&self, level: i32) -> anyhow::Result<Option<IndexedBlockHeader>> {
+    fn get_header_by_level(&self, level: u32) -> anyhow::Result<Option<IndexedBlockHeader>> {
         let primary_key = self.block_by_level.get(level)?;
         if let Some(primary_key) = primary_key {
             return self.get_header(&primary_key.1, primary_key.0);
@@ -75,7 +74,7 @@ impl ChainHeadReader for BlockStorage {
 
 impl ChainReader for BlockStorage {
     fn get_block(&self, hash: &H256, level: u32) -> anyhow::Result<Option<Block>> {
-        let primary_key = BlockPrimaryKey( level, *hash);
+        let primary_key = BlockPrimaryKey(level, *hash);
         self.primary.get_block(&primary_key)
     }
 
@@ -87,7 +86,7 @@ impl ChainReader for BlockStorage {
         Ok(None)
     }
 
-    fn get_block_by_level(&self, level: i32) -> Result<Option<Block>> {
+    fn get_block_by_level(&self, level: u32) -> Result<Option<Block>> {
         let primary_key = self.block_by_level.get(level)?;
         if let Some(primary_key) = primary_key {
             return self.get_block(&primary_key.1, primary_key.0);

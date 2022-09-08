@@ -996,8 +996,8 @@ pub struct GetBlockByHashRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByLevelRequest {
-    #[prost(int32, tag="1")]
-    pub level: i32,
+    #[prost(uint32, tag="1")]
+    pub level: u32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlocksRequest {

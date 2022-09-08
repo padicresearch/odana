@@ -7,6 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "schema/rpc_txs.proto",
                 "schema/rpc_account.proto",
                 "schema/rpc_chain.proto",
+                "schema/types.proto",
             ],
             &["schema"],
         )?;

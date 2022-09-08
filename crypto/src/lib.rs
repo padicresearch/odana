@@ -1,9 +1,9 @@
 extern crate core;
 
 pub use digest::Digest;
+use primitive_types::{Compact, H160, H256, H448, U192, U256};
 use ripemd::Ripemd160;
 use sha2::Sha256;
-use primitive_types::{Compact, H160, H256, H448, U192, U256};
 
 pub mod ecdsa;
 mod error;
@@ -42,7 +42,7 @@ pub fn dhash160<B: AsRef<[u8]>>(bytes: B) -> H160 {
 
 #[inline]
 pub fn dhash256<B: AsRef<[u8]>>(bytes: B) -> H256 {
-   sha256(sha256(bytes))
+    sha256(sha256(bytes))
 }
 #[inline]
 pub fn sha256<B: AsRef<[u8]>>(bytes: B) -> H256 {
@@ -53,7 +53,7 @@ pub fn sha256<B: AsRef<[u8]>>(bytes: B) -> H256 {
 
 #[inline]
 pub fn keccak256<B: AsRef<[u8]>>(bytes: B) -> H256 {
-    let mut hasher =sha3::Keccak256::default();
+    let mut hasher = sha3::Keccak256::default();
     hasher.update(bytes.as_ref());
     let out = hasher.finalize();
     H256::from_slice(out.as_ref())

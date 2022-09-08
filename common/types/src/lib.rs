@@ -7,12 +7,11 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use codec::{Decodable, Encodable};
-use primitive_types::H160;
-use bincode::{Encode, Decode};
+use bincode::{Decode, Encode};
 use bytes::{Buf, BufMut};
-use prost::{DecodeError, Message};
+use codec::{Decodable, Encodable};
 use prost::encoding::{DecodeContext, WireType};
+use prost::{DecodeError, Message};
 
 use crate::block::BlockHeader;
 
@@ -38,7 +37,11 @@ impl Default for ChainStateValue {
 }
 
 impl prost::Message for ChainStateValue {
-    fn encode_raw<B>(&self, buf: &mut B) where B: BufMut, Self: Sized {
+    fn encode_raw<B>(&self, buf: &mut B)
+    where
+        B: BufMut,
+        Self: Sized,
+    {
         match self {
             ChainStateValue::CurrentHeader(header) => {
                 prost::encoding::message::encode(1, header, buf)
@@ -46,17 +49,24 @@ impl prost::Message for ChainStateValue {
         }
     }
 
-    fn merge_field<B>(&mut self, tag: u32, wire_type: WireType, buf: &mut B, ctx: DecodeContext) -> Result<(), DecodeError> where B: Buf, Self: Sized {
+    fn merge_field<B>(
+        &mut self,
+        tag: u32,
+        wire_type: WireType,
+        buf: &mut B,
+        ctx: DecodeContext,
+    ) -> Result<(), DecodeError>
+    where
+        B: Buf,
+        Self: Sized,
+    {
         match tag {
-            1 => {
-                match self {
-                    ChainStateValue::CurrentHeader(header) => {
-                        prost::encoding::message::merge(wire_type,header,buf, ctx)
-                    }
+            1 => match self {
+                ChainStateValue::CurrentHeader(header) => {
+                    prost::encoding::message::merge(wire_type, header, buf, ctx)
                 }
-
-            }
-            _ => panic!("invalid ChainStateValue tag: {}", tag)
+            },
+            _ => panic!("invalid ChainStateValue tag: {}", tag),
         }
     }
 
@@ -68,9 +78,7 @@ impl prost::Message for ChainStateValue {
         }
     }
 
-    fn clear(&mut self) {
-
-    }
+    fn clear(&mut self) {}
 }
 
 impl Encodable for ChainStateValue {
@@ -81,10 +89,9 @@ impl Encodable for ChainStateValue {
 
 impl Decodable for ChainStateValue {
     fn decode(buf: &[u8]) -> anyhow::Result<Self> {
-        <Self as prost::Message>::decode(buf).map_err(|e|e.into())
+        <Self as prost::Message>::decode(buf).map_err(|e| e.into())
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct TxPoolConfig {
@@ -123,15 +130,14 @@ where
     out
 }
 
-
 pub mod prelude {
-    pub use crate::tx::*;
     pub use crate::account::*;
     pub use crate::block::*;
     pub use crate::config::*;
     pub use crate::events::*;
     pub use crate::network::*;
+    pub use crate::tx::*;
 
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    #[derive(Clone, PartialEq, Eq, ::prost::Message)]
     pub struct Empty;
 }

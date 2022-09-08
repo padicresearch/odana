@@ -1,4 +1,4 @@
-use crypto::{keccak256, sha256};
+use crypto::sha256;
 
 pub const HASH_LEN: usize = 32;
 

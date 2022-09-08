@@ -66,12 +66,12 @@ impl GetBlockHeaderMessage {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct FindBlocksMessage {
-    pub from: i32,
-    pub limit: i32,
+    pub from: u32,
+    pub limit: u32,
 }
 
 impl FindBlocksMessage {
-    pub fn new(from: i32, limit: i32) -> Self {
+    pub fn new(from: u32, limit: u32) -> Self {
         Self { from, limit }
     }
 }

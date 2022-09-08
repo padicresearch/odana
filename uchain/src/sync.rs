@@ -104,7 +104,7 @@ impl SyncService {
                 info!(from = ?old_bootstrap_peer, to = ?new_bootstrap_peer, "Bootstrap peer disconnected or failed to send blocks, switching bootstrapping peer");
                 self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip));
                 self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                    self.last_request_index as i32,
+                    self.last_request_index,
                     24,
                 )));
             }
@@ -152,7 +152,7 @@ impl SyncService {
             if sync_point.level() > node_level {
                 self.last_request_index = node_level as u32 + 1;
                 self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                    self.last_request_index as i32,
+                    self.last_request_index,
                     24,
                 )));
             } else if sync_point.level() <= node_level {
@@ -161,7 +161,7 @@ impl SyncService {
                     self.last_request_index = node_level as u32 + 1;
                     self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip));
                     self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                        self.last_request_index as i32,
+                        self.last_request_index,
                         24,
                     )));
                 }
@@ -182,7 +182,7 @@ impl SyncService {
                 self.last_request_index = 1
             }
             self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                self.last_request_index as i32,
+                self.last_request_index,
                 24,
             )));
         }
@@ -214,7 +214,7 @@ impl Handler<PeerMessage> for SyncService {
                     self.last_request_index = 1
                 }
                 self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
-                    self.last_request_index as i32,
+                    self.last_request_index,
                     52,
                 )));
             }
@@ -273,7 +273,7 @@ impl SyncService {
     }
 
     fn validate_chain(&self, blocks: &[Block]) -> bool {
-        let mut blocks_to_apply: BTreeMap<i32, HashMap<H256, &Block>> = BTreeMap::new();
+        let mut blocks_to_apply: BTreeMap<u32, HashMap<H256, &Block>> = BTreeMap::new();
         for block in blocks {
             let map = blocks_to_apply
                 .entry(block.level())

@@ -137,7 +137,7 @@ where
                 ExpectedLen::Between(_, slice) => slice,
             };
 
-            hex::decode_to_slice(v.as_ref(), bytes, stripped).map_err(E::custom)
+            hex::decode_to_slice(v, bytes, stripped).map_err(E::custom)
         }
 
         fn visit_string<E: de::Error>(self, v: String) -> Result<Self::Value, E> {

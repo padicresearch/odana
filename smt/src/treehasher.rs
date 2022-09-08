@@ -1,4 +1,4 @@
-use crypto::{sha256};
+use crypto::sha256;
 use primitive_types::H256;
 
 const LEAF_PREFIX: [u8; 1] = [0];
@@ -29,9 +29,7 @@ pub(crate) trait TreeHasher {
 
     #[inline]
     fn digest_node(&self, left_data: &[u8], right_data: &[u8]) -> (H256, Vec<u8>) {
-        let mut value = Vec::with_capacity(
-            NODE_PREFIX.len() + left_data.len() + right_data.len(),
-        );
+        let mut value = Vec::with_capacity(NODE_PREFIX.len() + left_data.len() + right_data.len());
         value.extend_from_slice(&NODE_PREFIX);
         value.extend_from_slice(left_data);
         value.extend_from_slice(right_data);

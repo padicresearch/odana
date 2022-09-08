@@ -161,7 +161,7 @@ where
     I: Iterator<Item = In>,
 {
     fn new(source: I) -> Self {
-        let source = source.into_iter();
+        let source = source;
 
         BitIter {
             _phantom: ::std::marker::PhantomData,

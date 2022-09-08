@@ -11,13 +11,13 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::{H160, H256};
-use proto::TransactionStatus;
+use primitive_types::H256;
 use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};
+use types::account::Address42;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
-use types::tx::{SignedTransaction, TransactionList};
+use types::tx::{SignedTransaction, TransactionList, TransactionStatus};
 use types::{Hash, TxPoolConfig};
 
 use crate::error::TxPoolError;
@@ -36,7 +36,7 @@ pub mod tx_noncer;
 
 type TransactionRef = Arc<SignedTransaction>;
 type Transactions = Vec<TransactionRef>;
-type Address = H160;
+type Address = Address42;
 const TXPOOL_LOG_TARGET: &str = "txpool";
 
 const TX_SLOT_SIZE: u64 = 32 * 1024;
@@ -316,7 +316,7 @@ impl TxPool {
         Ok(())
     }
 
-    fn promote_tx(&mut self, addr: H160, hash: Hash, tx: TransactionRef) -> bool {
+    fn promote_tx(&mut self, addr: Address, hash: Hash, tx: TransactionRef) -> bool {
         let nonce = tx.nonce();
         let list = self
             .pending
@@ -395,7 +395,7 @@ impl TxPool {
             if old_head.hash().ne(new_head.parent_hash()) {
                 let old_num = old_head.level();
                 let new_num = new_head.level();
-                let depth = (old_num - new_num).abs();
+                let depth = (old_num as i32 - new_num as i32).abs();
                 if depth > 64 {
                     debug!(target : TXPOOL_LOG_TARGET, depth = ?depth, "Skipping deep transaction repack");
                 } else {
@@ -862,7 +862,7 @@ impl TxPool {
         status
     }
 
-    pub fn nonce(&self, address: &H160) -> u64 {
+    pub fn nonce(&self, address: &Address) -> u64 {
         let mut nonce = self.current_state.nonce(address);
         let sn = self.pending_nonce.get(address);
         if sn > nonce {
@@ -945,12 +945,12 @@ impl ResetRequest {
 
 #[derive(Copy, Clone)]
 struct AddressByHeartbeat {
-    address: H160,
+    address: Address,
     heartbeat: Instant,
 }
 
 impl AddressByHeartbeat {
-    fn new(address: H160, heartbeat: Instant) -> Self {
+    fn new(address: Address, heartbeat: Instant) -> Self {
         Self { address, heartbeat }
     }
 }

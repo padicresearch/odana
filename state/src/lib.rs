@@ -5,8 +5,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use codec::{Decodable, Encodable};
-use primitive_types::{H160, H256};
+use primitive_types::H256;
 use smt::proof::Proof;
 use smt::{Op, Tree};
 use traits::StateDB;
@@ -286,7 +285,11 @@ impl State {
             .unwrap_or_default())
     }
 
-    fn get_account_state_at_root(&self, at_root: &H256, address: &Address42) -> Result<AccountState> {
+    fn get_account_state_at_root(
+        &self,
+        at_root: &H256,
+        address: &Address42,
+    ) -> Result<AccountState> {
         Ok(self
             .trie
             .get_at_root(at_root, address)
@@ -302,7 +305,10 @@ impl State {
         }))
     }
 
-    fn get_account_state_with_proof(&self, address: &Address42) -> Result<(AccountState, ReadProof)> {
+    fn get_account_state_with_proof(
+        &self,
+        address: &Address42,
+    ) -> Result<(AccountState, ReadProof)> {
         let (account_state, proof) = self.trie.get_with_proof(address)?;
         let root = self.trie.root()?;
         Ok((account_state, ReadProof { proof, root }))

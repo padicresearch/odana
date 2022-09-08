@@ -1,9 +1,9 @@
 use core::cmp;
 use std::cmp::Ordering;
-use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::u32;
 
+use crate::account::Address42;
 use anyhow::Result;
 use bytes::{Buf, Bytes, BytesMut};
 use codec::impl_codec_using_prost;
@@ -11,8 +11,7 @@ use codec::ConsensusCodec;
 use codec::{Decodable, Encodable};
 use crypto::dhash256;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-use hex::{FromHex, ToHex};
-use primitive_types::{Compact, H256, U128, U256};
+use primitive_types::{Compact, H256, U256};
 use serde::{Deserialize, Serialize};
 
 use crate::tx::SignedTransaction;
@@ -43,7 +42,7 @@ impl Decodable for BlockPrimaryKey {
         let level = u32::from_be_bytes(level);
         let mut hash: [u8; 32] = [0; 32];
         hash.copy_from_slice(&buf[4..]);
-        Ok(Self( level, hash.into()))
+        Ok(Self(level, hash.into()))
     }
 }
 
@@ -60,7 +59,7 @@ pub struct BlockHeader {
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
     mix_nonce: U256,
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
-    coinbase: H160,
+    coinbase: Address42,
     #[getset(set = "pub", get_mut = "pub")]
     difficulty: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
@@ -79,7 +78,7 @@ impl BlockHeader {
         merkle_root: H256,
         state_root: H256,
         mix_nonce: U256,
-        coinbase: H160,
+        coinbase: Address42,
         difficulty: u32,
         chain_id: u32,
         level: u32,
@@ -132,7 +131,7 @@ impl ConsensusCodec for BlockHeader {
             merkle_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             state_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             mix_nonce: U256::from_big_endian(&bytes.copy_to_bytes(32)),
-            coinbase: H160::from_slice(&bytes.copy_to_bytes(20)),
+            coinbase: Address42::from_slice(&bytes.copy_to_bytes(42)),
             difficulty: bytes.get_u32(),
             chain_id: bytes.get_u32(),
             level: bytes.get_u32(),
@@ -171,7 +170,7 @@ impl prost::Message for BlockHeader {
         B: Buf,
         Self: Sized,
     {
-        const STRUCT_NAME: &'static str = "BlockHeader";
+        const STRUCT_NAME: &str = "BlockHeader";
         match tag {
             1 => prost::encoding::bytes::merge(wire_type, &mut self.parent_hash, buf, ctx).map_err(
                 |mut error| {
@@ -241,7 +240,7 @@ impl prost::Message for BlockHeader {
     }
 
     fn encoded_len(&self) -> usize {
-        0 + prost::encoding::bytes::encoded_len(1, &self.parent_hash)
+        prost::encoding::bytes::encoded_len(1, &self.parent_hash)
             + prost::encoding::bytes::encoded_len(2, &self.merkle_root)
             + prost::encoding::bytes::encoded_len(3, &self.state_root)
             + prost::encoding::bytes::encoded_len(4, &self.mix_nonce)
@@ -287,7 +286,7 @@ impl prost::Message for Block {
         B: Buf,
         Self: Sized,
     {
-        const STRUCT_NAME: &'static str = "Block";
+        const STRUCT_NAME: &str = "Block";
         match tag {
             1 => {
                 let value = &mut self.header;
@@ -310,7 +309,7 @@ impl prost::Message for Block {
     }
 
     fn encoded_len(&self) -> usize {
-        0 + prost::encoding::message::encoded_len(1, &self.header)
+        prost::encoding::message::encoded_len(1, &self.header)
             + prost::encoding::message::encoded_len_repeated(2, &self.transactions)
     }
 
@@ -439,87 +438,5 @@ impl PartialOrd for HeightSortedBlockHeader {
 impl Ord for HeightSortedBlockHeader {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.level.cmp(&other.0.level)
-    }
-}
-
-#[test]
-fn test_proto_conversions() {
-    let block_header = BlockHeader::new(
-        H256::from([1; 32]),
-        H256::from([2; 32]),
-        H256::from([6; 32]),
-        U256::from(400),
-        H160::from([7; 20]),
-        30,
-        30,
-        30,
-        10000000,
-        5,
-    );
-
-    let pheader = block_header.encode_to_vec();
-    println!("{}", hex::encode(pheader, false))
-}
-
-#[cfg(test)]
-mod tests {
-    use chrono::Utc;
-    use prost::Message;
-    use std::str::FromStr;
-
-    #[cfg(test)]
-    use pretty_assertions::{assert_eq, assert_ne};
-
-    use codec::ConsensusCodec;
-    use primitive_types::{H160, H256, U128, U256};
-
-    use crate::BlockHeader;
-
-    #[test]
-    fn test_consensus_codec() {
-        let block_header = BlockHeader::new(
-            H256::from_str("0x0000014f092233bd0d41ab40817649d9a188ef86dc2f631a4c96e15997080499")
-                .unwrap(),
-            H256::from_str("0x0000000000000000000000000000000000000000000000000000000000000000")
-                .unwrap(),
-            H256::from_str("0x0c191dd909dad74ef2f96ed5dad8e9778e75b46979178cfb61f051ec06882ea8")
-                .unwrap(),
-            U256::from_str("0x1").unwrap(),
-            H160::from_str("0x350dc631bd1dc8f21d76a636ecea2ed4482a0a97").unwrap(),
-            30,
-            30,
-            30,
-            1662512256,
-            5,
-        );
-        let a = block_header.encode_to_vec();
-        let c = "0x0a200000014f092233bd0d41ab40817649d9a188ef86dc2f631a4c96e159970804991220\
-        00000000000000000000000000000000000000000000000000000000000000001a200c191dd909dad74ef2f9\
-        6ed5dad8e9778e75b46979178cfb61f051ec06882ea822200000000000000000000000000000000000000000\
-        0000000000000000000000012a14350dc631bd1dc8f21d76a636ecea2ed4482a0a97301e381e401e4880d9df\
-        98065005";
-
-        let encoded = block_header.consensus_encode();
-        println!("{:#?}", block_header);
-        println!("{}", hex::encode(&a, false));
-        assert_eq!(hex::encode(&a, false), c);
-        let block_header = BlockHeader::consensus_decode(&encoded).unwrap();
-        let b = block_header.encode_to_vec();
-        assert_eq!(a, b);
-    }
-
-    pub const MAX_BLOCK_HEIGHT: u128 = 25_000_000;
-    pub const INITIAL_REWARD: u128 = 10 * 1_000_000_000 /*TODO: Use TUC constant*/;
-    pub const SPREAD: u128 = MAX_BLOCK_HEIGHT.pow(4) / INITIAL_REWARD;
-    pub const PRECISION_CORRECTION: u128 = 5012475762;
-    pub const MAX_SUPPLY_APPROX: u128 =
-        (INITIAL_REWARD * MAX_BLOCK_HEIGHT) - (MAX_BLOCK_HEIGHT.pow(5) / (5 * SPREAD));
-    pub const MAX_SUPPLY_PRECOMPUTED: u128 = MAX_SUPPLY_APPROX + PRECISION_CORRECTION;
-
-    #[test]
-    fn total_supply() {
-        let t = 1_000_000_u128;
-        println!("{}", ((u64::MAX) as u128) - MAX_SUPPLY_PRECOMPUTED);
-        assert!(((u64::MAX) as u128) > MAX_SUPPLY_PRECOMPUTED)
     }
 }

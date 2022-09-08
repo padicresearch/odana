@@ -10,14 +10,14 @@ use tokio::sync::mpsc::UnboundedSender;
 use blockchain::chain_state::ChainState;
 use merkle::Merkle;
 use p2p::peer_manager::NetworkState;
-use primitive_types::{H160, U128, U256};
+use primitive_types::U256;
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 use txpool::TxPool;
+use types::account::Address42;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::SignedTransaction;
-use types::Address;
 
 pub const SHUTDOWN: i8 = -1;
 pub const RESET: i8 = 0;
@@ -26,7 +26,7 @@ pub const START: i8 = 2;
 
 #[allow(clippy::too_many_arguments)]
 pub fn start_worker(
-    coinbase: H160,
+    coinbase: Address42,
     lmpsc: UnboundedSender<LocalEventMessage>,
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
@@ -61,7 +61,7 @@ pub fn start_worker(
 
         let (mut block_template, txs) = {
             let (head, txs) = make_block_template(
-                coinbase.to_fixed_bytes(),
+                coinbase,
                 consensus.clone(),
                 txpool.clone(),
                 chain.get_current_state()?,
@@ -97,9 +97,9 @@ pub fn start_worker(
                 let mut out = [0; 32];
                 mix_nonce.to_big_endian(&mut out);
                 block_template.set_mix_nonce(out.into());
-                block_template.set_nonce(0.into());
+                block_template.set_nonce(0);
             };
-            *block_template.nonce_mut() += U128::one();
+            *block_template.nonce_mut() += 1;
             if consensus
                 .verify_header(chain_header_reader.clone(), &block_template)
                 .is_ok()
@@ -152,7 +152,7 @@ fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedT
 }
 
 fn make_block_template(
-    coinbase: Address,
+    coinbase: Address42,
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
     state: Arc<dyn StateDB>,
@@ -174,12 +174,12 @@ fn make_block_template(
         merkle_root.into(),
         [0; 32].into(),
         mix_nonce.into(),
-        coinbase.into(),
+        coinbase,
         0,
         0,
         parent_header.level() + 1,
         time,
-        0.into(),
+        0,
     );
     consensus.prepare_header(chain_header_reader.clone(), &mut header)?;
     consensus.finalize(chain_header_reader, &mut header, state.clone(), txs.clone())?;

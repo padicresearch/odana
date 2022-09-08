@@ -2,11 +2,11 @@ use std::hash::{Hash, Hasher};
 
 use bloomfilter::Bloom;
 
-use crate::hasher::{HashFunction, HASH_LEN, Sha3Keccak256};
 use crate::errors::*;
+use crate::hasher::{HashFunction, Sha3Keccak256, HASH_LEN};
 
-mod hasher;
 mod errors;
+mod hasher;
 
 const BITMAP_SIZE: usize = 32 * 1024 * 1024;
 

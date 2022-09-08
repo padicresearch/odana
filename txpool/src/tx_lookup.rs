@@ -3,14 +3,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
 
-use primitive_types::H160;
 use types::tx::SignedTransaction;
 use types::Hash;
 
 use crate::{num_slots, Address, TransactionRef, Transactions};
 
 pub struct AccountSet {
-    accounts: BTreeSet<H160>,
+    accounts: BTreeSet<Address>,
 }
 
 impl Default for AccountSet {
@@ -33,7 +32,7 @@ impl AccountSet {
         }
     }
 
-    pub(crate) fn contains(&self, address: &H160) -> bool {
+    pub(crate) fn contains(&self, address: &Address) -> bool {
         self.accounts.contains(address)
     }
 
@@ -46,7 +45,7 @@ impl AccountSet {
         self.contains(&address)
     }
 
-    pub(crate) fn add(&mut self, address: H160) {
+    pub(crate) fn add(&mut self, address: Address) {
         self.accounts.insert(address);
     }
 
@@ -55,7 +54,7 @@ impl AccountSet {
         self.add(address);
     }
 
-    pub(crate) fn flatten(&self) -> Vec<H160> {
+    pub(crate) fn flatten(&self) -> Vec<Address> {
         self.accounts.iter().copied().collect()
     }
 

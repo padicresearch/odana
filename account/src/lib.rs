@@ -1,16 +1,14 @@
 #![feature(slice_take)]
 
-use crypto::{keccak256};
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 
-use bech32::{ToBase32, Variant};
-use crypto::ecdsa::{Keypair, PublicKey};
-use primitive_types::{H160, H256};
-use types::account::{Account, Address42, get_address_from_pub_key};
+use crypto::ecdsa::Keypair;
+use primitive_types::H256;
+use types::account::{get_address_from_pub_key, Account};
 use types::network::Network;
 
-pub fn create_account(network : Network) -> Account {
+pub fn create_account(network: Network) -> Account {
     let mut csprng = ChaCha20Rng::from_entropy();
     let keypair = Keypair::generate(&mut csprng);
     let secret = H256::from(keypair.secret.to_bytes());

@@ -1,7 +1,4 @@
 use anyhow::{anyhow, Result};
-use bytes::{Buf, BufMut};
-use prost::encoding::{DecodeContext, WireType};
-use prost::DecodeError;
 use serde::ser::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
@@ -71,12 +68,12 @@ impl From<Account> for H160 {
     }
 }
 
-#[derive(Copy, Clone, PartialOrd, Ord)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Ord, Hash)]
 pub struct Address42(pub [u8; 42]);
 
 impl Default for Address42 {
     fn default() -> Self {
-        Self { 0: [0; 42] }
+        Self([0; 42])
     }
 }
 
@@ -93,6 +90,12 @@ impl Display for Address42 {
         f.write_str("...")?;
         f.write_str(&s[36..])?;
         Ok(())
+    }
+}
+
+impl From<[u8; 42]> for Address42 {
+    fn from(slice: [u8; 42]) -> Self {
+        Address42(slice)
     }
 }
 
@@ -146,9 +149,11 @@ impl Address42 {
         Self(bytes)
     }
 
-
     pub fn as_bytes(&self) -> &[u8] {
         &self.0[..]
+    }
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.0.to_vec()
     }
 
     fn hrp(&self) -> String {
@@ -186,13 +191,13 @@ impl Address42 {
 impl FromStr for Address42 {
     type Err = bech32::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !s.len() == 42 {
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        if !input.len() == 42 {
             return Err(Self::Err::InvalidLength);
         }
-        let _ = bech32::decode(s)?;
+        let _ = bech32::decode(input)?;
         let mut bytes = [0; 42];
-        bytes.copy_from_slice(s.as_bytes());
+        bytes.copy_from_slice(input.as_bytes());
         Ok(Address42(bytes))
     }
 }
@@ -240,14 +245,6 @@ impl<'de> ::serde::Deserialize<'de> for Address42 {
     }
 }
 
-impl PartialEq for Address42 {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
-    }
-}
-
-impl Eq for Address42 {}
-
 pub fn get_address_from_pub_key(pub_key: PublicKey, network: Network) -> Address42 {
     let key = pub_key.hash();
     let checksum = &key[12..];
@@ -256,6 +253,17 @@ pub fn get_address_from_pub_key(pub_key: PublicKey, network: Network) -> Address
     let mut raw_address = [0; 42];
     raw_address.copy_from_slice(address.as_bytes());
     Address42(raw_address)
+}
+pub fn get_address_from_secret_key(sk: H256, network: Network) -> Result<Address42> {
+    let sk = SecretKey::from_bytes(sk.as_bytes())?;
+    let pk = sk.public();
+    let key = pk.hash();
+    let checksum = &key[12..];
+    let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
+        .expect("error creating account id");
+    let mut raw_address = [0; 42];
+    raw_address.copy_from_slice(address.as_bytes());
+    Ok(Address42(raw_address))
 }
 pub fn get_eth_address_from_pub_key(pub_key: PublicKey) -> H160 {
     let pubkey_bytes = pub_key.to_bytes();

@@ -8,35 +8,30 @@ use account::create_account;
 use primitive_types::{H160, H256};
 use traits::{Blockchain, ChainHeadReader, ChainReader, StateDB};
 use transaction::make_sign_transaction;
-use types::account::{Account, AccountState};
+use types::account::{Account, AccountState, Address42};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
-use types::tx::SignedTransaction;
+use types::network::Network;
+use types::tx::{SignedTransaction, TransactionBuilder};
 use types::Hash;
 
 use crate::tx_lookup::AccountSet;
-use crate::{ResetRequest, TransactionRef, TxPool};
+use crate::{Address, ResetRequest, TransactionRef, TxPool};
 
 #[derive(Clone)]
 struct DummyStateDB {
-    accounts: DashMap<H160, AccountState>,
+    accounts: DashMap<Address42, AccountState>,
 }
 
-pub fn make_tx(
-    from: &Account,
-    to: &Account,
-    nonce: u64,
-    amount: u128,
-    fee: u128,
-) -> TransactionRef {
-    let tx = make_sign_transaction(
-        from,
-        nonce,
-        to.address.to_fixed_bytes(),
-        amount,
-        fee,
-        "".to_string(),
-    )
-    .unwrap();
+pub fn make_tx(from: &Account, to: &Account, nonce: u64, amount: u64, fee: u64) -> TransactionRef {
+    let mut builder = TransactionBuilder::with_signer(from).unwrap();
+    let tx = builder
+        .nonce(nonce)
+        .fee(fee)
+        .transfer()
+        .to(to.address)
+        .amount(amount)
+        .build()
+        .unwrap();
     Arc::new(tx)
 }
 
@@ -44,22 +39,22 @@ fn make_tx_def(
     from: &Account,
     to: &Account,
     nonce: u64,
-    amount: u128,
-    fee: u128,
+    amount: u64,
+    fee: u64,
 ) -> SignedTransaction {
-    make_sign_transaction(
-        from,
-        nonce,
-        to.address.to_fixed_bytes(),
-        amount,
-        fee,
-        "".to_string(),
-    )
-    .unwrap()
+    let mut builder = TransactionBuilder::with_signer(from).unwrap();
+    builder
+        .nonce(nonce)
+        .fee(fee)
+        .transfer()
+        .to(to.address)
+        .amount(amount)
+        .build()
+        .unwrap()
 }
 
 impl DummyStateDB {
-    fn with_accounts(accounts: Vec<(H160, AccountState)>) -> Self {
+    fn with_accounts(accounts: Vec<(Address, AccountState)>) -> Self {
         let map = DashMap::new();
         for (addr, state) in accounts {
             map.insert(addr, state);
@@ -69,13 +64,13 @@ impl DummyStateDB {
 
     pub fn set_account_state(
         &self,
-        address: H160,
+        address: Address42,
         state: AccountState,
     ) -> Result<Option<AccountState>> {
         Ok(self.accounts.insert(address, state))
     }
 
-    pub fn increment_nonce(&self, address: &H160, nonce: u64) -> AccountState {
+    pub fn increment_nonce(&self, address: &Address42, nonce: u64) -> AccountState {
         let mut entry = self
             .accounts
             .entry(*address)
@@ -83,7 +78,7 @@ impl DummyStateDB {
         entry.value_mut().nonce += nonce;
         *entry.value()
     }
-    pub fn set_nonce(&self, address: &H160, nonce: u64) -> AccountState {
+    pub fn set_nonce(&self, address: &Address42, nonce: u64) -> AccountState {
         let mut entry = self
             .accounts
             .entry(*address)
@@ -92,7 +87,7 @@ impl DummyStateDB {
         *entry.value()
     }
 
-    pub fn set_balance(&self, address: &H160, amount: u128) -> AccountState {
+    pub fn set_balance(&self, address: &Address42, amount: u64) -> AccountState {
         let mut entry = self
             .accounts
             .entry(*address)
@@ -140,29 +135,29 @@ impl DummyChain {
 }
 
 impl StateDB for DummyStateDB {
-    fn nonce(&self, account_id: &H160) -> u64 {
+    fn nonce(&self, account_id: &Address42) -> u64 {
         self.accounts
             .get(account_id)
             .map(|state| state.nonce as u64)
             .unwrap_or_default()
     }
 
-    fn account_state(&self, account_id: &H160) -> AccountState {
+    fn account_state(&self, account_id: &Address42) -> AccountState {
         self.accounts
             .get(account_id)
             .map(|state| *state.value())
             .unwrap_or_default()
     }
 
-    fn balance(&self, address: &H160) -> u128 {
+    fn balance(&self, address: &Address42) -> u64 {
         self.account_state(address).free_balance
     }
 
-    fn credit_balance(&self, _address: &H160, _amount: u128) -> Result<H256> {
+    fn credit_balance(&self, _address: &Address42, _amount: u64) -> Result<H256> {
         todo!()
     }
 
-    fn debit_balance(&self, _address: &H160, _amount: u128) -> Result<H256> {
+    fn debit_balance(&self, _address: &Address42, _amount: u64) -> Result<H256> {
         todo!()
     }
 
@@ -221,7 +216,7 @@ impl Blockchain for DummyChain {
 }
 
 impl ChainReader for DummyChain {
-    fn get_block(&self, hash: &H256, _level: i32) -> Result<Option<Block>> {
+    fn get_block(&self, hash: &H256, _level: u32) -> Result<Option<Block>> {
         let index = match self.blocks.get(hash) {
             None => return Ok(None),
             Some(block) => *block.value(),
@@ -247,13 +242,13 @@ impl ChainReader for DummyChain {
         Ok(block)
     }
 
-    fn get_block_by_level(&self, _level: i32) -> Result<Option<Block>> {
+    fn get_block_by_level(&self, _level: u32) -> Result<Option<Block>> {
         todo!()
     }
 }
 
 impl ChainHeadReader for DummyChain {
-    fn get_header(&self, hash: &H256, _level: i32) -> Result<Option<IndexedBlockHeader>> {
+    fn get_header(&self, hash: &H256, _level: u32) -> Result<Option<IndexedBlockHeader>> {
         let index = match self.blocks.get(hash) {
             None => return Ok(None),
             Some(block) => *block.value(),
@@ -279,7 +274,7 @@ impl ChainHeadReader for DummyChain {
         Ok(block.map(|b| (*b.header()).into()))
     }
 
-    fn get_header_by_level(&self, level: i32) -> Result<Option<IndexedBlockHeader>> {
+    fn get_header_by_level(&self, level: u32) -> Result<Option<IndexedBlockHeader>> {
         let chain = self
             .chain
             .read()
@@ -294,13 +289,13 @@ fn generate_blocks(n: usize) -> Vec<Block> {
     for level in 0..=n {
         let block = if blocks.is_empty() {
             make_block(
-                level as i32,
+                level as u32,
                 [0; 32].into(),
                 H256::from_low_u64_be(level as u64),
             )
         } else {
             make_block(
-                level as i32,
+                level as u32,
                 blocks[level - 1].hash(),
                 H256::from_low_u64_be(level as u64),
             )
@@ -310,13 +305,13 @@ fn generate_blocks(n: usize) -> Vec<Block> {
     blocks
 }
 
-fn state_with_balance(amount: u128) -> AccountState {
+fn state_with_balance(amount: u64) -> AccountState {
     let mut state = AccountState::default();
     state.free_balance = amount;
     state
 }
 
-fn make_block(level: i32, parent_hash: H256, state_root: H256) -> Block {
+fn make_block(level: u32, parent_hash: H256, state_root: H256) -> Block {
     Block::new(
         BlockHeader::new(
             parent_hash,
@@ -328,7 +323,7 @@ fn make_block(level: i32, parent_hash: H256, state_root: H256) -> Block {
             0,
             level,
             0,
-            0.into(),
+            0,
         ),
         Vec::new(),
     )
@@ -336,8 +331,8 @@ fn make_block(level: i32, parent_hash: H256, state_root: H256) -> Block {
 
 #[tokio::test]
 async fn txpool_test() {
-    let alice = create_account();
-    let bob = create_account();
+    let alice = create_account(Network::Testnet);
+    let bob = create_account(Network::Testnet);
     let state_db = Arc::new(DummyStateDB::with_accounts(vec![(
         alice.address,
         state_with_balance(1000),

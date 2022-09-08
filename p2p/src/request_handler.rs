@@ -51,7 +51,11 @@ impl RequestHandler {
                             .get_block_by_hash(peer_current_state.parent_hash());
                         match res {
                             Ok(Some(block)) => block.level(),
-                            _ => -1,
+                            _ => {
+                                let msg =
+                                    PeerMessage::BlockHeader(BlockHeaderMessage::new(headers));
+                                return Ok(Some(msg));
+                            }
                         }
                     }
                 };
@@ -84,7 +88,7 @@ impl RequestHandler {
                     .blockchain
                     .chain()
                     .block_storage()
-                    .get_blocks(H256::zero(), msg.from)
+                    .get_blocks(&H256::zero(), msg.from)
                     .unwrap()
                     .take(msg.limit as usize)
                     .collect();

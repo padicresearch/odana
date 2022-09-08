@@ -2,8 +2,8 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
+use bincode::{Decode, Encode};
 use codec::{Decodable, Encodable};
-use bincode::{Encode,Decode};
 use primitive_types::H256;
 
 use crate::error::Error;
@@ -30,7 +30,6 @@ impl Decodable for Proof {
             .map_err(|e| e.into())
     }
 }
-
 
 #[derive(Serialize, Deserialize)]
 pub struct CompatProof {

@@ -25,10 +25,9 @@ impl WordList {
     }
 
     pub fn get_words_by_prefix(&self, prefix: &str) -> &[&'static str] {
-        let start = self.inner
-            .binary_search(&prefix)
-            .unwrap_or_else(|idx| idx);
-        let count = self.inner[start..].iter()
+        let start = self.inner.binary_search(&prefix).unwrap_or_else(|idx| idx);
+        let count = self.inner[start..]
+            .iter()
             .take_while(|word| word.starts_with(prefix))
             .count();
 
@@ -112,7 +111,7 @@ mod lazy {
 ///
 /// [Mnemonic]: ./mnemonic/struct.Mnemonic.html
 /// [Seed]: ./seed/struct.Seed.html
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Language {
     English,
     #[cfg(feature = "chinese-simplified")]
@@ -220,7 +219,7 @@ mod test {
     fn words_by_prefix() {
         let wl = &lazy::WORDLIST_ENGLISH;
         let res = wl.get_words_by_prefix("woo");
-        assert_eq!(res, ["wood","wool"]);
+        assert_eq!(res, ["wood", "wool"]);
     }
 
     #[cfg_attr(all(target_arch = "wasm32"), wasm_bindgen_test)]
