@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use serde::ser::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
@@ -109,7 +109,13 @@ impl prost::encoding::BytesAdapter for Address42 {
         B: prost::bytes::Buf,
     {
         let buf = buf.copy_to_bytes(buf.remaining());
-        *self = Address42::from_slice(buf.as_ref());
+        match Address42::from_slice(buf.as_ref()) {
+            Ok(addr) => {
+                *self = addr;
+            }
+            Err(_) => {}
+        }
+
     }
 
     fn append_to<B>(&self, buf: &mut B)
@@ -128,7 +134,7 @@ impl Encodable for Address42 {
 
 impl Decodable for Address42 {
     fn decode(buf: &[u8]) -> Result<Self> {
-        Ok(Address42::from_slice(buf))
+        Address42::from_slice(buf)
     }
 }
 
@@ -143,10 +149,13 @@ impl Address42 {
         ALPHA_HRP.eq(&self.hrp())
     }
 
-    pub fn from_slice(slice: &[u8]) -> Self {
+    pub fn from_slice(slice: &[u8]) -> Result<Self> {
         let mut bytes = [0; 42];
+        if slice.len() != bytes.len() {
+            bail!("decode error")
+        }
         bytes.copy_from_slice(slice);
-        Self(bytes)
+        Ok(Self(bytes))
     }
 
     pub fn as_bytes(&self) -> &[u8] {

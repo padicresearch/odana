@@ -131,7 +131,7 @@ impl ConsensusCodec for BlockHeader {
             merkle_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             state_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             mix_nonce: U256::from_big_endian(&bytes.copy_to_bytes(32)),
-            coinbase: Address42::from_slice(&bytes.copy_to_bytes(42)),
+            coinbase: Address42::from_slice(&bytes.copy_to_bytes(42))?,
             difficulty: bytes.get_u32(),
             chain_id: bytes.get_u32(),
             level: bytes.get_u32(),
