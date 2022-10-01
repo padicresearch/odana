@@ -615,9 +615,3 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn account_to_node_id() {}
-}
