@@ -17,6 +17,7 @@ codec = { path = "../codec" }
 crypto = { path = "../crypto" }
 blockchain = { path = "../blockchain" }
 types = { path = "../common/types" }
+prost = "0.11.0"
 primitive-types = { path = "../common/primitive-types" }
 hex = "0.4.3"
 anyhow = "1.0.45"

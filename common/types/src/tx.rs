@@ -147,12 +147,17 @@ pub struct TransactionBuilder<'a> {
 
 impl<'a> TransactionBuilder<'a> {
     pub fn with_signer(account: &'a Account) -> Result<Self> {
-        let mut tx = UnsignedTransaction::default();
-        tx.chain_id = account
-            .address
-            .network()
-            .ok_or_else(|| anyhow::anyhow!("network not specified on signer"))?
-            .chain_id();
+        let tx = UnsignedTransaction {
+            nonce: 0,
+            chain_id: account
+                .address
+                .network()
+                .ok_or_else(|| anyhow::anyhow!("network not specified on signer"))?
+                .chain_id(),
+            genesis_hash: Default::default(),
+            fee: 0,
+            data: Default::default(),
+        };
         Ok(Self { tx, account })
     }
 
@@ -715,7 +720,7 @@ mod tests {
             .fee(100_000)
             .genesis_hash(genesis)
             .transfer()
-            .to(user2.address.to_address20().unwrap())
+            .to(user2.address)
             .amount(1_000_000)
             .build()
             .unwrap();

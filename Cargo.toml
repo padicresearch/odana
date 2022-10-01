@@ -33,7 +33,6 @@ members = [
     "common/rlp",
     "common/rlp-derive",
     "common/tiny-bip39",
-    "common/base58",
     "common/bech32",
 ]
 

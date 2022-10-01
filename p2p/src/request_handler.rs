@@ -38,7 +38,7 @@ impl RequestHandler {
                 let res = blockchain
                     .chain()
                     .block_storage()
-                    .get_block_by_hash(&H256::from(msg.from));
+                    .get_block_by_hash(&msg.from);
                 let mut level = match res {
                     Ok(Some(block)) => block.level(),
                     _ => {
@@ -73,7 +73,7 @@ impl RequestHandler {
                         break;
                     }
 
-                    if Some(header.hash().to_fixed_bytes()) == msg.to {
+                    if Some(header.hash()) == msg.to {
                         headers.push(header);
                         break;
                     }
@@ -104,7 +104,7 @@ impl RequestHandler {
                     let res = blockchain
                         .chain()
                         .block_storage()
-                        .get_block_by_hash(&H256::from(hash));
+                        .get_block_by_hash(hash);
                     match res {
                         Ok(Some(block)) => blocks.push(block),
                         _ => break,

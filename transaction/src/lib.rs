@@ -61,15 +61,3 @@ impl Ord for NoncePricedTransaction {
     }
 }
 pub type TransactionsByNonceAndPrice = BTreeSet<NoncePricedTransaction>;
-
-#[cfg(test)]
-mod test {
-    use account::create_account;
-    use proto::TransactionStatus;
-
-    #[test]
-    fn generate_sudo_address() {
-        let sudo_account = create_account();
-        println!("{:?}", sudo_account);
-    }
-}

@@ -318,7 +318,7 @@ fn make_block(level: u32, parent_hash: H256, state_root: H256) -> Block {
             [0; 32].into(),
             state_root,
             [0; 32].into(),
-            [0; 20].into(),
+            [0; 42].into(),
             0,
             0,
             level,

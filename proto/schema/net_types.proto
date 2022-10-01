@@ -1,0 +1,85 @@
+syntax = "proto3";
+import "types.proto";
+package uchain.net.types;
+
+message PeerNode {
+  bytes pub_key = 1;
+  bytes nonce = 2;
+}
+
+message CurrentHeadMessage {
+  uchain.types.BlockHeader block_header = 1;
+}
+
+message BroadcastTransactionMessage {
+  repeated uchain.types.SignedTransaction txs = 1;
+}
+
+message BroadcastBlockMessage {
+  uchain.types.Block block = 1;
+}
+
+message GetCurrentHeadMessage {
+  string sender = 1;
+}
+
+message GetBlockHeaderMessage {
+  bytes from = 1;
+  optional bytes to = 2;
+}
+
+message FindBlocksMessage {
+  uint32 from = 1;
+  uint32 limit = 2;
+}
+
+message BlockTransactionsMessage {
+  repeated uchain.types.SignedTransaction txs = 1;
+}
+
+message BlocksMessage {
+  repeated uchain.types.Block blocks = 1;
+}
+
+message BlockHeaderMessage {
+  repeated uchain.types.BlockHeader block_headers = 1;
+}
+
+message BlocksToDownloadMessage {
+  repeated bytes block_hashes = 1;
+}
+
+message GetBlockTransactionsMessage {
+  string sender = 1;
+  repeated bytes tx_ids = 2;
+}
+
+message ReAckMessage {
+  PeerNode node_info = 1;
+  uchain.types.BlockHeader current_header = 2;
+  bytes addr = 3;
+}
+
+message AckMessage {
+  bytes addr = 1;
+}
+
+message AdvertiseMessage {
+  repeated string peers = 1;
+}
+
+message PeerMessage {
+  oneof msg {
+    CurrentHeadMessage get_currenthead = 1;
+    CurrentHeadMessage current_head = 2;
+    GetBlockHeaderMessage get_blockheader = 3;
+    BlocksToDownloadMessage get_blocks = 4;
+    FindBlocksMessage find_blocks = 5;
+    BlockHeaderMessage blockheader = 6;
+    BlocksMessage blocks = 7;
+    BroadcastTransactionMessage broadcast_transaction = 8;
+    BroadcastBlockMessage broadcast_block = 9;
+    AckMessage ack = 10;
+    ReAckMessage reack = 11;
+  }
+}

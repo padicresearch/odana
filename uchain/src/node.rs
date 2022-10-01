@@ -198,10 +198,12 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                             txpool.add_remotes(msg.tx).unwrap()
                         }
                         PeerMessage::BroadcastBlock(msg) => {
-                            let block = msg.block;
-                            // TODO: validate block
-                            // TODO: Check if future block is not further than 3 days
-                            blockchain.chain().block_storage().put(block.clone())?;
+                            if let Some(block) = msg.block {
+                                // TODO: validate block
+                                // TODO: Check if future block is not further than 3 days
+                                blockchain.chain().block_storage().put(block)?;
+                            }
+
                         }
                         msg => {
                             sync_service.handle(msg);

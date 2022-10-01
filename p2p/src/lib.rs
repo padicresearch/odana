@@ -1,3 +1,4 @@
+use std::io::ErrorKind;
 //use std::borrow::BorrowMut;
 //use std::fs::File;
 use std::iter;
@@ -243,6 +244,7 @@ pub async fn start_p2p_server(
 }
 
 async fn handle_publish_message(msg: PeerMessage, swarm: &mut Swarm<ChainNetworkBehavior>) {
+    let msg : NetworkMessage = msg.into();
     match msg.encode() {
         Ok(encoded_msg) => {
             let network_topic = swarm.behaviour_mut().topic.clone();
@@ -285,10 +287,10 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             message,
             ..
         })) => {
-            if let Ok(peer_message) = PeerMessage::decode(&message.data) {
+            if let Some(peer_message) = NetworkMessage::decode(&message.data)?.msg {
                 if let PeerMessage::CurrentHead(msg) = &peer_message {
                     network_state
-                        .update_peer_current_head(&propagation_source, msg.block_header)?;
+                        .update_peer_current_head(&propagation_source, *msg.block_header()?)?;
                 }
                 swarm.behaviour_mut().p2p_to_node.send(peer_message)?;
             }
@@ -354,7 +356,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             RequestResponseMessage::Request {
                 request, channel, ..
             } => match &request {
-                PeerMessage::Ack(addr) => {
+                PeerMessage::Ack(msg) => {
+                    let addr = &msg.addr;
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
                     chain_network
@@ -399,12 +402,12 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     match peers.promote_peer(
                         &peer,
                         request_id,
-                        msg.node_info,
+                        msg.node_info()?,
                         swarm.behaviour().pow_target,
                     ) {
                         Ok(_) => {
                             swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
-                            network_state.update_peer_current_head(&peer, msg.current_header)?;
+                            network_state.update_peer_current_head(&peer, msg.current_header()?)?;
                             info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?peers.stats(),"Connected to new peer");
                             network_state.handle_new_peer_connected(&peer)?
                         }
@@ -437,7 +440,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     let request_id = swarm
                         .behaviour_mut()
                         .requestresponse
-                        .send_request(&peer_id, PeerMessage::Ack(public_address));
+                        .send_request(&peer_id, PeerMessage::Ack(AckMessage::new(public_address)));
                     peers.add_potential_peer(peer_id, request_id);
                 }
 
@@ -556,12 +559,9 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
-        let message: Result<PeerMessage> = PeerMessage::decode(&data);
-        let message = match message {
-            Ok(message) => message,
-            Err(_) => return Err(std::io::ErrorKind::Unsupported.into()),
-        };
-        Ok(message)
+        NetworkMessage::decode(&data)
+            .and_then(|message| message.msg.ok_or_else(||anyhow::anyhow!("no data")))
+            .map_err(|_| std::io::ErrorKind::Unsupported.into())
     }
 
     async fn read_response<T>(
@@ -576,12 +576,9 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
-        let message: Result<PeerMessage> = PeerMessage::decode(&data);
-        let message = match message {
-            Ok(message) => message,
-            Err(_) => return Err(std::io::ErrorKind::Unsupported.into()),
-        };
-        Ok(message)
+        NetworkMessage::decode(&data)
+            .and_then(|message| message.msg.ok_or_else(||anyhow::anyhow!("no data")))
+            .map_err(|_| std::io::ErrorKind::Unsupported.into())
     }
 
     async fn write_request<T>(
@@ -593,7 +590,10 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        write_length_prefixed(io, req.encode().unwrap()).await?;
+        let encoded = NetworkMessage::new(req)
+            .encode()
+            .map_err(|_| std::io::Error::from(ErrorKind::UnexpectedEof))?;
+        write_length_prefixed(io, encoded).await?;
         io.close().await?;
         Ok(())
     }
@@ -607,7 +607,10 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        write_length_prefixed(io, res.encode().unwrap()).await?;
+        let encoded = NetworkMessage::new(res)
+            .encode()
+            .map_err(|_| std::io::Error::from(ErrorKind::UnexpectedEof))?;
+        write_length_prefixed(io, encoded).await?;
         io.close().await?;
         Ok(())
     }

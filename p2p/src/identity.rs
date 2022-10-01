@@ -1,7 +1,10 @@
 use std::str::FromStr;
 
 use anyhow::Result;
+use libp2p::bytes::{Buf, BufMut};
 use libp2p::PeerId;
+use prost::encoding::{DecodeContext, WireType};
+use prost::DecodeError;
 use serde::{Deserialize, Serialize};
 
 use crypto::{generate_pow_from_pub_key, sha256};
@@ -9,7 +12,7 @@ use primitive_types::U256;
 use primitive_types::{H256, U192};
 use types::config::NodeIdentityConfig;
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct PeerNode {
     pub_key: H256,
     nonce: U192,
@@ -41,6 +44,44 @@ impl PeerNode {
                 self.pub_key.as_bytes(),
             )?),
         ))
+    }
+}
+
+impl prost::Message for PeerNode {
+    fn encode_raw<B>(&self, buf: &mut B)
+    where
+        B: BufMut,
+        Self: Sized,
+    {
+        prost::encoding::bytes::encode(1, &self.pub_key, buf);
+        prost::encoding::bytes::encode(2, &self.nonce, buf);
+    }
+
+    fn merge_field<B>(
+        &mut self,
+        tag: u32,
+        wire_type: WireType,
+        buf: &mut B,
+        ctx: DecodeContext,
+    ) -> std::result::Result<(), DecodeError>
+    where
+        B: Buf,
+        Self: Sized,
+    {
+        match tag {
+            1 => prost::encoding::bytes::merge(wire_type, &mut self.pub_key, buf, ctx),
+            2 => prost::encoding::bytes::merge(wire_type, &mut self.nonce, buf, ctx),
+            _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
+        }
+    }
+
+    fn encoded_len(&self) -> usize {
+        prost::encoding::bytes::encoded_len(1, &self.pub_key)
+        + prost::encoding::bytes::encoded_len(2, &self.nonce)
+    }
+
+    fn clear(&mut self) {
+        *self = Default::default()
     }
 }
 

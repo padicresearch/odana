@@ -17,6 +17,5 @@ crypto = { path = "../crypto" }
 codec = { path = "../codec" }
 types = { path = "../common/types" }
 tiny-bip39 = { path = "../common/tiny-bip39" }
-base58 = { path = "../common/base58" }
 bech32 = { path = "../common/bech32" }
 hex = { path = "../common/hex"}
