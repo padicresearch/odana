@@ -6,7 +6,7 @@ use blockchain::blockchain::Tuchain;
 use primitive_types::H256;
 use traits::{Blockchain, ChainHeadReader, ChainReader};
 
-use crate::message::{BlockHeaderMessage, BlocksMessage, CurrentHeadMessage, PeerMessage};
+use crate::message::{BlockHeaderMessage, BlocksMessage, CurrentHeadMessage, Msg};
 use crate::{NetworkState, PeerId};
 
 pub struct RequestHandler {
@@ -21,18 +21,18 @@ impl RequestHandler {
             network_state,
         }
     }
-    pub fn handle(&self, peer_id: &PeerId, request: &PeerMessage) -> Result<Option<PeerMessage>> {
+    pub fn handle(&self, peer_id: &PeerId, request: &Msg) -> Result<Option<Msg>> {
         match request {
-            PeerMessage::GetCurrentHead(_) => {
+            Msg::GetCurrentHead(_) => {
                 let blockchain = self.blockchain.clone();
                 if let Ok(Some(current_head)) = blockchain.chain().current_header() {
-                    return Ok(Some(PeerMessage::CurrentHead(CurrentHeadMessage::new(
+                    return Ok(Some(Msg::CurrentHead(CurrentHeadMessage::new(
                         current_head.raw,
                     ))));
                 }
                 Ok(None)
             }
-            PeerMessage::GetBlockHeader(msg) => {
+            Msg::GetBlockHeader(msg) => {
                 let blockchain = self.blockchain.clone();
                 let mut headers = Vec::with_capacity(2000);
                 let res = blockchain
@@ -53,7 +53,7 @@ impl RequestHandler {
                             Ok(Some(block)) => block.level(),
                             _ => {
                                 let msg =
-                                    PeerMessage::BlockHeader(BlockHeaderMessage::new(headers));
+                                    Msg::BlockHeader(BlockHeaderMessage::new(headers));
                                 return Ok(Some(msg));
                             }
                         }
@@ -80,10 +80,10 @@ impl RequestHandler {
                     headers.push(header);
                     level += 1;
                 }
-                let msg = PeerMessage::BlockHeader(BlockHeaderMessage::new(headers));
+                let msg = Msg::BlockHeader(BlockHeaderMessage::new(headers));
                 Ok(Some(msg))
             }
-            PeerMessage::FindBlocks(msg) => {
+            Msg::FindBlocks(msg) => {
                 let res: Result<Vec<_>> = self
                     .blockchain
                     .chain()
@@ -93,11 +93,11 @@ impl RequestHandler {
                     .take(msg.limit as usize)
                     .collect();
                 match res {
-                    Ok(blocks) => Ok(Some(PeerMessage::Blocks(BlocksMessage::new(blocks)))),
-                    Err(_) => Ok(Some(PeerMessage::Blocks(BlocksMessage::new(Vec::new())))),
+                    Ok(blocks) => Ok(Some(Msg::Blocks(BlocksMessage::new(blocks)))),
+                    Err(_) => Ok(Some(Msg::Blocks(BlocksMessage::new(Vec::new())))),
                 }
             }
-            PeerMessage::GetBlocks(msg) => {
+            Msg::GetBlocks(msg) => {
                 let blockchain = self.blockchain.clone();
                 let mut blocks = Vec::with_capacity(msg.block_hashes.len());
                 for hash in msg.block_hashes.iter() {
@@ -114,7 +114,7 @@ impl RequestHandler {
                 if blocks.len() != msg.block_hashes.len() {
                     blocks.clear();
                 }
-                Ok(Some(PeerMessage::Blocks(BlocksMessage::new(blocks))))
+                Ok(Some(Msg::Blocks(BlocksMessage::new(blocks))))
             }
             _ => Ok(None),
         }

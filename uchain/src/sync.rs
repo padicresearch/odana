@@ -8,7 +8,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use blockchain::block_storage::BlockStorage;
 use blockchain::chain_state::ChainState;
-use p2p::message::{BlocksMessage, FindBlocksMessage, NodeToPeerMessage, PeerMessage};
+use p2p::message::{BlocksMessage, FindBlocksMessage, NodeToPeerMessage, Msg};
 use primitive_types::H256;
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainReader, Consensus, Handler};
@@ -78,11 +78,11 @@ pub struct SyncService {
 }
 
 impl SyncService {
-    pub fn handle_remote_message(&mut self, msg: PeerMessage) -> Result<()> {
+    pub fn handle_remote_message(&mut self, msg: Msg) -> Result<()> {
         match msg {
-            PeerMessage::Blocks(msg) => self.handle_import_blocks(&msg),
-            PeerMessage::BroadcastTransaction(_) => Ok(()),
-            PeerMessage::BroadcastBlock(_) => Ok(()),
+            Msg::Blocks(msg) => self.handle_import_blocks(&msg),
+            Msg::BroadcastTransaction(_) => Ok(()),
+            Msg::BroadcastBlock(_) => Ok(()),
             _ => Ok(()),
         }
     }
@@ -103,7 +103,7 @@ impl SyncService {
                 let new_bootstrap_peer = &self.highest_peer;
                 info!(from = ?old_bootstrap_peer, to = ?new_bootstrap_peer, "Bootstrap peer disconnected or failed to send blocks, switching bootstrapping peer");
                 self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip));
-                self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index,
                     24,
                 )));
@@ -151,7 +151,7 @@ impl SyncService {
 
             if sync_point.level() > node_level {
                 self.last_request_index = node_level as u32 + 1;
-                self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index,
                     24,
                 )));
@@ -160,7 +160,7 @@ impl SyncService {
                 if node_level < self.network_tip.level() {
                     self.last_request_index = node_level as u32 + 1;
                     self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip));
-                    self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                    self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                         self.last_request_index,
                         24,
                     )));
@@ -181,7 +181,7 @@ impl SyncService {
             if self.last_request_index == 0 {
                 self.last_request_index = 1
             }
-            self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+            self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                 self.last_request_index,
                 24,
             )));
@@ -202,8 +202,8 @@ impl Handler<LocalEventMessage> for SyncService {
     }
 }
 
-impl Handler<PeerMessage> for SyncService {
-    fn handle(&mut self, msg: PeerMessage) {
+impl Handler<Msg> for SyncService {
+    fn handle(&mut self, msg: Msg) {
         match self.handle_remote_message(msg) {
             Ok(_) => {}
             Err(error) => {
@@ -213,7 +213,7 @@ impl Handler<PeerMessage> for SyncService {
                 if self.last_request_index == 0 {
                     self.last_request_index = 1
                 }
-                self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index,
                     52,
                 )));
@@ -235,7 +235,7 @@ impl SyncService {
                 // TODO; stop mining
                 self.last_request_index = tip.level() as u32;
                 self.tip_before_sync = Some((peer_id, tip));
-                self.send_peer_message(PeerMessage::FindBlocks(FindBlocksMessage::new(
+                self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                     node_height + 1,
                     24,
                 )));
@@ -320,7 +320,7 @@ impl SyncService {
         true
     }
 
-    pub fn send_peer_message(&self, msg: PeerMessage) {
+    pub fn send_peer_message(&self, msg: Msg) {
         if let Some((peer, _)) = &self.tip_before_sync {
             self.sender
                 .send(NodeToPeerMessage {

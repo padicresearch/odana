@@ -76,7 +76,7 @@ impl P2pEnvironment for EnvironmentConfig {
 
 async fn config_network(
     node_identity: NodeIdentity,
-    p2p_to_node: UnboundedSender<PeerMessage>,
+    p2p_to_node: UnboundedSender<Msg>,
     network_state: Arc<NetworkState>,
     pow_target: U256,
     p2p_port: u16,
@@ -160,7 +160,7 @@ async fn config_network(
 async fn handle_send_message_to_peer(
     swarm: &mut Swarm<ChainNetworkBehavior>,
     peer_id: String,
-    message: PeerMessage,
+    message: Msg,
 ) -> Result<()> {
     let peer = PeerId::from_str(&peer_id).unwrap();
     let _ = swarm
@@ -175,7 +175,7 @@ pub async fn start_p2p_server(
     config: Arc<EnvironmentConfig>,
     node_identity: NodeIdentity,
     mut node_to_p2p: UnboundedReceiver<NodeToPeerMessage>,
-    p2p_to_node: UnboundedSender<PeerMessage>,
+    p2p_to_node: UnboundedSender<Msg>,
     peer_arg: Vec<String>,
     pow_target: U256,
     network_state: Arc<NetworkState>,
@@ -243,8 +243,8 @@ pub async fn start_p2p_server(
     Ok(())
 }
 
-async fn handle_publish_message(msg: PeerMessage, swarm: &mut Swarm<ChainNetworkBehavior>) {
-    let msg : NetworkMessage = msg.into();
+async fn handle_publish_message(msg: Msg, swarm: &mut Swarm<ChainNetworkBehavior>) {
+    let msg : PeerMessage = msg.into();
     match msg.encode() {
         Ok(encoded_msg) => {
             let network_topic = swarm.behaviour_mut().topic.clone();
@@ -287,8 +287,8 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             message,
             ..
         })) => {
-            if let Some(peer_message) = NetworkMessage::decode(&message.data)?.msg {
-                if let PeerMessage::CurrentHead(msg) = &peer_message {
+            if let Some(peer_message) = PeerMessage::decode(&message.data)?.msg {
+                if let Msg::CurrentHead(msg) = &peer_message {
                     network_state
                         .update_peer_current_head(&propagation_source, *msg.block_header()?)?;
                 }
@@ -356,7 +356,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             RequestResponseMessage::Request {
                 request, channel, ..
             } => match &request {
-                PeerMessage::Ack(msg) => {
+                Msg::Ack(msg) => {
                     let addr = &msg.addr;
                     let chain_network = swarm.behaviour_mut();
                     chain_network.kad.add_address(&peer, addr.clone());
@@ -367,7 +367,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     if let Some(public_address) = chain_network.public_address.clone() {
                         let _ = chain_network.requestresponse.send_response(
                             channel,
-                            PeerMessage::ReAck(ReAckMessage::new(
+                            Msg::ReAck(ReAckMessage::new(
                                 chain_network.node,
                                 blockchain.current_header().unwrap().unwrap().raw,
                                 public_address,
@@ -397,7 +397,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                 request_id,
                 response,
             } => match &response {
-                PeerMessage::ReAck(msg) => {
+                Msg::ReAck(msg) => {
                     let peers = swarm.behaviour().state.peer_list();
                     match peers.promote_peer(
                         &peer,
@@ -440,7 +440,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                     let request_id = swarm
                         .behaviour_mut()
                         .requestresponse
-                        .send_request(&peer_id, PeerMessage::Ack(AckMessage::new(public_address)));
+                        .send_request(&peer_id, Msg::Ack(AckMessage::new(public_address)));
                     peers.add_potential_peer(peer_id, request_id);
                 }
 
@@ -484,7 +484,7 @@ struct ChainNetworkBehavior {
     kad: Kademlia<MemoryStore>,
     requestresponse: RequestResponse<ChainP2pExchangeCodec>,
     #[behaviour(ignore)]
-    p2p_to_node: UnboundedSender<PeerMessage>,
+    p2p_to_node: UnboundedSender<Msg>,
     #[behaviour(ignore)]
     topic: Sha256Topic,
     #[behaviour(ignore)]
@@ -500,7 +500,7 @@ struct ChainNetworkBehavior {
 #[derive(Debug)]
 enum OutEvent {
     Gossipsub(GossipsubEvent),
-    RequestResponse(RequestResponseEvent<PeerMessage, PeerMessage>),
+    RequestResponse(RequestResponseEvent<Msg, Msg>),
     Mdns(MdnsEvent),
     Kademlia(KademliaEvent),
 }
@@ -523,8 +523,8 @@ impl From<KademliaEvent> for OutEvent {
     }
 }
 
-impl From<RequestResponseEvent<PeerMessage, PeerMessage>> for OutEvent {
-    fn from(v: RequestResponseEvent<PeerMessage, PeerMessage>) -> Self {
+impl From<RequestResponseEvent<Msg, Msg>> for OutEvent {
+    fn from(v: RequestResponseEvent<Msg, Msg>) -> Self {
         Self::RequestResponse(v)
     }
 }
@@ -544,8 +544,8 @@ impl ProtocolName for ChainP2pExchangeProtocol {
 #[async_trait]
 impl RequestResponseCodec for ChainP2pExchangeCodec {
     type Protocol = ChainP2pExchangeProtocol;
-    type Request = PeerMessage;
-    type Response = PeerMessage;
+    type Request = Msg;
+    type Response = Msg;
 
     async fn read_request<T>(
         &mut self,
@@ -559,7 +559,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
-        NetworkMessage::decode(&data)
+        PeerMessage::decode(&data)
             .and_then(|message| message.msg.ok_or_else(||anyhow::anyhow!("no data")))
             .map_err(|_| std::io::ErrorKind::Unsupported.into())
     }
@@ -576,7 +576,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
         if data.is_empty() {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
-        NetworkMessage::decode(&data)
+        PeerMessage::decode(&data)
             .and_then(|message| message.msg.ok_or_else(||anyhow::anyhow!("no data")))
             .map_err(|_| std::io::ErrorKind::Unsupported.into())
     }
@@ -590,7 +590,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let encoded = NetworkMessage::new(req)
+        let encoded = PeerMessage::new(req)
             .encode()
             .map_err(|_| std::io::Error::from(ErrorKind::UnexpectedEof))?;
         write_length_prefixed(io, encoded).await?;
@@ -607,7 +607,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
     where
         T: AsyncWrite + Unpin + Send,
     {
-        let encoded = NetworkMessage::new(res)
+        let encoded = PeerMessage::new(res)
             .encode()
             .map_err(|_| std::io::Error::from(ErrorKind::UnexpectedEof))?;
         write_length_prefixed(io, encoded).await?;

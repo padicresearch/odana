@@ -29,13 +29,13 @@ use crate::{Level, RunArgs};
 
 enum Event {
     LocalMessage(LocalEventMessage),
-    PeerMessage(PeerMessage),
+    PeerMessage(Msg),
     Unhandled,
 }
 
 fn broadcast_message(
     sender: &UnboundedSender<NodeToPeerMessage>,
-    message: PeerMessage,
+    message: Msg,
 ) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
     sender.send(NodeToPeerMessage {
         peer_id: None,
@@ -192,12 +192,12 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
             match event {
                 Event::PeerMessage(msg) => {
                     match msg {
-                        PeerMessage::BroadcastTransaction(msg) => {
+                        Msg::BroadcastTransaction(msg) => {
                             let txpool = blockchain.txpool();
                             let mut txpool = txpool.write().unwrap();
                             txpool.add_remotes(msg.tx).unwrap()
                         }
-                        PeerMessage::BroadcastBlock(msg) => {
+                        Msg::BroadcastBlock(msg) => {
                             if let Some(block) = msg.block {
                                 // TODO: validate block
                                 // TODO: Check if future block is not further than 3 days
@@ -214,21 +214,21 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                     LocalEventMessage::MindedBlock(block) => {
                         broadcast_message(
                             &node_to_peer_sender,
-                            PeerMessage::BroadcastBlock(BroadcastBlockMessage::new(block.clone())),
+                            Msg::BroadcastBlock(BroadcastBlockMessage::new(block.clone())),
                         )
                         .unwrap();
                     }
                     LocalEventMessage::BroadcastTx(tx) => {
                         broadcast_message(
                             &node_to_peer_sender,
-                            PeerMessage::BroadcastTransaction(BroadcastTransactionMessage::new(tx)),
+                            Msg::BroadcastTransaction(BroadcastTransactionMessage::new(tx)),
                         )
                         .unwrap();
                     }
                     LocalEventMessage::StateChanged { current_head } => {
                         broadcast_message(
                             &node_to_peer_sender,
-                            PeerMessage::CurrentHead(CurrentHeadMessage::new(current_head)),
+                            Msg::CurrentHead(CurrentHeadMessage::new(current_head)),
                         )
                         .unwrap();
                     }

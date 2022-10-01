@@ -428,19 +428,19 @@ impl AdvertiseMessage {
 }
 
 #[derive(Clone, PartialEq, Eq, prost::Message)]
-pub struct NetworkMessage {
-    #[prost(oneof = "PeerMessage", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11")]
-    pub msg: Option<PeerMessage>,
+pub struct PeerMessage {
+    #[prost(oneof = "Msg", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11")]
+    pub msg: Option<Msg>,
 }
 
-impl NetworkMessage {
-    pub fn new(msg: PeerMessage) -> Self {
+impl PeerMessage {
+    pub fn new(msg: Msg) -> Self {
         Self { msg: Some(msg) }
     }
 }
 
 #[derive(Clone, PartialEq, Eq, prost::Oneof)]
-pub enum PeerMessage {
+pub enum Msg {
     #[prost(message, tag = "1")]
     GetCurrentHead(CurrentHeadMessage),
     #[prost(message, tag = "2")]
@@ -465,9 +465,9 @@ pub enum PeerMessage {
     ReAck(ReAckMessage),
 }
 
-impl From<PeerMessage> for NetworkMessage {
-    fn from(msg: PeerMessage) -> Self {
-        NetworkMessage {
+impl From<Msg> for PeerMessage {
+    fn from(msg: Msg) -> Self {
+        PeerMessage {
             msg: Some(msg)
         }
     }
@@ -475,16 +475,16 @@ impl From<PeerMessage> for NetworkMessage {
 #[derive(Debug)]
 pub struct NodeToPeerMessage {
     pub peer_id: Option<String>,
-    pub message: PeerMessage,
+    pub message: Msg,
 }
 
-impl Encodable for NetworkMessage {
+impl Encodable for PeerMessage {
     fn encode(&self) -> anyhow::Result<Vec<u8>> {
         Ok(prost::Message::encode_to_vec(self))
     }
 }
 
-impl Decodable for NetworkMessage {
+impl Decodable for PeerMessage {
     fn decode(buf: &[u8]) -> anyhow::Result<Self> {
         prost::Message::decode(buf).map_err(|e| e.into())
     }
