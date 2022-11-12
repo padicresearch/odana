@@ -1,49 +1,49 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UnsignedTransactionRequest {
-    #[prost(message, optional, tag="1")]
+    #[prost(message, optional, tag = "1")]
     pub tx: ::core::option::Option<::types::prelude::UnsignedTransaction>,
-    #[prost(bytes="vec", tag="2")]
+    #[prost(bytes = "vec", tag = "2")]
     pub secret_key: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SignedTransactionResponse {
-    #[prost(bytes="vec", tag="1")]
+    #[prost(bytes = "vec", tag = "1")]
     pub hash: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub tx: ::core::option::Option<::types::prelude::SignedTransaction>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTransactionStatusResponse {
-    #[prost(enumeration="::types::prelude::TransactionStatus", repeated, tag="1")]
+    #[prost(enumeration = "::types::prelude::TransactionStatus", repeated, tag = "1")]
     pub status: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PendingTransactionsResponse {
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag = "1")]
     pub pending: ::prost::alloc::vec::Vec<AddressTransactionList>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AddressTransactionList {
-    #[prost(bytes="vec", tag="1")]
+    #[prost(bytes = "vec", tag = "1")]
     pub address: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub txs: ::core::option::Option<::types::prelude::TransactionList>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TxpoolContentResponse {
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag = "1")]
     pub pending: ::prost::alloc::vec::Vec<AddressTransactionList>,
-    #[prost(message, repeated, tag="2")]
+    #[prost(message, repeated, tag = "2")]
     pub queued: ::prost::alloc::vec::Vec<AddressTransactionList>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHash {
-    #[prost(bytes="vec", tag="1")]
+    #[prost(bytes = "vec", tag = "1")]
     pub hash: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHashes {
-    #[prost(bytes="vec", repeated, tag="1")]
+    #[prost(bytes = "vec", repeated, tag = "1")]
     pub txs: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
 }
 /// Generated client implementations.
@@ -607,17 +607,17 @@ pub mod transactions_service_server {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountRequest {
-    #[prost(bytes="vec", tag="1")]
+    #[prost(bytes = "vec", tag = "1")]
     pub address: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountBalanceResponse {
-    #[prost(uint64, tag="1")]
+    #[prost(uint64, tag = "1")]
     pub balance: u64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountNonceResponse {
-    #[prost(uint64, tag="1")]
+    #[prost(uint64, tag = "1")]
     pub nonce: u64,
 }
 /// Generated client implementations.
@@ -984,36 +984,36 @@ pub mod account_service_server {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CurrentHeadResponse {
-    #[prost(bytes="vec", tag="1")]
+    #[prost(bytes = "vec", tag = "1")]
     pub hash: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub header: ::core::option::Option<::types::prelude::BlockHeader>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByHashRequest {
-    #[prost(bytes="vec", tag="1")]
+    #[prost(bytes = "vec", tag = "1")]
     pub hash: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByLevelRequest {
-    #[prost(uint32, tag="1")]
+    #[prost(uint32, tag = "1")]
     pub level: u32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlocksRequest {
-    #[prost(uint32, tag="1")]
+    #[prost(uint32, tag = "1")]
     pub from: u32,
-    #[prost(uint32, tag="2")]
+    #[prost(uint32, tag = "2")]
     pub count: u32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlocksResponse {
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag = "1")]
     pub blocks: ::prost::alloc::vec::Vec<::types::prelude::BlockHeader>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockNumberResponse {
-    #[prost(uint32, tag="1")]
+    #[prost(uint32, tag = "1")]
     pub level: u32,
 }
 /// Generated client implementations.

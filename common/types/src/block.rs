@@ -20,9 +20,7 @@ use super::*;
 
 const HEADER_SIZE: usize = 180;
 
-#[derive(
-    Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize, Encode, Decode,
-)]
+#[derive(Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize)]
 pub struct BlockPrimaryKey(pub u32, pub H256);
 
 impl Encodable for BlockPrimaryKey {

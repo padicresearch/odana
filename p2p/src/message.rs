@@ -277,7 +277,7 @@ impl prost::Message for ReAckMessage {
             prost::encoding::message::encode(1, &node_info, buf);
         }
         if let Some(current_header) = self.current_header {
-            prost::encoding::message::encode(1, &current_header, buf);
+            prost::encoding::message::encode(2, &current_header, buf);
         }
         prost::encoding::bytes::encode(3, &self.addr.to_vec(), buf);
     }

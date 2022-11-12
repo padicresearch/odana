@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bincode = "1.3.3"
+bincode = "2.0.0-rc.2"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0.45"
 indexmap = "1.8.2"

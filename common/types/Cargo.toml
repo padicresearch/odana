@@ -22,7 +22,7 @@ actix = "0.13"
 bytes = { version = "1", features = ["serde"] }
 clap = { version = "3.0.13", features = ["derive"] }
 chrono = "0.4"
-bincode = "2.0.0-rc.1"
+bincode = "2.0.0-rc.2"
 # local deps
 hex = { path = "../hex" }
 primitive-types = { path = "../primitive-types" }

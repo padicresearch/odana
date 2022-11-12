@@ -1,0 +1,5 @@
+services:
+  buildnode:
+    image:
+      dockerfile: "./run.dockerfile"
+    container_name: "uchain/node"

@@ -26,6 +26,15 @@ macro_rules! impl_uint_bincode {
                     .map(|b| $name::from_little_endian(&b))
             }
         }
+
+        impl<'de> $crate::bincode::BorrowDecode<'de> for $name {
+            fn borrow_decode<D: $crate::bincode::de::BorrowDecoder<'de>>(
+                decoder: &mut D,
+            ) -> core::result::Result<Self, $crate::bincode::error::DecodeError> {
+                <[u8; $len * 8] as $crate::bincode::BorrowDecode>::borrow_decode(decoder)
+                    .map(|b| $name::from_little_endian(&b))
+            }
+        }
     };
 }
 #[macro_export]
@@ -46,6 +55,14 @@ macro_rules! impl_fixed_hash_bincode {
                 decoder: &mut D,
             ) -> core::result::Result<Self, $crate::bincode::error::DecodeError> {
                 <[u8; $len] as $crate::bincode::Decode>::decode(decoder).map($name)
+            }
+        }
+
+        impl<'de> $crate::bincode::BorrowDecode<'de> for $name {
+            fn borrow_decode<D: $crate::bincode::de::BorrowDecoder<'de>>(
+                decoder: &mut D,
+            ) -> core::result::Result<Self, $crate::bincode::error::DecodeError> {
+                <[u8; $len] as $crate::bincode::BorrowDecode>::borrow_decode(decoder).map($name)
             }
         }
     };
