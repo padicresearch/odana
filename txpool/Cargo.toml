@@ -10,7 +10,7 @@ types = { path = "../common/types" }
 transaction = { path = "../transaction" }
 account = { path = "../account" }
 dashmap = "5.0.0"
-anyhow = "1.0.45"
+anyhow = { workspace = true }
 thiserror = "1.0.30"
 hex = "0.4.3"
 primitive-types = { path = "../common/primitive-types" }

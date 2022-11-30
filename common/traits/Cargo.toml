@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 types = { path = "../types" }
-anyhow = "1"
+anyhow = { workspace = true }
 primitive-types = { path = "../primitive-types" }

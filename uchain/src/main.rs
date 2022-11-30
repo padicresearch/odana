@@ -353,6 +353,12 @@ pub(crate) fn parse_multaddr(s: &str) -> Result<String, String> {
 }
 
 pub(crate) fn parse_miner_address(s: &str) -> Result<Address42, String> {
+    if s.eq_ignore_ascii_case("ama")
+        || s.eq_ignore_ascii_case("kofi")
+        || s.eq_ignore_ascii_case("kwame")
+    {
+        return Ok(account::create_account_from_uri(Network::Testnet, s).address);
+    }
     match Address42::from_str(s) {
         Ok(s) => Ok(s),
         Err(error) => Err(format!("{}", error)),

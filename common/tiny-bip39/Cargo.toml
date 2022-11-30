@@ -31,7 +31,7 @@ spanish = []
 default = ["chinese-simplified", "chinese-traditional", "french", "italian", "japanese", "korean", "spanish"]
 
 [dependencies]
-anyhow = "1.0.57"
+anyhow = { workspace = true }
 thiserror = "1.0.31"
 rustc-hash = "1.1.0"
 sha2 = "0.10.2"

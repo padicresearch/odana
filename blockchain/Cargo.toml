@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 hex = "0.4.3"
-anyhow = "1.0.45"
+anyhow = { workspace = true }
 thiserror = "1.0.30"
 storage = { path = "../storage" }
 codec = { path = "../codec" }

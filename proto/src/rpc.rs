@@ -1,7 +1,7 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UnsignedTransactionRequest {
     #[prost(message, optional, tag = "1")]
-    pub tx: ::core::option::Option<::types::prelude::UnsignedTransaction>,
+    pub tx: ::core::option::Option<::types::prelude::Transaction>,
     #[prost(bytes = "vec", tag = "2")]
     pub secret_key: ::prost::alloc::vec::Vec<u8>,
 }

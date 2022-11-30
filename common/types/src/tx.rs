@@ -131,7 +131,7 @@ impl Default for TransactionData {
 const STRUCT_NAME: &str = "Transaction";
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
-pub struct UnsignedTransaction {
+pub struct Transaction {
     pub nonce: u64,
     pub chain_id: u32,
     pub genesis_hash: H256,
@@ -141,13 +141,13 @@ pub struct UnsignedTransaction {
 }
 
 pub struct TransactionBuilder<'a> {
-    tx: UnsignedTransaction,
+    tx: Transaction,
     account: &'a Account,
 }
 
 impl<'a> TransactionBuilder<'a> {
     pub fn with_signer(account: &'a Account) -> Result<Self> {
-        let tx = UnsignedTransaction {
+        let tx = Transaction {
             nonce: 0,
             chain_id: account
                 .address
@@ -251,7 +251,7 @@ impl<'a> AppCallTransactionBuilder<'a> {
     }
 }
 pub struct RawDataTransactionBuilder<'a> {
-    tx: UnsignedTransaction,
+    tx: Transaction,
     account: &'a Account,
 }
 
@@ -270,7 +270,7 @@ impl<'a> RawDataTransactionBuilder<'a> {
     }
 }
 
-impl prost::Message for UnsignedTransaction {
+impl prost::Message for Transaction {
     fn encode_raw<B>(&self, buf: &mut B)
     where
         B: BufMut,
@@ -362,7 +362,7 @@ impl prost::Message for UnsignedTransaction {
     fn clear(&mut self) {}
 }
 
-impl UnsignedTransaction {
+impl Transaction {
     pub fn sig_hash(&self) -> H256 {
         let pack = self.pack();
         sha256(pack)
@@ -482,7 +482,7 @@ impl AsMut<Vec<Arc<SignedTransaction>>> for TransactionList {
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SignedTransaction {
     #[serde(flatten)]
-    tx: UnsignedTransaction,
+    tx: Transaction,
     //tag 7
     r: H256,
     //tag 8
@@ -524,7 +524,7 @@ impl std::hash::Hash for SignedTransaction {
 }
 
 impl SignedTransaction {
-    pub fn new(signature: Signature, tx: UnsignedTransaction) -> Result<Self> {
+    pub fn new(signature: Signature, tx: Transaction) -> Result<Self> {
         let (r, s, v) = signature.rsv();
         Ok(Self {
             tx,
@@ -566,6 +566,10 @@ impl SignedTransaction {
 
     pub fn origin(&self) -> Address42 {
         self.from()
+    }
+
+    pub fn tx(&self) -> &Transaction {
+        &self.tx
     }
 
     pub fn raw_origin(&self) -> Result<PublicKey> {

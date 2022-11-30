@@ -1,8 +1,7 @@
-FROM padicio/uchain-baseimage
+FROM uchain/localnode
+ARG HOST_DATADIR
 USER appuser
-RUN rustup default nightly
-COPY --chown=appuser:appuser . /home/appuser/uchain
+COPY --chown=appuser:appuser $HOST_DATADIR /home/appuser/.uchain
 WORKDIR /home/appuser/uchain
-RUN cargo build --release --package uchain
-ENTRYPOINT ["./target/release/uchain", "run"]
-CMD []
+RUN uchain config init
+CMD uchain run --miner=$MINER

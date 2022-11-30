@@ -6,7 +6,7 @@ use anyhow::{anyhow, Result};
 use crypto::ecdsa::SecretKey;
 use primitive_types::H256;
 use types::account::{Account, Address42};
-use types::tx::{SignedTransaction, TransactionBuilder, UnsignedTransaction};
+use types::tx::{SignedTransaction, TransactionBuilder, Transaction};
 
 pub fn make_sign_transaction(
     account: &Account,
@@ -24,7 +24,7 @@ pub fn make_sign_transaction(
         .build()
 }
 
-pub fn sign_tx(secret: H256, tx: UnsignedTransaction) -> Result<SignedTransaction> {
+pub fn sign_tx(secret: H256, tx: Transaction) -> Result<SignedTransaction> {
     let payload = tx.sig_hash();
     let secrete = SecretKey::from_bytes(secret.as_fixed_bytes())?;
     let sig = secrete

@@ -41,6 +41,12 @@ pub struct Account {
     pub secret: H256,
 }
 
+impl Display for Account {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.address, f)
+    }
+}
+
 impl PartialEq for Account {
     fn eq(&self, other: &Self) -> bool {
         self.address.eq(&other.address)

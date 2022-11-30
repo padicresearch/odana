@@ -13,8 +13,7 @@ macro_rules! impl_uint_bincode {
             ) -> Result<(), $crate::bincode::error::EncodeError> {
                 let mut bytes = [0u8; $len * 8];
                 self.to_little_endian(&mut bytes);
-                $crate::bincode::Encode::encode(&bytes, encoder)?;
-                Ok(())
+                $crate::bincode::Encode::encode(&bytes, encoder)
             }
         }
 

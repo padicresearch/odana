@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 sled = "0.34.7"
 itertools = "0.10.3"
-anyhow = "1.0.45"
+anyhow = { workspace = true }
 thiserror = "1.0.30"
 codec = { path = "../codec" }
 rocksdb = { version = "0.17.0" }

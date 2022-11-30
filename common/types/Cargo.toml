@@ -10,7 +10,7 @@ directories = "4.0.1"
 serde-big-array = "0.4.1"
 serde = { version = "1.0.130", features = ["derive", "rc"] }
 tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
-anyhow = "1"
+anyhow = { workspace = true }
 derive-getters = "0.2.0"
 getset = "0.1.2"
 num-traits = "0.2.15"

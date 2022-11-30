@@ -1,0 +1,8 @@
+get-nonce : func(address : string) -> u64
+get-free-balance : func(address : string) -> u64
+get-reserve-balance : func(address : string) -> u64
+list-addresses : func(limit : u32) -> list<string>
+add-free-balance : func(address : string, amount : u64)
+sub-free-balance : func(address : string, amount : u64)
+add-reserve-balance : func(address : string, amount : u64)
+sub-reserve-balance : func(address : string, amount : u64)
