@@ -173,7 +173,7 @@ pub async fn start_p2p_server(
         node_identity.clone(),
         p2p_to_node,
         network_state.clone(),
-        pow_target
+        pow_target,
     )
     .await?;
 
@@ -230,7 +230,7 @@ pub async fn start_p2p_server(
 }
 
 async fn handle_publish_message(msg: Msg, swarm: &mut Swarm<ChainNetworkBehavior>) {
-    let msg : PeerMessage = msg.into();
+    let msg: PeerMessage = msg.into();
     match msg.encode() {
         Ok(encoded_msg) => {
             let network_topic = swarm.behaviour_mut().topic.clone();
@@ -384,7 +384,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         swarm.behaviour().pow_target,
                     ) {
                         Ok((peer, address)) => {
-
                             let chain_network = swarm.behaviour_mut();
                             chain_network.gossipsub.add_explicit_peer(&peer);
                             chain_network.kad.add_address(&peer, address.clone());
@@ -538,7 +537,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
         PeerMessage::decode(&data)
-            .and_then(|message| message.msg.ok_or_else(||anyhow::anyhow!("no data")))
+            .and_then(|message| message.msg.ok_or_else(|| anyhow::anyhow!("no data")))
             .map_err(|_| std::io::ErrorKind::Unsupported.into())
     }
 
@@ -555,7 +554,7 @@ impl RequestResponseCodec for ChainP2pExchangeCodec {
             return Err(std::io::ErrorKind::UnexpectedEof.into());
         }
         PeerMessage::decode(&data)
-            .and_then(|message| message.msg.ok_or_else(||anyhow::anyhow!("no data")))
+            .and_then(|message| message.msg.ok_or_else(|| anyhow::anyhow!("no data")))
             .map_err(|_| std::io::ErrorKind::Unsupported.into())
     }
 

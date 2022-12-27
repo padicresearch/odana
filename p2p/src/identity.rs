@@ -77,7 +77,7 @@ impl prost::Message for PeerNode {
 
     fn encoded_len(&self) -> usize {
         prost::encoding::bytes::encoded_len(1, &self.pub_key)
-        + prost::encoding::bytes::encoded_len(2, &self.nonce)
+            + prost::encoding::bytes::encoded_len(2, &self.nonce)
     }
 
     fn clear(&mut self) {

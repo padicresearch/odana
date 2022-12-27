@@ -8,7 +8,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use blockchain::block_storage::BlockStorage;
 use blockchain::chain_state::ChainState;
-use p2p::message::{BlocksMessage, FindBlocksMessage, NodeToPeerMessage, Msg};
+use p2p::message::{BlocksMessage, FindBlocksMessage, Msg, NodeToPeerMessage};
 use primitive_types::H256;
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainReader, Consensus, Handler};

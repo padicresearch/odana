@@ -121,7 +121,6 @@ impl prost::encoding::BytesAdapter for Address42 {
             }
             Err(_) => {}
         }
-
     }
 
     fn append_to<B>(&self, buf: &mut B)

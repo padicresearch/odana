@@ -5,11 +5,11 @@ extern crate test;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-use serde::{Deserialize, Serialize};
 use bytes::{Buf, BufMut};
 use codec::{Decodable, Encodable};
 use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
+use serde::{Deserialize, Serialize};
 
 use crate::block::BlockHeader;
 

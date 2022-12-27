@@ -9,7 +9,7 @@ use libp2p::{Multiaddr, PeerId};
 use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::U256;
-use tracing::{warn};
+use tracing::warn;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
 
@@ -80,7 +80,11 @@ impl PeerList {
                 if !crypto::is_valid_proof_of_work_hash(pow_target, &node.pow()) {
                     bail!("Invalid Proof of work by node {}", peer)
                 }
-                let addr = self.addrs.get(&peer).map(|t| t.value().clone()).ok_or(anyhow::anyhow!("peer address not found"))?;
+                let addr = self
+                    .addrs
+                    .get(&peer)
+                    .map(|t| t.value().clone())
+                    .ok_or(anyhow::anyhow!("peer address not found"))?;
                 self.connected_peers.insert(peer.clone(), node);
 
                 Ok((peer, addr))
@@ -147,7 +151,7 @@ impl NetworkState {
     pub fn update_peer_current_head(&self, peer_id: &PeerId, head: BlockHeader) -> Result<()> {
         if !self.peer_list.is_peer_connected(peer_id) {
             warn!(peer = ?peer_id, "Update Peer Head Error: Peer not connected");
-            bail!( "Peer is not connected")
+            bail!("Peer is not connected")
         }
         let peer_state = self.peer_state.clone();
         let mut peer_state = peer_state.write().unwrap();

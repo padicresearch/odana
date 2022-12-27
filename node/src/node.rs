@@ -203,7 +203,6 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                                 // TODO: Check if future block is not further than 3 days
                                 blockchain.chain().block_storage().put(block)?;
                             }
-
                         }
                         msg => {
                             sync_service.handle(msg);

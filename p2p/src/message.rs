@@ -23,7 +23,9 @@ impl CurrentHeadMessage {
     }
 
     pub fn block_header(&self) -> anyhow::Result<&BlockHeader> {
-        self.block_header.as_ref().ok_or_else(||anyhow::anyhow!("invalid message"))
+        self.block_header
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("invalid message"))
     }
 }
 
@@ -51,7 +53,9 @@ impl BroadcastBlockMessage {
     }
 
     pub fn block(&self) -> anyhow::Result<&Block> {
-        self.block.as_ref().ok_or_else(||anyhow::anyhow!("invalid message"))
+        self.block
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("invalid message"))
     }
 }
 
@@ -248,11 +252,13 @@ impl ReAckMessage {
     }
 
     pub fn node_info(&self) -> anyhow::Result<PeerNode> {
-        self.node_info.ok_or_else(||anyhow::anyhow!("invalid message"))
+        self.node_info
+            .ok_or_else(|| anyhow::anyhow!("invalid message"))
     }
 
     pub fn current_header(&self) -> anyhow::Result<BlockHeader> {
-        self.current_header.ok_or_else(||anyhow::anyhow!("invalid message"))
+        self.current_header
+            .ok_or_else(|| anyhow::anyhow!("invalid message"))
     }
 }
 
@@ -317,9 +323,7 @@ pub enum Msg {
 
 impl From<Msg> for PeerMessage {
     fn from(msg: Msg) -> Self {
-        PeerMessage {
-            msg: Some(msg)
-        }
+        PeerMessage { msg: Some(msg) }
     }
 }
 #[derive(Debug)]

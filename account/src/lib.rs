@@ -17,7 +17,7 @@ pub fn create_account(network: Network) -> Account {
     Account { address, secret }
 }
 
-pub fn create_account_from_uri(network: Network, uri : &str) -> Account {
+pub fn create_account_from_uri(network: Network, uri: &str) -> Account {
     let mut csprng = ChaCha20Rng::from_seed(*SHA256::digest(uri).as_fixed_bytes());
     let keypair = Keypair::generate(&mut csprng);
     let secret = H256::from(keypair.secret.to_bytes());
@@ -25,16 +25,15 @@ pub fn create_account_from_uri(network: Network, uri : &str) -> Account {
     Account { address, secret }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use types::network::Network;
     use crate::create_account_from_uri;
+    use types::network::Network;
 
     #[test]
     fn test_account_from_uri() {
         let account0 = create_account_from_uri(Network::Testnet, "ama");
         let account1 = create_account_from_uri(Network::Testnet, "ama");
-        assert_eq!(account0,account1);
+        assert_eq!(account0, account1);
     }
 }
