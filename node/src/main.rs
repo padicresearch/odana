@@ -1,5 +1,3 @@
-#![feature(map_first_last)]
-
 use std::collections::BTreeSet;
 use std::fs::OpenOptions;
 use std::path::{Path, PathBuf};

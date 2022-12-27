@@ -238,7 +238,7 @@ pub mod transactions_service_client {
 pub mod transactions_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    ///Generated trait containing gRPC methods that should be implemented for use with TransactionsServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with TransactionsServiceServer.
     #[async_trait]
     pub trait TransactionsService: Send + Sync + 'static {
         async fn sign_transaction(
@@ -752,7 +752,7 @@ pub mod account_service_client {
 pub mod account_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    ///Generated trait containing gRPC methods that should be implemented for use with AccountServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with AccountServiceServer.
     #[async_trait]
     pub trait AccountService: Send + Sync + 'static {
         async fn get_balance(
@@ -1186,7 +1186,7 @@ pub mod chain_service_client {
 pub mod chain_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    ///Generated trait containing gRPC methods that should be implemented for use with ChainServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with ChainServiceServer.
     #[async_trait]
     pub trait ChainService: Send + Sync + 'static {
         async fn current_head(

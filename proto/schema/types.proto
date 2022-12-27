@@ -36,7 +36,7 @@ message ApplicationCallTx{
   AnyType params = 2;
 }
 
-message UnsignedTransaction {
+message Transaction {
   uint64 nonce = 1;
   uint32 chain_id = 2;
   bytes genesis_hash = 3;

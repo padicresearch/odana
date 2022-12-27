@@ -1,0 +1,3 @@
+execute_call : func(args : list<u8>)
+execute_query : func(query : list<u8>) -> list<u8>
+

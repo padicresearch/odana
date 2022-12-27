@@ -4,7 +4,7 @@ import "types.proto";
 package rpc;
 
 message UnsignedTransactionRequest {
-  uchain.types.UnsignedTransaction tx = 1;
+  uchain.types.Transaction tx = 1;
   bytes secret_key = 2;
 }
 

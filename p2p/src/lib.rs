@@ -79,7 +79,6 @@ async fn config_network(
     p2p_to_node: UnboundedSender<Msg>,
     network_state: Arc<NetworkState>,
     pow_target: U256,
-    p2p_port: u16,
 ) -> Result<Swarm<ChainNetworkBehavior>> {
     let auth_keys = libp2p::noise::Keypair::<X25519Spec>::new()
         .into_authentic(&node_identity.identity_keys())
@@ -112,17 +111,6 @@ async fn config_network(
         .build()
         .expect("Failed to create Gossip sub network");
 
-    let local_peer_id = *node_identity.peer_id();
-    let public_ip = public_ip::addr_v4().await;
-    let public_address = public_ip.map(|public_ip| {
-        Multiaddr::empty()
-            .with(Protocol::Ip4(public_ip))
-            .with(Protocol::Tcp(p2p_port))
-            .with(Protocol::P2p(local_peer_id.into()))
-    });
-
-    println!("{:?}", public_address);
-
     let mut behaviour = ChainNetworkBehavior {
         gossipsub: Gossipsub::new(
             MessageAuthenticity::Author(*node_identity.peer_id()),
@@ -141,7 +129,6 @@ async fn config_network(
         p2p_to_node,
         topic: network_topic.clone(),
         node: node_identity.to_p2p_node(),
-        public_address,
         state: network_state,
         pow_target,
     };
@@ -186,8 +173,7 @@ pub async fn start_p2p_server(
         node_identity.clone(),
         p2p_to_node,
         network_state.clone(),
-        pow_target,
-        config.p2p_port,
+        pow_target
     )
     .await?;
 
@@ -356,24 +342,16 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             RequestResponseMessage::Request {
                 request, channel, ..
             } => match &request {
-                Msg::Ack(msg) => {
-                    let addr = &msg.addr;
+                Msg::Ack(_) => {
                     let chain_network = swarm.behaviour_mut();
-                    chain_network.kad.add_address(&peer, addr.clone());
-                    chain_network
-                        .state
-                        .peer_list()
-                        .set_peer_address(peer, addr.clone());
-                    if let Some(public_address) = chain_network.public_address.clone() {
-                        let _ = chain_network.requestresponse.send_response(
-                            channel,
-                            Msg::ReAck(ReAckMessage::new(
-                                chain_network.node,
-                                blockchain.current_header().unwrap().unwrap().raw,
-                                public_address,
-                            )),
-                        );
-                    }
+                    let _ = chain_network.requestresponse.send_response(
+                        channel,
+                        Msg::ReAck(ReAckMessage::new(
+                            chain_network.node,
+                            // TODO: Refactor can cause error crashes
+                            blockchain.current_header().unwrap().unwrap().raw,
+                        )),
+                    );
                 }
                 message => {
                     request_handler
@@ -405,10 +383,14 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         msg.node_info()?,
                         swarm.behaviour().pow_target,
                     ) {
-                        Ok(_) => {
-                            swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer);
+                        Ok((peer, address)) => {
+
+                            let chain_network = swarm.behaviour_mut();
+                            chain_network.gossipsub.add_explicit_peer(&peer);
+                            chain_network.kad.add_address(&peer, address.clone());
                             network_state.update_peer_current_head(&peer, msg.current_header()?)?;
-                            info!(peer = ?&peer, peer_node_info = ?msg.node_info, stats = ?peers.stats(),"Connected to new peer");
+
+                            info!(peer = ?peer, peer_node_info = ?msg.node_info, stats = ?peers.stats(),"Connected to new peer");
                             network_state.handle_new_peer_connected(&peer)?
                         }
                         Err(error) => {
@@ -434,16 +416,14 @@ async fn handle_swam_event<T: std::fmt::Debug>(
             endpoint: ConnectedPoint::Dialer { address },
             ..
         } => {
-            let peers = swarm.behaviour().state.peer_list();
+            let chain_network = swarm.behaviour_mut();
+            let peers = chain_network.state.peer_list();
             if !peers.is_peer_connected(&peer_id) {
-                if let Some(public_address) = swarm.behaviour_mut().public_address.clone() {
-                    let request_id = swarm
-                        .behaviour_mut()
-                        .requestresponse
-                        .send_request(&peer_id, Msg::Ack(AckMessage::new(public_address)));
-                    peers.add_potential_peer(peer_id, request_id);
-                }
-
+                let request_id = swarm
+                    .behaviour_mut()
+                    .requestresponse
+                    .send_request(&peer_id, Msg::Ack(AckMessage::new()));
+                peers.add_potential_peer(peer_id, request_id);
                 peers.set_peer_address(peer_id, address.clone());
             }
             info!(peer = ?address,"Connection established");
@@ -489,8 +469,6 @@ struct ChainNetworkBehavior {
     topic: Sha256Topic,
     #[behaviour(ignore)]
     node: PeerNode,
-    #[behaviour(ignore)]
-    public_address: Option<Multiaddr>,
     #[behaviour(ignore)]
     state: Arc<NetworkState>,
     #[behaviour(ignore)]

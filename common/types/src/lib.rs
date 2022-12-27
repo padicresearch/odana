@@ -6,8 +6,6 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-
-use bincode::{Decode, Encode};
 use bytes::{Buf, BufMut};
 use codec::{Decodable, Encodable};
 use prost::encoding::{DecodeContext, WireType};

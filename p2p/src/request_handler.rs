@@ -22,6 +22,7 @@ impl RequestHandler {
         }
     }
     pub fn handle(&self, peer_id: &PeerId, request: &Msg) -> Result<Option<Msg>> {
+        //TODO: Block un connected peers from requesting
         match request {
             Msg::GetCurrentHead(_) => {
                 let blockchain = self.blockchain.clone();

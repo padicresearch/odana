@@ -4,7 +4,7 @@ members = [
     #core
     "merkle",
     "trie",
-    "uchain",
+    "node",
     "crypto",
     "blockchain",
     "storage",
@@ -42,3 +42,6 @@ prost = { git = 'https://github.com/mambisi/prost',  branch = "bytes-mod" }
 [workspace.dependencies]
 anyhow = "1.0.65"
 bincode = "2.0.0-rc.2"
+rocksdb = { version = "0.17.0" }
+tokio = { version = "1", features = ["full"] }
+thiserror = "1.0.30"

@@ -27,12 +27,6 @@ impl From<u64> for Tuc {
         Self::from(n)
     }
 }
-// impl From<f64> for Tuc {
-//     fn from(f: f64) -> Self {
-//         f
-//         todo!()
-//     }
-// }
 
 impl AsRef<Chi> for Tuc {
     fn as_ref(&self) -> &Chi {

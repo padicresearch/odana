@@ -1,5 +1,4 @@
 use libp2p::bytes::{Buf, BufMut};
-use libp2p::Multiaddr;
 use prost::encoding::{BytesAdapter, DecodeContext, WireType};
 use prost::DecodeError;
 
@@ -232,29 +231,19 @@ impl prost::Message for GetBlocksMessage {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Eq, PartialEq, Clone, prost::Message)]
 pub struct ReAckMessage {
+    #[prost(message, tag = "1")]
     pub node_info: Option<PeerNode>,
+    #[prost(message, tag = "2")]
     pub current_header: Option<BlockHeader>,
-    pub addr: Multiaddr,
-}
-
-impl Default for ReAckMessage {
-    fn default() -> Self {
-        Self {
-            node_info: None,
-            current_header: None,
-            addr: Multiaddr::empty()
-        }
-    }
 }
 
 impl ReAckMessage {
-    pub fn new(node_info: PeerNode, current_header: BlockHeader, addr: Multiaddr) -> Self {
+    pub fn new(node_info: PeerNode, current_header: BlockHeader) -> Self {
         Self {
             node_info: Some(node_info),
             current_header: Some(current_header),
-            addr,
         }
     }
 
@@ -267,151 +256,12 @@ impl ReAckMessage {
     }
 }
 
-impl prost::Message for ReAckMessage {
-    fn encode_raw<B>(&self, buf: &mut B)
-    where
-        B: BufMut,
-        Self: Sized,
-    {
-        if let Some(node_info) = self.node_info {
-            prost::encoding::message::encode(1, &node_info, buf);
-        }
-        if let Some(current_header) = self.current_header {
-            prost::encoding::message::encode(2, &current_header, buf);
-        }
-        prost::encoding::bytes::encode(3, &self.addr.to_vec(), buf);
-    }
-
-    fn merge_field<B>(
-        &mut self,
-        tag: u32,
-        wire_type: WireType,
-        buf: &mut B,
-        ctx: DecodeContext,
-    ) -> Result<(), DecodeError>
-    where
-        B: Buf,
-        Self: Sized,
-    {
-        const STRUCT_NAME: &str = "ReAckMessage";
-        match tag {
-            1u32 => {
-                let value = &mut self.node_info;
-                prost::encoding::message::merge(
-                    wire_type,
-                    value.get_or_insert_with(Default::default),
-                    buf,
-                    ctx,
-                )
-                .map_err(|mut error| {
-                    error.push(STRUCT_NAME, "node_info");
-                    error
-                })
-            }
-            2u32 => {
-                let value = &mut self.current_header;
-                prost::encoding::message::merge(
-                    wire_type,
-                    value.get_or_insert_with(Default::default),
-                    buf,
-                    ctx,
-                )
-                .map_err(|mut error| {
-                    error.push(STRUCT_NAME, "current_header");
-                    error
-                })
-            }
-            3 => {
-                let mut value = Vec::new();
-                prost::encoding::bytes::merge(wire_type, &mut value, buf, ctx)?;
-                self.addr =
-                    Multiaddr::try_from(value).map_err(|e| DecodeError::new(e.to_string()))?;
-                Ok(())
-            }
-            _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
-        }
-    }
-
-    fn encoded_len(&self) -> usize {
-        self
-            .node_info
-            .as_ref()
-            .map_or(0, |msg| prost::encoding::message::encoded_len(1u32, msg))
-            + self
-                .current_header
-                .as_ref()
-                .map_or(0, |msg| prost::encoding::message::encoded_len(2u32, msg))
-            + {
-                prost::encoding::key_len(3)
-                    + prost::encoding::encoded_len_varint(self.addr.as_ref().len() as u64)
-                    + self.addr.as_ref().len()
-            }
-    }
-
-    fn clear(&mut self) {
-        self.addr = Multiaddr::empty();
-        self.node_info = None;
-        self.current_header = None;
-    }
-}
-
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub struct AckMessage {
-    pub addr: Multiaddr,
-}
-
-impl Default for AckMessage {
-    fn default() -> Self {
-        Self {
-            addr: Multiaddr::empty(),
-        }
-    }
-}
+#[derive(Eq, PartialEq, Clone, prost::Message)]
+pub struct AckMessage;
 
 impl AckMessage {
-    pub(crate) fn new(addr: Multiaddr) -> AckMessage {
-        AckMessage { addr }
-    }
-}
-
-impl prost::Message for AckMessage {
-    fn encode_raw<B>(&self, buf: &mut B)
-    where
-        B: BufMut,
-        Self: Sized,
-    {
-        prost::encoding::bytes::encode(1, &self.addr.to_vec(), buf);
-    }
-
-    fn merge_field<B>(
-        &mut self,
-        tag: u32,
-        wire_type: WireType,
-        buf: &mut B,
-        ctx: DecodeContext,
-    ) -> Result<(), DecodeError>
-    where
-        B: Buf,
-        Self: Sized,
-    {
-        if tag == 1 {
-            let mut value = Vec::new();
-            prost::encoding::bytes::merge(wire_type, &mut value, buf, ctx)?;
-            self.addr = Multiaddr::try_from(value).map_err(|e| DecodeError::new(e.to_string()))?;
-            Ok(())
-        } else {
-            prost::encoding::skip_field(wire_type, tag, buf, ctx)
-        }
-    }
-
-    fn encoded_len(&self) -> usize {
-        prost::encoding::key_len(1)
-            + prost::encoding::encoded_len_varint(self.addr.as_ref().len() as u64)
-            + self.addr.as_ref().len()
-    }
-
-    fn clear(&mut self) {
-        self.addr = Multiaddr::empty();
+    pub(crate) fn new() -> AckMessage {
+        AckMessage
     }
 }
 
