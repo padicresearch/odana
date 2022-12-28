@@ -16,5 +16,4 @@ traits = { path = "../common/traits" }
 account = { path = "../account" }
 codec = { path = "../codec" }
 crypto = { path = "../crypto" }
-proto = { path = "../proto" }
 primitive-types = { path = "../common/primitive-types" }

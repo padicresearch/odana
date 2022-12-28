@@ -50,25 +50,19 @@ impl TxSortedList {
             .collect()
     }
 
+    /// Cap places a hard limit on the number of items, returning all transactions
+    /// exceeding that limit.
     pub fn cap(&mut self, threshold: usize) -> Vec<TransactionRef> {
         if self.txs.len() <= threshold {
             return Default::default();
         }
-        let mut remain = BTreeMap::new();
-        let mut slots = threshold;
-        while slots > 0 {
-            if let Some((tx_hash, tx)) = self.txs.pop_first() {
-                remain.insert(tx_hash, tx);
-                slots -= 1;
-            } else {
-                break;
-            }
+        let mut drops = Vec::new();
+        while self.txs.len() > threshold {
+            let Some((_, tx)) = self.txs.pop_first() else {
+                break
+            };
+            drops.push(tx)
         }
-        std::mem::swap(&mut remain, &mut self.txs);
-        let drops: Vec<_> = remain
-            .iter()
-            .map(|(_, priced_tx)| priced_tx.clone())
-            .collect();
         drops
     }
 

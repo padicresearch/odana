@@ -13,10 +13,10 @@ tokio = { workspace = true }
 anyhow = { workspace = true }
 rocksdb = { workspace = true }
 thiserror = { workspace = true }
+clap = { workspace = true }
 # Crate Dependecies
 indexmap = "1.8.2"
 temp-dir = "0.1.11"
-clap = { version = "3.0.13", features = ["derive"] }
 serde_json = "1.0"
 fs_extra = "1.2.0"
 directories = "4.0.1"
@@ -33,6 +33,7 @@ state = { path = "../state" }
 rpc = { path = "../rpc" }
 consensus = { path = "../consensus" }
 miner = { path = "../miner" }
+client = { path = "../client" }
 account = { path = "../account" }
 traits = { path = "../common/traits" }
 tracing = { path = "../common/tracing" }

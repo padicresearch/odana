@@ -18,7 +18,7 @@ use p2p::start_p2p_server;
 use rpc::start_rpc_server;
 use storage::{PersistentStorage, PersistentStorageBackend};
 use tracing::tracing_subscriber::fmt::writer::MakeWriterExt;
-use tracing::{info, tracing_subscriber};
+use tracing::{info, tracing_subscriber, warn};
 use traits::Handler;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 use types::events::LocalEventMessage;
@@ -265,8 +265,13 @@ pub(crate) fn setup_environment(args: &RunArgs) -> Result<Arc<EnvironmentConfig>
                 serde_json::from_reader(config_file).map_err(|e| anyhow::anyhow!("{}", e))
             });
 
-        if let Ok(c) = res {
-            config = c;
+        match res {
+            Ok(c) => {
+                config = c;
+            }
+            Err(error) => {
+                warn!(error = ?error, "failed to read config file, reverting to application default");
+            }
         }
     }
 
@@ -290,8 +295,12 @@ pub(crate) fn setup_environment(args: &RunArgs) -> Result<Arc<EnvironmentConfig>
         config.expected_pow = expected_pow
     }
 
-    if let Some(host) = &args.host {
-        config.host = host.clone()
+    if let Some(p2p_host) = &args.p2p_host {
+        config.p2p_host = p2p_host.clone()
+    }
+
+    if let Some(rpc_host) = &args.rpc_host {
+        config.rpc_host = rpc_host.clone()
     }
 
     if let Some(p2p_port) = args.p2p_port {

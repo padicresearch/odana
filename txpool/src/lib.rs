@@ -340,7 +340,7 @@ impl TxPool {
     fn add_txs(&mut self, tsx: Vec<SignedTransaction>, local: bool) -> Result<()> {
         let mut news = Vec::new();
         let mut errors = Vec::with_capacity(tsx.len());
-        for (_i, tx) in tsx.into_iter().enumerate() {
+        for tx in tsx.into_iter() {
             if self.all.contains(&tx.hash()) {
                 errors.push(format!("{:?}", TxPoolError::TransactionAlreadyKnown));
                 continue;
@@ -928,6 +928,7 @@ impl TxPool {
     }
 }
 
+#[derive(Debug)]
 pub struct ResetRequest {
     old_head: Option<BlockHeader>,
     new_head: BlockHeader,

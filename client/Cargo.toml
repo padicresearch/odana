@@ -1,28 +1,24 @@
 [package]
-name = "rpc"
+name = "client"
 version = "0.1.0"
 edition = "2021"
-include = ["proto"]
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-tonic ={ workspace = true }
+tonic = { workspace = true }
 prost = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
+clap = { workspace = true }
 #local Deps
 codec = { path = "../codec" }
+hex = {path = "../common/hex"}
+account = { path = "../account" }
+transaction = { path = "../transaction" }
 types = { path = "../common/types" }
 primitive-types = { path = "../common/primitive-types" }
-traits = { path = "../common/traits" }
-blockchain = { path = "../blockchain" }
-txpool = { path = "../txpool" }
-tracing = { path = "../common/tracing" }
-hex = { path = "../common/hex" }
-transaction = { path = "../transaction" }
-
 [build-dependencies]
 tonic-build = "0.8.0"

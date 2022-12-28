@@ -2,8 +2,8 @@ use std::sync::{Arc, RwLock};
 
 use tonic::{Request, Response, Status};
 
-use proto::rpc::account_service_server::AccountService;
-use proto::rpc::{GetAccountBalanceResponse, GetAccountNonceResponse, GetAccountRequest};
+use crate::rpc::account_service_server::AccountService;
+use crate::rpc::{GetAccountBalanceResponse, GetAccountNonceResponse, GetAccountRequest};
 use traits::StateDB;
 use txpool::TxPool;
 use types::account::{AccountState, Address42};

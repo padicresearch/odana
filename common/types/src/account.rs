@@ -22,6 +22,15 @@ pub struct AccountState {
     #[prost(uint64, tag = "3")]
     pub nonce: u64,
 }
+impl AccountState {
+    pub fn new() -> Self {
+        AccountState {
+            free_balance: 0u64,
+            reserve_balance: 0u64,
+            nonce: 1u64,
+        }
+    }
+}
 
 impl Encodable for AccountState {
     fn encode(&self) -> Result<Vec<u8>> {

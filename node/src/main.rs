@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use clap::{ArgEnum, Args, Parser, Subcommand};
+use client::commands::{handle_client_command, ClientArgsCommands};
 use directories::UserDirs;
 use indicatif::{ProgressBar, ProgressStyle};
 
@@ -55,12 +56,15 @@ enum Commands {
     Identity(IdentityArgs),
     Config(ConfigArgs),
     Account(AccountArgs),
+    Client(ClientArgsCommands),
 }
 
 #[derive(Args, Debug)]
 struct RunArgs {
     #[clap(long)]
-    host: Option<String>,
+    rpc_host: Option<String>,
+    #[clap(long)]
+    p2p_host: Option<String>,
     #[clap(short, long, value_parser = parse_multaddr)]
     peer: Vec<String>,
     #[clap(short, long)]
@@ -69,7 +73,7 @@ struct RunArgs {
     config_file: Option<PathBuf>,
     #[clap(short, long)]
     identity_file: Option<PathBuf>,
-    #[clap(arg_enum, default_value_t = LogLevel::Info)]
+    #[clap(arg_enum, default_value_t = LogLevel::Debug)]
     log_level: LogLevel,
     #[clap(long)]
     expected_pow: Option<f64>,
@@ -118,7 +122,9 @@ enum ConfigCommands {
 #[derive(Args, Debug)]
 struct SetConfigArgs {
     #[clap(long)]
-    host: Option<String>,
+    rpc_host: Option<String>,
+    #[clap(long)]
+    p2p_host: Option<String>,
     #[clap(long, value_parser = parse_miner_address)]
     miner: Option<Address42>,
     #[clap(long)]
@@ -147,11 +153,11 @@ struct AccountArgs {
 
 #[derive(Subcommand, Debug)]
 enum AccountCommands {
-    New(NewAccountCommandArgs),
+    Create(CreateAccountCommandArgs),
 }
 
 #[derive(Args, Debug)]
-struct NewAccountCommandArgs {
+struct CreateAccountCommandArgs {
     #[clap(arg_enum, long)]
     network: Network,
 }
@@ -170,16 +176,15 @@ fn main() -> Result<()> {
         Commands::Config(args) => {
             handle_config_commands(&args.command)?;
         }
-        Commands::Account(args) => {
-            match &args.command {
-                AccountCommands::New(args) => {
-                    let account = account::create_account(args.network);
-                    println!("{}", serde_json::to_string_pretty(&account).unwrap());
-                    println!("You can share your public address with anyone. Others need it to interact with you.");
-                    println!("You must NEVER share the secret key with anyone. Copy secret key a safe place");
-                    println!("Secret key is not recoverable once it lost");
-                }
+        Commands::Account(args) => match &args.command {
+            AccountCommands::Create(args) => {
+                let account = account::create_account(args.network);
+                println!("{}", serde_json::to_string_pretty(&account).unwrap());
             }
+        },
+        Commands::Client(args) => {
+            let rt = tokio::runtime::Runtime::new()?;
+            rt.block_on(async { handle_client_command(args).await })?;
         }
     }
 
@@ -248,8 +253,12 @@ fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
                 config.expected_pow = expected_pow
             }
 
-            if let Some(host) = &args.host {
-                config.host = host.clone()
+            if let Some(p2p_host) = &args.p2p_host {
+                config.p2p_host = p2p_host.clone()
+            }
+
+            if let Some(rpc_host) = &args.rpc_host {
+                config.rpc_host = rpc_host.clone()
             }
 
             if let Some(p2p_port) = args.p2p_port {
@@ -329,8 +338,12 @@ fn sanitize_config_args(
         config.expected_pow = expected_pow
     }
 
-    if let Some(host) = &args.host {
-        config.host = host.clone()
+    if let Some(p2p_host) = &args.p2p_host {
+        config.p2p_host = p2p_host.clone()
+    }
+
+    if let Some(rpc_host) = &args.rpc_host {
+        config.rpc_host = rpc_host.clone()
     }
 
     if let Some(p2p_port) = args.p2p_port {

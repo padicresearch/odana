@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use tonic::{Code, Request, Response, Status};
 
-use primitive_types::H256;
-use proto::rpc::chain_service_server::ChainService;
-use proto::rpc::{
+use crate::rpc::chain_service_server::ChainService;
+use crate::rpc::{
     CurrentHeadResponse, GetBlockByHashRequest, GetBlockByLevelRequest, GetBlockNumberResponse,
     GetBlocksRequest, GetBlocksResponse,
 };
+use primitive_types::H256;
 use traits::Blockchain;
 use types::block::Block;
 use types::prelude::Empty;

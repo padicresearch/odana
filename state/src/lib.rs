@@ -37,18 +37,14 @@ unsafe impl Send for State {}
 
 impl StateDB for State {
     fn nonce(&self, address: &Address42) -> u64 {
-        self.trie
-            .get(address)
-            .map(|account_state| account_state.map(|account_state| account_state.nonce))
-            .unwrap_or_default()
-            .unwrap_or_default()
+        self.account_state(address).nonce
     }
 
     fn account_state(&self, address: &Address42) -> AccountState {
-        self.trie
-            .get(address)
-            .unwrap_or_default()
-            .unwrap_or_default()
+        match self.trie.get(address) {
+            Ok(Some(account_state)) => account_state,
+            _ => AccountState::new(),
+        }
     }
 
     fn balance(&self, address: &Address42) -> u64 {
@@ -278,11 +274,10 @@ impl State {
     }
 
     fn get_account_state(&self, address: &Address42) -> Result<AccountState> {
-        Ok(self
-            .trie
-            .get(address)
-            .unwrap_or_default()
-            .unwrap_or_default())
+        match self.trie.get(address) {
+            Ok(Some(account_state)) => Ok(account_state),
+            _ => Ok(AccountState::new()),
+        }
     }
 
     fn get_account_state_at_root(
@@ -290,11 +285,10 @@ impl State {
         at_root: &H256,
         address: &Address42,
     ) -> Result<AccountState> {
-        Ok(self
-            .trie
-            .get_at_root(at_root, address)
-            .unwrap_or_default()
-            .unwrap_or_default())
+        match self.trie.get_at_root(at_root, address) {
+            Ok(Some(account_state)) => Ok(account_state),
+            _ => Ok(AccountState::new()),
+        }
     }
 
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {

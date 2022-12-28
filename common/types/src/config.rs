@@ -33,8 +33,11 @@ pub struct EnvironmentConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub miner: Option<Address42>,
-    pub host: String,
+    #[serde(default)]
+    pub p2p_host: String,
     pub p2p_port: u16,
+    #[serde(default)]
+    pub rpc_host: String,
     pub rpc_port: u16,
     pub expected_pow: f64,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -49,8 +52,11 @@ pub struct EnvironmentConfig {
 }
 
 impl EnvironmentConfig {
-    pub fn host(&self) -> &String {
-        &self.host
+    pub fn p2p_host(&self) -> &String {
+        &self.p2p_host
+    }
+    pub fn rpc_host(&self) -> &String {
+        &self.rpc_host
     }
     pub fn p2p_port(&self) -> u16 {
         self.p2p_port
@@ -72,6 +78,12 @@ impl EnvironmentConfig {
         if !self.datadir.exists() {
             self.datadir = default.datadir
         }
+        if self.rpc_host.is_empty() {
+            self.rpc_host = default.rpc_host
+        }
+        if self.p2p_host.is_empty() {
+            self.p2p_host = default.p2p_host
+        }
     }
 }
 
@@ -82,7 +94,8 @@ impl Default for EnvironmentConfig {
         default_datadir.push(".uchain");
         Self {
             miner: None,
-            host: "0.0.0.0".to_string(),
+            p2p_host: "0.0.0.0".to_string(),
+            rpc_host: "127.0.0.1".to_string(),
             p2p_port: 9020,
             rpc_port: 9121,
             expected_pow: 26.0,

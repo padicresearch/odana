@@ -61,7 +61,7 @@ trait P2pEnvironment {
 impl P2pEnvironment for EnvironmentConfig {
     fn p2p_address(&self) -> Multiaddr {
         Multiaddr::empty()
-            .with(Protocol::Ip4(self.host().parse().unwrap()))
+            .with(Protocol::Ip4(self.p2p_host().parse().unwrap()))
             .with(Protocol::Tcp(self.p2p_port()))
     }
 
@@ -179,7 +179,7 @@ pub async fn start_p2p_server(
 
     Swarm::listen_on(
         &mut swarm,
-        format!("/ip4/{}/tcp/{}", config.host, config.p2p_port).parse()?,
+        format!("/ip4/{}/tcp/{}", config.p2p_host(), config.p2p_port()).parse()?,
     )
     .expect("Error connecting to p2p");
 

@@ -6,7 +6,9 @@ use anyhow::{anyhow, Result};
 use crypto::ecdsa::SecretKey;
 use primitive_types::H256;
 use types::account::{Account, Address42};
-use types::tx::{SignedTransaction, Transaction, TransactionBuilder};
+use types::network::Network;
+use types::prelude::TransactionData;
+use types::tx::{PaymentTx, SignedTransaction, Transaction, TransactionBuilder};
 
 pub fn make_sign_transaction(
     account: &Account,
@@ -22,6 +24,25 @@ pub fn make_sign_transaction(
         .to(to)
         .amount(amount)
         .build()
+}
+
+pub fn make_payment_sign_transaction(
+    signer: H256,
+    to: Address42,
+    nonce: u64,
+    amount: u64,
+    fee: u64,
+    network: Network,
+) -> Result<SignedTransaction> {
+    let chain_id = network.chain_id();
+    let tx = Transaction {
+        nonce,
+        chain_id,
+        genesis_hash: Default::default(),
+        fee,
+        data: TransactionData::Payment(PaymentTx { to, amount }),
+    };
+    sign_tx(signer, tx)
 }
 
 pub fn sign_tx(secret: H256, tx: Transaction) -> Result<SignedTransaction> {

@@ -3,13 +3,13 @@ use std::sync::{Arc, RwLock};
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
-use primitive_types::H256;
-use proto::rpc::transactions_service_server::TransactionsService;
-use proto::rpc::{
+use crate::rpc::transactions_service_server::TransactionsService;
+use crate::rpc::{
     AddressTransactionList, GetTransactionStatusResponse, PendingTransactionsResponse,
     SignedTransactionResponse, TransactionHash, TransactionHashes, TxpoolContentResponse,
     UnsignedTransactionRequest,
 };
+use primitive_types::H256;
 use tracing::warn;
 use txpool::TxPool;
 use types::account::get_address_from_secret_key;
