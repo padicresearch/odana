@@ -34,19 +34,30 @@ members = [
     "common/rlp-derive",
     "common/tiny-bip39",
     "common/bech32",
+    #runtime
+    "runtime/api",
+    "runtime/std",
+    "runtime/io",
+    "runtime/core",
+    #apps
+    "apps/template",
+    "apps/repo",
+    #utils
+    "utils/wasm-builder"
 ]
 
 [patch.crates-io]
-prost = { git = 'https://github.com/mambisi/prost',  branch = "bytes-mod" }
+prost = { git = 'https://github.com/mambisi/prost', branch = "bytes-mod" }
 
 [workspace.dependencies]
 anyhow = "1.0.65"
-bincode = "2.0.0-rc.2"
+bincode = { version = "2.0.0-rc.2", default-feature = false, features = ["alloc"] }
 rocksdb = { version = "0.17.0" }
 tokio = { version = "1", features = ["full"] }
 thiserror = "1.0.30"
 tonic = "0.8.0"
-prost = "0.11.0"
-serde_json = "1.0"
-serde = { version = "1.0.130", features = ["derive"] }
+prost = {version = "0.11.0", default-feature = false, features = ["prost-derive"]  }
+prost-build = {version = "0.11.0"}
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+serde = { version = "1.0.130",default-features = false, features = ["derive"] }
 clap = { version = "3.0.13", features = ["derive"] }

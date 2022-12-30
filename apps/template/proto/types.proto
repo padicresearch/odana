@@ -1,0 +1,31 @@
+syntax = "proto3";
+package types;
+
+message Genesis {
+  bytes creator = 1;
+  repeated bytes names = 2;
+}
+
+message Call {
+  oneof arg {
+    bytes set_name = 1;
+    bytes clear_name = 2;
+  }
+}
+
+message Query {
+  oneof arg {
+    bytes get_name = 1;
+  }
+}
+
+message Name {
+  bytes name = 1;
+}
+
+message QueryResponse {
+  oneof arg {
+    Name name = 1;
+  }
+}
+

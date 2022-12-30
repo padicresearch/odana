@@ -91,25 +91,15 @@ impl Message for PaymentTx {
     fn clear(&mut self) {}
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, ::prost::Message)]
-pub struct AnyType {
-    /// used with implementation specific semantics.
-    #[prost(string, tag = "1")]
-    pub type_info: ::prost::alloc::string::String,
-    /// Must be a hex encoded valid serialized protocol buffer of the above specified type.
-    #[prost(bytes, tag = "2")]
-    #[serde(with = "hex")]
-    pub value: Vec<u8>,
-}
-
 #[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]
 pub struct ApplicationCallTx {
     #[prost(uint32, tag = "1")]
     pub app_id: u32,
-    #[prost(message, tag = "2")]
-    pub args: Option<AnyType>,
+    #[prost(uint32, tag = "2")]
+    pub method: u32,
+    #[prost(string, repeated, tag = "3")]
+    pub args: Vec<String>,
 }
-
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, prost::Oneof)]
 #[serde(rename_all = "snake_case")]
 pub enum TransactionData {
@@ -236,7 +226,14 @@ impl<'a> AppCallTransactionBuilder<'a> {
         self
     }
 
-    pub fn args(&mut self, args: Option<AnyType>) -> &mut Self {
+    pub fn method(&mut self, method: u32) -> &mut Self {
+        if let TransactionData::Call(call) = &mut self.inner.tx.data {
+            call.method = method
+        }
+        self
+    }
+
+    pub fn args(&mut self, args: Vec<String>) -> &mut Self {
         if let TransactionData::Call(call) = &mut self.inner.tx.data {
             call.args = args
         }
@@ -737,18 +734,8 @@ mod tests {
             .genesis_hash(genesis)
             .call()
             .app_id(20)
-            .args(Some(AnyType {
-                type_info: "TransferToken".to_string(),
-                value: {
-                    let t = TransferToken {
-                        token_id: 10,
-                        from: H160::zero().as_fixed_bytes().encode_hex(),
-                        to: H160::zero().as_fixed_bytes().encode_hex(),
-                        amount: 100000_u128.encode_hex(),
-                    };
-                    prost::Message::encode_to_vec(&t)
-                },
-            }))
+            .method(0)
+            .args(vec!["gate".to_string()])
             .build()
             .unwrap();
         txs.as_mut().push(Arc::new(tx));

@@ -1,0 +1,24 @@
+[package]
+name = "template"
+version = "0.1.0"
+edition = "2021"
+[lib]
+crate-type = ["cdylib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+odana-std = { path = "../../runtime/std", default-feature = false }
+odana-io = { path = "../../runtime/io", default-feature = false }
+odana-core = { path = "../../runtime/core", default-feature = false }
+prost = { workspace = true }
+[build-dependencies]
+prost-build = { workspace = true }
+wasm-builder = { path = "../../utils/wasm-builder"}
+[features]
+default = ["std"]
+std = [
+    "odana-std/std",
+    "odana-io/std",
+    "odana-core/std"
+]

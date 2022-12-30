@@ -1,3 +1,11 @@
-execute_call : func(args : list<u8>)
-execute_query : func(query : list<u8>) -> list<u8>
+record context {
+    block-level : u32,
+    chain-id : u32,
+    miner : list<u8>,
+    sender : list<u8>,
+    fee : u64
+}
 
+init : func(block-level : u32, genesis : list<u8>) -> u32
+call : func(c : context, call : list<u8>)
+query : func(query : list<u8>) -> list<u8>

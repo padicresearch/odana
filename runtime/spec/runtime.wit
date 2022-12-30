@@ -1,0 +1,3 @@
+on-event : func(event : string, params : list<string>)
+finality-block-level : func() -> u32
+block-hash : func(level : u32) -> list<u8>
