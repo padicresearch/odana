@@ -95,10 +95,8 @@ impl Message for PaymentTx {
 pub struct ApplicationCallTx {
     #[prost(uint32, tag = "1")]
     pub app_id: u32,
-    #[prost(uint32, tag = "2")]
-    pub method: u32,
-    #[prost(string, repeated, tag = "3")]
-    pub args: Vec<String>,
+    #[prost(bytes, tag = "2")]
+    pub args: Vec<u8>,
 }
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, prost::Oneof)]
 #[serde(rename_all = "snake_case")]
@@ -226,14 +224,7 @@ impl<'a> AppCallTransactionBuilder<'a> {
         self
     }
 
-    pub fn method(&mut self, method: u32) -> &mut Self {
-        if let TransactionData::Call(call) = &mut self.inner.tx.data {
-            call.method = method
-        }
-        self
-    }
-
-    pub fn args(&mut self, args: Vec<String>) -> &mut Self {
+    pub fn args(&mut self, args: Vec<u8>) -> &mut Self {
         if let TransactionData::Call(call) = &mut self.inner.tx.data {
             call.args = args
         }
@@ -380,12 +371,7 @@ impl Transaction {
             TransactionData::Call(call) => {
                 pack.extend_from_slice(&2u32.to_be_bytes());
                 pack.extend_from_slice(&call.app_id.to_be_bytes());
-                match &call.args {
-                    None => {}
-                    Some(args) => {
-                        pack.extend_from_slice(&args.value);
-                    }
-                }
+                pack.extend_from_slice(&call.args);
             }
             TransactionData::RawData(raw) => {
                 pack.extend_from_slice(&3u32.to_be_bytes());
@@ -734,8 +720,12 @@ mod tests {
             .genesis_hash(genesis)
             .call()
             .app_id(20)
-            .method(0)
-            .args(vec!["gate".to_string()])
+            .args(prost::Message::encode_to_vec(&TransferToken {
+                token_id: 23,
+                from: "ama".to_string(),
+                to: "kofi".to_string(),
+                amount: "1000".to_string(),
+            }))
             .build()
             .unwrap();
         txs.as_mut().push(Arc::new(tx));

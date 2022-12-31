@@ -1,7 +1,11 @@
-get-nonce : func(address : list<u8>) -> u64
-get-free-balance : func(address : list<u8>) -> u64
-get-reserve-balance : func(address : list<u8>) -> u64
-add-free-balance : func(address : list<u8>, amount : u64)
-sub-free-balance : func(address : list<u8>, amount : u64)
-add-reserve-balance : func(address : list<u8>, amount : u64)
-sub-reserve-balance : func(address : list<u8>, amount : u64)
+world state {
+    import state: interface {
+        get-nonce : func(address : list<u8>) -> u64
+        get-free-balance : func(address : list<u8>) -> u64
+        get-reserve-balance : func(address : list<u8>) -> u64
+        add-free-balance : func(address : list<u8>, amount : u64)
+        sub-free-balance : func(address : list<u8>, amount : u64)
+        add-reserve-balance : func(address : list<u8>, amount : u64)
+        sub-reserve-balance : func(address : list<u8>, amount : u64)
+    }
+}

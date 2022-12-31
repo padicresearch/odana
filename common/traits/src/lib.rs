@@ -28,6 +28,15 @@ pub trait StateDB: Send + Sync {
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;
 }
 
+pub trait ContextDB: Send + Sync {
+    fn app_state(&self, app_id: u32) -> AccountState;
+    fn set_app_state(&self, app_id: u32) -> AccountState;
+    fn reset(&self, root: H256) -> Result<()>;
+    fn root(&self) -> Hash;
+    fn commit(&self) -> Result<()>;
+    fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;
+}
+
 pub trait AccountStateReader: Send + Sync {
     fn nonce(&self, address: &H160) -> u64;
     fn account_state(&self, address: &H160) -> AccountState;

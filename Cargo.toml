@@ -39,9 +39,11 @@ members = [
     "runtime/std",
     "runtime/io",
     "runtime/core",
+    "runtime/vm",
     #apps
     "apps/template",
     "apps/repo",
+    "apps/registry",
     #utils
     "utils/wasm-builder"
 ]

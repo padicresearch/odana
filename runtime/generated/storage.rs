@@ -11,6 +11,7 @@ pub mod storage {
             let vec1 = value;
             let ptr1 = vec1.as_ptr() as i32;
             let len1 = vec1.len() as i32;
+
             #[link(wasm_import_module = "storage")]
             extern "C" {
                 #[cfg_attr(target_arch = "wasm32", link_name = "insert")]
@@ -30,6 +31,7 @@ pub mod storage {
             struct RetArea([u8; 12]);
             let mut ret_area = core::mem::MaybeUninit::<RetArea>::uninit();
             let ptr1 = ret_area.as_mut_ptr() as i32;
+
             #[link(wasm_import_module = "storage")]
             extern "C" {
                 #[cfg_attr(target_arch = "wasm32", link_name = "get")]
@@ -53,6 +55,7 @@ pub mod storage {
             let vec0 = key;
             let ptr0 = vec0.as_ptr() as i32;
             let len0 = vec0.len() as i32;
+
             #[link(wasm_import_module = "storage")]
             extern "C" {
                 #[cfg_attr(target_arch = "wasm32", link_name = "remove")]
@@ -73,6 +76,7 @@ pub mod storage {
             struct RetArea([u8; 8]);
             let mut ret_area = core::mem::MaybeUninit::<RetArea>::uninit();
             let ptr0 = ret_area.as_mut_ptr() as i32;
+
             #[link(wasm_import_module = "storage")]
             extern "C" {
                 #[cfg_attr(target_arch = "wasm32", link_name = "root")]
@@ -88,13 +92,13 @@ pub mod storage {
 
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:storage"]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 125] = [
-    1, 0, 0, 97, 115, 109, 10, 0, 1, 0, 7, 100, 7, 112, 125, 64, 2, 3, 107, 101, 121, 0, 5, 118,
-    97, 108, 117, 101, 0, 1, 0, 107, 0, 64, 1, 3, 107, 101, 121, 0, 0, 2, 64, 1, 3, 107, 101, 121,
-    0, 0, 127, 64, 0, 0, 0, 66, 8, 2, 3, 2, 1, 1, 4, 6, 105, 110, 115, 101, 114, 116, 1, 0, 2, 3,
-    2, 1, 3, 4, 3, 103, 101, 116, 1, 1, 2, 3, 2, 1, 4, 4, 6, 114, 101, 109, 111, 118, 101, 1, 2, 2,
-    3, 2, 1, 5, 4, 4, 114, 111, 111, 116, 1, 3, 10, 11, 1, 7, 115, 116, 111, 114, 97, 103, 101, 5,
-    6,
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 138] = [
+    1, 0, 7, 115, 116, 111, 114, 97, 103, 101, 0, 97, 115, 109, 10, 0, 1, 0, 7, 104, 7, 112, 125,
+    64, 2, 3, 107, 101, 121, 0, 5, 118, 97, 108, 117, 101, 0, 1, 0, 107, 0, 64, 1, 3, 107, 101,
+    121, 0, 0, 2, 64, 1, 3, 107, 101, 121, 0, 0, 127, 64, 0, 0, 0, 66, 8, 2, 3, 2, 1, 1, 4, 6, 105,
+    110, 115, 101, 114, 116, 0, 1, 0, 2, 3, 2, 1, 3, 4, 3, 103, 101, 116, 0, 1, 1, 2, 3, 2, 1, 4,
+    4, 6, 114, 101, 109, 111, 118, 101, 0, 1, 2, 2, 3, 2, 1, 5, 4, 4, 114, 111, 111, 116, 0, 1, 3,
+    10, 12, 1, 7, 115, 116, 111, 114, 97, 103, 101, 0, 5, 6,
 ];
 
 #[inline(never)]

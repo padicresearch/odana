@@ -26,14 +26,9 @@ message PaymentTx {
   uint64 amount = 2;
 }
 
-message AnyType {
-  string type_info = 1;
-  bytes value = 2;
-}
-
 message ApplicationCallTx{
   uint32 app_id = 1;
-  AnyType params = 2;
+  bytes args = 2;
 }
 
 message Transaction {

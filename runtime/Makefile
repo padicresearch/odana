@@ -1,16 +1,16 @@
 WITBINDGEN ?= wit-bindgen
 CARGO ?= cargo
 
-generate-api:
-	$(WITBINDGEN) host wasmtime-rust --rustfmt --import spec/state.wit --name state --out-dir api/src/generated
-	$(WITBINDGEN) host wasmtime-rust --rustfmt --import spec/app.wit --name runtime --out-dir api/src/generated
-	$(WITBINDGEN) host wasmtime-rust --rustfmt --import spec/runtime.wit --name runtime --out-dir api/src/generated
-	$(WITBINDGEN) host wasmtime-rust --rustfmt --import spec/storage.wit --name storage --out-dir api/src/generated
+#generate-api:
+#	$(WITBINDGEN) host wasmtime-rust --rustfmt spec/state.wit --out-dir vm/src
+#	$(WITBINDGEN) host wasmtime-rust --rustfmt spec/app.wit --out-dir vm/src
+#	$(WITBINDGEN) host wasmtime-rust --rustfmt spec/runtime.wit --out-dir vm/src
+#	$(WITBINDGEN) host wasmtime-rust --rustfmt spec/storage.wit --out-dir vm/src
 generate-sdk:
 	rm -rf "generated"
 	mkdir "generated"
-	$(WITBINDGEN) guest rust --rustfmt --import spec/state.wit --name state --out-dir generated
-	$(WITBINDGEN) guest rust --rustfmt --macro-export --export spec/app.wit --name app --out-dir generated
-	$(WITBINDGEN) guest rust --rustfmt --import spec/runtime.wit --name runtime --out-dir generated
-	$(WITBINDGEN) guest rust --rustfmt --import spec/storage.wit --name storage --out-dir generated
+	$(WITBINDGEN) guest rust --rustfmt spec/state.wit --out-dir generated
+	$(WITBINDGEN) guest rust --rustfmt --macro-export spec/app.wit --out-dir generated
+	$(WITBINDGEN) guest rust --rustfmt spec/runtime.wit --out-dir generated
+	$(WITBINDGEN) guest rust --rustfmt spec/storage.wit --out-dir generated
 

@@ -2,8 +2,6 @@
 name = "template"
 version = "0.1.0"
 edition = "2021"
-[lib]
-crate-type = ["cdylib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,6 +9,7 @@ crate-type = ["cdylib"]
 odana-std = { path = "../../runtime/std", default-feature = false }
 odana-io = { path = "../../runtime/io", default-feature = false }
 odana-core = { path = "../../runtime/core", default-feature = false }
+odana-rt-api = { path = "../../runtime/api", default-feature = false }
 prost = { workspace = true }
 [build-dependencies]
 prost-build = { workspace = true }
@@ -20,5 +19,6 @@ default = ["std"]
 std = [
     "odana-std/std",
     "odana-io/std",
-    "odana-core/std"
+    "odana-core/std",
+    "odana-rt-api/std",
 ]

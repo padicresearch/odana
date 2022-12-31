@@ -95,26 +95,30 @@ macro_rules! export_app(($t:ident) => {
   const _: () = {
 
     #[doc(hidden)]
-    #[export_name = "app#init"]
-    unsafe extern "C" fn __export_app_init(arg0: i32,arg1: i32,arg2: i32,) -> i32 {
+    #[export_name = "init"]
+    #[allow(non_snake_case)]
+    unsafe extern "C" fn __export__init(arg0: i32,arg1: i32,arg2: i32,) -> i32 {
       app::call_init::<$t>(arg0,arg1,arg2,)
     }
 
     #[doc(hidden)]
-    #[export_name = "app#call"]
-    unsafe extern "C" fn __export_app_call(arg0: i32,arg1: i32,arg2: i32,arg3: i32,arg4: i32,arg5: i32,arg6: i64,arg7: i32,arg8: i32,) {
+    #[export_name = "call"]
+    #[allow(non_snake_case)]
+    unsafe extern "C" fn __export__call(arg0: i32,arg1: i32,arg2: i32,arg3: i32,arg4: i32,arg5: i32,arg6: i64,arg7: i32,arg8: i32,) {
       app::call_call::<$t>(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,)
     }
 
     #[doc(hidden)]
-    #[export_name = "app#query"]
-    unsafe extern "C" fn __export_app_query(arg0: i32,arg1: i32,) -> i32 {
+    #[export_name = "query"]
+    #[allow(non_snake_case)]
+    unsafe extern "C" fn __export__query(arg0: i32,arg1: i32,) -> i32 {
       app::call_query::<$t>(arg0,arg1,)
     }
 
     #[doc(hidden)]
-    #[export_name = "cabi_post_app#query"]
-    unsafe extern "C" fn __post_return_app_query(arg0: i32,) {
+    #[export_name = "cabi_post_query"]
+    #[allow(non_snake_case)]
+    unsafe extern "C" fn __post_return__query(arg0: i32,) {
       app::post_return_query::<$t>(arg0,)
     }
 
@@ -133,15 +137,14 @@ macro_rules! export_app(($t:ident) => {
 
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:app"]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 179] = [
-    1, 0, 0, 97, 115, 109, 10, 0, 1, 0, 7, 157, 1, 6, 112, 125, 64, 2, 11, 98, 108, 111, 99, 107,
-    45, 108, 101, 118, 101, 108, 121, 7, 103, 101, 110, 101, 115, 105, 115, 0, 0, 121, 114, 5, 11,
-    98, 108, 111, 99, 107, 45, 108, 101, 118, 101, 108, 121, 8, 99, 104, 97, 105, 110, 45, 105,
-    100, 121, 5, 109, 105, 110, 101, 114, 0, 6, 115, 101, 110, 100, 101, 114, 0, 3, 102, 101, 101,
-    119, 64, 2, 1, 99, 2, 4, 99, 97, 108, 108, 0, 1, 0, 64, 1, 5, 113, 117, 101, 114, 121, 0, 0, 0,
-    66, 8, 2, 3, 2, 1, 2, 4, 7, 99, 111, 110, 116, 101, 120, 116, 3, 0, 0, 2, 3, 2, 1, 1, 4, 4,
-    105, 110, 105, 116, 1, 1, 2, 3, 2, 1, 3, 4, 4, 99, 97, 108, 108, 1, 2, 2, 3, 2, 1, 4, 4, 5,
-    113, 117, 101, 114, 121, 1, 3, 11, 7, 1, 3, 97, 112, 112, 3, 5,
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 153] = [
+    1, 0, 3, 97, 112, 112, 0, 97, 115, 109, 10, 0, 1, 0, 7, 98, 5, 112, 125, 64, 2, 11, 98, 108,
+    111, 99, 107, 45, 108, 101, 118, 101, 108, 121, 7, 103, 101, 110, 101, 115, 105, 115, 0, 0,
+    121, 114, 5, 11, 98, 108, 111, 99, 107, 45, 108, 101, 118, 101, 108, 121, 8, 99, 104, 97, 105,
+    110, 45, 105, 100, 121, 5, 109, 105, 110, 101, 114, 0, 6, 115, 101, 110, 100, 101, 114, 0, 3,
+    102, 101, 101, 119, 64, 2, 1, 99, 2, 4, 99, 97, 108, 108, 0, 1, 0, 64, 1, 5, 113, 117, 101,
+    114, 121, 0, 0, 0, 11, 37, 4, 7, 99, 111, 110, 116, 101, 120, 116, 0, 3, 2, 4, 105, 110, 105,
+    116, 0, 3, 1, 4, 99, 97, 108, 108, 0, 3, 3, 5, 113, 117, 101, 114, 121, 0, 3, 4,
 ];
 
 #[inline(never)]

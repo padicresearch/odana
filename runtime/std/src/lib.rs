@@ -48,6 +48,7 @@ pub mod prelude {
         cmp::{Eq, PartialEq, Reverse},
         iter::IntoIterator,
         vec::Vec,
+        vec
     };
 
     // Re-export `vec!` macro here, but not in `std` mode, since
