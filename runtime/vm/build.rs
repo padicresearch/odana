@@ -23,7 +23,6 @@ fn wit_binding_generate(wit_file: &str, out_dir: &str) {
     out_file.push(world.name);
     out_file.set_extension("rs");
 
-
     let mut file = OpenOptions::new()
         .create(true)
         .truncate(true)

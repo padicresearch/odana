@@ -17,7 +17,7 @@ pub use app::Context as ExecutionContext;
 use types::account::{AccountState, Address42};
 
 struct WasmVM {
-    engine : Engine,
+    engine: Engine,
     state_db: Arc<dyn StateDB>,
     blockchain: Arc<dyn Blockchain>,
     apps: Arc<RwLock<BTreeMap<u32, App>>>,
@@ -25,13 +25,11 @@ struct WasmVM {
 
 impl WasmVM {
     fn new(state_db: Arc<dyn StateDB>, blockchain: Arc<dyn Blockchain>) -> anyhow::Result<Self> {
-        Engine::new(Config::new().consume_fuel(true)).map(|engine| {
-            Self {
-                engine,
-                state_db,
-                blockchain,
-                apps: Arc::new(Default::default()),
-            }
+        Engine::new(Config::new().consume_fuel(true)).map(|engine| Self {
+            engine,
+            state_db,
+            blockchain,
+            apps: Arc::new(Default::default()),
         })
     }
 
@@ -75,11 +73,7 @@ impl WasmVM {
         Ok(env.account_changes().clone())
     }
 
-    pub fn execute_query(
-        &self,
-        app_id: u32,
-        query: &[u8],
-    ) -> anyhow::Result<Vec<u8>> {
+    pub fn execute_query(&self, app_id: u32, query: &[u8]) -> anyhow::Result<Vec<u8>> {
         let mut apps = self.apps.write();
         let app = apps.get(&app_id).ok_or(anyhow::anyhow!("app not found"))?;
         let mut store = Store::new(
