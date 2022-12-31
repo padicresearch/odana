@@ -35,66 +35,41 @@ impl Env {
 }
 
 impl State for Env {
-    fn get_nonce(
-        &mut self,
-        address: Vec<u8>,
-    ) -> anyhow::Result<u64> {
+    fn get_nonce(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
         Address42::from_slice(&address).map(|address| self.get_account_state(address).nonce)
     }
 
-    fn get_free_balance(
-        &mut self,
-        address: Vec<u8>,
-    ) -> anyhow::Result<u64> {
+    fn get_free_balance(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
         Address42::from_slice(&address).map(|address| self.get_account_state(address).free_balance)
     }
 
-    fn get_reserve_balance(
-        &mut self,
-        address: Vec<u8>,
-    ) -> anyhow::Result<u64> {
+    fn get_reserve_balance(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
         Address42::from_slice(&address)
             .map(|address| self.get_account_state(address).reserve_balance)
     }
 
-    fn add_free_balance(
-        &mut self,
-        address: Vec<u8>,
-        amount: u64,
-    ) -> anyhow::Result<()> {
+    fn add_free_balance(&mut self, address: Vec<u8>, amount: u64) -> anyhow::Result<()> {
         let account_state =
             Address42::from_slice(&address).map(|address| self.get_account_state(address))?;
         account_state.free_balance += amount;
         Ok(())
     }
 
-    fn sub_free_balance(
-        &mut self,
-        address: Vec<u8>,
-        amount: u64,
-    ) -> anyhow::Result<()> {
+    fn sub_free_balance(&mut self, address: Vec<u8>, amount: u64) -> anyhow::Result<()> {
         let account_state =
             Address42::from_slice(&address).map(|address| self.get_account_state(address))?;
         account_state.free_balance -= amount;
         Ok(())
     }
 
-    fn add_reserve_balance(
-        &mut self,
-        address: Vec<u8>,
-        amount: u64,
-    ) -> anyhow::Result<()> {
+    fn add_reserve_balance(&mut self, address: Vec<u8>, amount: u64) -> anyhow::Result<()> {
         let account_state =
             Address42::from_slice(&address).map(|address| self.get_account_state(address))?;
         account_state.reserve_balance += amount;
         Ok(())
     }
 
-    fn sub_reserve_balance(
-        &mut self,
-        address: Vec<u8>,
-        amount: u64,
-    ) -> anyhow::Result<()> {
+    fn sub_reserve_balance(&mut self, address: Vec<u8>, amount: u64) -> anyhow::Result<()> {
         let account_state =
             Address42::from_slice(&address).map(|address| self.get_account_state(address))?;
         account_state.reserve_balance -= amount;
@@ -103,11 +78,7 @@ impl State for Env {
 }
 
 impl Runtime for Env {
-    fn on_event(
-        &mut self,
-        event: String,
-        params: Vec<String>,
-    ) -> anyhow::Result<()> {
+    fn on_event(&mut self, event: String, params: Vec<String>) -> anyhow::Result<()> {
         todo!()
     }
 
@@ -115,27 +86,17 @@ impl Runtime for Env {
         todo!()
     }
 
-    fn block_hash(
-        &mut self,
-        level: u32,
-    ) -> anyhow::Result<Vec<u8>> {
+    fn block_hash(&mut self, level: u32) -> anyhow::Result<Vec<u8>> {
         todo!()
     }
 }
 
 impl Storage for Env {
-    fn insert(
-        &mut self,
-        key: Vec<u8>,
-        value: Vec<u8>,
-    ) -> anyhow::Result<()> {
+    fn insert(&mut self, key: Vec<u8>, value: Vec<u8>) -> anyhow::Result<()> {
         todo!()
     }
 
-    fn get(
-        &mut self,
-        key: Vec<u8>,
-    ) -> anyhow::Result<Option<Vec<u8>>> {
+    fn get(&mut self, key: Vec<u8>) -> anyhow::Result<Option<Vec<u8>>> {
         todo!()
     }
 
