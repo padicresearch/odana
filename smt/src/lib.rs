@@ -15,9 +15,9 @@ use crate::treehasher::TreeHasher;
 
 pub mod error;
 pub mod proof;
-mod smt;
-mod treehasher;
-mod utils;
+pub mod smt;
+pub mod treehasher;
+pub mod utils;
 mod constants;
 
 #[derive(Copy, Clone)]

@@ -13,7 +13,8 @@ use tracing::{debug, error};
 
 use crate::error::StateError as Error;
 use smt::proof::{verify_proof_with_updates, Proof};
-use smt::{CopyStrategy, SparseMerkleTree};
+use smt::{CopyStrategy, MemoryStorage, SparseMerkleTree};
+use smt::treehasher::TreeHasher;
 use crate::store::Database;
 
 pub struct Options {
@@ -55,8 +56,8 @@ pub enum Op<K: Codec, V: Codec> {
 
 pub struct Tree<K, V> {
     db: Arc<Database>,
-    head: Arc<RwLock<SparseMerkleTree>>,
-    staging: Arc<RwLock<SparseMerkleTree>>,
+    head: Arc<RwLock<SparseMerkleTree<MemoryStorage, MemoryStorage>>>,
+    staging: Arc<RwLock<SparseMerkleTree<MemoryStorage, MemoryStorage>>>,
     options: Options,
     _data: PhantomData<(K, V)>,
 }
@@ -354,14 +355,15 @@ where
 pub struct Verifier;
 
 impl Verifier {
-    pub fn verify_proof<K, V>(proof: &Proof, root: H256, key: K, value: V) -> Result<()>
-    where
-        K: Codec,
-        V: Codec,
+    pub fn verify_proof<K, V, H>(hasher: &H, proof: &Proof, root: H256, key: K, value: V) -> Result<()>
+        where
+            K: Codec,
+            V: Codec,
+            H: TreeHasher
     {
         let key = key.encode()?;
         let value = Encodable::encode(&IValue::Value(value.encode()?))?;
-        verify_proof_with_updates(proof, root, &key, &value)
+        verify_proof_with_updates(hasher, proof, root, &key, &value)
             .map(|_| ())
             .map_err(|e| e.into())
     }
@@ -535,6 +537,7 @@ mod tests {
         println!(
             "{:?}",
             Verifier::verify_proof(
+                tree.
                 &proof,
                 tree.root().unwrap(),
                 H256::from_slice(&[1; 32]),
