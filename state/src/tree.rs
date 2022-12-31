@@ -11,17 +11,10 @@ use codec::{Codec, Decodable, Encodable};
 use primitive_types::H256;
 use tracing::{debug, error};
 
-use crate::error::Error;
-use crate::proof::{verify_proof_with_updates, Proof};
+use crate::error::StateError as Error;
+use smt::proof::{verify_proof_with_updates, Proof};
+use smt::{CopyStrategy, SparseMerkleTree};
 use crate::store::Database;
-use crate::SparseMerkleTree;
-
-#[derive(Copy, Clone)]
-pub enum CopyStrategy {
-    Partial,
-    Full,
-    None,
-}
 
 pub struct Options {
     strategy: CopyStrategy,
@@ -218,9 +211,9 @@ where
         let mut head = self.head.write().map_err(|_e| Error::RWPoison)?;
         let mut staging = self.staging.write().map_err(|_e| Error::RWPoison)?;
 
-        if head.root == staging.root {
+        if head.root() == staging.root() {
             println!("head.root == staging.root");
-            return Ok(head.root);
+            return Ok(head.root());
         }
         if persist {
             match self.db.put(staging.root(), staging.clone()) {
@@ -290,7 +283,7 @@ where
         let head = self.head.read().map_err(|_e| Error::RWPoison)?;
         let mut value = staging.get(&key)?;
         if value.is_empty() && descend {
-            let res = self._get_descend(&key, &head.root)?;
+            let res = self._get_descend(&key, &head.root())?;
             match res {
                 None => return Ok(None),
                 Some(encoded_value) => {
@@ -316,7 +309,7 @@ where
         let head = self.db.get(from_root)?;
         let mut value = head.get(&key)?;
         if value.is_empty() && descend {
-            let res = self._get_descend(&key, &head.root)?;
+            let res = self._get_descend(&key, &head.root())?;
             match res {
                 None => return Ok(None),
                 Some(encoded_value) => {
@@ -342,10 +335,10 @@ where
         loop {
             let tree = self.db.get(&root)?;
             let value = tree.get(key)?;
-            if value.is_empty() && tree.root != tree.parent {
-                root = tree.parent;
+            if value.is_empty() && tree.root() != tree.parent() {
+                root = tree.parent();
                 continue;
-            } else if value.is_empty() && tree.root == tree.parent {
+            } else if value.is_empty() && tree.root() == tree.parent() {
                 return Ok(None);
             }
             return Ok(Some(value));
@@ -378,9 +371,9 @@ impl Verifier {
 mod tests {
     use tempdir::TempDir;
 
-    use crate::{Tree, Verifier};
     use primitive_types::{H160, H256};
     use types::account::AccountState;
+    use crate::tree::{Tree, Verifier};
 
     #[test]
     fn basic_test() {

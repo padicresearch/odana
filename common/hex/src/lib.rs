@@ -1,7 +1,13 @@
+#![no_std]
+
 pub mod serde;
 
 extern crate core;
+extern crate alloc;
 
+use alloc::string::String;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::fmt;
 
 static CHARS: &[u8] = b"0123456789abcdef";
@@ -253,6 +259,7 @@ from_hex_array_impl! {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
     use super::*;
 
     #[test]

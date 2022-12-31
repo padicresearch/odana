@@ -1,5 +1,9 @@
-use std::convert::TryInto;
+#![no_std]
 
+extern crate alloc;
+
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use anyhow::Result;
 use bincode::config::{BigEndian, Fixint, NoLimit, SkipFixedArrayLength};
 use primitive_types::{H160, H256};

@@ -1,3 +1,4 @@
+use alloc::string::String;
 use crate::{FromHex, ToHex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 

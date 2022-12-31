@@ -6,10 +6,10 @@ use dashmap::DashMap;
 use rocksdb::checkpoint::Checkpoint;
 use rocksdb::DB;
 
-use crate::error::Error;
+use crate::error::StateError as Error;
 use crate::store::{cfs, DatabaseBackend};
 
-pub(crate) fn default_db_opts() -> rocksdb::Options {
+pub fn default_db_opts() -> rocksdb::Options {
     let mut opts = rocksdb::Options::default();
     opts.create_if_missing(true);
     opts.create_missing_column_families(true);
@@ -36,12 +36,12 @@ fn default_read_opts() -> rocksdb::ReadOptions {
     rocksdb::ReadOptions::default()
 }
 
-pub(crate) struct RocksDB {
+pub struct RocksDB {
     inner: Arc<DB>,
 }
 
 impl RocksDB {
-    pub(crate) fn new(db: Arc<DB>) -> Self {
+    pub fn new(db: Arc<DB>) -> Self {
         Self { inner: db }
     }
 }
@@ -106,12 +106,12 @@ impl DatabaseBackend for RocksDB {
 type Column = DashMap<Vec<u8>, Vec<u8>>;
 
 #[derive(Debug, Clone)]
-pub(crate) struct MemoryStore {
+pub struct MemoryStore {
     inner: Arc<DashMap<&'static str, Column>>,
 }
 
 impl MemoryStore {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             inner: Arc::new(DashMap::new()),
         }

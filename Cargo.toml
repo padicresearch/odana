@@ -3,7 +3,6 @@ cargo-features = ["edition2021"]
 members = [
     #core
     "merkle",
-    "trie",
     "node",
     "crypto",
     "blockchain",

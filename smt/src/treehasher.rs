@@ -1,19 +1,14 @@
-use crypto::sha256;
+use alloc::vec::Vec;
+use bincode::{Decode, Encode};
 use primitive_types::H256;
+use crate::constants::{HASH_LEN, LEAF_PREFIX, NODE_PREFIX};
 
-const LEAF_PREFIX: [u8; 1] = [0];
-const NODE_PREFIX: [u8; 1] = [1];
-pub const HASH_LEN: usize = 32;
-
-pub(crate) trait TreeHasher {
+pub trait TreeHasher : Encode + Decode + Clone {
     #[inline]
-    fn digest(&self, data: &[u8]) -> H256 {
-        sha256(data)
-    }
-
+    fn digest(&self, data: &[u8]) -> H256;
     #[inline]
     fn path(&self, key: &[u8]) -> H256 {
-        self.digest(key)
+        self.digest(&key)
     }
 
     #[inline]
@@ -23,7 +18,7 @@ pub(crate) trait TreeHasher {
         value.extend_from_slice(path);
         value.extend_from_slice(leaf_data);
 
-        let sum = sha256(&value);
+        let sum = self.digest(&value);
         (sum, value)
     }
 
@@ -34,7 +29,7 @@ pub(crate) trait TreeHasher {
         value.extend_from_slice(left_data);
         value.extend_from_slice(right_data);
 
-        let sum = sha256(&value);
+        let sum = self.digest(&value);
         (sum, value)
     }
 

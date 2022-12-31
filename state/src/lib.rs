@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 
 use primitive_types::H256;
 use smt::proof::Proof;
-use smt::{Op, Tree};
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::{AccountState, Address42};
@@ -15,8 +14,12 @@ use types::tx::SignedTransaction;
 use types::Hash;
 
 use crate::error::StateError;
+use crate::tree::{Op, Tree};
 
 mod error;
+mod tree;
+mod persistent;
+mod store;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ReadProof {

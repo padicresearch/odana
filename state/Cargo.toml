@@ -10,14 +10,14 @@ tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
 serde = { version = "1.0.130", features = ["derive"] }
 anyhow = { workspace = true }
 thiserror = "1.0.30"
-storage = {path = "../storage"}
-types = {path = "../common/types"}
-traits = {path = "../common/traits"}
-account = {path = "../account"}
-codec = {path = "../codec"}
-crypto = {path = "../crypto"}
+storage = { path = "../storage" }
+types = { path = "../common/types" }
+traits = { path = "../common/traits" }
+account = { path = "../account" }
+codec = { path = "../codec" }
+crypto = { path = "../crypto" }
 chrono = "0.4.19"
-hex = "0.4.3"
+hex = { path = "../common/hex" }
 commitlog = "0.2"
 primitive-types = { path = "../common/primitive-types" }
 tracing = { path = "../common/tracing" }
@@ -30,3 +30,4 @@ rand = "0.8.4"
 [dev-dependencies]
 fs_extra = "1.2.0"
 tempdir = "0.3.7"
+dashmap = "5.4.0"

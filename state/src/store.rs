@@ -11,15 +11,16 @@ use serde::{Deserialize, Serialize};
 use bincode::{Decode, Encode};
 use codec::{Decodable, Encodable};
 use primitive_types::H256;
+use smt::SparseMerkleTree;
 
-use crate::error::Error;
+use crate::error::StateError as Error;
 use crate::persistent::{default_db_opts, MemoryStore, RocksDB};
 use crate::SparseMerkleTree;
 
 const COLUMN_TREES: &str = "t";
 const COLUMN_ROOT: &str = "r";
 
-pub(crate) fn cfs() -> Vec<ColumnFamilyDescriptor> {
+pub fn cfs() -> Vec<ColumnFamilyDescriptor> {
     vec![
         ColumnFamilyDescriptor::new(COLUMN_TREES, default_table_options()),
         ColumnFamilyDescriptor::new(COLUMN_ROOT, default_table_options()),
@@ -50,7 +51,7 @@ fn default_table_options() -> Options {
     db_opts
 }
 
-pub(crate) trait DatabaseBackend {
+pub trait DatabaseBackend {
     fn put(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()>;
 
     fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>>;
@@ -67,12 +68,12 @@ pub(crate) trait DatabaseBackend {
     ) -> Result<Vec<u8>>;
 }
 
-pub(crate) struct Database {
-    pub(crate) inner: Arc<dyn DatabaseBackend + Send + Sync>,
+pub struct Database {
+    pub inner: Arc<dyn DatabaseBackend + Send + Sync>,
 }
 
 impl Database {
-    pub(crate) fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Arc::new(rocksdb::DB::open_cf_descriptors(
             &default_db_opts(),
             path.as_ref(),
@@ -84,7 +85,7 @@ impl Database {
         })
     }
 
-    pub(crate) fn open_read_only<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub fn open_read_only<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Arc::new(rocksdb::DB::open_cf_for_read_only(
             &default_db_opts(),
             path,
@@ -96,13 +97,13 @@ impl Database {
         })
     }
 
-    pub(crate) fn in_memory() -> Self {
+    pub fn in_memory() -> Self {
         Self {
             inner: Arc::new(MemoryStore::new()),
         }
     }
 
-    pub(crate) fn put(&self, key: H256, value: SparseMerkleTree) -> Result<()> {
+    pub fn put(&self, key: H256, value: SparseMerkleTree) -> Result<()> {
         self.inner.put(
             COLUMN_TREES,
             &Encodable::encode(&key)?,
@@ -110,28 +111,28 @@ impl Database {
         )
     }
 
-    pub(crate) fn set_root(&self, new_root: H256) -> Result<()> {
+    pub fn set_root(&self, new_root: H256) -> Result<()> {
         self.inner
             .put(COLUMN_ROOT, b"root", &Encodable::encode(&new_root)?)
     }
 
-    pub(crate) fn load_root(&self) -> Result<SparseMerkleTree> {
+    pub fn load_root(&self) -> Result<SparseMerkleTree> {
         let root = self.inner.get(COLUMN_ROOT, b"root")?;
         let root = <H256 as Decodable>::decode(&root)?;
         self.get(&root)
     }
 
-    pub(crate) fn get(&self, key: &H256) -> Result<SparseMerkleTree> {
+    pub fn get(&self, key: &H256) -> Result<SparseMerkleTree> {
         <SparseMerkleTree as Decodable>::decode(
             &self.inner.get(COLUMN_TREES, &Encodable::encode(key)?)?,
         )
     }
 
-    pub(crate) fn delete(&self, key: &H256) -> Result<()> {
+    pub fn delete(&self, key: &H256) -> Result<()> {
         self.inner.delete(COLUMN_TREES, &Encodable::encode(key)?)
     }
 
-    pub(crate) fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Database> {
+    pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Database> {
         Ok(Database {
             inner: self.inner.checkpoint(PathBuf::new().join(path.as_ref()))?,
         })
