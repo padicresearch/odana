@@ -23,11 +23,12 @@ primitive-types = { path = "../common/primitive-types" }
 tracing = { path = "../common/tracing" }
 transaction = { path = "../transaction" }
 smt = { path = "../smt" }
+bincode = { workspace = true }
 rocksdb = { version = "0.17.0" }
 num_cpus = "1.13.1"
 tempdir = "0.3.7"
 rand = "0.8.4"
+dashmap = "5.4.0"
 [dev-dependencies]
 fs_extra = "1.2.0"
 tempdir = "0.3.7"
-dashmap = "5.4.0"

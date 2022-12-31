@@ -1,8 +1,6 @@
-use bincode::{Decode, Encode};
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::fmt::Formatter;
 use std::sync::Arc;
+use odana_rt_api::Executable;
 
 pub struct AppsRepository {
     apps: BTreeMap<u64, Arc<Executable>>,

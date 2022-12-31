@@ -1,8 +1,6 @@
-use std::collections::hash_map::Entry;
-use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use wit_parser::World;
 
 fn main() {

@@ -4,8 +4,8 @@ use parking_lot::RwLock;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use traits::{Blockchain, StateDB};
-use wasmtime::component::{Component, Instance, Linker};
-use wasmtime::{Config, Engine, Module, Store};
+use wasmtime::component::{Component, Linker};
+use wasmtime::{Config, Engine, Store};
 
 pub(crate) mod app;
 mod env;

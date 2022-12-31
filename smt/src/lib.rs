@@ -6,19 +6,19 @@ extern crate alloc;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
-pub use smt::*;
-use bincode::{Decode, Encode};
-use sha2::{Digest, Sha256};
-use primitive_types::H256;
 use crate::error::Error;
 use crate::treehasher::TreeHasher;
+use bincode::{Decode, Encode};
+use primitive_types::H256;
+use sha2::{Digest, Sha256};
+pub use smt::*;
 
+mod constants;
 pub mod error;
 pub mod proof;
 pub mod smt;
 pub mod treehasher;
 pub mod utils;
-mod constants;
 
 #[derive(Copy, Clone)]
 pub enum CopyStrategy {
@@ -29,24 +29,24 @@ pub enum CopyStrategy {
 
 pub(crate) type Result<T> = core::result::Result<T, Error>;
 
-pub type StorageBackendSnapshot = Vec<(Vec<u8>,Vec<u8>)>;
+pub type StorageBackendSnapshot = Vec<(Vec<u8>, Vec<u8>)>;
 
-pub trait StorageBackend : Clone {
+pub trait StorageBackend: Clone {
     fn put(&mut self, key: &[u8], value: &[u8]) -> Result<()>;
     fn get(&self, key: &[u8]) -> Result<Vec<u8>>;
     fn delete(&mut self, key: &[u8]) -> Result<()>;
     fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>>;
     fn snapshot(&self) -> Result<StorageBackendSnapshot>;
-    fn from_snapshot(snapshot : StorageBackendSnapshot) -> Result<Self>;
+    fn from_snapshot(snapshot: StorageBackendSnapshot) -> Result<Self>;
     fn new() -> Self;
 }
 
-#[derive(Debug,Clone,Encode, Decode)]
+#[derive(Debug, Clone, Encode, Decode)]
 pub struct DefaultTreeHasher;
 
 #[derive(Clone)]
 pub struct MemoryStorage {
-    data : BTreeMap<Vec<u8>, Vec<u8>>
+    data: BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
 impl StorageBackend for MemoryStorage {
@@ -56,13 +56,13 @@ impl StorageBackend for MemoryStorage {
     }
 
     fn get(&self, key: &[u8]) -> Result<Vec<u8>> {
-        let value = self.data.get(key).map(|v|v.clone());
+        let value = self.data.get(key).map(|v| v.clone());
         value.ok_or_else(|| Error::StorageErrorKeyNotFound)
     }
 
     fn delete(&mut self, key: &[u8]) -> Result<()> {
         if !self.data.contains_key(key) {
-            return Err(Error::StorageError)
+            return Err(Error::StorageError);
         }
         self.data.remove(key);
         Ok(())

@@ -1,28 +1,26 @@
+use crate::Result;
 use alloc::format;
 use alloc::vec::Vec;
-use crate::Result;
 use codec::{Decodable, Encodable};
 use primitive_types::H256;
 
+use crate::constants::{HASH_LEN, LEAF_PREFIX, NODE_PREFIX};
 use crate::error::Error;
 use crate::proof::{verify_proof_with_updates, Proof};
 use crate::treehasher::TreeHasher;
 use crate::utils::{count_common_prefix, get_bits_at_from_msb};
-use crate::{CopyStrategy, DefaultTreeHasher, MemoryStorage, StorageBackend, StorageBackendSnapshot};
+use crate::{
+    CopyStrategy, DefaultTreeHasher, MemoryStorage, StorageBackend, StorageBackendSnapshot,
+};
 use bincode::de::Decoder;
 use bincode::enc::Encoder;
 use bincode::error::{DecodeError, EncodeError};
 use bincode::{Decode, Encode};
-use crate::constants::{HASH_LEN, LEAF_PREFIX, NODE_PREFIX};
 
 pub(crate) struct SideNodesForRootResult(Vec<H256>, Vec<H256>, Vec<u8>, Option<Vec<u8>>);
 
-
 #[derive(Clone, Debug)]
-pub struct SparseMerkleTree<
-    Storage = MemoryStorage,
-    Hasher = DefaultTreeHasher,
-> {
+pub struct SparseMerkleTree<Storage = MemoryStorage, Hasher = DefaultTreeHasher> {
     pub(crate) nodes: Storage,
     pub(crate) values: Storage,
     pub(crate) hasher: Hasher,
@@ -30,9 +28,7 @@ pub struct SparseMerkleTree<
     pub(crate) parent: H256,
 }
 
-impl<Storage: StorageBackend, Hasher: TreeHasher> Encode
-for SparseMerkleTree<Storage, Hasher>
-{
+impl<Storage: StorageBackend, Hasher: TreeHasher> Encode for SparseMerkleTree<Storage, Hasher> {
     fn encode<E: Encoder>(&self, encoder: &mut E) -> core::result::Result<(), EncodeError> {
         Encode::encode(
             &self
@@ -54,9 +50,7 @@ for SparseMerkleTree<Storage, Hasher>
     }
 }
 
-impl<Storage: StorageBackend, Hasher: TreeHasher> Decode
-for SparseMerkleTree<Storage, Hasher>
-{
+impl<Storage: StorageBackend, Hasher: TreeHasher> Decode for SparseMerkleTree<Storage, Hasher> {
     fn decode<D: Decoder>(decoder: &mut D) -> core::result::Result<Self, DecodeError> {
         let nodes_snapshot: StorageBackendSnapshot = bincode::Decode::decode(decoder)
             .map_err(|e| DecodeError::OtherString(format!("{}", e)))?;
@@ -80,19 +74,14 @@ for SparseMerkleTree<Storage, Hasher>
     }
 }
 
-#[cfg(std)]
-impl<Nodes: StorageBackend, Values: StorageBackend, Hasher: TreeHasher> Encodable
-    for SparseMerkleTree<Nodes, Values, Hasher>
-{
+
+impl<Storage: StorageBackend, Hasher: TreeHasher> Encodable for SparseMerkleTree<Storage, Hasher> {
     fn encode(&self) -> anyhow::Result<Vec<u8>> {
         bincode::encode_to_vec(self, bincode::config::standard()).map_err(|e| e.into())
     }
 }
 
-#[cfg(std)]
-impl<Nodes: StorageBackend, Values: StorageBackend, Hasher: TreeHasher> Decodable
-    for SparseMerkleTree<Nodes, Values, Hasher>
-{
+impl<Storage: StorageBackend, Hasher: TreeHasher> Decodable for SparseMerkleTree<Storage, Hasher> {
     fn decode(buf: &[u8]) -> anyhow::Result<Self> {
         bincode::decode_from_slice(buf, bincode::config::standard())
             .map(|(t, _)| t)
@@ -100,13 +89,11 @@ impl<Nodes: StorageBackend, Values: StorageBackend, Hasher: TreeHasher> Decodabl
     }
 }
 
-impl
-SparseMerkleTree<MemoryStorage, DefaultTreeHasher>
-{
+impl SparseMerkleTree<MemoryStorage, DefaultTreeHasher> {
     pub fn new() -> Self {
         Self {
-            nodes : MemoryStorage::new(),
-            values : MemoryStorage::new(),
+            nodes: MemoryStorage::new(),
+            values: MemoryStorage::new(),
             hasher: DefaultTreeHasher,
             root: Default::default(),
             parent: Default::default(),
@@ -114,9 +101,7 @@ SparseMerkleTree<MemoryStorage, DefaultTreeHasher>
     }
 }
 
-impl<Storage: StorageBackend, Hasher: TreeHasher>
-SparseMerkleTree<Storage, Hasher>
-{
+impl<Storage: StorageBackend, Hasher: TreeHasher> SparseMerkleTree<Storage, Hasher> {
     pub fn new_with_hasher(hasher: Hasher, nodes: Storage, values: Storage) -> Self {
         Self {
             nodes,
@@ -132,7 +117,8 @@ SparseMerkleTree<Storage, Hasher>
     }
 
     pub fn subtree(&self, strategy: CopyStrategy, import_keys: Vec<Vec<u8>>) -> Result<Self> {
-        let mut subtree = SparseMerkleTree::new_with_hasher(self.hasher.clone(), Storage::new(), Storage::new());
+        let mut subtree =
+            SparseMerkleTree::new_with_hasher(self.hasher.clone(), Storage::new(), Storage::new());
         subtree.parent = self.root;
         subtree.root = self.root;
 
@@ -273,12 +259,12 @@ SparseMerkleTree<Storage, Hasher>
         old_leaf_data: &[u8],
     ) -> Result<H256> {
         if path_nodes[0].is_zero() {
-            return Err(Error::KeyAlreadyEmpty)
+            return Err(Error::KeyAlreadyEmpty);
         }
 
         let (actual_path, _) = self.hasher.parse_leaf(old_leaf_data);
         if !actual_path.eq(path.as_bytes()) {
-            return Err(Error::KeyAlreadyEmpty)
+            return Err(Error::KeyAlreadyEmpty);
         }
         for node in path_nodes {
             self.nodes.delete(node.as_bytes())?;
@@ -331,8 +317,9 @@ SparseMerkleTree<Storage, Hasher>
         old_leaf_data: &[u8],
     ) -> Result<H256> {
         let value_hash = self.hasher.digest(value);
-        let (mut current_hash, mut current_data) =
-            self.hasher.digest_leaf(path.as_bytes(), value_hash.as_bytes());
+        let (mut current_hash, mut current_data) = self
+            .hasher
+            .digest_leaf(path.as_bytes(), value_hash.as_bytes());
         self.nodes.put(current_hash.as_bytes(), &current_data)?;
         current_data = current_hash.as_bytes().to_vec();
 
@@ -349,11 +336,13 @@ SparseMerkleTree<Storage, Hasher>
 
         if common_prefix_count != self.depth() {
             if get_bits_at_from_msb(path.as_bytes(), common_prefix_count) == 1 {
-                (current_hash, current_data) =
-                    self.hasher.digest_node(path_nodes[0].as_bytes(), current_data.as_slice());
+                (current_hash, current_data) = self
+                    .hasher
+                    .digest_node(path_nodes[0].as_bytes(), current_data.as_slice());
             } else {
-                (current_hash, current_data) =
-                    self.hasher.digest_node(current_data.as_slice(), path_nodes[0].as_bytes());
+                (current_hash, current_data) = self
+                    .hasher
+                    .digest_node(current_data.as_slice(), path_nodes[0].as_bytes());
             }
             self.nodes.put(current_hash.as_bytes(), &current_data)?;
             current_data = current_hash.as_bytes().to_vec();
@@ -507,9 +496,9 @@ SparseMerkleTree<Storage, Hasher>
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec;
     use crate::smt::SparseMerkleTree;
     use crate::CopyStrategy;
+    use alloc::vec;
 
     #[test]
     fn basic_get_set_check_root_test() {
@@ -518,11 +507,11 @@ mod tests {
         let root1 = smt.root;
         smt.update(&[4, 5, 3], &[5, 2, 3]).unwrap();
         let root2 = smt.root;
-        assert_ne!(root1,root2);
+        assert_ne!(root1, root2);
         let mut smt_2 = smt.subtree(CopyStrategy::Partial, vec![]).unwrap();
-        assert_eq!(root2,smt_2.root);
+        assert_eq!(root2, smt_2.root);
         smt_2.update(&[1, 2, 3], &[10, 20, 30]).unwrap();
         smt.update(&[1, 2, 3], &[10, 20, 30]).unwrap();
-        assert_eq!(smt.root,smt_2.root);
+        assert_eq!(smt.root, smt_2.root);
     }
 }

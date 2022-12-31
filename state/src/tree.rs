@@ -12,10 +12,10 @@ use primitive_types::H256;
 use tracing::{debug, error};
 
 use crate::error::StateError as Error;
-use smt::proof::{verify_proof_with_updates, Proof};
-use smt::{CopyStrategy, MemoryStorage, SparseMerkleTree};
-use smt::treehasher::TreeHasher;
 use crate::store::Database;
+use smt::proof::{verify_proof_with_updates, Proof};
+use smt::treehasher::TreeHasher;
+use smt::{CopyStrategy, DefaultTreeHasher, MemoryStorage, SparseMerkleTree, StorageBackend};
 
 pub struct Options {
     strategy: CopyStrategy,
@@ -54,18 +54,20 @@ pub enum Op<K: Codec, V: Codec> {
     Put(K, V),
 }
 
-pub struct Tree<K, V> {
+pub struct Tree<K, V, H = DefaultTreeHasher> {
     db: Arc<Database>,
-    head: Arc<RwLock<SparseMerkleTree<MemoryStorage, MemoryStorage>>>,
-    staging: Arc<RwLock<SparseMerkleTree<MemoryStorage, MemoryStorage>>>,
+    head: Arc<RwLock<SparseMerkleTree<MemoryStorage, H>>>,
+    staging: Arc<RwLock<SparseMerkleTree<MemoryStorage, H>>>,
     options: Options,
+    hasher: H,
     _data: PhantomData<(K, V)>,
 }
 
-impl<K, V> Tree<K, V>
-where
-    K: Codec,
-    V: Codec,
+
+impl<K, V> Tree<K, V, DefaultTreeHasher>
+    where
+        K: Codec,
+        V: Codec,
 {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open(path)?;
@@ -81,6 +83,7 @@ where
             head: Arc::new(RwLock::new(tree)),
             staging: Arc::new(RwLock::new(staging_tree)),
             options,
+            hasher: DefaultTreeHasher,
             _data: Default::default(),
         })
     }
@@ -95,23 +98,7 @@ where
             head: Arc::new(RwLock::new(tree.clone())),
             staging: Arc::new(RwLock::new(tree)),
             options,
-            _data: Default::default(),
-        })
-    }
-
-    pub fn open_with_options<P: AsRef<Path>>(path: P, options: Options) -> Result<Self> {
-        let db = Database::open(path)?;
-        let tree = match db.load_root() {
-            Ok(tree) => tree,
-            Err(_) => SparseMerkleTree::new(),
-        };
-
-        let staging_tree = tree.subtree(options.strategy, vec![])?;
-        Ok(Self {
-            db: Arc::new(db),
-            head: Arc::new(RwLock::new(tree)),
-            staging: Arc::new(RwLock::new(staging_tree)),
-            options,
+            hasher: DefaultTreeHasher,
             _data: Default::default(),
         })
     }
@@ -129,6 +116,32 @@ where
             head: Arc::new(RwLock::new(tree)),
             staging: Arc::new(RwLock::new(staging_tree)),
             options,
+            hasher: DefaultTreeHasher,
+            _data: Default::default(),
+        })
+    }
+}
+
+impl<K, V, H> Tree<K, V, H>
+    where
+        K: Codec,
+        V: Codec,
+        H: TreeHasher,
+{
+    pub fn open_with_options<P: AsRef<Path>>(hasher: H, path: P, options: Options) -> Result<Self> {
+        let db = Database::open(path)?;
+        let tree = match db.load_root() {
+            Ok(tree) => tree,
+            Err(_) => SparseMerkleTree::new_with_hasher(hasher.clone(), MemoryStorage::new(), MemoryStorage::new()),
+        };
+
+        let staging_tree = tree.subtree(options.strategy, vec![])?;
+        Ok(Self {
+            db: Arc::new(db),
+            head: Arc::new(RwLock::new(tree)),
+            staging: Arc::new(RwLock::new(staging_tree)),
+            options,
+            hasher,
             _data: Default::default(),
         })
     }
@@ -153,7 +166,7 @@ where
         Ok(())
     }
 
-    pub fn head(&self) -> Result<SparseMerkleTree> {
+    pub fn head(&self) -> Result<SparseMerkleTree<MemoryStorage, H>> {
         let head = self.head.read().map_err(|_e| Error::RWPoison)?;
         Ok(head.clone())
     }
@@ -187,7 +200,7 @@ where
     }
 
     pub fn apply_non_commit(&self, at_root: &H256, batch: Vec<Op<K, V>>) -> Result<H256> {
-        let mut tree = self.db.get(at_root)?;
+        let mut tree: SparseMerkleTree<MemoryStorage, H> = self.db.get(at_root)?;
         let res: Result<HashMap<_, _>> = batch
             .into_iter()
             .map(|op| match op {
@@ -307,7 +320,7 @@ where
 
     fn get_descend_from_root(&self, from_root: &H256, key: &K, descend: bool) -> Result<Option<V>> {
         let key = key.encode()?;
-        let head = self.db.get(from_root)?;
+        let head: SparseMerkleTree<MemoryStorage, H> = self.db.get(from_root)?;
         let mut value = head.get(&key)?;
         if value.is_empty() && descend {
             let res = self._get_descend(&key, &head.root())?;
@@ -334,7 +347,7 @@ where
     fn _get_descend(&self, key: &[u8], root: &H256) -> Result<Option<Vec<u8>>> {
         let mut root = *root;
         loop {
-            let tree = self.db.get(&root)?;
+            let tree: SparseMerkleTree<MemoryStorage, H> = self.db.get(&root)?;
             let value = tree.get(key)?;
             if value.is_empty() && tree.root() != tree.parent() {
                 root = tree.parent();
@@ -350,16 +363,26 @@ where
         let head = self.head.write().map_err(|_e| Error::RWPoison)?;
         Ok(head.root())
     }
+
+    pub fn hasher(&self) -> &H {
+        &self.hasher
+    }
 }
 
 pub struct Verifier;
 
 impl Verifier {
-    pub fn verify_proof<K, V, H>(hasher: &H, proof: &Proof, root: H256, key: K, value: V) -> Result<()>
+    pub fn verify_proof<K, V, H>(
+        hasher: &H,
+        proof: &Proof,
+        root: H256,
+        key: K,
+        value: V,
+    ) -> Result<()>
         where
             K: Codec,
             V: Codec,
-            H: TreeHasher
+            H: TreeHasher,
     {
         let key = key.encode()?;
         let value = Encodable::encode(&IValue::Value(value.encode()?))?;
@@ -373,9 +396,9 @@ impl Verifier {
 mod tests {
     use tempdir::TempDir;
 
+    use crate::tree::{Tree, Verifier};
     use primitive_types::{H160, H256};
     use types::account::AccountState;
-    use crate::tree::{Tree, Verifier};
 
     #[test]
     fn basic_test() {
@@ -537,7 +560,7 @@ mod tests {
         println!(
             "{:?}",
             Verifier::verify_proof(
-                tree.
+                tree.hasher(),
                 &proof,
                 tree.root().unwrap(),
                 H256::from_slice(&[1; 32]),

@@ -4,7 +4,6 @@ use primitive_types::H256;
 use crate::constants::{HASH_LEN, LEAF_PREFIX, NODE_PREFIX};
 
 pub trait TreeHasher : Encode + Decode + Clone {
-    #[inline]
     fn digest(&self, data: &[u8]) -> H256;
     #[inline]
     fn path(&self, key: &[u8]) -> H256 {

@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use bincode::{Encode, Decode};
 
 use primitive_types::H256;
 use smt::proof::Proof;
@@ -21,7 +22,7 @@ mod tree;
 mod persistent;
 mod store;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Encode, Decode, Clone, Debug)]
 pub struct ReadProof {
     proof: Proof,
     root: H256,

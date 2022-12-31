@@ -3,19 +3,15 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{bail, Result};
-use dashmap::DashMap;
+use anyhow::{Result};
 use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
-use serde::{Deserialize, Serialize};
 
-use bincode::{Decode, Encode};
 use codec::{Decodable, Encodable};
 use primitive_types::H256;
-use smt::SparseMerkleTree;
+use smt::{SparseMerkleTree, StorageBackend};
+use smt::treehasher::TreeHasher;
 
-use crate::error::StateError as Error;
 use crate::persistent::{default_db_opts, MemoryStore, RocksDB};
-use crate::SparseMerkleTree;
 
 const COLUMN_TREES: &str = "t";
 const COLUMN_ROOT: &str = "r";
@@ -103,7 +99,7 @@ impl Database {
         }
     }
 
-    pub fn put(&self, key: H256, value: SparseMerkleTree) -> Result<()> {
+    pub fn put<S: StorageBackend, H: TreeHasher>(&self, key: H256, value: SparseMerkleTree<S, H>) -> Result<()> {
         self.inner.put(
             COLUMN_TREES,
             &Encodable::encode(&key)?,
@@ -116,14 +112,14 @@ impl Database {
             .put(COLUMN_ROOT, b"root", &Encodable::encode(&new_root)?)
     }
 
-    pub fn load_root(&self) -> Result<SparseMerkleTree> {
+    pub fn load_root<S: StorageBackend, H: TreeHasher>(&self) -> Result<SparseMerkleTree<S, H>> {
         let root = self.inner.get(COLUMN_ROOT, b"root")?;
         let root = <H256 as Decodable>::decode(&root)?;
         self.get(&root)
     }
 
-    pub fn get(&self, key: &H256) -> Result<SparseMerkleTree> {
-        <SparseMerkleTree as Decodable>::decode(
+    pub fn get<S: StorageBackend, H: TreeHasher>(&self, key: &H256) -> Result<SparseMerkleTree<S, H>> {
+        <SparseMerkleTree<S, H> as Decodable>::decode(
             &self.inner.get(COLUMN_TREES, &Encodable::encode(key)?)?,
         )
     }
@@ -136,36 +132,5 @@ impl Database {
         Ok(Database {
             inner: self.inner.checkpoint(PathBuf::new().join(path.as_ref()))?,
         })
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Default, Debug, Encode, Decode)]
-pub struct ArchivedStorage {
-    #[bincode(with_serde)]
-    inner: DashMap<Vec<u8>, Vec<u8>>,
-}
-
-impl ArchivedStorage {
-    pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        self.inner.insert(key.to_vec(), value.to_vec());
-        Ok(())
-    }
-
-    pub fn get(&self, key: &[u8]) -> Result<Vec<u8>> {
-        let value = self.inner.get(key).map(|r| r.value().clone());
-        value.ok_or_else(|| Error::InvalidKey(hex::encode(key, false)).into())
-    }
-
-    pub fn delete(&self, key: &[u8]) -> Result<()> {
-        if !self.inner.contains_key(key) {
-            bail!(Error::InvalidKey(hex::encode(key, false)))
-        }
-        self.inner.remove(key);
-        Ok(())
-    }
-
-    pub fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>> {
-        let value = self.inner.get(key).map(|r| r.value().clone());
-        Ok(value.unwrap_or(default))
     }
 }
