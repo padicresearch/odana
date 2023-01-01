@@ -2,12 +2,15 @@ use crate::internal::balances_api::BalancesApi;
 use crate::internal::blockchain_api::BlockchainApi;
 use crate::internal::event::Event;
 use crate::internal::storage::Storage;
+use crate::Changelist;
+use smt::SparseMerkleTree;
 use std::collections::HashMap;
 use std::sync::Arc;
 use traits::{Blockchain, StateDB};
 use types::account::{AccountState, Address42};
 
 pub struct Env {
+    storage: SparseMerkleTree,
     state_db: Arc<dyn StateDB>,
     blockchain: Arc<dyn Blockchain>,
     accounts: HashMap<Address42, AccountState>,
@@ -15,8 +18,13 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new(state_db: Arc<dyn StateDB>, blockchain: Arc<dyn Blockchain>) -> Self {
+    pub fn new(
+        storage: SparseMerkleTree,
+        state_db: Arc<dyn StateDB>,
+        blockchain: Arc<dyn Blockchain>,
+    ) -> Self {
         Self {
+            storage,
             state_db,
             blockchain,
             accounts: Default::default(),
@@ -30,10 +38,6 @@ impl Env {
             .entry(address)
             .or_insert_with(|| self.state_db.account_state(&address));
         account_state
-    }
-
-    pub(crate) fn account_changes(&self) -> &HashMap<Address42, AccountState> {
-        &self.accounts
     }
 }
 
@@ -96,20 +100,31 @@ impl BlockchainApi for Env {
 
 impl Storage for Env {
     fn insert(&mut self, key: Vec<u8>, value: Vec<u8>) -> anyhow::Result<()> {
-        todo!()
+        let _ = self.storage.update(key, value)?;
+        Ok(())
     }
 
     fn get(&mut self, key: Vec<u8>) -> anyhow::Result<Option<Vec<u8>>> {
-        todo!()
+        Ok(Some(self.storage.get(key)?))
     }
 
     fn remove(&mut self, key: Vec<u8>) -> anyhow::Result<bool> {
-        todo!()
+        Ok(self.storage.update(key, Vec::new()).is_ok())
     }
 }
 
 impl Event for Env {
     fn emit(&mut self, event: Vec<u8>) -> anyhow::Result<()> {
         Ok(self.events.push(event))
+    }
+}
+
+impl From<Env> for Changelist {
+    fn from(value: Env) -> Self {
+        Self {
+            account_changes: value.accounts,
+            logs: value.events,
+            storage: codec::Encodable::encode(&value.storage).unwrap_or_default(),
+        }
     }
 }

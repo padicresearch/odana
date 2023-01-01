@@ -1,8 +1,9 @@
 use crate::env::Env;
 use parking_lot::RwLock;
+use smt::SparseMerkleTree;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
-use traits::{Blockchain, StateDB};
+use traits::{Blockchain, ContextDB, StateDB};
 use wasmtime::component::{Component, Linker};
 use wasmtime::{Config, Engine, Store};
 
@@ -17,28 +18,42 @@ mod internal {
     include!(concat!(env!("OUT_DIR"), "/app.rs"));
 }
 
-struct WasmVM {
-    engine: Engine,
+pub struct Changelist {
+    pub account_changes: HashMap<Address42, AccountState>,
+    pub logs: Vec<Vec<u8>>,
+    pub storage: Vec<u8>,
+}
+
+pub struct WasmVM {
+    engine: Arc<Engine>,
     state_db: Arc<dyn StateDB>,
     blockchain: Arc<dyn Blockchain>,
+    context_db: Arc<dyn ContextDB>,
     apps: Arc<RwLock<BTreeMap<u32, App>>>,
 }
 
 impl WasmVM {
-    fn new(state_db: Arc<dyn StateDB>, blockchain: Arc<dyn Blockchain>) -> anyhow::Result<Self> {
+    pub fn new(
+        state_db: Arc<dyn StateDB>,
+        blockchain: Arc<dyn Blockchain>,
+        context_db: Arc<dyn ContextDB>,
+    ) -> anyhow::Result<Self> {
         Engine::new(Config::new().consume_fuel(true)).map(|engine| Self {
-            engine,
+            engine: Arc::new(engine),
             state_db,
             blockchain,
+            context_db,
             apps: Arc::new(Default::default()),
         })
     }
 
     pub fn instantiate_app(&self, app_id: u32, binary: Vec<u8>) -> anyhow::Result<()> {
         let engine = &self.engine;
+        let raw_storage = self.context_db.current_app_state(app_id);
+        let storage: SparseMerkleTree = codec::Decodable::decode(raw_storage.as_ref())?;
         let mut store = Store::new(
             engine,
-            Env::new(self.state_db.clone(), self.blockchain.clone()),
+            Env::new(storage, self.state_db.clone(), self.blockchain.clone()),
         );
 
         let mut linker = Linker::<Env>::new(engine);
@@ -61,24 +76,29 @@ impl WasmVM {
         app_id: u32,
         context: Context,
         call_arg: &[u8],
-    ) -> anyhow::Result<HashMap<Address42, AccountState>> {
+    ) -> anyhow::Result<Changelist> {
+        let raw_storage = self.context_db.current_app_state(app_id);
+        let storage: SparseMerkleTree = codec::Decodable::decode(raw_storage.as_ref())?;
         let mut apps = self.apps.write();
         let app = apps.get(&app_id).ok_or(anyhow::anyhow!("app not found"))?;
         let mut store = Store::new(
             &self.engine,
-            Env::new(self.state_db.clone(), self.blockchain.clone()),
+            Env::new(storage, self.state_db.clone(), self.blockchain.clone()),
         );
         app.call(&mut store, context, call_arg)?;
-        let env = store.data();
-        Ok(env.account_changes().clone())
+        let env = store.into_data();
+        Ok(env.into())
     }
 
     pub fn execute_query(&self, app_id: u32, query: &[u8]) -> anyhow::Result<Vec<u8>> {
+        let raw_storage = self.context_db.current_app_state(app_id);
+        //TODO cache it
+        let storage: SparseMerkleTree = codec::Decodable::decode(raw_storage.as_ref())?;
         let mut apps = self.apps.write();
         let app = apps.get(&app_id).ok_or(anyhow::anyhow!("app not found"))?;
         let mut store = Store::new(
             &self.engine,
-            Env::new(self.state_db.clone(), self.blockchain.clone()),
+            Env::new(storage, self.state_db.clone(), self.blockchain.clone()),
         );
         app.query(&mut store, query)
     }

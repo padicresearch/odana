@@ -29,8 +29,8 @@ pub trait StateDB: Send + Sync {
 }
 
 pub trait ContextDB: Send + Sync {
-    fn app_state(&self, app_id: u32) -> AccountState;
-    fn set_app_state(&self, app_id: u32) -> AccountState;
+    fn current_app_state(&self, app_id: u32) -> Vec<u8>;
+    fn set_app_state(&self, app_id: u32, new_state: Vec<u8>) -> Result<()>;
     fn reset(&self, root: H256) -> Result<()>;
     fn root(&self) -> Hash;
     fn commit(&self) -> Result<()>;

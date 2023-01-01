@@ -23,9 +23,9 @@ pub struct RawStorage;
 impl StorageApi for RawStorage {}
 
 pub trait StorageMap<K, V>
-    where
-        K: prost::Message + Default,
-        V: prost::Message + Default,
+where
+    K: prost::Message + Default,
+    V: prost::Message + Default,
 {
     fn identifier() -> &'static [u8];
 

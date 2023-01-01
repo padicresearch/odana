@@ -122,10 +122,10 @@ where
 }
 
 impl<K, V, H> Tree<K, V, H>
-    where
-        K: Codec,
-        V: Codec,
-        H: TreeHasher,
+where
+    K: Codec,
+    V: Codec,
+    H: TreeHasher,
 {
     pub fn open_with_options<P: AsRef<Path>>(hasher: H, path: P, options: Options) -> Result<Self> {
         let db = Database::open(path)?;

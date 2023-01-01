@@ -28,6 +28,7 @@
 mod internal {
     include!(concat!(env!("OUT_DIR"), "/core.rs"));
 }
+#[doc(hidden)]
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 use odana_std::prelude::*;
 use prost::Message;
