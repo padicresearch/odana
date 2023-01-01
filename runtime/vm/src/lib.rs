@@ -49,7 +49,7 @@ impl WasmVM {
 
     pub fn instantiate_app(&self, app_id: u32, binary: Vec<u8>) -> anyhow::Result<()> {
         let engine = &self.engine;
-        let raw_storage = self.context_db.current_app_state(app_id);
+        let raw_storage = self.context_db.app_state(app_id);
         let storage: SparseMerkleTree = codec::Decodable::decode(raw_storage.as_ref())?;
         let mut store = Store::new(
             engine,
@@ -77,7 +77,7 @@ impl WasmVM {
         context: Context,
         call_arg: &[u8],
     ) -> anyhow::Result<Changelist> {
-        let raw_storage = self.context_db.current_app_state(app_id);
+        let raw_storage = self.context_db.app_state(app_id);
         let storage: SparseMerkleTree = codec::Decodable::decode(raw_storage.as_ref())?;
         let mut apps = self.apps.write();
         let app = apps.get(&app_id).ok_or(anyhow::anyhow!("app not found"))?;
@@ -91,7 +91,7 @@ impl WasmVM {
     }
 
     pub fn execute_query(&self, app_id: u32, query: &[u8]) -> anyhow::Result<Vec<u8>> {
-        let raw_storage = self.context_db.current_app_state(app_id);
+        let raw_storage = self.context_db.app_state(app_id);
         //TODO cache it
         let storage: SparseMerkleTree = codec::Decodable::decode(raw_storage.as_ref())?;
         let mut apps = self.apps.write();

@@ -29,12 +29,13 @@ pub trait StateDB: Send + Sync {
 }
 
 pub trait ContextDB: Send + Sync {
-    fn current_app_state(&self, app_id: u32) -> Vec<u8>;
-    fn set_app_state(&self, app_id: u32, new_state: Vec<u8>) -> Result<()>;
+    fn app_state(&self, app_id: u32) -> Vec<u8>;
+    fn app_state_root(&self, app_id: u32) -> H256;
     fn reset(&self, root: H256) -> Result<()>;
     fn root(&self) -> Hash;
     fn commit(&self) -> Result<()>;
     fn state_at(&self, root: H256) -> Result<Arc<dyn ContextDB>>;
+    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256>;
 }
 
 pub trait AccountStateReader: Send + Sync {

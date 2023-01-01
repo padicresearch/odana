@@ -18,7 +18,7 @@ use crate::tx::SignedTransaction;
 
 use super::*;
 
-const HEADER_SIZE: usize = 180;
+const HEADER_SIZE: usize = 212;
 
 #[derive(Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize)]
 pub struct BlockPrimaryKey(pub u32, pub H256);
@@ -51,7 +51,9 @@ pub struct BlockHeader {
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
     parent_hash: H256,
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
-    merkle_root: H256,
+    receipt_hash: H256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    tx_root: H256,
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
     state_root: H256,
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
@@ -73,7 +75,8 @@ pub struct BlockHeader {
 impl BlockHeader {
     pub fn new(
         parent_hash: H256,
-        merkle_root: H256,
+        receipt_hash: H256,
+        tx_root: H256,
         state_root: H256,
         mix_nonce: U256,
         coinbase: Address42,
@@ -85,7 +88,8 @@ impl BlockHeader {
     ) -> Self {
         Self {
             parent_hash,
-            merkle_root,
+            receipt_hash,
+            tx_root,
             state_root,
             mix_nonce,
             coinbase,
@@ -110,7 +114,8 @@ impl ConsensusCodec for BlockHeader {
     fn consensus_encode(self) -> Vec<u8> {
         let mut encoded = BytesMut::with_capacity(HEADER_SIZE);
         encoded.extend(self.parent_hash.as_bytes());
-        encoded.extend(self.merkle_root.as_bytes());
+        encoded.extend(self.receipt_hash.as_bytes());
+        encoded.extend(self.tx_root.as_bytes());
         encoded.extend(self.state_root.as_bytes());
         encoded.extend(self.mix_nonce.to_be_bytes());
         encoded.extend(self.coinbase.as_bytes());
@@ -126,7 +131,8 @@ impl ConsensusCodec for BlockHeader {
         let mut bytes = Bytes::copy_from_slice(buf);
         Ok(Self {
             parent_hash: H256::from_slice(&bytes.copy_to_bytes(32)),
-            merkle_root: H256::from_slice(&bytes.copy_to_bytes(32)),
+            receipt_hash: H256::from_slice(&bytes.copy_to_bytes(32)),
+            tx_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             state_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             mix_nonce: U256::from_big_endian(&bytes.copy_to_bytes(32)),
             coinbase: Address42::from_slice(&bytes.copy_to_bytes(42))?,
@@ -145,16 +151,22 @@ impl prost::Message for BlockHeader {
         B: BufMut,
         Self: Sized,
     {
-        prost::encoding::bytes::encode(1, &self.parent_hash, buf);
-        prost::encoding::bytes::encode(2, &self.merkle_root, buf);
-        prost::encoding::bytes::encode(3, &self.state_root, buf);
-        prost::encoding::bytes::encode(4, &self.mix_nonce, buf);
-        prost::encoding::bytes::encode(5, &self.coinbase, buf);
-        prost::encoding::uint32::encode(6, &self.difficulty, buf);
-        prost::encoding::uint32::encode(7, &self.chain_id, buf);
-        prost::encoding::uint32::encode(8, &self.level, buf);
-        prost::encoding::uint32::encode(9, &self.time, buf);
-        prost::encoding::uint64::encode(10, &self.nonce, buf);
+        let mut tag = 0;
+        let mut next_tag = || {
+            tag += 1;
+            tag
+        };
+        prost::encoding::bytes::encode(next_tag(), &self.parent_hash, buf);
+        prost::encoding::bytes::encode(next_tag(), &self.receipt_hash, buf);
+        prost::encoding::bytes::encode(next_tag(), &self.tx_root, buf);
+        prost::encoding::bytes::encode(next_tag(), &self.state_root, buf);
+        prost::encoding::bytes::encode(next_tag(), &self.mix_nonce, buf);
+        prost::encoding::bytes::encode(next_tag(), &self.coinbase, buf);
+        prost::encoding::uint32::encode(next_tag(), &self.difficulty, buf);
+        prost::encoding::uint32::encode(next_tag(), &self.chain_id, buf);
+        prost::encoding::uint32::encode(next_tag(), &self.level, buf);
+        prost::encoding::uint32::encode(next_tag(), &self.time, buf);
+        prost::encoding::uint64::encode(next_tag(), &self.nonce, buf);
     }
 
     fn merge_field<B>(
@@ -176,57 +188,61 @@ impl prost::Message for BlockHeader {
                     error
                 },
             ),
-            2 => prost::encoding::bytes::merge(wire_type, &mut self.merkle_root, buf, ctx).map_err(
+            2 => prost::encoding::bytes::merge(wire_type, &mut self.receipt_hash, buf, ctx)
+                .map_err(|mut error| {
+                    error.push(STRUCT_NAME, "receipt_hash");
+                    error
+                }),
+            3 => prost::encoding::bytes::merge(wire_type, &mut self.tx_root, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "merkle_root");
                     error
                 },
             ),
-            3 => prost::encoding::bytes::merge(wire_type, &mut self.state_root, buf, ctx).map_err(
+            4 => prost::encoding::bytes::merge(wire_type, &mut self.state_root, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "state_root");
                     error
                 },
             ),
-            4 => prost::encoding::bytes::merge(wire_type, &mut self.mix_nonce, buf, ctx).map_err(
+            5 => prost::encoding::bytes::merge(wire_type, &mut self.mix_nonce, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "mix_nonce");
                     error
                 },
             ),
-            5 => prost::encoding::bytes::merge(wire_type, &mut self.coinbase, buf, ctx).map_err(
+            6 => prost::encoding::bytes::merge(wire_type, &mut self.coinbase, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "coinbase");
                     error
                 },
             ),
-            6 => prost::encoding::uint32::merge(wire_type, &mut self.difficulty, buf, ctx).map_err(
+            7 => prost::encoding::uint32::merge(wire_type, &mut self.difficulty, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "difficulty");
                     error
                 },
             ),
-            7 => prost::encoding::uint32::merge(wire_type, &mut self.chain_id, buf, ctx).map_err(
+            8 => prost::encoding::uint32::merge(wire_type, &mut self.chain_id, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "chain_id");
                     error
                 },
             ),
-            8 => prost::encoding::uint32::merge(wire_type, &mut self.level, buf, ctx).map_err(
+            9 => prost::encoding::uint32::merge(wire_type, &mut self.level, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "level");
                     error
                 },
             ),
-            9 => {
+            10 => {
                 let value = &mut self.time;
                 prost::encoding::uint32::merge(wire_type, value, buf, ctx).map_err(|mut error| {
                     error.push(STRUCT_NAME, "time");
                     error
                 })
             }
-
-            10 => prost::encoding::uint64::merge(wire_type, &mut self.nonce, buf, ctx).map_err(
+            11 => prost::encoding::uint64::merge(wire_type, &mut self.nonce, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "nonce");
                     error
@@ -238,16 +254,22 @@ impl prost::Message for BlockHeader {
     }
 
     fn encoded_len(&self) -> usize {
-        prost::encoding::bytes::encoded_len(1, &self.parent_hash)
-            + prost::encoding::bytes::encoded_len(2, &self.merkle_root)
-            + prost::encoding::bytes::encoded_len(3, &self.state_root)
-            + prost::encoding::bytes::encoded_len(4, &self.mix_nonce)
-            + prost::encoding::bytes::encoded_len(5, &self.coinbase)
-            + prost::encoding::uint32::encoded_len(6, &self.difficulty)
-            + prost::encoding::uint32::encoded_len(7, &self.chain_id)
-            + prost::encoding::uint32::encoded_len(8, &self.level)
-            + prost::encoding::uint32::encoded_len(9, &self.time)
-            + prost::encoding::uint64::encoded_len(10, &self.nonce)
+        let mut tag = 0;
+        let mut next_tag = || {
+            tag += 1;
+            tag
+        };
+        prost::encoding::bytes::encoded_len(next_tag(), &self.parent_hash)
+            + prost::encoding::bytes::encoded_len(next_tag(), &self.receipt_hash)
+            + prost::encoding::bytes::encoded_len(next_tag(), &self.tx_root)
+            + prost::encoding::bytes::encoded_len(next_tag(), &self.state_root)
+            + prost::encoding::bytes::encoded_len(next_tag(), &self.mix_nonce)
+            + prost::encoding::bytes::encoded_len(next_tag(), &self.coinbase)
+            + prost::encoding::uint32::encoded_len(next_tag(), &self.difficulty)
+            + prost::encoding::uint32::encoded_len(next_tag(), &self.chain_id)
+            + prost::encoding::uint32::encoded_len(next_tag(), &self.level)
+            + prost::encoding::uint32::encoded_len(next_tag(), &self.time)
+            + prost::encoding::uint64::encoded_len(next_tag(), &self.nonce)
     }
 
     fn clear(&mut self) {

@@ -2,6 +2,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
+use primitive_types::H256;
 
 use types::tx::SignedTransaction;
 use types::Hash;
@@ -66,8 +67,8 @@ impl AccountSet {
 #[derive(Debug, Clone)]
 pub struct TxLookup {
     slots: u64,
-    locals: BTreeMap<Hash, TransactionRef>,
-    remotes: BTreeMap<Hash, TransactionRef>,
+    locals: BTreeMap<H256, TransactionRef>,
+    remotes: BTreeMap<H256, TransactionRef>,
 }
 
 impl TxLookup {
@@ -87,7 +88,7 @@ impl Default for TxLookup {
 }
 
 impl TxLookup {
-    pub fn range(&self, f: fn(&Hash, &TransactionRef, bool) -> bool, local: bool, remote: bool) {
+    pub fn range(&self, f: fn(&H256, &TransactionRef, bool) -> bool, local: bool, remote: bool) {
         if local {
             for (key, value) in self.locals.iter() {
                 if !f(key, value, true) {
@@ -105,22 +106,22 @@ impl TxLookup {
         }
     }
 
-    pub fn get(&self, hash: &Hash) -> Option<TransactionRef> {
+    pub fn get(&self, hash: &H256) -> Option<TransactionRef> {
         self.locals
             .get(hash)
             .cloned()
             .or_else(|| self.remotes.get(hash).cloned())
     }
 
-    pub fn contains(&self, hash: &Hash) -> bool {
+    pub fn contains(&self, hash: &H256) -> bool {
         self.locals.contains_key(hash) || self.remotes.contains_key(hash)
     }
 
-    pub fn get_local(&self, hash: &Hash) -> Option<TransactionRef> {
+    pub fn get_local(&self, hash: &H256) -> Option<TransactionRef> {
         self.locals.get(hash).cloned()
     }
 
-    pub fn get_remote(&self, hash: &Hash) -> Option<TransactionRef> {
+    pub fn get_remote(&self, hash: &H256) -> Option<TransactionRef> {
         self.remotes.get(hash).cloned()
     }
 
@@ -144,7 +145,7 @@ impl TxLookup {
             self.remotes.insert(tx.hash(), tx);
         }
     }
-    pub fn remove(&mut self, hash: &Hash) {
+    pub fn remove(&mut self, hash: &H256) {
         let locals_deleted = self.locals.remove(hash);
         let remotes_deleted = self.remotes.remove(hash);
 

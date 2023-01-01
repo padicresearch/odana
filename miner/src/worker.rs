@@ -116,7 +116,7 @@ pub fn start_worker(
                     break;
                 }
 
-                info!(level = level, blockhash = format!("{}",hex::encode(hash)), txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
+                info!(level = level, blockhash = format!("{}",hex::encode(hash, true)), txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
                 chain.put_chain(
@@ -138,7 +138,7 @@ fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedT
     let pending_txs = txpool.pending();
     for (_, list) in pending_txs {
         for tx in list.as_ref().iter() {
-            merkle.update(&tx.hash())?;
+            merkle.update(tx.hash().as_bytes())?;
         }
         tsx.extend(list.as_ref().iter().map(|tx_ref| tx_ref.deref().clone()));
     }
@@ -164,14 +164,15 @@ fn make_block_template(
         Some(header) => header.raw,
     };
     let state = state.state_at(*parent_header.state_root())?;
-    let (merkle_root, txs) = pack_queued_txs(txpool)?;
+    let (tx_root, txs) = pack_queued_txs(txpool)?;
 
     let mut mix_nonce = [0; 32];
     U256::one().to_big_endian(&mut mix_nonce);
     let time = Utc::now().timestamp() as u32;
     let mut header = BlockHeader::new(
         parent_header.hash(),
-        merkle_root.into(),
+        [0; 32].into(),
+        tx_root.into(),
         [0; 32].into(),
         mix_nonce.into(),
         coinbase,

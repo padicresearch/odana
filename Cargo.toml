@@ -62,3 +62,4 @@ serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde = { version = "1.0.130", default-features = false, features = ["derive"] }
 clap = { version = "3.0.13", features = ["derive"] }
 wit-codegen = { path = "utils/wit-codegen" }
+hex = { path = "common/hex" }

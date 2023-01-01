@@ -6,7 +6,7 @@ use anyhow::Result;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::UnboundedSender;
 
-use blockchain::blockchain::Tuchain;
+use blockchain::blockchain::Chain;
 use blockchain::column_families;
 use consensus::barossa::BarossaProtocol;
 use miner::worker::start_worker;
@@ -83,7 +83,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
 
     let database = Arc::new(rocksdb::DB::open_cf_descriptors(
         &default_db_opts(),
-        env.datadir.join("context"),
+        env.datadir.join("main"),
         column_families(),
     )?);
     let storage = Arc::new(PersistentStorage::new(PersistentStorageBackend::RocksDB(
@@ -91,7 +91,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     )));
     let consensus = Arc::new(BarossaProtocol::new(env.network));
     let blockchain = Arc::new(
-        Tuchain::initialize(
+        Chain::initialize(
             env.datadir.clone(),
             consensus.clone(),
             storage,
@@ -111,11 +111,11 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         let blockchain = blockchain.clone();
         let consensus = consensus.clone();
         SyncService::new(
-            blockchain.chain(),
+            blockchain.chain_state(),
             blockchain.txpool(),
             node_to_peer_sender.clone(),
             consensus,
-            blockchain.chain().block_storage(),
+            blockchain.chain_state().block_storage(),
             Arc::new(SyncMode::Normal),
         )
     };
@@ -130,7 +130,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         env.peers.clone(),
         identity_expected_pow,
         network_state.clone(),
-        blockchain.chain(),
+        blockchain.chain_state(),
         handler,
     )
     .await?;
@@ -140,8 +140,8 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         let env = env.clone();
         tokio::spawn(start_rpc_server(
             local_mpsc_sender.clone(),
-            blockchain.chain(),
-            blockchain.chain().state(),
+            blockchain.chain_state(),
+            blockchain.chain_state().state(),
             blockchain.txpool(),
             env,
         ));
@@ -158,9 +158,9 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                 local_mpsc_sender,
                 consensus,
                 blockchain.txpool(),
-                blockchain.chain(),
+                blockchain.chain_state(),
                 network_state,
-                blockchain.chain().block_storage(),
+                blockchain.chain_state().block_storage(),
                 interrupt,
             )
             .unwrap();
@@ -201,7 +201,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                             if let Some(block) = msg.block {
                                 // TODO: validate block
                                 // TODO: Check if future block is not further than 3 days
-                                blockchain.chain().block_storage().put(block)?;
+                                blockchain.chain_state().block_storage().put(block)?;
                             }
                         }
                         msg => {

@@ -475,7 +475,7 @@ pub struct SignedTransaction {
     v: u8,
     //caches
     #[serde(skip)]
-    hash: Arc<RwLock<Option<Hash>>>,
+    hash: Arc<RwLock<Option<H256>>>,
     #[serde(skip)]
     from: Arc<RwLock<Option<Address42>>>,
 }
@@ -502,7 +502,7 @@ impl Ord for SignedTransaction {
 
 impl std::hash::Hash for SignedTransaction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        state.write(&self.hash())
+        state.write(&self.hash().as_bytes())
     }
 }
 
@@ -519,8 +519,8 @@ impl SignedTransaction {
         })
     }
 
-    pub fn hash(&self) -> [u8; 32] {
-        cache(&self.hash, || self.tx.sig_hash().to_fixed_bytes())
+    pub fn hash(&self) -> H256 {
+        cache(&self.hash, || self.tx.sig_hash())
     }
 
     pub fn hash_256(&self) -> H256 {

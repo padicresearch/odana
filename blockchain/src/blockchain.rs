@@ -12,12 +12,12 @@ use types::events::LocalEventMessage;
 use crate::block_storage::BlockStorage;
 use crate::chain_state::{ChainState, ChainStateStorage};
 
-pub struct Tuchain {
+pub struct Chain {
     chain: Arc<ChainState>,
     txpool: Arc<RwLock<TxPool>>,
 }
 
-impl Tuchain {
+impl Chain {
     pub fn initialize(
         dir: PathBuf,
         consensus: Arc<dyn Consensus>,
@@ -40,13 +40,13 @@ impl Tuchain {
             chain_state.clone(),
         )?));
 
-        Ok(Tuchain {
+        Ok(Chain {
             chain: chain_state,
             txpool,
         })
     }
 
-    pub fn chain(&self) -> Arc<ChainState> {
+    pub fn chain_state(&self) -> Arc<ChainState> {
         self.chain.clone()
     }
 

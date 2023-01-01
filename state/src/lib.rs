@@ -60,7 +60,7 @@ impl StateDB for State {
         let action = StateOperation::CreditBalance {
             account: *address,
             amount,
-            tx_hash: [0; 32],
+            tx_hash: H256::default(),
         };
         self.apply_operation(action)?;
         Ok(self.root_hash()?.into())
@@ -70,7 +70,7 @@ impl StateDB for State {
         let action = StateOperation::DebitBalance {
             account: *address,
             amount,
-            tx_hash: [0; 32],
+            tx_hash: H256::default(),
         };
         self.apply_operation(action)?;
         Ok(self.root_hash()?.into())
@@ -181,7 +181,7 @@ impl State {
             &StateOperation::CreditBalance {
                 account: coinbase,
                 amount: reward,
-                tx_hash: [0; 32],
+                tx_hash: H256::default(),
             },
             coinbase_account_state,
         )?;
@@ -205,7 +205,7 @@ impl State {
             &StateOperation::DebitBalance {
                 account: transaction.from(),
                 amount: transaction.price() + transaction.fees(),
-                tx_hash: [0; 32],
+                tx_hash: H256::default(),
             },
             from_account_state,
         )?;
@@ -213,7 +213,7 @@ impl State {
             &StateOperation::UpdateNonce {
                 account: transaction.from(),
                 nonce: from_account_state.nonce,
-                tx_hash: [0; 32],
+                tx_hash: H256::default(),
             },
             from_account_state,
         )?;
@@ -222,7 +222,7 @@ impl State {
             &StateOperation::CreditBalance {
                 account: transaction.to(),
                 amount: transaction.price(),
-                tx_hash: [0; 32],
+                tx_hash: H256::default(),
             },
             to_account_state,
         )?;
@@ -327,17 +327,17 @@ pub enum StateOperation {
     DebitBalance {
         account: Address42,
         amount: u64,
-        tx_hash: Hash,
+        tx_hash: H256,
     },
     CreditBalance {
         account: Address42,
         amount: u64,
-        tx_hash: Hash,
+        tx_hash: H256,
     },
     UpdateNonce {
         account: Address42,
         nonce: u64,
-        tx_hash: Hash,
+        tx_hash: H256,
     },
 }
 

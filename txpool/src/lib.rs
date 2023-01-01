@@ -246,7 +246,7 @@ impl TxPool {
 
     fn enqueue_tx(
         &mut self,
-        hash: Hash,
+        hash: H256,
         tx: TransactionRef,
         local: bool,
         add_all: bool,
@@ -273,7 +273,7 @@ impl TxPool {
         Ok(old.is_some())
     }
 
-    fn remove_tx(&mut self, hash: Hash, outofbound: bool) -> Result<()> {
+    fn remove_tx(&mut self, hash: H256, outofbound: bool) -> Result<()> {
         let tx = match self.all.get(&hash) {
             None => {
                 return Ok(());
@@ -315,7 +315,7 @@ impl TxPool {
         Ok(())
     }
 
-    fn promote_tx(&mut self, addr: Address, hash: Hash, tx: TransactionRef) -> bool {
+    fn promote_tx(&mut self, addr: Address, hash: H256, tx: TransactionRef) -> bool {
         let nonce = tx.nonce();
         let list = self
             .pending
@@ -830,18 +830,18 @@ impl TxPool {
         self.add_txs(txs, false)
     }
 
-    pub fn get(&self, hash: &Hash) -> Option<TransactionRef> {
+    pub fn get(&self, hash: &H256) -> Option<TransactionRef> {
         self.all.get(hash)
     }
 
-    pub fn has(&self, hash: &Hash) -> bool {
+    pub fn has(&self, hash: &H256) -> bool {
         self.all.contains(hash)
     }
 
     pub fn status(&self, txs: Vec<H256>) -> Vec<TransactionStatus> {
         let mut status = vec![TransactionStatus::NotFound; txs.len()];
         for (i, hash) in txs.iter().enumerate() {
-            if let Some(tx) = self.get(hash.as_fixed_bytes()) {
+            if let Some(tx) = self.get(hash) {
                 let sender = tx.sender();
                 if let Some(list) = self.pending.get(&sender) {
                     status[i] = if list.txs.has(tx.nonce()) {

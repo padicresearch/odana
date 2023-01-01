@@ -56,7 +56,7 @@ impl TransactionsService for TransactionsServiceImpl {
         let signed_tx = transaction::sign_tx(H256::from_slice(&secret_key), tx)
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(SignedTransactionResponse {
-            hash: signed_tx.hash().into(),
+            hash: signed_tx.hash().as_bytes().to_vec(),
             tx: Some(signed_tx),
         }))
     }
@@ -95,7 +95,7 @@ impl TransactionsService for TransactionsServiceImpl {
         request: Request<SignedTransaction>,
     ) -> Result<Response<TransactionHash>, Status> {
         let signed_tx = request.into_inner();
-        let tx_hash = signed_tx.hash().to_vec();
+        let tx_hash = signed_tx.hash();
         let mut txpool = self.txpool.write().map_err(|_| Status::internal(""))?;
         txpool
             .add_local(signed_tx.clone())
@@ -108,7 +108,7 @@ impl TransactionsService for TransactionsServiceImpl {
                 Status::internal("")
             })?;
 
-        Ok(Response::new(TransactionHash { hash: tx_hash }))
+        Ok(Response::new(TransactionHash { hash: tx_hash.as_bytes().to_vec() }))
     }
 
     async fn get_transaction_status(

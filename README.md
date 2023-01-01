@@ -1,6 +1,6 @@
 # µChain - Blockchain for prototyping
 
-> Work in progress
+> moving to https://github.com/padicresearch/odana
 
 µChain _pronounced_ `mu-chain`, is a blockchain base/framework for prototyping blockchain projects
 
@@ -74,15 +74,3 @@
   ```shell
   ./target/release/uchain run
   ```
-
-### RPC Usage
-
-µChain uses gRPC to interact with the node, user can use [bloomRPC](https://github.com/bloomrpc/bloomrpc.git) to
-interact with the blockchain by importing [.proto](/proto/schema) files, default rpc port `9121`.
-
-* **Protobuf files can be found** [here](/proto/schema)
-* **Documentation**
-  [RPC Documentation](/docs/rpc.md)
-* **Clients**
-    * Gui: [bloomRPC](https://github.com/bloomrpc/bloomrpc.git)
-    * Cli: [gRPCurl](https://github.com/fullstorydev/grpcurl)

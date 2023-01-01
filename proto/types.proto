@@ -4,15 +4,16 @@ message Empty {}
 
 message BlockHeader {
   bytes parent_hash = 1;
-  bytes merkle_root = 2;
-  bytes state_root = 3;
-  bytes mix_nonce = 4;
-  bytes coinbase = 5;
-  uint32 difficulty = 6;
-  uint32 chain_id = 7;
-  uint32 level = 8;
-  uint32 time = 9;
-  uint64 nonce = 10;
+  bytes receipt_hash = 2;
+  bytes merkle_root = 3;
+  bytes state_root = 4;
+  bytes mix_nonce = 5;
+  bytes coinbase = 6;
+  uint32 difficulty = 7;
+  uint32 chain_id = 8;
+  uint32 level = 9;
+  uint32 time = 10;
+  uint64 nonce = 11;
 }
 
 message Block {
@@ -41,6 +42,12 @@ message Transaction {
     ApplicationCallTx call = 6;
     string raw = 7;
   }
+}
+message Receipt {
+  uint32 app_id = 1;
+  uint32 tx_hash = 2;
+  repeated bytes logs = 3;
+  uint32 fuel_used = 4;
 }
 
 message SignedTransaction {

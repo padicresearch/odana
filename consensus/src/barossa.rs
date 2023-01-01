@@ -407,11 +407,12 @@ impl Consensus for BarossaProtocol {
         BlockHeader::new(
             [0; 32].into(),
             [0; 32].into(),
+            [0; 32].into(),
             [
                 167, 166, 177, 200, 75, 77, 145, 25, 149, 154, 251, 233, 94, 46, 215, 162, 118, 43,
                 119, 114, 196, 232, 42, 88, 209, 4, 27, 184, 193, 138, 143, 109,
             ]
-            .into(),
+                .into(),
             [0; 32].into(),
             [0; 42].into(),
             self.network.max_difficulty_compact().into(),
@@ -495,11 +496,12 @@ mod tests {
         header_provider.insert(BlockHeader::new(
             [0; 32].into(),
             [0; 32].into(),
+            [0; 32].into(),
             [
                 167, 166, 177, 200, 75, 77, 145, 25, 149, 154, 251, 233, 94, 46, 215, 162, 118, 43,
                 119, 114, 196, 232, 42, 88, 209, 4, 27, 184, 193, 138, 143, 109,
             ]
-            .into(),
+                .into(),
             [0; 32].into(),
             [0; 42].into(),
             initial_bits.into(),
