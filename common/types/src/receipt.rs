@@ -1,8 +1,8 @@
 use bytes::{Buf, BufMut};
-use primitive_types::H256;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-use prost::DecodeError;
+use primitive_types::H256;
 use prost::encoding::{DecodeContext, WireType};
+use prost::DecodeError;
 use serde::{Deserialize, Serialize};
 
 pub type Log = Vec<u8>;
@@ -16,7 +16,6 @@ pub struct Receipt {
     logs: Vec<Log>,
     fuel_used: u64,
 }
-
 
 impl prost::Message for Receipt {
     fn encode_raw<B>(&self, buf: &mut B)

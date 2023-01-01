@@ -108,7 +108,9 @@ impl TransactionsService for TransactionsServiceImpl {
                 Status::internal("")
             })?;
 
-        Ok(Response::new(TransactionHash { hash: tx_hash.as_bytes().to_vec() }))
+        Ok(Response::new(TransactionHash {
+            hash: tx_hash.as_bytes().to_vec(),
+        }))
     }
 
     async fn get_transaction_status(

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
+use primitive_types::H256;
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
-use primitive_types::H256;
 
 use types::tx::SignedTransaction;
 use types::Hash;

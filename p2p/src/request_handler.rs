@@ -101,7 +101,10 @@ impl RequestHandler {
                 let blockchain = self.blockchain.clone();
                 let mut blocks = Vec::with_capacity(msg.block_hashes.len());
                 for hash in msg.block_hashes.iter() {
-                    let res = blockchain.chain_state().block_storage().get_block_by_hash(hash);
+                    let res = blockchain
+                        .chain_state()
+                        .block_storage()
+                        .get_block_by_hash(hash);
                     match res {
                         Ok(Some(block)) => blocks.push(block),
                         _ => break,
