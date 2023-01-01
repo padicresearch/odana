@@ -2,8 +2,8 @@
 
 pub mod serde;
 
-extern crate core;
 extern crate alloc;
+extern crate core;
 
 use alloc::string::String;
 use alloc::vec;
@@ -259,8 +259,8 @@ from_hex_array_impl! {
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec;
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn should_encode_to_and_from_hex_with_prefix() {

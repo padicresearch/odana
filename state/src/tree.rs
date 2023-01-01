@@ -63,11 +63,10 @@ pub struct Tree<K, V, H = DefaultTreeHasher> {
     _data: PhantomData<(K, V)>,
 }
 
-
 impl<K, V> Tree<K, V, DefaultTreeHasher>
-    where
-        K: Codec,
-        V: Codec,
+where
+    K: Codec,
+    V: Codec,
 {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open(path)?;
@@ -132,7 +131,11 @@ impl<K, V, H> Tree<K, V, H>
         let db = Database::open(path)?;
         let tree = match db.load_root() {
             Ok(tree) => tree,
-            Err(_) => SparseMerkleTree::new_with_hasher(hasher.clone(), MemoryStorage::new(), MemoryStorage::new()),
+            Err(_) => SparseMerkleTree::new_with_hasher(
+                hasher.clone(),
+                MemoryStorage::new(),
+                MemoryStorage::new(),
+            ),
         };
 
         let staging_tree = tree.subtree(options.strategy, vec![])?;

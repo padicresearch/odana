@@ -1,18 +1,17 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use traits::{Blockchain, StateDB};
-use types::account::{AccountState, Address42};
 use crate::internal::balances_api::BalancesApi;
 use crate::internal::blockchain_api::BlockchainApi;
 use crate::internal::event::Event;
 use crate::internal::storage::Storage;
+use std::collections::HashMap;
+use std::sync::Arc;
+use traits::{Blockchain, StateDB};
+use types::account::{AccountState, Address42};
 
 pub struct Env {
     state_db: Arc<dyn StateDB>,
     blockchain: Arc<dyn Blockchain>,
     accounts: HashMap<Address42, AccountState>,
     events: Vec<Vec<u8>>,
-
 }
 
 impl Env {

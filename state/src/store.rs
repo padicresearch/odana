@@ -3,13 +3,13 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{Result};
+use anyhow::Result;
 use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
 
 use codec::{Decodable, Encodable};
 use primitive_types::H256;
-use smt::{SparseMerkleTree, StorageBackend};
 use smt::treehasher::TreeHasher;
+use smt::{SparseMerkleTree, StorageBackend};
 
 use crate::persistent::{default_db_opts, MemoryStore, RocksDB};
 
@@ -99,7 +99,11 @@ impl Database {
         }
     }
 
-    pub fn put<S: StorageBackend, H: TreeHasher>(&self, key: H256, value: SparseMerkleTree<S, H>) -> Result<()> {
+    pub fn put<S: StorageBackend, H: TreeHasher>(
+        &self,
+        key: H256,
+        value: SparseMerkleTree<S, H>,
+    ) -> Result<()> {
         self.inner.put(
             COLUMN_TREES,
             &Encodable::encode(&key)?,
@@ -118,7 +122,10 @@ impl Database {
         self.get(&root)
     }
 
-    pub fn get<S: StorageBackend, H: TreeHasher>(&self, key: &H256) -> Result<SparseMerkleTree<S, H>> {
+    pub fn get<S: StorageBackend, H: TreeHasher>(
+        &self,
+        key: &H256,
+    ) -> Result<SparseMerkleTree<S, H>> {
         <SparseMerkleTree<S, H> as Decodable>::decode(
             &self.inner.get(COLUMN_TREES, &Encodable::encode(key)?)?,
         )

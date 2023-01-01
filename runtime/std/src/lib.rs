@@ -47,8 +47,8 @@ pub mod prelude {
         clone::Clone,
         cmp::{Eq, PartialEq, Reverse},
         iter::IntoIterator,
+        vec,
         vec::Vec,
-        vec
     };
 
     // Re-export `vec!` macro here, but not in `std` mode, since

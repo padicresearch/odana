@@ -26,7 +26,6 @@ pub fn guest_generate(macro_export: bool, wit_file: &str, out_dir: &str) -> anyh
     Ok(())
 }
 
-
 pub fn host_generate(wit_file: &str, out_dir: &str) -> anyhow::Result<()> {
     let mut opts = wasmtime_wit_bindgen::Opts::default();
     opts.rustfmt = true;

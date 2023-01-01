@@ -1,5 +1,5 @@
-use alloc::string::String;
 use crate::{FromHex, ToHex};
+use alloc::string::String;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub fn serialize<S: Serializer, T: ToHex>(t: &T, serializer: S) -> Result<S::Ok, S::Error> {

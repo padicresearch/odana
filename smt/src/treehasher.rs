@@ -1,9 +1,9 @@
+use crate::constants::{HASH_LEN, LEAF_PREFIX, NODE_PREFIX};
 use alloc::vec::Vec;
 use bincode::{Decode, Encode};
 use primitive_types::H256;
-use crate::constants::{HASH_LEN, LEAF_PREFIX, NODE_PREFIX};
 
-pub trait TreeHasher : Encode + Decode + Clone {
+pub trait TreeHasher: Encode + Decode + Clone {
     fn digest(&self, data: &[u8]) -> H256;
     #[inline]
     fn path(&self, key: &[u8]) -> H256 {

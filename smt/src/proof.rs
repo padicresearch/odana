@@ -112,10 +112,10 @@ pub fn verify_proof_with_updates<T: TreeHasher>(
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec::Vec;
     use crate::proof::verify_proof;
     use crate::smt::SparseMerkleTree;
     use crate::{DefaultTreeHasher, StorageBackend, StorageBackendSnapshot};
+    use alloc::vec::Vec;
     use anyhow::{bail, Result};
     use dashmap::DashMap;
     use primitive_types::H256;

@@ -74,8 +74,8 @@ pub trait RuntimeApplication {
 }
 
 impl<T> app::App for T
-    where
-        T: RuntimeApplication,
+where
+    T: RuntimeApplication,
 {
     fn init(block_level: u32, genesis: Vec<u8>) -> u32 {
         T::init(

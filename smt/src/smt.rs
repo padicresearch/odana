@@ -74,7 +74,6 @@ impl<Storage: StorageBackend, Hasher: TreeHasher> Decode for SparseMerkleTree<St
     }
 }
 
-
 impl<Storage: StorageBackend, Hasher: TreeHasher> Encodable for SparseMerkleTree<Storage, Hasher> {
     fn encode(&self) -> anyhow::Result<Vec<u8>> {
         bincode::encode_to_vec(self, bincode::config::standard()).map_err(|e| e.into())

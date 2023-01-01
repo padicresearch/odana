@@ -21,7 +21,6 @@ impl RuntimeApplication for NickApp {
         todo!()
     }
 
-
     fn query(query: Self::Query) -> Self::QueryResponse {
         todo!()
     }

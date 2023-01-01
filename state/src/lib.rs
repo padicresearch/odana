@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Result;
+use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
-use bincode::{Encode, Decode};
 
 use primitive_types::H256;
 use smt::proof::Proof;
@@ -17,11 +17,11 @@ use types::Hash;
 use crate::error::StateError;
 use crate::tree::{Op, Tree};
 
+mod context;
 mod error;
-mod tree;
 mod persistent;
 mod store;
-mod context;
+mod tree;
 
 #[derive(Encode, Decode, Clone, Debug)]
 pub struct ReadProof {

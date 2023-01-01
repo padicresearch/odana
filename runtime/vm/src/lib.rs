@@ -8,8 +8,8 @@ use wasmtime::{Config, Engine, Store};
 
 mod env;
 
-use types::account::{AccountState, Address42};
 use crate::internal::{App, Context};
+use types::account::{AccountState, Address42};
 
 mod internal {
     include!(concat!(env!("OUT_DIR"), "/core.rs"));

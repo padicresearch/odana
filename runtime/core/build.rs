@@ -6,4 +6,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     wit_codegen::guest_generate(true, "../spec/app.wit", out_dir.as_str())?;
     Ok(())
 }
-
