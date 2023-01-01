@@ -9,7 +9,6 @@ edition = "2021"
 odana-std = { path = "../../runtime/std", default-feature = false }
 odana-io = { path = "../../runtime/io", default-feature = false }
 odana-core = { path = "../../runtime/core", default-feature = false }
-odana-rt-api = { path = "../../runtime/api", default-feature = false }
 prost = { workspace = true }
 [build-dependencies]
 prost-build = { workspace = true }
@@ -20,5 +19,4 @@ std = [
     "odana-std/std",
     "odana-io/std",
     "odana-core/std",
-    "odana-rt-api/std",
 ]

@@ -34,7 +34,7 @@ pub trait ContextDB: Send + Sync {
     fn reset(&self, root: H256) -> Result<()>;
     fn root(&self) -> Hash;
     fn commit(&self) -> Result<()>;
-    fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;
+    fn state_at(&self, root: H256) -> Result<Arc<dyn ContextDB>>;
 }
 
 pub trait AccountStateReader: Send + Sync {

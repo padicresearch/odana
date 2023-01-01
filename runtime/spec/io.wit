@@ -1,8 +1,10 @@
-world storage {
+world io {
     import storage: interface {
         insert: func(key : list<u8>, value : list<u8> )
         get: func(key : list<u8>) -> option<list<u8>>
         remove: func(key : list<u8>) -> bool
-        root: func() -> list<u8>
+    }
+    import event: interface {
+        emit : func(event : list<u8>)
     }
 }

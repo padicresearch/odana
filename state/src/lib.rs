@@ -21,6 +21,7 @@ mod error;
 mod tree;
 mod persistent;
 mod store;
+mod context;
 
 #[derive(Encode, Decode, Clone, Debug)]
 pub struct ReadProof {

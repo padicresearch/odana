@@ -9,6 +9,8 @@ edition = "2021"
 wit-bindgen-guest-rust = { git = "https://github.com/bytecodealliance/wit-bindgen.git" }
 odana-std = { path = "../std", default-feature = false }
 prost = { workspace = true }
+[build-dependencies]
+wit-codegen = { workspace = true }
 [features]
 default = ["std"]
 std = [

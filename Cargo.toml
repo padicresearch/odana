@@ -34,17 +34,16 @@ members = [
     "common/tiny-bip39",
     "common/bech32",
     #runtime
-    "runtime/api",
     "runtime/std",
     "runtime/io",
     "runtime/core",
     "runtime/vm",
     #apps
     "apps/template",
-    "apps/repo",
     "apps/registry",
     #utils
-    "utils/wasm-builder"
+    "utils/wasm-builder",
+    "utils/wit-codegen"
 ]
 
 [patch.crates-io]
@@ -57,8 +56,9 @@ rocksdb = { version = "0.17.0" }
 tokio = { version = "1", features = ["full"] }
 thiserror = "1.0.30"
 tonic = "0.8.0"
-prost = {version = "0.11.0", default-feature = false, features = ["prost-derive"]  }
-prost-build = {version = "0.11.0"}
+prost = { version = "0.11.0", default-feature = false, features = ["prost-derive"] }
+prost-build = { version = "0.11.0" }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-serde = { version = "1.0.130",default-features = false, features = ["derive"] }
+serde = { version = "1.0.130", default-features = false, features = ["derive"] }
 clap = { version = "3.0.13", features = ["derive"] }
+wit-codegen = { path = "utils/wit-codegen" }

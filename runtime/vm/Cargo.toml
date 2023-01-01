@@ -13,5 +13,5 @@ primitive-types = { path = "../../common/primitive-types" }
 parking_lot = "0.12.1"
 anyhow = { workspace = true }
 [build-dependencies]
-wasmtime-wit-bindgen = { git = "https://github.com/bytecodealliance/wasmtime.git" }
-wit-parser = "0.3"
+wit-codegen = { workspace = true }
+fs_extra = "1.2.0"

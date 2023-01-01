@@ -1,4 +1,3 @@
-use crate::app::App;
 use crate::env::Env;
 use parking_lot::RwLock;
 use std::collections::{BTreeMap, HashMap};
@@ -7,14 +6,16 @@ use traits::{Blockchain, StateDB};
 use wasmtime::component::{Component, Linker};
 use wasmtime::{Config, Engine, Store};
 
-pub(crate) mod app;
 mod env;
-pub(crate) mod runtime;
-pub(crate) mod state;
-pub(crate) mod storage;
 
-pub use app::Context as ExecutionContext;
 use types::account::{AccountState, Address42};
+use crate::internal::{App, Context};
+
+mod internal {
+    include!(concat!(env!("OUT_DIR"), "/core.rs"));
+    include!(concat!(env!("OUT_DIR"), "/io.rs"));
+    include!(concat!(env!("OUT_DIR"), "/app.rs"));
+}
 
 struct WasmVM {
     engine: Engine,
@@ -41,11 +42,10 @@ impl WasmVM {
         );
 
         let mut linker = Linker::<Env>::new(engine);
-        runtime::runtime::add_to_linker(&mut linker, |env| env)?;
-
-        state::state::add_to_linker(&mut linker, |env| env)?;
-
-        storage::storage::add_to_linker(&mut linker, |env| env)?;
+        internal::blockchain_api::add_to_linker(&mut linker, |env| env)?;
+        internal::balances_api::add_to_linker(&mut linker, |env| env)?;
+        internal::storage::add_to_linker(&mut linker, |env| env)?;
+        internal::event::add_to_linker(&mut linker, |env| env)?;
 
         let component = Component::from_binary(engine, &binary)?;
         let instance = linker.instantiate(&mut store, &component)?;
@@ -59,7 +59,7 @@ impl WasmVM {
     pub fn execute_call(
         &self,
         app_id: u32,
-        context: ExecutionContext,
+        context: Context,
         call_arg: &[u8],
     ) -> anyhow::Result<HashMap<Address42, AccountState>> {
         let mut apps = self.apps.write();

@@ -1,15 +1,18 @@
-use crate::runtime::runtime::Runtime;
-use crate::state::state::State;
-use crate::storage::storage::Storage;
 use std::collections::HashMap;
 use std::sync::Arc;
 use traits::{Blockchain, StateDB};
 use types::account::{AccountState, Address42};
+use crate::internal::balances_api::BalancesApi;
+use crate::internal::blockchain_api::BlockchainApi;
+use crate::internal::event::Event;
+use crate::internal::storage::Storage;
 
 pub struct Env {
     state_db: Arc<dyn StateDB>,
     blockchain: Arc<dyn Blockchain>,
     accounts: HashMap<Address42, AccountState>,
+    events: Vec<Vec<u8>>,
+
 }
 
 impl Env {
@@ -18,6 +21,7 @@ impl Env {
             state_db,
             blockchain,
             accounts: Default::default(),
+            events: vec![],
         }
     }
 
@@ -34,11 +38,7 @@ impl Env {
     }
 }
 
-impl State for Env {
-    fn get_nonce(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
-        Address42::from_slice(&address).map(|address| self.get_account_state(address).nonce)
-    }
-
+impl BalancesApi for Env {
     fn get_free_balance(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
         Address42::from_slice(&address).map(|address| self.get_account_state(address).free_balance)
     }
@@ -77,17 +77,21 @@ impl State for Env {
     }
 }
 
-impl Runtime for Env {
-    fn on_event(&mut self, event: String, params: Vec<String>) -> anyhow::Result<()> {
-        todo!()
-    }
-
+impl BlockchainApi for Env {
     fn finality_block_level(&mut self) -> anyhow::Result<u32> {
-        todo!()
+        self.blockchain
+            .current_header()
+            .and_then(|b| b.ok_or(anyhow::anyhow!("current head not available")))
+            .map(|block| block.raw.level().saturating_sub(60))
     }
 
     fn block_hash(&mut self, level: u32) -> anyhow::Result<Vec<u8>> {
-        todo!()
+        Ok(self
+            .blockchain
+            .get_block_by_level(level)
+            .and_then(|b| b.ok_or(anyhow::anyhow!("block not found")))
+            .map(|block| block.hash().to_fixed_bytes().to_vec())
+            .unwrap_or_default())
     }
 }
 
@@ -103,8 +107,10 @@ impl Storage for Env {
     fn remove(&mut self, key: Vec<u8>) -> anyhow::Result<bool> {
         todo!()
     }
+}
 
-    fn root(&mut self) -> anyhow::Result<Vec<u8>> {
-        todo!()
+impl Event for Env {
+    fn emit(&mut self, event: Vec<u8>) -> anyhow::Result<()> {
+        Ok(self.events.push(event))
     }
 }
