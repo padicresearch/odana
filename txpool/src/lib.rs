@@ -13,7 +13,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use primitive_types::H256;
 use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};
-use types::account::Address42;
+use types::account::Address;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
 use types::tx::{SignedTransaction, TransactionList, TransactionStatus};
@@ -35,7 +35,6 @@ pub mod tx_noncer;
 
 type TransactionRef = Arc<SignedTransaction>;
 type Transactions = Vec<TransactionRef>;
-type Address = Address42;
 const TXPOOL_LOG_TARGET: &str = "txpool";
 
 const TX_SLOT_SIZE: u64 = 32 * 1024;

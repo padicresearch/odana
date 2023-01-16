@@ -11,7 +11,7 @@ use crypto::ecdsa::{PublicKey, Signature};
 use crypto::sha256;
 use primitive_types::H256;
 
-use crate::account::{get_address_from_pub_key, Account, Address42};
+use crate::account::{get_address_from_pub_key, Account, Address, get_address_from_app_id};
 use crate::network::Network;
 use crate::{cache, Hash};
 
@@ -40,7 +40,7 @@ impl TransactionStatus {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Default, Debug, Clone)]
 pub struct PaymentTx {
-    pub to: Address42,
+    pub to: Address,
     pub amount: u64,
 }
 
@@ -75,7 +75,7 @@ impl Message for PaymentTx {
             ),
             2 => prost::encoding::uint64::merge(wire_type, &mut self.amount, buf, ctx).map_err(
                 |mut error| {
-                    error.push(STRUCT_NAME, "amount");
+                    error.push(STRUCT_NAME, "value");
                     error
                 },
             ),
@@ -97,6 +97,8 @@ pub struct ApplicationCallTx {
     pub app_id: u32,
     #[prost(bytes, tag = "2")]
     pub args: Vec<u8>,
+    #[prost(uint64, tag = "3")]
+    pub cost: u64,
 }
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, prost::Oneof)]
 #[serde(rename_all = "snake_case")]
@@ -191,7 +193,7 @@ pub struct TransferTransactionBuilder<'a> {
 }
 
 impl<'a> TransferTransactionBuilder<'a> {
-    pub fn to(&mut self, to: Address42) -> &mut Self {
+    pub fn to(&mut self, to: Address) -> &mut Self {
         if let TransactionData::Payment(pmt) = &mut self.inner.tx.data {
             pmt.to = to
         }
@@ -477,7 +479,9 @@ pub struct SignedTransaction {
     #[serde(skip)]
     hash: Arc<RwLock<Option<H256>>>,
     #[serde(skip)]
-    from: Arc<RwLock<Option<Address42>>>,
+    from: Arc<RwLock<Option<Address>>>,
+    #[serde(skip)]
+    to: Arc<RwLock<Option<Address>>>,
 }
 
 impl PartialEq for SignedTransaction {
@@ -516,6 +520,7 @@ impl SignedTransaction {
             v,
             hash: Arc::new(Default::default()),
             from: Arc::new(Default::default()),
+            to: Arc::new(Default::default()),
         })
     }
 
@@ -535,19 +540,21 @@ impl SignedTransaction {
     pub fn nonce(&self) -> u64 {
         self.tx.nonce
     }
-    pub fn sender(&self) -> Address42 {
+    pub fn sender(&self) -> Address {
         self.from()
     }
 
-    pub fn to(&self) -> Address42 {
+    pub fn to(&self) -> Result<Address> {
         match &self.tx.data {
-            TransactionData::Payment(pmt) => pmt.to,
-            TransactionData::Call(_) => Default::default(),
+            TransactionData::Payment(PaymentTx { to, .. }) => *to,
+            TransactionData::Call(ApplicationCallTx { app_id, .. }) => cache(&self.to, || {
+                get_address_from_app_id(&app_id.to_le_bytes(), Network::from_chain_id(self.tx.chain_id))
+            }),
             TransactionData::RawData(_) => Default::default(),
         }
     }
 
-    pub fn origin(&self) -> Address42 {
+    pub fn origin(&self) -> Address {
         self.from()
     }
 
@@ -561,7 +568,7 @@ impl SignedTransaction {
         Ok(pub_key)
     }
 
-    pub fn from(&self) -> Address42 {
+    pub fn from(&self) -> Address {
         cache(&self.from, || {
             Signature::from_rsv((&self.r, &self.s, self.v))
                 .map_err(|e| anyhow::anyhow!(e))
@@ -588,9 +595,9 @@ impl SignedTransaction {
 
     pub fn price(&self) -> u64 {
         match &self.tx.data {
-            TransactionData::Payment(p) => p.amount,
-            TransactionData::Call(_) => 10_000_000,
-            TransactionData::RawData(s) => (s.len() as u64) * 1000,
+            TransactionData::Payment(PaymentTx { amount, .. }) => *amount,
+            TransactionData::Call(ApplicationCallTx { cost, .. }) => *cost,
+            TransactionData::RawData(s) => (s.len() as u64) * 1000 //TODO: get value from consensus,
         }
     }
 
@@ -666,7 +673,7 @@ mod tests {
     use crate::account::{get_address_from_pub_key, Account};
     use crate::network::Network;
     use crate::prelude::{SignedTransaction, TransactionList};
-    use crate::tx::{AnyType, TransactionBuilder};
+    use crate::tx::{TransactionBuilder};
     use crypto::ecdsa::Keypair;
     use hex::ToHex;
     use primitive_types::{H160, H256};
@@ -741,19 +748,5 @@ mod tests {
         let txs_ctl = TransactionList::decode(txs.encode_to_vec().as_slice()).unwrap();
         assert_eq!(txs, txs_ctl);
         println!("{}", serde_json::to_string_pretty(&txs).unwrap());
-    }
-
-    #[test]
-    fn test_encoding_and_decoding_2() {
-        let a = "0x0a0330783112033078311a4230783030303030303030303030303030303030303030303\
-        03030303030303030303030303030303030303030303030303030303030303030303030303030303030302207\
-        307831383661302a350a2a3078366266383336363338653164653637343133626331353732623463623161656\
-        13834623038333663120730786634323430424230783962313932323737316435303435323263333638376539\
-        33383432323733363330383665303333623061306434666430353137333730323063653137326363354a42307\
-        83435386132383630626437393234326239363466383838643934633666663261643865396632656261613736\
-        62623465353236663333616665646562306663635203307830";
-        let tx = SignedTransaction::decode(hex::decode(a).unwrap().as_slice()).unwrap();
-        let b = hex::encode(tx.encode_to_vec(), false);
-        assert_eq!(a, b)
     }
 }

@@ -30,13 +30,14 @@ message PaymentTx {
 message ApplicationCallTx{
   uint32 app_id = 1;
   bytes args = 2;
+  uint64 cvalue = 3;
 }
 
 message Transaction {
   uint64 nonce = 1;
   uint32 chain_id = 2;
   bytes genesis_hash = 3;
-  uint64 fee = 4;
+  uint64 tip = 4;
   oneof data {
     PaymentTx payment = 5;
     ApplicationCallTx call = 6;
@@ -54,7 +55,7 @@ message SignedTransaction {
   uint64 nonce = 1;
   uint32 chain_id = 2;
   bytes genesis_hash = 3;
-  uint64 fee = 4;
+  uint64 tip = 4;
   oneof data {
     PaymentTx payment = 5;
     ApplicationCallTx call = 6;

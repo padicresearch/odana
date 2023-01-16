@@ -2,4 +2,4 @@
 /test
 /.idea
 Cargo.lock
-/runtime/generated
+/core/generated

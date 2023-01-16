@@ -1,9 +1,28 @@
-use thiserror::Error;
+use core::fmt::{Display, Formatter};
 
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum Error {
-    #[error("`{0}`")]
-    EcdsaError(#[from] k256::ecdsa::Error),
-    #[error("`{0}`")]
-    InternalError(String),
+    EcdsaError(k256::ecdsa::Error),
+    RSVInvalid,
 }
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Error::EcdsaError(t) => {
+                writeln!(f, "EcdsaError {}", t)
+            }
+            Error::RSVInvalid => {
+                writeln!(f, "RSVInvalid")
+            }
+        }
+    }
+}
+
+impl From<k256::ecdsa::Error> for Error {
+    fn from(value: k256::ecdsa::Error) -> Self {
+        Error::EcdsaError(value)
+    }
+}
+
+impl core::error::Error for Error {}

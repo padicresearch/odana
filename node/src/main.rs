@@ -12,7 +12,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use p2p::identity::NodeIdentity;
 use tracing::Level;
-use types::account::Address42;
+use types::account::Address;
 use types::config::EnvironmentConfig;
 use types::network::Network;
 
@@ -78,7 +78,7 @@ struct RunArgs {
     #[clap(long)]
     expected_pow: Option<f64>,
     #[clap(long, value_parser = parse_miner_address)]
-    miner: Option<Address42>,
+    miner: Option<Address>,
     #[clap(arg_enum, long)]
     network: Option<Network>,
     #[clap(long)]
@@ -126,7 +126,7 @@ struct SetConfigArgs {
     #[clap(long)]
     p2p_host: Option<String>,
     #[clap(long, value_parser = parse_miner_address)]
-    miner: Option<Address42>,
+    miner: Option<Address>,
     #[clap(long)]
     datadir: Option<PathBuf>,
     #[clap(long)]
@@ -363,14 +363,14 @@ pub(crate) fn parse_multaddr(s: &str) -> Result<String, String> {
     }
 }
 
-pub(crate) fn parse_miner_address(s: &str) -> Result<Address42, String> {
+pub(crate) fn parse_miner_address(s: &str) -> Result<Address, String> {
     if s.eq_ignore_ascii_case("ama")
         || s.eq_ignore_ascii_case("kofi")
         || s.eq_ignore_ascii_case("kwame")
     {
         return Ok(account::create_account_from_uri(Network::Testnet, s).address);
     }
-    match Address42::from_str(s) {
+    match Address::from_str(s) {
         Ok(s) => Ok(s),
         Err(error) => Err(format!("{}", error)),
     }

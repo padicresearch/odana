@@ -1,5 +1,5 @@
 [package]
-name = "odana-std"
+name = "rt-std"
 version = "0.1.0"
 edition = "2021"
 

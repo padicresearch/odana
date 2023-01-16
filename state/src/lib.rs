@@ -10,12 +10,12 @@ use primitive_types::H256;
 use smt::proof::Proof;
 use traits::StateDB;
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
-use types::account::{AccountState, Address42};
+use types::account::{AccountState, Address};
 use types::tx::SignedTransaction;
 use types::Hash;
 
 use crate::error::StateError;
-use crate::tree::{Op, Tree};
+use crate::tree::{Op, TrieDB};
 
 mod context;
 mod error;
@@ -31,7 +31,7 @@ pub struct ReadProof {
 
 #[derive(Clone)]
 pub struct State {
-    trie: Arc<Tree<Address42, AccountState>>,
+    trie: Arc<TrieDB<Address, AccountState>>,
     path: PathBuf,
     read_only: bool,
 }
@@ -41,22 +41,22 @@ unsafe impl Sync for State {}
 unsafe impl Send for State {}
 
 impl StateDB for State {
-    fn nonce(&self, address: &Address42) -> u64 {
+    fn nonce(&self, address: &Address) -> u64 {
         self.account_state(address).nonce
     }
 
-    fn account_state(&self, address: &Address42) -> AccountState {
+    fn account_state(&self, address: &Address) -> AccountState {
         match self.trie.get(address) {
             Ok(Some(account_state)) => account_state,
             _ => AccountState::new(),
         }
     }
 
-    fn balance(&self, address: &Address42) -> u64 {
+    fn balance(&self, address: &Address) -> u64 {
         self.account_state(address).free_balance
     }
 
-    fn credit_balance(&self, address: &Address42, amount: u64) -> Result<H256> {
+    fn credit_balance(&self, address: &Address, amount: u64) -> Result<H256> {
         let action = StateOperation::CreditBalance {
             account: *address,
             amount,
@@ -66,7 +66,7 @@ impl StateDB for State {
         Ok(self.root_hash()?.into())
     }
 
-    fn debit_balance(&self, address: &Address42, amount: u64) -> Result<H256> {
+    fn debit_balance(&self, address: &Address, amount: u64) -> Result<H256> {
         let action = StateOperation::DebitBalance {
             account: *address,
             amount,
@@ -80,7 +80,7 @@ impl StateDB for State {
         self.trie.reset(root)
     }
 
-    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256> {
+    fn apply_txs(&self, txs: &[SignedTransaction]) -> Result<H256> {
         self.apply_txs(txs)?;
         self.root_hash().map(H256::from)
     }
@@ -104,7 +104,7 @@ impl StateDB for State {
 
 impl State {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let trie = Tree::open(path.as_ref())?;
+        let trie = TrieDB::open(path.as_ref())?;
         Ok(Self {
             trie: Arc::new(trie),
             path: PathBuf::from(path.as_ref()),
@@ -112,9 +112,9 @@ impl State {
         })
     }
 
-    pub fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<()> {
-        let mut accounts: BTreeMap<Address42, TransactionsByNonceAndPrice> = BTreeMap::new();
-        let mut states: BTreeMap<Address42, AccountState> = BTreeMap::new();
+    pub fn apply_txs(&self, txs: &[SignedTransaction]) -> Result<()> {
+        let mut accounts: BTreeMap<Address, TransactionsByNonceAndPrice> = BTreeMap::new();
+        let mut states: BTreeMap<Address, AccountState> = BTreeMap::new();
 
         for tx in txs {
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
@@ -145,11 +145,11 @@ impl State {
         &self,
         at_root: H256,
         reward: u64,
-        coinbase: Address42,
-        txs: Vec<SignedTransaction>,
+        coinbase: Address,
+        txs: &[SignedTransaction],
     ) -> Result<Hash> {
-        let mut accounts: BTreeMap<Address42, TransactionsByNonceAndPrice> = BTreeMap::new();
-        let mut states: BTreeMap<Address42, AccountState> = BTreeMap::new();
+        let mut accounts: BTreeMap<Address, TransactionsByNonceAndPrice> = BTreeMap::new();
+        let mut states: BTreeMap<Address, AccountState> = BTreeMap::new();
 
         for tx in txs {
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
@@ -195,40 +195,29 @@ impl State {
 
     fn apply_transaction(
         &self,
-        transaction: SignedTransaction,
-        states: &mut BTreeMap<Address42, AccountState>,
+        transaction: &SignedTransaction,
+        states: &mut BTreeMap<Address, AccountState>,
     ) -> Result<()> {
         //TODO: verify transaction (probably)
-        let mut from_account_state = states.get(&transaction.from()).copied().unwrap_or_default();
-        let mut to_account_state = states.get(&transaction.to()).copied().unwrap_or_default();
-        from_account_state = self.apply_action(
-            &StateOperation::DebitBalance {
-                account: transaction.from(),
-                amount: transaction.price() + transaction.fees(),
-                tx_hash: H256::default(),
-            },
-            from_account_state,
-        )?;
-        from_account_state = self.apply_action(
-            &StateOperation::UpdateNonce {
-                account: transaction.from(),
-                nonce: from_account_state.nonce,
-                tx_hash: H256::default(),
-            },
-            from_account_state,
-        )?;
 
-        to_account_state = self.apply_action(
-            &StateOperation::CreditBalance {
-                account: transaction.to(),
-                amount: transaction.price(),
-                tx_hash: H256::default(),
-            },
-            to_account_state,
-        )?;
 
-        states.insert(transaction.from(), from_account_state);
-        states.insert(transaction.to(), to_account_state);
+        let mut from_account_state = states.get_mut(&transaction.from()).ok_or(StateError::AccountNotFound)?;
+        let amount = transaction.price() + transaction.fees();
+        if from_account_state.free_balance < amount {
+            return Err(StateError::InsufficientFunds.into());
+        }
+        from_account_state.free_balance -= amount;
+        let next_nonce = if transaction.nonce() > from_account_state.nonce {
+            transaction.nonce() + 1
+        } else {
+            from_account_state.nonce + 1
+        };
+        from_account_state.nonce = next_nonce;
+
+
+        let mut to_account_state = states.get_mut(&transaction.to()).ok_or(StateError::AccountNotFound)?;
+        to_account_state.free_balance += transaction.price();
+
         Ok(())
     }
 
@@ -267,18 +256,13 @@ impl State {
                 Ok(account_state)
             }
             StateOperation::UpdateNonce { nonce, .. } => {
-                let next_nonce = if *nonce > account_state.nonce {
-                    *nonce + 1
-                } else {
-                    account_state.nonce + 1
-                };
-                account_state.nonce = next_nonce;
+
                 Ok(account_state)
             }
         }
     }
 
-    fn get_account_state(&self, address: &Address42) -> Result<AccountState> {
+    fn get_account_state(&self, address: &Address) -> Result<AccountState> {
         match self.trie.get(address) {
             Ok(Some(account_state)) => Ok(account_state),
             _ => Ok(AccountState::new()),
@@ -288,7 +272,7 @@ impl State {
     fn get_account_state_at_root(
         &self,
         at_root: &H256,
-        address: &Address42,
+        address: &Address,
     ) -> Result<AccountState> {
         match self.trie.get_at_root(at_root, address) {
             Ok(Some(account_state)) => Ok(account_state),
@@ -298,7 +282,7 @@ impl State {
 
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
         Ok(Arc::new(State {
-            trie: Arc::new(Tree::open_read_only_at_root(self.path.as_path(), &root)?),
+            trie: Arc::new(TrieDB::open_read_only_at_root(self.path.as_path(), &root)?),
             path: self.path.clone(),
             read_only: true,
         }))
@@ -306,7 +290,7 @@ impl State {
 
     fn get_account_state_with_proof(
         &self,
-        address: &Address42,
+        address: &Address,
     ) -> Result<(AccountState, ReadProof)> {
         let (account_state, proof) = self.trie.get_with_proof(address)?;
         let root = self.trie.root()?;
@@ -320,56 +304,6 @@ impl State {
     pub fn root_hash(&self) -> Result<Hash> {
         self.trie.root().map(|root| root.to_fixed_bytes())
     }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum StateOperation {
-    DebitBalance {
-        account: Address42,
-        amount: u64,
-        tx_hash: H256,
-    },
-    CreditBalance {
-        account: Address42,
-        amount: u64,
-        tx_hash: H256,
-    },
-    UpdateNonce {
-        account: Address42,
-        nonce: u64,
-        tx_hash: H256,
-    },
-}
-
-impl StateOperation {
-    fn get_address(&self) -> Address42 {
-        match self {
-            StateOperation::DebitBalance { account, .. } => *account,
-            StateOperation::CreditBalance { account, .. } => *account,
-            StateOperation::UpdateNonce { account, .. } => *account,
-        }
-    }
-}
-
-pub fn get_operations(tx: &SignedTransaction) -> Vec<StateOperation> {
-    let mut ops = Vec::new();
-    let tx_hash = tx.hash();
-    ops.push(StateOperation::DebitBalance {
-        account: tx.from(),
-        amount: tx.price() + tx.fees(),
-        tx_hash,
-    });
-    ops.push(StateOperation::CreditBalance {
-        account: tx.to(),
-        amount: tx.price(),
-        tx_hash,
-    });
-    ops.push(StateOperation::UpdateNonce {
-        account: tx.from(),
-        nonce: tx.nonce(),
-        tx_hash,
-    });
-    ops
 }
 
 pub trait MorphCheckPoint {

@@ -1,4 +1,7 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+#![feature(error_in_core)]
 extern crate core;
+extern crate alloc;
 
 pub use digest::Digest;
 use primitive_types::{Compact, H160, H256, H448, U192, U256};
@@ -58,19 +61,6 @@ pub fn keccak256<B: AsRef<[u8]>>(bytes: B) -> H256 {
     let out = hasher.finalize();
     H256::from_slice(out.as_ref())
 }
-
-#[cfg(test)]
-mod test {
-    use crate::{RIPEMD160, SHA256};
-
-    #[test]
-    fn test_hashes() {
-        let hello = SHA256::digest(b"hello");
-        println!("{:?}", hello.as_fixed_bytes());
-        println!("{:?}", RIPEMD160::digest(hello.as_bytes()));
-    }
-}
-
 pub fn is_valid_proof_of_work(max_work_bits: Compact, bits: Compact, hash: &H256) -> bool {
     let maximum = match max_work_bits.to_u256() {
         Ok(max) => max,
@@ -109,7 +99,7 @@ pub fn generate_pow_from_pub_key(pub_key: H256, target: U256) -> (U192, H448) {
 pub fn make_target(target: f64) -> U256 {
     assert!((0.0..256.0).contains(&target));
     let (frac, shift) = (target.fract(), target.floor() as u64);
-    let m = if frac.abs() < std::f64::EPSILON {
+    let m = if frac.abs() < f64::EPSILON {
         (1 << 54) - 1
     } else {
         2.0f64.powf(54.0 - frac) as u64

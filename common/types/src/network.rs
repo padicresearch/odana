@@ -43,9 +43,9 @@ const MAINNET_MAX_DIFFICULTY: U256 = U256([
     0x00000000ffffffffu64,
 ]);
 
-pub const TESTNET_HRP: &str = "tuc";
-pub const ALPHA_HRP: &str = "luc";
-pub const MAINNET_HRP: &str = "uch";
+pub const TESTNET_HRP: &str = "odanx";
+pub const ALPHA_HRP: &str = "odaxx";
+pub const MAINNET_HRP: &str = "odana";
 
 impl Network {
     pub fn max_difficulty(&self) -> U256 {

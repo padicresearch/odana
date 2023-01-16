@@ -3,10 +3,11 @@ use std::sync::Arc;
 use anyhow::Result;
 
 use primitive_types::{Compact, H160, H256};
-use types::account::{AccountState, Address42};
+use types::account::{AccountState, Address};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
-use types::tx::SignedTransaction;
+use types::tx::{ApplicationCallTx, SignedTransaction};
 use types::Hash;
+use types::receipt::Receipt;
 
 pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
@@ -15,13 +16,13 @@ pub trait Blockchain: ChainReader {
 }
 
 pub trait StateDB: Send + Sync {
-    fn nonce(&self, address: &Address42) -> u64;
-    fn account_state(&self, address: &Address42) -> AccountState;
-    fn balance(&self, address: &Address42) -> u64;
-    fn credit_balance(&self, address: &Address42, amount: u64) -> Result<H256>;
-    fn debit_balance(&self, address: &Address42, amount: u64) -> Result<H256>;
+    fn nonce(&self, address: &Address) -> u64;
+    fn account_state(&self, address: &Address) -> AccountState;
+    fn balance(&self, address: &Address) -> u64;
+    fn credit_balance(&self, address: &Address, amount: u64) -> Result<H256>;
+    fn debit_balance(&self, address: &Address, amount: u64) -> Result<H256>;
     fn reset(&self, root: H256) -> Result<()>;
-    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256>;
+    fn apply_txs(&self, txs: &[SignedTransaction]) -> Result<H256>;
     fn root(&self) -> Hash;
     fn commit(&self) -> Result<()>;
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
@@ -29,19 +30,29 @@ pub trait StateDB: Send + Sync {
 }
 
 pub trait ContextDB: Send + Sync {
-    fn app_state(&self, app_id: u32) -> Vec<u8>;
+    fn app_state(&self, app_id: u32) -> Result<Arc<dyn ContextTrieDB>>;
     fn app_state_root(&self, app_id: u32) -> H256;
-    fn reset(&self, root: H256) -> Result<()>;
-    fn root(&self) -> Hash;
-    fn commit(&self) -> Result<()>;
-    fn state_at(&self, root: H256) -> Result<Arc<dyn ContextDB>>;
-    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256>;
+    fn state_at(&self, app_id: u32, root: H256) -> Result<Arc<dyn ContextTrieDB>>;
+}
+
+pub trait ContextTrieDB: Send + Sync {
+    fn put(&self, key: &[u8], value: &[u8]);
+    fn delete(&self, key: &[u8]);
+    fn get(&self, key: &[u8]) -> H256;
+    fn root(&self) -> H256;
 }
 
 pub trait AccountStateReader: Send + Sync {
     fn nonce(&self, address: &H160) -> u64;
     fn account_state(&self, address: &H160) -> AccountState;
     fn balance(&self, address: &H160) -> u128;
+}
+
+pub trait WasmVMInstance: Send + Sync {
+    fn execute_app_tx(&self, call: &ApplicationCallTx) -> Result<Receipt>;
+    fn execute_app_query(&self, app_id: u32, raw_query: &[u8]) -> Result<Receipt>;
+    fn verify_call(&self, call: &ApplicationCallTx) -> bool;
+    fn estimate_call_cost(&self, call: &ApplicationCallTx) -> u64;
 }
 
 pub trait StateIntermediate {}
@@ -78,14 +89,14 @@ pub trait Consensus: Send + Sync {
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
-        txs: Vec<SignedTransaction>,
+        txs: &[SignedTransaction],
     ) -> Result<()>;
     fn finalize_and_assemble(
         &self,
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
-        txs: Vec<SignedTransaction>,
+        txs: &[SignedTransaction],
     ) -> Result<Option<Block>>;
     fn work_required(
         &self,

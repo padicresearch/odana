@@ -1,5 +1,5 @@
 [package]
-name = "odana-io"
+name = "rt-io"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,11 +9,12 @@ edition = "2021"
 wit-bindgen-guest-rust = { git = "https://github.com/bytecodealliance/wit-bindgen.git" }
 anyhow = { workspace = true }
 prost = { workspace = true }
-odana-std = { path = "../std", default-feature = false }
+rt-std = { path = "../std", default-feature = false }
+blake2b_simd = { version = "1.0.0", default-feature = false }
 [build-dependencies]
 wit-codegen = { workspace = true }
 [features]
 default = ["std"]
 std = [
-    "odana-std/std"
+    "rt-std/std"
 ]

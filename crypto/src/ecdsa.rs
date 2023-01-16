@@ -9,9 +9,7 @@ use sha2::Sha256;
 
 use crate::keccak256;
 use primitive_types::{H256, H512};
-
 use crate::error::Error;
-use crate::error::Error::InternalError;
 
 pub const SECRET_KEY_LENGTH: usize = 32;
 pub const PUBLIC_KEY_LENGTH: usize = 65;
@@ -96,9 +94,8 @@ impl PublicKey {
 
     #[inline]
     pub fn from_fixed_bytes(bytes: &H512) -> Result<Self, Error> {
-        let mut raw_bytes = vec![Tag::Uncompressed as u8];
-        raw_bytes.copy_from_slice(bytes.as_bytes());
-        let inner = VerifyingKey::from_sec1_bytes(&raw_bytes)?;
+        let raw_bytes = [[Tag::Uncompressed as u8].as_slice(), bytes.as_bytes()].concat();
+        let inner = VerifyingKey::from_sec1_bytes(raw_bytes.as_slice())?;
         Ok(Self { inner })
     }
 
@@ -146,10 +143,10 @@ impl Signature {
     #[inline]
     pub fn from_rsv<B: AsRef<[u8]>>(rsv: (B, B, u8)) -> Result<Self, Error> {
         if rsv.0.as_ref().len() != 32_usize {
-            return Err(InternalError("Invalid rsv format".to_string()));
+            return Err(Error::RSVInvalid);
         }
         if rsv.1.as_ref().len() != 32_usize {
-            return Err(InternalError("Invalid rsv format".to_string()));
+            return Err(Error::RSVInvalid);
         }
 
         let mut bytes = [0_u8; SIG_KEY_LENGTH];

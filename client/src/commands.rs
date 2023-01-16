@@ -6,7 +6,7 @@ use primitive_types::H256;
 use std::collections::HashMap;
 use std::str::FromStr;
 use transaction::make_payment_sign_transaction;
-use types::account::{get_address_from_secret_key, Address42};
+use types::account::{get_address_from_secret_key, Address};
 use types::network::Network;
 use types::prelude::Empty;
 
@@ -29,30 +29,30 @@ pub enum ClientCommands {
 
 #[derive(Args, Debug)]
 pub struct AddressArg {
-    #[clap(short,long, value_parser = parse_address)]
-    address: Address42,
+    #[clap(short, long, value_parser = parse_address)]
+    address: Address,
 }
 
 #[derive(Args, Debug)]
 pub struct SendPaymentArgs {
-    #[clap(short,long, value_parser = parse_address)]
-    to: Address42,
+    #[clap(short, long, value_parser = parse_address)]
+    to: Address,
     #[clap(short, long)]
     amount: u64,
     #[clap(short, long)]
     fee: u64,
-    #[clap(short,long,value_parser = parse_signer)]
+    #[clap(short, long, value_parser = parse_signer)]
     signer: H256,
 }
 
-pub(crate) fn parse_address(s: &str) -> Result<Address42, String> {
+pub(crate) fn parse_address(s: &str) -> Result<Address, String> {
     if s.eq_ignore_ascii_case("ama")
         || s.eq_ignore_ascii_case("kofi")
         || s.eq_ignore_ascii_case("kwame")
     {
         return Ok(account::create_account_from_uri(Network::Testnet, s).address);
     }
-    match Address42::from_str(s) {
+    match Address::from_str(s) {
         Ok(s) => Ok(s),
         Err(error) => Err(format!("{}", error)),
     }
@@ -149,7 +149,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                 .iter()
                 .map(|r| {
                     (
-                        Address42::from_slice(&r.address).unwrap_or_default(),
+                        Address::from_slice(&r.address).unwrap_or_default(),
                         &r.txs,
                     )
                 })
@@ -161,7 +161,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                 .iter()
                 .map(|r| {
                     (
-                        Address42::from_slice(&r.address).unwrap_or_default(),
+                        Address::from_slice(&r.address).unwrap_or_default(),
                         &r.txs,
                     )
                 })

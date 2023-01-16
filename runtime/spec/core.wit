@@ -1,14 +1,5 @@
 world core {
-    import balances-api: interface {
-        get-free-balance : func(address : list<u8>) -> u64
-        get-reserve-balance : func(address : list<u8>) -> u64
-        add-free-balance : func(address : list<u8>, amount : u64)
-        sub-free-balance : func(address : list<u8>, amount : u64)
-        add-reserve-balance : func(address : list<u8>, amount : u64)
-        sub-reserve-balance : func(address : list<u8>, amount : u64)
-    }
     import blockchain-api: interface {
-        finality-block-level : func() -> u32
         block-hash : func(level : u32) -> list<u8>
     }
 }

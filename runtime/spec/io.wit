@@ -7,4 +7,8 @@ world io {
     import event: interface {
         emit : func(event : list<u8>)
     }
+
+    import log: interface {
+       print : func(output : list<char>)
+    }
 }

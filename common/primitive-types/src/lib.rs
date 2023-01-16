@@ -26,6 +26,8 @@ use uint::{construct_uint, uint_full_mul_reg};
 #[cfg(feature = "fp-conversion")]
 mod fp_conversion;
 
+extern crate alloc;
+
 /// Error type for conversion.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
@@ -178,7 +180,7 @@ mod rlp {
 macro_rules! impl_hex_primitives {
     ($name: ident, $len: expr) => {
         impl hex::ToHex for $name {
-            fn encode_hex(&self) -> String {
+            fn encode_hex(&self) -> alloc::string::String {
                 let bytes = self.to_be_bytes();
                 hex::encode(&bytes, true)
             }

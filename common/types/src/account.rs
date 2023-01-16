@@ -13,7 +13,9 @@ use crypto::ecdsa::{PublicKey, SecretKey, Signature};
 use crypto::keccak256;
 use primitive_types::{H160, H256};
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, prost::Message)]
+pub const ADDRESS_LEN: usize = 44;
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, prost::Message)]
 pub struct AccountState {
     #[prost(uint64, tag = "1")]
     pub free_balance: u64,
@@ -22,6 +24,7 @@ pub struct AccountState {
     #[prost(uint64, tag = "3")]
     pub nonce: u64,
 }
+
 impl AccountState {
     pub fn new() -> Self {
         AccountState {
@@ -46,7 +49,7 @@ impl Decodable for AccountState {
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {
-    pub address: Address42,
+    pub address: Address,
     pub secret: H256,
 }
 
@@ -84,21 +87,21 @@ impl From<Account> for H160 {
 }
 
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Ord, Hash)]
-pub struct Address42(pub [u8; 42]);
+pub struct Address(pub [u8; 44]);
 
-impl Default for Address42 {
+impl Default for Address {
     fn default() -> Self {
-        Self([0; 42])
+        Self([0; 44])
     }
 }
 
-impl Debug for Address42 {
+impl Debug for Address {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(&String::from_utf8_lossy(&self.0))
     }
 }
 
-impl Display for Address42 {
+impl Display for Address {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = String::from_utf8_lossy(&self.0);
         f.write_str(&s[..6])?;
@@ -108,23 +111,23 @@ impl Display for Address42 {
     }
 }
 
-impl From<[u8; 42]> for Address42 {
-    fn from(slice: [u8; 42]) -> Self {
-        Address42(slice)
+impl From<[u8; ADDRESS_LEN]> for Address {
+    fn from(slice: [u8; ADDRESS_LEN]) -> Self {
+        Address(slice)
     }
 }
 
-impl prost::encoding::BytesAdapter for Address42 {
+impl prost::encoding::BytesAdapter for Address {
     fn len(&self) -> usize {
         self.0.len()
     }
 
     fn replace_with<B>(&mut self, mut buf: B)
-    where
-        B: prost::bytes::Buf,
+        where
+            B: prost::bytes::Buf,
     {
         let buf = buf.copy_to_bytes(buf.remaining());
-        match Address42::from_slice(buf.as_ref()) {
+        match Address::from_slice(buf.as_ref()) {
             Ok(addr) => {
                 *self = addr;
             }
@@ -140,19 +143,19 @@ impl prost::encoding::BytesAdapter for Address42 {
     }
 }
 
-impl Encodable for Address42 {
+impl Encodable for Address {
     fn encode(&self) -> Result<Vec<u8>> {
         Ok(self.0.to_vec())
     }
 }
 
-impl Decodable for Address42 {
+impl Decodable for Address {
     fn decode(buf: &[u8]) -> Result<Self> {
-        Address42::from_slice(buf)
+        Address::from_slice(buf)
     }
 }
 
-impl Address42 {
+impl Address {
     pub fn is_mainnet(&self) -> bool {
         MAINNET_HRP.eq(&self.hrp())
     }
@@ -164,7 +167,7 @@ impl Address42 {
     }
 
     pub fn from_slice(slice: &[u8]) -> Result<Self> {
-        let mut bytes = [0; 42];
+        let mut bytes = [0; ADDRESS_LEN];
         if slice.len() != bytes.len() {
             bail!("decode error")
         }
@@ -211,37 +214,37 @@ impl Address42 {
     }
 }
 
-impl FromStr for Address42 {
+impl FromStr for Address {
     type Err = bech32::Error;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        if !input.len() == 42 {
+        if !input.len() == ADDRESS_LEN {
             return Err(Self::Err::InvalidLength);
         }
         let _ = bech32::decode(input)?;
-        let mut bytes = [0; 42];
+        let mut bytes = [0; ADDRESS_LEN];
         bytes.copy_from_slice(input.as_bytes());
-        Ok(Address42(bytes))
+        Ok(Address(bytes))
     }
 }
 
 struct Address42Visitor;
 
 impl<'b> serde::de::Visitor<'b> for Address42Visitor {
-    type Value = Address42;
+    type Value = Address;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(formatter, "a string with len {}", 42)
+        write!(formatter, "a string with len {}", ADDRESS_LEN)
     }
 
     fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
-        if !v.len() == 42 {
+        if !v.len() == ADDRESS_LEN {
             return Err(E::invalid_length(v.len(), &self));
         }
         let _ = bech32::decode(v).map_err(|e| E::custom(e))?;
-        let mut bytes = [0; 42];
+        let mut bytes = [0; ADDRESS_LEN];
         bytes.copy_from_slice(v.as_bytes());
-        Ok(Address42(bytes))
+        Ok(Address(bytes))
     }
 
     fn visit_string<E: serde::de::Error>(self, v: String) -> Result<Self::Value, E> {
@@ -249,45 +252,58 @@ impl<'b> serde::de::Visitor<'b> for Address42Visitor {
     }
 }
 
-impl ::serde::Serialize for Address42 {
+impl ::serde::Serialize for Address {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: ::serde::Serializer,
+        where
+            S: ::serde::Serializer,
     {
         serializer.serialize_str(
             &String::from_utf8(self.0.to_vec()).map_err(|e| S::Error::custom(&e.to_string()))?,
         )
     }
 }
-impl<'de> ::serde::Deserialize<'de> for Address42 {
+
+impl<'de> ::serde::Deserialize<'de> for Address {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: ::serde::Deserializer<'de>,
+        where
+            D: ::serde::Deserializer<'de>,
     {
         deserializer.deserialize_str(Address42Visitor)
     }
 }
 
-pub fn get_address_from_pub_key(pub_key: PublicKey, network: Network) -> Address42 {
+pub fn get_address_from_pub_key(pub_key: PublicKey, network: Network) -> Address {
     let key = pub_key.hash();
     let checksum = &key[12..];
     let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
         .expect("error creating account id");
-    let mut raw_address = [0; 42];
+    let mut raw_address = [0; ADDRESS_LEN];
     raw_address.copy_from_slice(address.as_bytes());
-    Address42(raw_address)
+    Address(raw_address)
 }
-pub fn get_address_from_secret_key(sk: H256, network: Network) -> Result<Address42> {
+
+pub fn get_address_from_secret_key(sk: H256, network: Network) -> Result<Address> {
     let sk = SecretKey::from_bytes(sk.as_bytes())?;
     let pk = sk.public();
     let key = pk.hash();
     let checksum = &key[12..];
     let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
         .expect("error creating account id");
-    let mut raw_address = [0; 42];
+    let mut raw_address = [0; ADDRESS_LEN];
     raw_address.copy_from_slice(address.as_bytes());
-    Ok(Address42(raw_address))
+    Ok(Address(raw_address))
 }
+
+pub fn get_address_from_app_id(app_id: &[u8; 4], network: Network) -> Result<Address> {
+    let key = keccak256(app_id);
+    let checksum = &key[12..];
+    let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
+        .expect("error creating account id");
+    let mut raw_address = [0; ADDRESS_LEN];
+    raw_address.copy_from_slice(&address.as_bytes()[0..ADDRESS_LEN]);
+    Ok(Address(raw_address))
+}
+
 pub fn get_eth_address_from_pub_key(pub_key: PublicKey) -> H160 {
     let pubkey_bytes = pub_key.to_bytes();
     let key = keccak256(&pubkey_bytes[1..]).to_fixed_bytes();
@@ -297,31 +313,22 @@ pub fn get_eth_address_from_pub_key(pub_key: PublicKey) -> H160 {
 
 #[cfg(test)]
 mod tests {
-    use crate::account::Address42;
+    use crate::account::{Address, get_address_from_app_id};
     use serde::{Deserialize, Serialize};
+    use bech32::{ToBase32, Variant};
+    use crypto::keccak256;
+    use crate::network::Network;
 
     #[derive(Serialize, Deserialize, Debug)]
     struct CAccount {
-        account_id: Address42,
+        account_id: Address,
         balance: i32,
     }
 
-    #[test]
-    fn test_valid_ser() {
-        let account = CAccount {
-            account_id: Address42([
-                117, 99, 104, 49, 121, 50, 114, 50, 51, 103, 55, 53, 99, 119, 56, 118, 48, 116,
-                101, 119, 100, 50, 104, 50, 106, 118, 54, 97, 118, 117, 121, 101, 50, 122, 121,
-                117, 119, 112, 101, 56, 106, 51,
-            ]),
-            balance: 0,
-        };
-        let raw_json = serde_json::to_string_pretty(&account).unwrap();
-        println!("{}", raw_json);
 
-        let d_account: CAccount = serde_json::from_str(&raw_json).unwrap();
-        println!("{:#?}", d_account);
-        println!("{:?}", d_account.account_id);
-        println!("{}", d_account.account_id);
+    #[test]
+    fn test_address_derv() {
+        let address = get_address_from_app_id(b"nick", Network::Mainnet).unwrap();
+        println!("{}", address);
     }
 }

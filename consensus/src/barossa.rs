@@ -357,7 +357,7 @@ impl Consensus for BarossaProtocol {
         _chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
-        txs: Vec<SignedTransaction>,
+        txs: &[SignedTransaction],
     ) -> anyhow::Result<()> {
         state.apply_txs(txs)?;
         let _ = state.credit_balance(header.coinbase(), self.miner_reward(header.level()))?;
@@ -371,10 +371,10 @@ impl Consensus for BarossaProtocol {
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
         state: Arc<dyn StateDB>,
-        txs: Vec<SignedTransaction>,
+        txs: &[SignedTransaction],
     ) -> anyhow::Result<Option<Block>> {
-        self.finalize(chain, header, state, txs.clone())?;
-        let block = Block::new(*header, txs);
+        self.finalize(chain, header, state, txs)?;
+        let block = Block::new(*header, txs.into());
         Ok(Some(block))
     }
 
@@ -414,7 +414,7 @@ impl Consensus for BarossaProtocol {
             ]
                 .into(),
             [0; 32].into(),
-            [0; 42].into(),
+            [0; 44].into(),
             self.network.max_difficulty_compact().into(),
             self.network.chain_id(),
             0,

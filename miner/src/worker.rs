@@ -14,7 +14,7 @@ use primitive_types::U256;
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 use txpool::TxPool;
-use types::account::Address42;
+use types::account::Address;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::SignedTransaction;
@@ -26,7 +26,7 @@ pub const START: i8 = 2;
 
 #[allow(clippy::too_many_arguments)]
 pub fn start_worker(
-    coinbase: Address42,
+    coinbase: Address,
     lmpsc: UnboundedSender<LocalEventMessage>,
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
@@ -152,7 +152,7 @@ fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedT
 }
 
 fn make_block_template(
-    coinbase: Address42,
+    coinbase: Address,
     consensus: Arc<dyn Consensus>,
     txpool: Arc<RwLock<TxPool>>,
     state: Arc<dyn StateDB>,

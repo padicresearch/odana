@@ -13,7 +13,7 @@ use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
-use types::prelude::Address42;
+use types::prelude::Address;
 use types::ChainStateValue;
 
 use crate::block_storage::BlockStorage;
@@ -83,7 +83,7 @@ impl ChainState {
             info!(blockhash = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
         } else {
             let mut genesis = consensus.get_genesis_header();
-            state.credit_balance(&Address42::default(), 1_000_000_000_000)?;
+            state.credit_balance(&Address::default(), 1_000_000_000_000)?;
             state.commit()?;
             genesis.set_state_root(H256::from(state.root()));
             let block = Block::new(genesis, vec![]);

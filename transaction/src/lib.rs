@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 
 use crypto::ecdsa::SecretKey;
 use primitive_types::H256;
-use types::account::{Account, Address42};
+use types::account::{Account, Address};
 use types::network::Network;
 use types::prelude::TransactionData;
 use types::tx::{PaymentTx, SignedTransaction, Transaction, TransactionBuilder};
@@ -13,7 +13,7 @@ use types::tx::{PaymentTx, SignedTransaction, Transaction, TransactionBuilder};
 pub fn make_sign_transaction(
     account: &Account,
     nonce: u64,
-    to: Address42,
+    to: Address,
     amount: u64,
     fee: u64,
 ) -> Result<SignedTransaction> {
@@ -28,7 +28,7 @@ pub fn make_sign_transaction(
 
 pub fn make_payment_sign_transaction(
     signer: H256,
-    to: Address42,
+    to: Address,
     nonce: u64,
     amount: u64,
     fee: u64,
@@ -40,7 +40,7 @@ pub fn make_payment_sign_transaction(
         chain_id,
         genesis_hash: Default::default(),
         fee,
-        data: TransactionData::Payment(PaymentTx { to, amount }),
+        data: TransactionData::Payment(PaymentTx { to, amount: amount }),
     };
     sign_tx(signer, tx)
 }
@@ -56,23 +56,23 @@ pub fn sign_tx(secret: H256, tx: Transaction) -> Result<SignedTransaction> {
 }
 
 #[derive(Debug)]
-pub struct NoncePricedTransaction(pub SignedTransaction);
+pub struct NoncePricedTransaction<'a>(pub &'a SignedTransaction);
 
-impl Eq for NoncePricedTransaction {}
+impl<'a> Eq for NoncePricedTransaction<'a> {}
 
-impl PartialEq for NoncePricedTransaction {
+impl<'a> PartialEq for NoncePricedTransaction<'a> {
     fn eq(&self, other: &Self) -> bool {
         self.0.eq(&other.0)
     }
 }
 
-impl PartialOrd for NoncePricedTransaction {
+impl<'a> PartialOrd for NoncePricedTransaction<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for NoncePricedTransaction {
+impl<'a> Ord for NoncePricedTransaction<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
         match self.0.nonce().cmp(&other.0.nonce()) {
             Ordering::Less => Ordering::Less,
@@ -81,4 +81,5 @@ impl Ord for NoncePricedTransaction {
         }
     }
 }
-pub type TransactionsByNonceAndPrice = BTreeSet<NoncePricedTransaction>;
+
+pub type TransactionsByNonceAndPrice<'a> = BTreeSet<NoncePricedTransaction<'a>>;

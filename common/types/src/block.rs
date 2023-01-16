@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::sync::{Arc, RwLock};
 use std::u32;
 
-use crate::account::Address42;
+use crate::account::Address;
 use anyhow::Result;
 use bytes::{Buf, Bytes, BytesMut};
 use codec::impl_codec_using_prost;
@@ -59,7 +59,7 @@ pub struct BlockHeader {
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
     mix_nonce: U256,
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
-    coinbase: Address42,
+    coinbase: Address,
     #[getset(set = "pub", get_mut = "pub")]
     difficulty: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
@@ -79,7 +79,7 @@ impl BlockHeader {
         tx_root: H256,
         state_root: H256,
         mix_nonce: U256,
-        coinbase: Address42,
+        coinbase: Address,
         difficulty: u32,
         chain_id: u32,
         level: u32,
@@ -135,7 +135,7 @@ impl ConsensusCodec for BlockHeader {
             tx_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             state_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             mix_nonce: U256::from_big_endian(&bytes.copy_to_bytes(32)),
-            coinbase: Address42::from_slice(&bytes.copy_to_bytes(42))?,
+            coinbase: Address::from_slice(&bytes.copy_to_bytes(42))?,
             difficulty: bytes.get_u32(),
             chain_id: bytes.get_u32(),
             level: bytes.get_u32(),

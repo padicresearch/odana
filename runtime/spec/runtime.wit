@@ -1,0 +1,7 @@
+world runtime {
+    export runtime-api : interface {
+        genesis : func()
+        call : func(call : list<u8>)
+        query : func(query : list<u8>) -> list<u8>
+    }
+}
