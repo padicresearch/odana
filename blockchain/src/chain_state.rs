@@ -213,7 +213,8 @@ impl ChainState {
         let parent_state = self.state.get_sate_at(*parent_state_root)?;
         consensus.finalize(
             self.block_storage.clone(),
-            &mut header, self.vm.clone(),
+            &mut header,
+            self.vm.clone(),
             parent_state,
             block.transactions(),
         )?;

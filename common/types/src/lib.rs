@@ -6,14 +6,14 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+use crate::account::AccountState;
 use bytes::{Buf, BufMut};
 use codec::{Decodable, Encodable};
+use primitive_types::Address;
 use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
 use serde::{Deserialize, Serialize};
-use primitive_types::Address;
 use smt::SparseMerkleTree;
-use crate::account::AccountState;
 
 use crate::block::BlockHeader;
 use crate::network::Network;
@@ -146,7 +146,6 @@ pub struct Changelist {
     pub logs: Vec<Vec<u8>>,
     pub storage: SparseMerkleTree,
 }
-
 
 pub mod prelude {
     pub use crate::account::*;
