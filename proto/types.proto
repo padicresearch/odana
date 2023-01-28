@@ -23,14 +23,23 @@ message Block {
 }
 
 message PaymentTx {
-  bytes to = 1;
-  uint64 amount = 2;
+  bytes address = 1;
 }
 
 message ApplicationCallTx{
-  uint32 app_id = 1;
+  bytes app_id = 1;
   bytes args = 2;
-  uint64 cvalue = 3;
+}
+
+message CreateApplicationTx{
+  string package_name = 1;
+  bytes binary = 2;
+}
+
+message UpdateApplicationTx{
+  bytes app_id = 1;
+  bytes binary = 2;
+  bool migrate = 3;
 }
 
 message Transaction {
@@ -38,10 +47,13 @@ message Transaction {
   uint32 chain_id = 2;
   bytes genesis_hash = 3;
   uint64 tip = 4;
+  uint64 value = 5;
   oneof data {
-    PaymentTx payment = 5;
-    ApplicationCallTx call = 6;
-    string raw = 7;
+    PaymentTx payment = 6;
+    ApplicationCallTx call = 7;
+    CreateApplicationTx create = 8;
+    UpdateApplicationTx update = 9;
+    string raw = 10;
   }
 }
 message Receipt {
@@ -59,11 +71,13 @@ message SignedTransaction {
   oneof data {
     PaymentTx payment = 5;
     ApplicationCallTx call = 6;
-    bytes raw = 7;
+    CreateApplicationTx create = 7;
+    UpdateApplicationTx update = 8;
+    bytes raw = 9;
   }
-  bytes r = 8;
-  bytes s = 9;
-  uint32 v = 10;
+  bytes r = 10;
+  bytes s = 11;
+  uint32 v = 12;
 }
 
 message TransactionList {
@@ -74,6 +88,8 @@ message AccountState {
   uint64 free_balance = 1;
   uint64 reserve_balance = 2;
   uint64 nonce = 3;
+  optional bytes root_hash = 4;
+  optional bytes code_hash = 5;
 }
 
 enum TransactionStatus {

@@ -61,6 +61,8 @@ serde = { version = "1.0.130", default-features = false, features = ["derive", "
 clap = { version = "3.0.13", features = ["derive"] }
 wit-codegen = { path = "utils/wit-codegen" }
 hex = { path = "common/hex" }
+primitive-types = { path = "common/primitive-types" }
 num-traits = "0.2.15"
 getset = "0.1.2"
 bytes = { version = "1", features = ["serde"] }
+chrono = "0.4"

@@ -10,10 +10,9 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::H256;
+use primitive_types::{Address, H256};
 use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};
-use types::account::Address;
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
 use types::tx::{SignedTransaction, TransactionList, TransactionStatus};

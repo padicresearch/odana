@@ -12,6 +12,7 @@ use prost::{DecodeError, Message};
 use serde::{Deserialize, Serialize};
 
 use crate::block::BlockHeader;
+use crate::network::Network;
 
 pub mod account;
 pub mod block;
@@ -128,6 +129,15 @@ where
     out
 }
 
+
+pub trait Addressing {
+    fn is_mainnet(&self) -> bool;
+    fn is_testnet(&self) -> bool;
+    fn is_alphanet(&self) -> bool;
+    fn is_valid(&self) -> bool;
+    fn network(&self) -> Option<Network>;
+}
+
 pub mod prelude {
     pub use crate::account::*;
     pub use crate::block::*;
@@ -135,7 +145,10 @@ pub mod prelude {
     pub use crate::events::*;
     pub use crate::network::*;
     pub use crate::tx::*;
+    pub use crate::Addressing;
 
     #[derive(Clone, PartialEq, Eq, ::prost::Message)]
     pub struct Empty;
 }
+
+

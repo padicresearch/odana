@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 
-use primitive_types::H256;
+use primitive_types::{Address, H256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
 
 use types::tx::SignedTransaction;
 use types::Hash;
 
-use crate::{num_slots, Address, TransactionRef, Transactions};
+use crate::{num_slots, TransactionRef, Transactions};
 
 pub struct AccountSet {
     accounts: BTreeSet<Address>,

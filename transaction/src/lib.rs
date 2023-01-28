@@ -4,27 +4,11 @@ use std::collections::BTreeSet;
 use anyhow::{anyhow, Result};
 
 use crypto::ecdsa::SecretKey;
-use primitive_types::H256;
-use types::account::{Account, Address};
+use primitive_types::{Address, H256};
+use types::account::{Account};
 use types::network::Network;
 use types::prelude::TransactionData;
-use types::tx::{PaymentTx, SignedTransaction, Transaction, TransactionBuilder};
-
-pub fn make_sign_transaction(
-    account: &Account,
-    nonce: u64,
-    to: Address,
-    amount: u64,
-    fee: u64,
-) -> Result<SignedTransaction> {
-    TransactionBuilder::with_signer(account)?
-        .nonce(nonce)
-        .fee(fee)
-        .transfer()
-        .to(to)
-        .amount(amount)
-        .build()
-}
+use types::tx::{PaymentTx, SignedTransaction, Transaction};
 
 pub fn make_payment_sign_transaction(
     signer: H256,
@@ -40,7 +24,8 @@ pub fn make_payment_sign_transaction(
         chain_id,
         genesis_hash: Default::default(),
         fee,
-        data: TransactionData::Payment(PaymentTx { to, amount: amount }),
+        value: amount,
+        data: TransactionData::Payment(PaymentTx { to }),
     };
     sign_tx(signer, tx)
 }

@@ -41,8 +41,6 @@ pub trait StorageBackend: Clone {
     fn new() -> Self;
 }
 
-#[derive(Debug, Clone, Encode, Decode)]
-pub struct DefaultTreeHasher;
 
 #[derive(Clone)]
 pub struct MemoryStorage {
@@ -97,6 +95,9 @@ impl StorageBackend for MemoryStorage {
     }
 }
 
+#[derive(Debug, Clone, Encode, Decode)]
+pub struct DefaultTreeHasher;
+
 impl TreeHasher for DefaultTreeHasher {
     fn digest(&self, data: &[u8]) -> H256 {
         let mut hasher = Sha256::default();
@@ -104,3 +105,4 @@ impl TreeHasher for DefaultTreeHasher {
         H256::from_slice(hasher.finalize().as_ref())
     }
 }
+

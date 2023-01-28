@@ -11,8 +11,8 @@ use directories::UserDirs;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use p2p::identity::NodeIdentity;
+use primitive_types::Address;
 use tracing::Level;
-use types::account::Address;
 use types::config::EnvironmentConfig;
 use types::network::Network;
 

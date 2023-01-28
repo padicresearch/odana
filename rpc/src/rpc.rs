@@ -402,19 +402,16 @@ pub mod transactions_service_server {
             }
         }
     }
-
     impl<T: TransactionsService> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(self.0.clone())
         }
     }
-
     impl<T: std::fmt::Debug> std::fmt::Debug for _Inner<T> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "{:?}", self.0)
         }
     }
-
     impl<T: TransactionsService> tonic::server::NamedService
     for TransactionsServiceServer<T> {
         const NAME: &'static str = "rpc.TransactionsService";

@@ -5,6 +5,10 @@ use core::marker::PhantomData;
 use blake2b_simd::{blake2b, Params};
 use rt_std::prelude::*;
 
+pub trait StorageKeyHasher {
+    fn hash(payload: &[u8]) -> Box<[u8]>;
+}
+
 
 pub struct Hashing;
 
@@ -40,32 +44,29 @@ pub struct RawStorage;
 
 impl StorageApi for RawStorage {}
 
-pub trait StorageMap<K, V>
-where
-    K: prost::Message + Default,
-    V: prost::Message + Default,
+pub trait StorageMap<H, K, V>
+    where
+        H: StorageKeyHasher,
+        K: prost::Message + Default,
+        V: prost::Message + Default,
 {
     fn storage_prefix() -> &'static [u8];
 
-    fn prefix() -> [u8; 32] {
-        let prefix = Self::storage_prefix();
-        Hashing::blake2b(&prefix)
-    }
-
 
     fn insert(key: K, value: V) {
-        let prefix = Self::prefix();
+        let prefix = Self::storage_prefix();
         let key = key.encode_to_vec();
         let value = value.encode_to_vec();
-        let storage_key = [prefix.as_slice(), key.as_slice()].concat();
-        internal::storage::insert(storage_key.as_slice(), value.as_slice())
+        let storage_key = [prefix, key.as_slice()].concat();
+        internal::storage::insert(&H::hash(storage_key.as_slice()), value.as_slice())
     }
 
     fn get(key: K) -> Result<Option<V>> {
-        let prefix = Self::prefix();
+        let prefix = Self::storage_prefix();
         let key = key.encode_to_vec();
-        let storage_key = [prefix.as_slice(), key.as_slice()].concat();
-        let Some(raw_value) = internal::storage::get(storage_key.as_slice()) else {
+        let storage_key = [prefix, key.as_slice()].concat();
+        let storage_key = H::hash(storage_key.as_slice());
+        let Some(raw_value) = internal::storage::get(storage_key.as_ref()) else {
             return Ok(None)
         };
         let value = V::decode(raw_value.as_slice())?;
@@ -73,10 +74,10 @@ where
     }
 
     fn remove(key: K) -> Result<()> {
-        let prefix = Self::prefix();
+        let prefix = Self::storage_prefix();
         let key = key.encode_to_vec();
-        let storage_key = [prefix.as_slice(), key.as_slice()].concat();
-        if !internal::storage::remove(storage_key.as_slice()) {
+        let storage_key = [prefix, key.as_slice()].concat();
+        if !internal::storage::remove(&H::hash(storage_key.as_slice())) {
             bail!("failed to delete key")
         }
         Ok(())

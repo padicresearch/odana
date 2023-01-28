@@ -3,5 +3,5 @@
 pub struct FrameworkId(&'static str);
 
 pub trait Framework {
-    fn id() -> FrameworkId();
+    fn id() -> FrameworkId;
 }

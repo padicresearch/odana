@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 use anyhow::{anyhow, bail, Result};
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::H256;
+use primitive_types::{Address, H256};
 use state::State;
 use storage::{KVStore, Schema};
 use tracing::{debug, info, trace, warn};
@@ -13,7 +13,6 @@ use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
-use types::prelude::Address;
 use types::ChainStateValue;
 
 use crate::block_storage::BlockStorage;
@@ -77,7 +76,7 @@ impl ChainState {
         chain_state_storage: Arc<ChainStateStorage>,
         sender: UnboundedSender<LocalEventMessage>,
     ) -> Result<Self> {
-        let state = Arc::new(State::new(state_dir)?);
+        let state = Arc::new(State::new(&state_dir)?);
         if let Some(current_head) = chain_state_storage.get_current_header()? {
             state.reset(*current_head.state_root())?;
             info!(blockhash = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
@@ -211,7 +210,7 @@ impl ChainState {
             self.block_storage.clone(),
             &mut header,
             parent_state,
-            block.transactions().clone(),
+            block.transactions(),
         )?;
         consensus
             .verify_header(self.block_storage.clone(), &header)
@@ -234,7 +233,7 @@ impl ChainState {
         let mut repack = false;
         if block.parent_hash().eq(&current_head.hash) {
             let state = self.state();
-            state.apply_txs(block.transactions().clone())?;
+            state.apply_txs(block.transactions())?;
             let _ =
                 state.credit_balance(header.coinbase(), consensus.miner_reward(header.level()))?;
             state.commit()?;
@@ -256,7 +255,7 @@ impl ChainState {
                 *parent_state_root,
                 consensus.miner_reward(block.level()),
                 *block.header().coinbase(),
-                block.transactions().clone(),
+                block.transactions(),
             )?;
             let commit_state = H256::from(commit_state);
             if commit_state.ne(header.state_root()) {

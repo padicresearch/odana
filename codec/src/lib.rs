@@ -4,9 +4,9 @@ extern crate alloc;
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
 use bincode::config::{BigEndian, Fixint, NoLimit, SkipFixedArrayLength};
-use primitive_types::{H160, H256};
+use primitive_types::{Address, H160, H256};
 
 pub trait ConsensusCodec: Sized {
     fn consensus_encode(self) -> Vec<u8>;
@@ -38,6 +38,18 @@ impl Decodable for Hash {
         let mut buff = [0; 32];
         buff.copy_from_slice(buf);
         Ok(buff)
+    }
+}
+
+impl Encodable for Vec<u8> {
+    fn encode(&self) -> Result<Vec<u8>> {
+        Ok(self.clone())
+    }
+}
+
+impl Decodable for Vec<u8> {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        Ok(buf.to_vec())
     }
 }
 
@@ -113,6 +125,18 @@ impl Encodable for H256 {
 impl Decodable for H256 {
     fn decode(buf: &[u8]) -> Result<Self> {
         Ok(H256::from_slice(buf))
+    }
+}
+
+impl Encodable for Address {
+    fn encode(&self) -> Result<Vec<u8>> {
+        Ok(self.0.to_vec())
+    }
+}
+
+impl Decodable for Address {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        Address::from_slice(buf).map_err(|_| anyhow!("error decoding address"))
     }
 }
 

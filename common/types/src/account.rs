@@ -11,9 +11,8 @@ use crate::network::{Network, ALPHA_HRP, MAINNET_HRP, TESTNET_HRP};
 use codec::{Decodable, Encodable};
 use crypto::ecdsa::{PublicKey, SecretKey, Signature};
 use crypto::keccak256;
-use primitive_types::{H160, H256};
-
-pub const ADDRESS_LEN: usize = 44;
+use primitive_types::{Address, ADDRESS_LEN, H160, H256};
+use crate::Addressing;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, prost::Message)]
 pub struct AccountState {
@@ -23,6 +22,10 @@ pub struct AccountState {
     pub reserve_balance: u64,
     #[prost(uint64, tag = "3")]
     pub nonce: u64,
+    #[prost(optional, bytes, tag = "4")]
+    pub root_hash: Option<Vec<u8>>,
+    #[prost(optional, bytes, tag = "5")]
+    pub code_hash: Option<Vec<u8>>,
 }
 
 impl AccountState {
@@ -31,6 +34,8 @@ impl AccountState {
             free_balance: 0u64,
             reserve_balance: 0u64,
             nonce: 1u64,
+            root_hash: None,
+            code_hash: None,
         }
     }
 }
@@ -86,189 +91,29 @@ impl From<Account> for H160 {
     }
 }
 
-#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Ord, Hash)]
-pub struct Address(pub [u8; 44]);
-
-impl Default for Address {
-    fn default() -> Self {
-        Self([0; 44])
-    }
-}
-
-impl Debug for Address {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&String::from_utf8_lossy(&self.0))
-    }
-}
-
-impl Display for Address {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let s = String::from_utf8_lossy(&self.0);
-        f.write_str(&s[..6])?;
-        f.write_str("...")?;
-        f.write_str(&s[36..])?;
-        Ok(())
-    }
-}
-
-impl From<[u8; ADDRESS_LEN]> for Address {
-    fn from(slice: [u8; ADDRESS_LEN]) -> Self {
-        Address(slice)
-    }
-}
-
-impl prost::encoding::BytesAdapter for Address {
-    fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    fn replace_with<B>(&mut self, mut buf: B)
-        where
-            B: prost::bytes::Buf,
-    {
-        let buf = buf.copy_to_bytes(buf.remaining());
-        match Address::from_slice(buf.as_ref()) {
-            Ok(addr) => {
-                *self = addr;
-            }
-            Err(_) => {}
-        }
-    }
-
-    fn append_to<B>(&self, buf: &mut B)
-    where
-        B: prost::bytes::BufMut,
-    {
-        buf.put_slice(self.as_bytes())
-    }
-}
-
-impl Encodable for Address {
-    fn encode(&self) -> Result<Vec<u8>> {
-        Ok(self.0.to_vec())
-    }
-}
-
-impl Decodable for Address {
-    fn decode(buf: &[u8]) -> Result<Self> {
-        Address::from_slice(buf)
-    }
-}
-
-impl Address {
-    pub fn is_mainnet(&self) -> bool {
+impl Addressing for Address {
+    fn is_mainnet(&self) -> bool {
         MAINNET_HRP.eq(&self.hrp())
     }
-    pub fn is_testnet(&self) -> bool {
+    fn is_testnet(&self) -> bool {
         TESTNET_HRP.eq(&self.hrp())
     }
-    pub fn is_alphanet(&self) -> bool {
+    fn is_alphanet(&self) -> bool {
         ALPHA_HRP.eq(&self.hrp())
     }
-
-    pub fn from_slice(slice: &[u8]) -> Result<Self> {
-        let mut bytes = [0; ADDRESS_LEN];
-        if slice.len() != bytes.len() {
-            bail!("decode error")
-        }
-        bytes.copy_from_slice(slice);
-        Ok(Self(bytes))
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0[..]
-    }
-    pub fn to_vec(&self) -> Vec<u8> {
-        self.0.to_vec()
-    }
-
-    fn hrp(&self) -> String {
-        match bech32::decode(&String::from_utf8_lossy(&self.0)) {
-            Ok((hrp, _, _)) => hrp,
-            Err(_) => String::new(),
-        }
-    }
-    pub fn is_valid(&self) -> bool {
+    fn is_valid(&self) -> bool {
         match bech32::decode(&String::from_utf8_lossy(&self.0)) {
             Ok((hrp, _, _)) => ALPHA_HRP.eq(&hrp) || TESTNET_HRP.eq(&hrp) || MAINNET_HRP.eq(&hrp),
             Err(_) => false,
         }
     }
-
-    pub fn network(&self) -> Option<Network> {
+    fn network(&self) -> Option<Network> {
         match self.hrp().as_str() {
             MAINNET_HRP => Some(Network::Mainnet),
             TESTNET_HRP => Some(Network::Testnet),
             ALPHA_HRP => Some(Network::Alphanet),
             _ => None,
         }
-    }
-
-    pub fn to_address20(&self) -> Option<H160> {
-        match bech32::decode(&String::from_utf8_lossy(&self.0))
-            .and_then(|(_, address_32, _)| bech32::convert_bits(&address_32, 5, 8, false))
-        {
-            Ok(address) => Some(H160::from_slice(&address)),
-            Err(_) => None,
-        }
-    }
-}
-
-impl FromStr for Address {
-    type Err = bech32::Error;
-
-    fn from_str(input: &str) -> Result<Self, Self::Err> {
-        if !input.len() == ADDRESS_LEN {
-            return Err(Self::Err::InvalidLength);
-        }
-        let _ = bech32::decode(input)?;
-        let mut bytes = [0; ADDRESS_LEN];
-        bytes.copy_from_slice(input.as_bytes());
-        Ok(Address(bytes))
-    }
-}
-
-struct Address42Visitor;
-
-impl<'b> serde::de::Visitor<'b> for Address42Visitor {
-    type Value = Address;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(formatter, "a string with len {}", ADDRESS_LEN)
-    }
-
-    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
-        if !v.len() == ADDRESS_LEN {
-            return Err(E::invalid_length(v.len(), &self));
-        }
-        let _ = bech32::decode(v).map_err(|e| E::custom(e))?;
-        let mut bytes = [0; ADDRESS_LEN];
-        bytes.copy_from_slice(v.as_bytes());
-        Ok(Address(bytes))
-    }
-
-    fn visit_string<E: serde::de::Error>(self, v: String) -> Result<Self::Value, E> {
-        self.visit_str(&v)
-    }
-}
-
-impl ::serde::Serialize for Address {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: ::serde::Serializer,
-    {
-        serializer.serialize_str(
-            &String::from_utf8(self.0.to_vec()).map_err(|e| S::Error::custom(&e.to_string()))?,
-        )
-    }
-}
-
-impl<'de> ::serde::Deserialize<'de> for Address {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: ::serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_str(Address42Visitor)
     }
 }
 

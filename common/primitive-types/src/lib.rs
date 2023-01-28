@@ -17,16 +17,21 @@
 #![allow(clippy::assign_op_pattern)]
 
 use core::convert::TryFrom;
+use core::fmt::{Debug, Display, Formatter};
+use core::str::FromStr;
 #[cfg(feature = "scale-info")]
 use scale_info_crate::TypeInfo;
 
 use fixed_hash::{construct_fixed_hash, impl_fixed_hash_conversions};
 use uint::{construct_uint, uint_full_mul_reg};
 
+pub const ADDRESS_LEN: usize = 44;
+
 #[cfg(feature = "fp-conversion")]
 mod fp_conversion;
 
 extern crate alloc;
+extern crate core;
 
 /// Error type for conversion.
 #[derive(Debug, PartialEq, Eq)]
@@ -107,6 +112,7 @@ mod num_traits {
 #[cfg(feature = "impl-serde")]
 mod serde {
     use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
+    use impl_serde::serde::ser::Error;
 
     use super::*;
 
@@ -122,7 +128,52 @@ mod serde {
     impl_fixed_hash_serde!(H448, 56);
     impl_fixed_hash_serde!(H512, 64);
     impl_fixed_hash_conversions!(H256, H160);
+
+    struct AddressVisitor;
+
+    impl<'b> ::impl_serde::serde::de::Visitor<'b> for AddressVisitor {
+        type Value = Address;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(formatter, "a string with len {}", ADDRESS_LEN)
+        }
+
+        fn visit_str<E: ::impl_serde::serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            if !v.len() == ADDRESS_LEN {
+                return Err(E::invalid_length(v.len(), &self));
+            }
+            let _ = bech32::decode(v).map_err(|e| E::custom(e))?;
+            let mut bytes = [0; ADDRESS_LEN];
+            bytes.copy_from_slice(v.as_bytes());
+            Ok(Address(bytes))
+        }
+
+        fn visit_string<E: ::impl_serde::serde::de::Error>(self, v: String) -> Result<Self::Value, E> {
+            self.visit_str(&v)
+        }
+    }
+
+    impl ::impl_serde::serde::Serialize for Address {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: ::impl_serde::serde::Serializer,
+        {
+            serializer.serialize_str(
+                &String::from_utf8(self.0.to_vec()).map_err(|e| S::Error::custom(&e.to_string()))?,
+            )
+        }
+    }
+
+    impl<'de> ::impl_serde::serde::Deserialize<'de> for Address {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: ::impl_serde::serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_str(AddressVisitor)
+        }
+    }
 }
+
 #[cfg(feature = "impl-bincode")]
 mod binarycodec {
     use impl_bincode::{impl_fixed_hash_bincode, impl_uint_bincode};
@@ -140,6 +191,32 @@ mod binarycodec {
     impl_fixed_hash_bincode!(H256, 32);
     impl_fixed_hash_bincode!(H448, 56);
     impl_fixed_hash_bincode!(H512, 64);
+
+    impl ::impl_bincode::bincode::Encode for Address {
+        fn encode<E: ::impl_bincode::bincode::enc::Encoder>(
+            &self,
+            encoder: &mut E,
+        ) -> Result<(), ::impl_bincode::bincode::error::EncodeError> {
+            ::impl_bincode::bincode::Encode::encode(&self.0, encoder)?;
+            Ok(())
+        }
+    }
+
+    impl ::impl_bincode::bincode::Decode for Address {
+        fn decode<D: ::impl_bincode::bincode::de::Decoder>(
+            decoder: &mut D,
+        ) -> core::result::Result<Self, ::impl_bincode::bincode::error::DecodeError> {
+            <[u8; ADDRESS_LEN] as ::impl_bincode::bincode::Decode>::decode(decoder).map(Address)
+        }
+    }
+
+    impl<'de> ::impl_bincode::bincode::BorrowDecode<'de> for Address {
+        fn borrow_decode<D: ::impl_bincode::bincode::de::BorrowDecoder<'de>>(
+            decoder: &mut D,
+        ) -> core::result::Result<Self, ::impl_bincode::bincode::error::DecodeError> {
+            <[u8; ADDRESS_LEN] as ::impl_bincode::bincode::BorrowDecode>::borrow_decode(decoder).map(Address)
+        }
+    }
 }
 
 #[cfg(feature = "impl-codec")]
@@ -525,10 +602,116 @@ impl Compact {
     }
 }
 
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Ord, Hash)]
+pub struct Address(pub [u8; 44]);
+
+impl Default for Address {
+    fn default() -> Self {
+        Self([0; 44])
+    }
+}
+
+impl Debug for Address {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&String::from_utf8_lossy(&self.0))
+    }
+}
+
+impl Display for Address {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = String::from_utf8_lossy(&self.0);
+        f.write_str(&s[..6])?;
+        f.write_str("...")?;
+        f.write_str(&s[36..])?;
+        Ok(())
+    }
+}
+
+impl From<[u8; ADDRESS_LEN]> for Address {
+    fn from(slice: [u8; ADDRESS_LEN]) -> Self {
+        Address(slice)
+    }
+}
+
+impl Address {
+    pub fn from_slice(slice: &[u8]) -> Result<Self, ()> {
+        let mut bytes = [0; ADDRESS_LEN];
+        if slice.len() != bytes.len() {
+            return Err(())
+        }
+        bytes.copy_from_slice(slice);
+        Ok(Self(bytes))
+    }
+
+    pub fn hrp(&self) -> String {
+        match bech32::decode(&String::from_utf8_lossy(&self.0)) {
+            Ok((hrp, _, _)) => hrp,
+            Err(_) => String::new(),
+        }
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0[..]
+    }
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.0.to_vec()
+    }
+
+    pub fn to_address20(&self) -> Option<H160> {
+        match bech32::decode(&String::from_utf8_lossy(&self.0))
+            .and_then(|(_, address_32, _)| bech32::convert_bits(&address_32, 5, 8, false))
+        {
+            Ok(address) => Some(H160::from_slice(&address)),
+            Err(_) => None,
+        }
+    }
+}
+
+impl prost::encoding::BytesAdapter for Address {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    fn replace_with<B>(&mut self, mut buf: B)
+        where
+            B: prost::bytes::Buf,
+    {
+        let buf = buf.copy_to_bytes(buf.remaining());
+        match Address::from_slice(buf.as_ref()) {
+            Ok(addr) => {
+                *self = addr;
+            }
+            Err(_) => {}
+        }
+    }
+
+    fn append_to<B>(&self, buf: &mut B)
+        where
+            B: prost::bytes::BufMut,
+    {
+        buf.put_slice(self.as_bytes())
+    }
+}
+
+impl FromStr for Address {
+    type Err = bech32::Error;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        if !input.len() == ADDRESS_LEN {
+            return Err(Self::Err::InvalidLength);
+        }
+        let _ = bech32::decode(input)?;
+        let mut bytes = [0; ADDRESS_LEN];
+        bytes.copy_from_slice(input.as_bytes());
+        Ok(Address(bytes))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use hex::{FromHex, ToHex};
+
     #[test]
     fn test_compact_to_u256() {
         assert_eq!(Compact::new(0x01003456).to_u256(), Ok(0.into()));

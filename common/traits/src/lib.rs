@@ -2,11 +2,13 @@ use std::sync::Arc;
 
 use anyhow::Result;
 
-use primitive_types::{Compact, H160, H256};
-use types::account::{AccountState, Address};
+use primitive_types::{Address, Compact, H160, H256};
+use smt::SparseMerkleTree;
+use types::account::{AccountState};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::tx::{ApplicationCallTx, SignedTransaction};
 use types::Hash;
+use types::network::Network;
 use types::receipt::Receipt;
 
 pub trait Blockchain: ChainReader {
@@ -29,17 +31,11 @@ pub trait StateDB: Send + Sync {
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;
 }
 
-pub trait ContextDB: Send + Sync {
-    fn app_state(&self, app_id: u32) -> Result<Arc<dyn ContextTrieDB>>;
-    fn app_state_root(&self, app_id: u32) -> H256;
-    fn state_at(&self, app_id: u32, root: H256) -> Result<Arc<dyn ContextTrieDB>>;
-}
-
-pub trait ContextTrieDB: Send + Sync {
-    fn put(&self, key: &[u8], value: &[u8]);
-    fn delete(&self, key: &[u8]);
-    fn get(&self, key: &[u8]) -> H256;
-    fn root(&self) -> H256;
+pub trait AppData: Send + Sync {
+    fn get_app_data(&self, app_id: Address) -> Result<SparseMerkleTree>;
+    fn set_app_data(&self, app_id: Address, app_data: SparseMerkleTree) -> Result<()>;
+    fn get_app_root(&self, app_id: Address) -> H256;
+    fn get_app_data_at_root(&self, app_id: Address, root: H256) -> Result<SparseMerkleTree>;
 }
 
 pub trait AccountStateReader: Send + Sync {
@@ -56,14 +52,6 @@ pub trait WasmVMInstance: Send + Sync {
 }
 
 pub trait StateIntermediate {}
-
-pub trait Saturating {
-    fn saturating_add(self, rhs: Self) -> Self;
-
-    fn saturating_sub(self, rhs: Self) -> Self;
-
-    fn saturating_mul(self, rhs: Self) -> Self;
-}
 
 pub trait ChainHeadReader: Send + Sync {
     fn get_header(&self, hash: &H256, level: u32) -> Result<Option<IndexedBlockHeader>>;

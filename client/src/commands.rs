@@ -2,11 +2,11 @@ use crate::rpc::account_service_client::AccountServiceClient;
 use crate::rpc::transactions_service_client::TransactionsServiceClient;
 use crate::rpc::GetAccountRequest;
 use clap::{Args, Subcommand};
-use primitive_types::H256;
+use primitive_types::{Address, H256};
 use std::collections::HashMap;
 use std::str::FromStr;
 use transaction::make_payment_sign_transaction;
-use types::account::{get_address_from_secret_key, Address};
+use types::account::{get_address_from_secret_key};
 use types::network::Network;
 use types::prelude::Empty;
 

@@ -2,15 +2,17 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, bail, Result};
 use bincode::{Decode, Encode};
+use codec::{Decodable, Encodable};
 use serde::{Deserialize, Serialize};
 
-use primitive_types::H256;
+use primitive_types::{Address, H256};
 use smt::proof::Proof;
-use traits::StateDB;
+use smt::SparseMerkleTree;
+use traits::{AppData, StateDB};
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
-use types::account::{AccountState, Address};
+use types::account::AccountState;
 use types::tx::SignedTransaction;
 use types::Hash;
 
@@ -32,8 +34,26 @@ pub struct ReadProof {
 #[derive(Clone)]
 pub struct State {
     trie: Arc<TrieDB<Address, AccountState>>,
+    appdata: Arc<TrieDB<AppStateKey, SparseMerkleTree>>,
     path: PathBuf,
     read_only: bool,
+}
+
+#[derive(Encode, Decode, Clone, Debug)]
+struct AppStateKey(Address, H256);
+
+impl Encodable for AppStateKey {
+    fn encode(&self) -> Result<Vec<u8>> {
+        bincode::encode_to_vec(self, codec::config()).map_err(|e| anyhow!(e))
+    }
+}
+
+impl Decodable for AppStateKey {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        bincode::decode_from_slice(buf, codec::config())
+            .map(|(out, _)| out)
+            .map_err(|e| anyhow!(e))
+    }
 }
 
 unsafe impl Sync for State {}
@@ -57,22 +77,16 @@ impl StateDB for State {
     }
 
     fn credit_balance(&self, address: &Address, amount: u64) -> Result<H256> {
-        let action = StateOperation::CreditBalance {
-            account: *address,
-            amount,
-            tx_hash: H256::default(),
-        };
-        self.apply_operation(action)?;
+        let mut account_state = self.get_account_state(address)?;
+        account_state.free_balance += amount;
+        self.trie.put(*address, account_state)?;
         Ok(self.root_hash()?.into())
     }
 
     fn debit_balance(&self, address: &Address, amount: u64) -> Result<H256> {
-        let action = StateOperation::DebitBalance {
-            account: *address,
-            amount,
-            tx_hash: H256::default(),
-        };
-        self.apply_operation(action)?;
+        let mut account_state = self.get_account_state(address)?;
+        account_state.free_balance -= amount;
+        self.trie.put(*address, account_state)?;
         Ok(self.root_hash()?.into())
     }
 
@@ -102,12 +116,54 @@ impl StateDB for State {
     }
 }
 
+impl AppData for State {
+    fn get_app_data(&self, app_id: Address) -> Result<SparseMerkleTree> {
+        let Ok(Some(app_account_state)) = self.trie.get(&app_id) else {
+            bail!("app not found")
+        };
+
+        let Some(app_root) = app_account_state.root_hash.map(|root| H256::from_slice(&root)) else {
+            bail!("app not initialized")
+        };
+
+        Ok(self
+            .appdata
+            .get(&AppStateKey(app_id, app_root))?
+            .unwrap_or_else(|| SparseMerkleTree::new()))
+    }
+
+    fn set_app_data(&self, app_id: Address, app_data: SparseMerkleTree) -> Result<()> {
+        self.appdata
+            .put(AppStateKey(app_id, app_data.root()), app_data)
+    }
+
+    fn get_app_root(&self, app_id: Address) -> H256 {
+        let Ok(Some(app_account_state)) = self.trie.get(&app_id) else {
+            return H256::zero()
+        };
+
+        let Some(app_root) = app_account_state.root_hash.map(|root| H256::from_slice(&root)) else {
+            return H256::zero()
+        };
+        app_root
+    }
+
+    fn get_app_data_at_root(&self, app_id: Address, root: H256) -> Result<SparseMerkleTree> {
+        Ok(self
+            .appdata
+            .get(&AppStateKey(app_id, root))?
+            .unwrap_or_else(|| SparseMerkleTree::new()))
+    }
+}
+
 impl State {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let trie = TrieDB::open(path.as_ref())?;
+    pub fn new(path: &PathBuf) -> Result<Self> {
+        let trie = TrieDB::open(path.join("state").as_path())?;
+        let app_state = TrieDB::open(path.join("appdata").as_path())?;
         Ok(Self {
             trie: Arc::new(trie),
-            path: PathBuf::from(path.as_ref()),
+            appdata: Arc::new(app_state),
+            path: path.clone(),
             read_only: false,
         })
     }
@@ -172,20 +228,12 @@ impl State {
 
         let mut batch: Vec<_> = states.into_iter().map(|(k, v)| Op::Put(k, v)).collect();
 
-        let coinbase_account_state = self
+        let mut coinbase_account_state = self
             .trie
             .get_at_root(&at_root, &coinbase)
             .unwrap_or_default()
             .unwrap_or_default();
-        let coinbase_account_state = self.apply_action(
-            &StateOperation::CreditBalance {
-                account: coinbase,
-                amount: reward,
-                tx_hash: H256::default(),
-            },
-            coinbase_account_state,
-        )?;
-
+        coinbase_account_state.free_balance += reward;
         batch.push(Op::Put(coinbase, coinbase_account_state));
 
         self.trie
@@ -200,8 +248,9 @@ impl State {
     ) -> Result<()> {
         //TODO: verify transaction (probably)
 
-
-        let mut from_account_state = states.get_mut(&transaction.from()).ok_or(StateError::AccountNotFound)?;
+        let mut from_account_state = states
+            .get_mut(&transaction.from())
+            .ok_or(StateError::AccountNotFound)?;
         let amount = transaction.price() + transaction.fees();
         if from_account_state.free_balance < amount {
             return Err(StateError::InsufficientFunds.into());
@@ -214,17 +263,11 @@ impl State {
         };
         from_account_state.nonce = next_nonce;
 
-
-        let mut to_account_state = states.get_mut(&transaction.to()).ok_or(StateError::AccountNotFound)?;
+        let mut to_account_state = states
+            .get_mut(&transaction.to())
+            .ok_or(StateError::AccountNotFound)?;
         to_account_state.free_balance += transaction.price();
 
-        Ok(())
-    }
-
-    fn apply_operation(&self, action: StateOperation) -> Result<()> {
-        let current_account_state = self.get_account_state(&action.get_address())?;
-        let new_account_state = self.apply_action(&action, current_account_state)?;
-        self.trie.put(action.get_address(), new_account_state)?;
         Ok(())
     }
 
@@ -237,31 +280,6 @@ impl State {
         Ok(())
     }
 
-    fn apply_action(
-        &self,
-        action: &StateOperation,
-        account_state: AccountState,
-    ) -> Result<AccountState> {
-        let mut account_state = account_state;
-        match action {
-            StateOperation::DebitBalance { amount, .. } => {
-                if account_state.free_balance < *amount {
-                    return Err(StateError::InsufficientFunds.into());
-                }
-                account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
-                Ok(account_state)
-            }
-            StateOperation::CreditBalance { amount, .. } => {
-                account_state.free_balance = account_state.free_balance.saturating_add(*amount);
-                Ok(account_state)
-            }
-            StateOperation::UpdateNonce { nonce, .. } => {
-
-                Ok(account_state)
-            }
-        }
-    }
-
     fn get_account_state(&self, address: &Address) -> Result<AccountState> {
         match self.trie.get(address) {
             Ok(Some(account_state)) => Ok(account_state),
@@ -269,11 +287,7 @@ impl State {
         }
     }
 
-    fn get_account_state_at_root(
-        &self,
-        at_root: &H256,
-        address: &Address,
-    ) -> Result<AccountState> {
+    fn get_account_state_at_root(&self, at_root: &H256, address: &Address) -> Result<AccountState> {
         match self.trie.get_at_root(at_root, address) {
             Ok(Some(account_state)) => Ok(account_state),
             _ => Ok(AccountState::new()),
@@ -281,17 +295,19 @@ impl State {
     }
 
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
+        let mut path = PathBuf::new();
+        path.push(self.path.as_path());
+        let trie = TrieDB::open(path.join("state").as_path())?;
+        let appdata = TrieDB::open(path.join("appdata").as_path())?;
         Ok(Arc::new(State {
-            trie: Arc::new(TrieDB::open_read_only_at_root(self.path.as_path(), &root)?),
+            trie: Arc::new(trie),
+            appdata: Arc::new(appdata),
             path: self.path.clone(),
             read_only: true,
         }))
     }
 
-    fn get_account_state_with_proof(
-        &self,
-        address: &Address,
-    ) -> Result<(AccountState, ReadProof)> {
+    fn get_account_state_with_proof(&self, address: &Address) -> Result<(AccountState, ReadProof)> {
         let (account_state, proof) = self.trie.get_with_proof(address)?;
         let root = self.trie.root()?;
         Ok((account_state, ReadProof { proof, root }))
@@ -321,8 +337,10 @@ mod tests {
 
     #[test]
     fn test_morph() {
-        let path = TempDir::new("state").unwrap();
-        let state = State::new(path.path()).unwrap();
+        let temp = TempDir::new("state").unwrap();
+        let mut path = PathBuf::new();
+        path.push(temp.path());
+        let state = State::new(&path).unwrap();
         let alice = create_account(Network::Testnet);
         let _bob = create_account(Network::Testnet);
         let _jake = create_account(Network::Testnet);

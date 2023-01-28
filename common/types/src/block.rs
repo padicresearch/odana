@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use std::sync::{Arc, RwLock};
 use std::u32;
 
-use crate::account::Address;
 use anyhow::Result;
 use bytes::{Buf, Bytes, BytesMut};
 use codec::impl_codec_using_prost;
@@ -11,7 +10,7 @@ use codec::ConsensusCodec;
 use codec::{Decodable, Encodable};
 use crypto::dhash256;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-use primitive_types::{Compact, H256, U256};
+use primitive_types::{Address, Compact, ADDRESS_LEN, H256, U256};
 use serde::{Deserialize, Serialize};
 
 use crate::tx::SignedTransaction;
@@ -135,7 +134,8 @@ impl ConsensusCodec for BlockHeader {
             tx_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             state_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             mix_nonce: U256::from_big_endian(&bytes.copy_to_bytes(32)),
-            coinbase: Address::from_slice(&bytes.copy_to_bytes(42))?,
+            coinbase: Address::from_slice(&bytes.copy_to_bytes(ADDRESS_LEN))
+                .map_err(|_| anyhow::anyhow!("error decoding coinbase address"))?,
             difficulty: bytes.get_u32(),
             chain_id: bytes.get_u32(),
             level: bytes.get_u32(),

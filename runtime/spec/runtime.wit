@@ -1,7 +1,13 @@
 world runtime {
-    export runtime-api : interface {
+    export app : interface {
         genesis : func()
         call : func(call : list<u8>)
         query : func(query : list<u8>) -> list<u8>
+    }
+
+    import context : interface {
+        call-value : func() -> u64
+        caller-address : func() -> list<u8>
+        caller-pk : func() -> list<u8>
     }
 }

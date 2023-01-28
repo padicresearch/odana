@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use dashmap::DashMap;
+use primitive_types::Address;
 
 use traits::StateDB;
 
-use crate::Address;
 
 #[derive(Clone)]
 pub struct TxNoncer {

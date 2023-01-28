@@ -10,11 +10,10 @@ use tokio::sync::mpsc::UnboundedSender;
 use blockchain::chain_state::ChainState;
 use merkle::Merkle;
 use p2p::peer_manager::NetworkState;
-use primitive_types::U256;
+use primitive_types::{Address, U256};
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
 use txpool::TxPool;
-use types::account::Address;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::SignedTransaction;
@@ -183,6 +182,6 @@ fn make_block_template(
         0,
     );
     consensus.prepare_header(chain_header_reader.clone(), &mut header)?;
-    consensus.finalize(chain_header_reader, &mut header, state.clone(), txs.clone())?;
+    consensus.finalize(chain_header_reader, &mut header, state.clone(), &txs)?;
     Ok((header, txs))
 }

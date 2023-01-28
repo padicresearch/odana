@@ -25,6 +25,8 @@
 
 #![no_std]
 
+extern crate alloc;
+
 mod internal {
     include!(concat!(env!("OUT_DIR"), "/core.rs"));
 }
@@ -32,28 +34,93 @@ mod internal {
 include!(concat!(env!("OUT_DIR"), "/runtime.rs"));
 use rt_std::prelude::*;
 use prost::Message;
+use primitive_types::{Address, H256};
 
-pub trait ExecutionContext {
-    fn block_level(&self) -> u32;
-    fn chain_id(&self) -> u32;
-    fn miner(&self) -> &[u8];
-    fn sender(&self) -> &[u8];
-    fn fee(&self) -> u64;
+pub struct GenericBlock {
+    pub block_level: u32,
+    pub chain_id: u32,
+    pub parent_hash: H256,
+    pub miner: Address,
 }
 
-pub trait Runtime {
+pub trait RuntimeApplication {
     type Call: prost::Message + Default;
     type Query: prost::Message + Default;
     type QueryResponse: prost::Message + Default;
 
+    /// Initializes the runtime application.
     fn genesis();
+
+    /// Handles a call to the runtime application.
+    ///
+    /// # Parameters
+    ///
+    /// - `call`: An instance of the `Call` type representing the call to be handled
     fn call(call: Self::Call);
+
+    /// Handles a query to the runtime application and returns a response.
+    ///
+    /// # Parameters
+    ///
+    /// - `query`: An instance of the `Query` type representing the query to be handled
+    ///
+    /// # Returns
+    ///
+    /// - An instance of the `QueryResponse` type representing the response to the query
     fn query(query: Self::Query) -> Self::QueryResponse;
 }
 
-impl<T> runtime_api::RuntimeApi for T
+pub mod syscall {
+    use alloc::boxed::Box;
+    use core::iter::once;
+    use primitive_types::{Address, H256, H512};
+    use crate::{GenericBlock, internal};
+
+    // Returns the block hash at a specific level
+    pub fn block_hash(level: u32) -> H256 {
+        H256::from_slice(internal::syscall::block_hash(level).as_slice())
+    }
+
+    // Returns a block given its hash
+    pub fn block(_block_hash: &H256) -> GenericBlock {
+        unimplemented!()
+    }
+
+    // Returns the address associated with a specific public key
+    pub fn address_from_pk(pk: &H256) -> Address {
+        Address::from_slice(&internal::syscall::address_from_pk(pk.as_bytes())).unwrap()
+    }
+
+    // Generates a new keypair and returns it as a tuple of private and public keys
+    pub fn generate_keypair() -> (H256, H256) {
+        let (sk, pk) = internal::syscall::generate_keypair();
+        (H256::from_slice(sk.as_slice()), H256::from_slice(pk.as_slice()))
+    }
+
+    // Generates a new native address given a seed
+    pub fn generate_native_address(seed: &[u8]) -> Address {
+        Address::from_slice(&internal::syscall::generate_native_address(seed)).unwrap()
+    }
+
+    // Sign a message with a specific private key and returns the signature
+    pub fn sign(sk: &H256, msg: &[u8]) -> H512 {
+        H512::from_slice(internal::syscall::sign(sk.as_bytes(), msg).as_slice())
+    }
+
+    // Transfers an amount of funds to a specific address
+    pub fn transfer(to: &Address, amount: u64) -> bool {
+        internal::syscall::transfer(to.as_bytes(), amount)
+    }
+
+    // Reserve an amount of funds
+    pub fn reserve(amount: u64) -> bool {
+        internal::syscall::reserve(amount)
+    }
+}
+
+impl<T> app::App for T
     where
-        T: Runtime,
+        T: RuntimeApplication,
 {
     fn genesis() {
         T::genesis()
@@ -69,3 +136,5 @@ impl<T> runtime_api::RuntimeApi for T
         T::query(T::Query::decode(query.as_slice()).expect("error parsing query")).encode_to_vec()
     }
 }
+
+

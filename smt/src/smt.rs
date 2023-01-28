@@ -44,6 +44,7 @@ impl<Storage: StorageBackend, Hasher: TreeHasher> Encode for SparseMerkleTree<St
                 .map_err(|e| EncodeError::OtherString(format!("{}", e)))?,
             encoder,
         )?;
+        Encode::encode(&self.hasher, encoder)?;
         Encode::encode(&self.root, encoder)?;
         Encode::encode(&self.parent, encoder)?;
         Ok(())

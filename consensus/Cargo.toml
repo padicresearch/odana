@@ -7,9 +7,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-thiserror = "1.0.30"
+thiserror = { workspace = true }
+num-traits = { workspace = true }
+chrono = { workspace = true }
 types = { path = "../common/types" }
 traits = { path = "../common/traits" }
 crypto = { path = "../crypto" }
 primitive-types = { path = "../common/primitive-types" }
-chrono = "0.4"
