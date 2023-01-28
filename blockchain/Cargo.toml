@@ -15,6 +15,7 @@ types = { path = "../common/types" }
 traits = { path = "../common/traits" }
 account = { path = "../account" }
 state = { path = "../state" }
+rt-vm = { path = "../runtime/vm" }
 txpool = { path = "../txpool" }
 crypto = { path = "../crypto" }
 tokio = { version = "1", features = ["sync"] }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crypto::is_valid_proof_of_work;
 use primitive_types::{Compact, H256, U256};
-use traits::{ChainHeadReader, Consensus, StateDB};
+use traits::{ChainHeadReader, Consensus, StateDB, WasmVMInstance};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 use types::tx::SignedTransaction;
@@ -356,10 +356,11 @@ impl Consensus for BarossaProtocol {
         &self,
         _chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
+        vm: Arc<dyn WasmVMInstance>,
         state: Arc<dyn StateDB>,
         txs: &[SignedTransaction],
     ) -> anyhow::Result<()> {
-        state.apply_txs(txs)?;
+        state.apply_txs(vm, txs)?;
         let _ = state.credit_balance(header.coinbase(), self.miner_reward(header.level()))?;
         state.commit()?;
         header.set_state_root(H256::from(state.root()));
@@ -370,10 +371,11 @@ impl Consensus for BarossaProtocol {
         &self,
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
+        vm: Arc<dyn WasmVMInstance>,
         state: Arc<dyn StateDB>,
         txs: &[SignedTransaction],
     ) -> anyhow::Result<Option<Block>> {
-        self.finalize(chain, header, state, txs)?;
+        self.finalize(chain, header, vm, state, txs)?;
         let block = Block::new(*header, txs.into());
         Ok(Some(block))
     }

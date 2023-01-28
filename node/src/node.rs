@@ -157,6 +157,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
                 miner,
                 local_mpsc_sender,
                 consensus,
+                blockchain.chain_state().vm(),
                 blockchain.txpool(),
                 blockchain.chain_state(),
                 network_state,

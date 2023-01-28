@@ -12,7 +12,7 @@ use merkle::Merkle;
 use p2p::peer_manager::NetworkState;
 use primitive_types::{Address, U256};
 use tracing::{debug, info, warn};
-use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
+use traits::{Blockchain, ChainHeadReader, Consensus, StateDB, WasmVMInstance};
 use txpool::TxPool;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
@@ -28,6 +28,7 @@ pub fn start_worker(
     coinbase: Address,
     lmpsc: UnboundedSender<LocalEventMessage>,
     consensus: Arc<dyn Consensus>,
+    vm: Arc<dyn WasmVMInstance>,
     txpool: Arc<RwLock<TxPool>>,
     chain: Arc<ChainState>,
     network: Arc<NetworkState>,
@@ -62,6 +63,7 @@ pub fn start_worker(
             let (head, txs) = make_block_template(
                 coinbase,
                 consensus.clone(),
+                vm.clone(),
                 txpool.clone(),
                 chain.get_current_state()?,
                 chain.clone(),
@@ -153,6 +155,7 @@ fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedT
 fn make_block_template(
     coinbase: Address,
     consensus: Arc<dyn Consensus>,
+    vm: Arc<dyn WasmVMInstance>,
     txpool: Arc<RwLock<TxPool>>,
     state: Arc<dyn StateDB>,
     chain: Arc<dyn Blockchain>,
@@ -182,6 +185,6 @@ fn make_block_template(
         0,
     );
     consensus.prepare_header(chain_header_reader.clone(), &mut header)?;
-    consensus.finalize(chain_header_reader, &mut header, state.clone(), &txs)?;
+    consensus.finalize(chain_header_reader, &mut header, vm, state.clone(), &txs)?;
     Ok((header, txs))
 }

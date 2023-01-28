@@ -149,6 +149,16 @@ pub fn get_address_from_app_id(app_id: &[u8; 4], network: Network) -> Result<Add
     Ok(Address(raw_address))
 }
 
+pub fn get_address_from_seed(seed: &[u8], network: Network) -> Result<Address> {
+    let key = keccak256(seed);
+    let checksum = &key[12..];
+    let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
+        .expect("error creating account id");
+    let mut raw_address = [0; ADDRESS_LEN];
+    raw_address.copy_from_slice(&address.as_bytes()[0..ADDRESS_LEN]);
+    Ok(Address(raw_address))
+}
+
 pub fn get_eth_address_from_pub_key(pub_key: PublicKey) -> H160 {
     let pubkey_bytes = pub_key.to_bytes();
     let key = keccak256(&pubkey_bytes[1..]).to_fixed_bytes();

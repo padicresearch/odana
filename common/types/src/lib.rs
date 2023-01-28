@@ -2,6 +2,7 @@
 #![feature(slice_take)]
 extern crate test;
 
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
@@ -10,6 +11,9 @@ use codec::{Decodable, Encodable};
 use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
 use serde::{Deserialize, Serialize};
+use primitive_types::Address;
+use smt::SparseMerkleTree;
+use crate::account::AccountState;
 
 use crate::block::BlockHeader;
 use crate::network::Network;
@@ -136,6 +140,13 @@ pub trait Addressing {
     fn is_valid(&self) -> bool;
     fn network(&self) -> Option<Network>;
 }
+
+pub struct Changelist {
+    pub account_changes: HashMap<Address, AccountState>,
+    pub logs: Vec<Vec<u8>>,
+    pub storage: SparseMerkleTree,
+}
+
 
 pub mod prelude {
     pub use crate::account::*;

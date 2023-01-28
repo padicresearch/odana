@@ -8,8 +8,8 @@ use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 use types::receipt::Receipt;
-use types::tx::{ApplicationCallTx, SignedTransaction};
-use types::Hash;
+use types::tx::{ApplicationCallTx, CreateApplicationTx, SignedTransaction};
+use types::{Changelist, Hash};
 
 pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
@@ -24,7 +24,7 @@ pub trait StateDB: Send + Sync {
     fn credit_balance(&self, address: &Address, amount: u64) -> Result<H256>;
     fn debit_balance(&self, address: &Address, amount: u64) -> Result<H256>;
     fn reset(&self, root: H256) -> Result<()>;
-    fn apply_txs(&self, txs: &[SignedTransaction]) -> Result<H256>;
+    fn apply_txs(&self, vm: Arc<dyn WasmVMInstance>, txs: &[SignedTransaction]) -> Result<H256>;
     fn root(&self) -> Hash;
     fn commit(&self) -> Result<()>;
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
@@ -45,10 +45,26 @@ pub trait AccountStateReader: Send + Sync {
 }
 
 pub trait WasmVMInstance: Send + Sync {
-    fn execute_app_tx(&self, call: &ApplicationCallTx) -> Result<Receipt>;
-    fn execute_app_query(&self, app_id: u32, raw_query: &[u8]) -> Result<Receipt>;
-    fn verify_call(&self, call: &ApplicationCallTx) -> bool;
-    fn estimate_call_cost(&self, call: &ApplicationCallTx) -> u64;
+    fn execute_app_create<'a>(
+        &self,
+        state_db: &'a dyn StateDB,
+        sender: Address,
+        value: u64,
+        call: &CreateApplicationTx,
+    ) -> Result<Changelist>;
+    fn execute_app_tx<'a>(
+        &self,
+        state_db: &'a dyn StateDB,
+        sender: Address,
+        value: u64,
+        call: &ApplicationCallTx,
+    ) -> Result<Changelist>;
+    fn execute_app_query<'a>(
+        &self,
+        state_db: &'a dyn StateDB,
+        app_id: Address,
+        raw_query: &[u8],
+    ) -> Result<Vec<u8>>;
 }
 
 pub trait StateIntermediate {}
@@ -76,6 +92,7 @@ pub trait Consensus: Send + Sync {
         &self,
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
+        vm: Arc<dyn WasmVMInstance>,
         state: Arc<dyn StateDB>,
         txs: &[SignedTransaction],
     ) -> Result<()>;
@@ -83,6 +100,7 @@ pub trait Consensus: Send + Sync {
         &self,
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
+        vm: Arc<dyn WasmVMInstance>,
         state: Arc<dyn StateDB>,
         txs: &[SignedTransaction],
     ) -> Result<Option<Block>>;

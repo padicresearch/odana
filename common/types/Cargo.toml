@@ -20,6 +20,7 @@ serde_json = { workspace = true, features = ["std"] }
 directories = "4.0.1"
 
 primitive-types = { path = "../primitive-types" }
+smt = { path = "../../smt" }
 codec = { path = "../../codec" }
 crypto = { path = "../../crypto", features = ["std"] }
 bech32 = { path = "../bech32", features = ["std"] }

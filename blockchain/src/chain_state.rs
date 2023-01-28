@@ -5,10 +5,11 @@ use anyhow::{anyhow, bail, Result};
 use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::{Address, H256};
+use rt_vm::WasmVM;
 use state::State;
 use storage::{KVStore, Schema};
 use tracing::{debug, info, trace, warn};
-use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
+use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB, WasmVMInstance};
 use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
@@ -65,6 +66,7 @@ pub struct ChainState {
     state: Arc<State>,
     block_storage: Arc<BlockStorage>,
     chain_state: Arc<ChainStateStorage>,
+    vm: Arc<WasmVM>,
     sender: UnboundedSender<LocalEventMessage>,
 }
 
@@ -91,11 +93,14 @@ impl ChainState {
             info!(blockhash = ?genesis.hash(), level = ?genesis.level(), "blockchain state started from genesis");
         }
 
+        let vm = Arc::new(WasmVM::new(state.clone(), block_storage.clone())?);
+
         Ok(Self {
             lock: Default::default(),
             state,
             block_storage,
             chain_state: chain_state_storage,
+            vm,
             sender,
         })
     }
@@ -208,7 +213,7 @@ impl ChainState {
         let parent_state = self.state.get_sate_at(*parent_state_root)?;
         consensus.finalize(
             self.block_storage.clone(),
-            &mut header,
+            &mut header, self.vm.clone(),
             parent_state,
             block.transactions(),
         )?;
@@ -233,7 +238,7 @@ impl ChainState {
         let mut repack = false;
         if block.parent_hash().eq(&current_head.hash) {
             let state = self.state();
-            state.apply_txs(block.transactions())?;
+            state.apply_txs(self.vm.clone(), block.transactions())?;
             let _ =
                 state.credit_balance(header.coinbase(), consensus.miner_reward(header.level()))?;
             state.commit()?;
@@ -282,6 +287,9 @@ impl ChainState {
 
     pub fn state(&self) -> Arc<State> {
         self.state.clone()
+    }
+    pub fn vm(&self) -> Arc<WasmVM> {
+        self.vm.clone()
     }
 }
 

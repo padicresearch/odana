@@ -16,4 +16,3 @@ hex = { path = "../common/hex" }
 [dev-dependencies]
 tempdir = "0.3.7"
 dashmap = "5.4.0"
-types = { path = "../common/types" }

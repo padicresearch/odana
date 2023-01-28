@@ -3,29 +3,29 @@ use crate::internal::event::Event;
 use crate::internal::log::Log;
 use crate::internal::storage::Storage;
 use crate::internal::syscall::Syscall;
-use crate::Changelist;
 use primitive_types::Address;
 use smt::SparseMerkleTree;
 use std::collections::HashMap;
 use std::sync::Arc;
-use traits::{Blockchain, StateDB};
+use traits::{Blockchain, ChainHeadReader, StateDB};
 use types::account::AccountState;
+use types::Changelist;
 
-pub struct Env {
+pub struct Env<'a> {
     storage: SparseMerkleTree,
-    state_db: Arc<dyn StateDB>,
-    blockchain: Arc<dyn Blockchain>,
+    state_db: &'a dyn StateDB,
+    blockchain: Arc<dyn ChainHeadReader>,
     accounts: HashMap<Address, AccountState>,
     events: Vec<Vec<u8>>,
 }
 
-impl Env {
+impl<'a> Env<'a> {
     pub fn new(
         app_id: Address,
         value: u64,
         storage: SparseMerkleTree,
-        state_db: Arc<dyn StateDB>,
-        blockchain: Arc<dyn Blockchain>,
+        state_db: &'a dyn StateDB,
+        blockchain: Arc<dyn ChainHeadReader>,
     ) -> anyhow::Result<Env> {
         let mut accounts = HashMap::new();
         let mut account_state = state_db.account_state(&app_id);
@@ -50,13 +50,13 @@ impl Env {
     }
 }
 
-impl Syscall for Env {
+impl<'a> Syscall for Env<'a> {
     fn block_hash(&mut self, level: u32) -> anyhow::Result<Vec<u8>> {
         Ok(self
             .blockchain
-            .get_block_by_level(level)
+            .get_header_by_level(level)
             .and_then(|b| b.ok_or(anyhow::anyhow!("block not found")))
-            .map(|block| block.hash().to_fixed_bytes().to_vec())
+            .map(|block| block.hash.as_bytes().to_vec())
             .unwrap_or_default())
     }
 
@@ -89,7 +89,7 @@ impl Syscall for Env {
     }
 }
 
-impl Storage for Env {
+impl<'a> Storage for Env<'a> {
     fn insert(&mut self, key: Vec<u8>, value: Vec<u8>) -> anyhow::Result<()> {
         let _ = self.storage.update(key, value)?;
         Ok(())
@@ -104,20 +104,20 @@ impl Storage for Env {
     }
 }
 
-impl Event for Env {
+impl<'a> Event for Env<'a> {
     fn emit(&mut self, event: Vec<u8>) -> anyhow::Result<()> {
         Ok(self.events.push(event))
     }
 }
 
-impl Log for Env {
+impl<'a> Log for Env<'a> {
     fn print(&mut self, output: Vec<char>) -> anyhow::Result<()> {
         println!("{:?}", output);
         Ok(())
     }
 }
 
-impl Context for Env {
+impl<'a> Context for Env<'a> {
     fn call_value(&mut self) -> anyhow::Result<u64> {
         todo!()
     }
@@ -131,7 +131,7 @@ impl Context for Env {
     }
 }
 
-impl From<Env> for Changelist {
+impl<'a> From<Env<'a>> for Changelist {
     fn from(value: Env) -> Self {
         Self {
             account_changes: value.accounts,

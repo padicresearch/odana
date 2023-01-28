@@ -10,10 +10,11 @@ use serde::{Deserialize, Serialize};
 use primitive_types::{Address, H256};
 use smt::proof::Proof;
 use smt::SparseMerkleTree;
-use traits::{AppData, StateDB};
+use traits::{AppData, StateDB, WasmVMInstance};
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
-use types::tx::SignedTransaction;
+use types::prelude::{get_address_from_app_id, get_address_from_seed, TransactionData};
+use types::tx::{PaymentTx, SignedTransaction, Transaction};
 use types::Hash;
 
 use crate::error::StateError;
@@ -94,8 +95,8 @@ impl StateDB for State {
         self.trie.reset(root)
     }
 
-    fn apply_txs(&self, txs: &[SignedTransaction]) -> Result<H256> {
-        self.apply_txs(txs)?;
+    fn apply_txs(&self, vm: Arc<dyn WasmVMInstance>, txs: &[SignedTransaction]) -> Result<H256> {
+        self.apply_txs(vm, txs)?;
         self.root_hash().map(H256::from)
     }
 
@@ -168,7 +169,7 @@ impl State {
         })
     }
 
-    pub fn apply_txs(&self, txs: &[SignedTransaction]) -> Result<()> {
+    pub fn apply_txs(&self, vm: Arc<dyn WasmVMInstance>, txs: &[SignedTransaction]) -> Result<()> {
         let mut accounts: BTreeMap<Address, TransactionsByNonceAndPrice> = BTreeMap::new();
         let mut states: BTreeMap<Address, AccountState> = BTreeMap::new();
 
@@ -186,13 +187,64 @@ impl State {
         }
 
         for (_, txs) in accounts {
-            for tx in txs {
-                self.apply_transaction(tx.0, &mut states)?;
+            for tx in txs.into_iter().map(|tx| tx.0) {
+                self.apply_transaction(vm.as_ref(), &mut states, tx)?;
             }
         }
-
+        //TODO; Check accounts for negative balances
         for (acc, state) in states {
             self.trie.put(acc, state)?;
+        }
+        Ok(())
+    }
+
+    fn apply_transaction(
+        &self,
+        vm: &dyn WasmVMInstance,
+        mut states: &mut BTreeMap<Address, AccountState>,
+        tx: &SignedTransaction,
+    ) -> Result<()> {
+        match tx.data() {
+            TransactionData::Payment(_) => {
+                self.execute_payment_tx(tx, &mut states)?;
+            }
+            TransactionData::Call(arg) => {
+                let app_address = tx.to();
+                let changelist = vm.execute_app_tx(self, tx.sender(), tx.price(), arg)?;
+                for (addr, state) in changelist.account_changes {
+                    states.insert(addr, state);
+                }
+                let app_state = states.get_mut(&app_address).expect("app state not found");
+                app_state.root_hash = Some(changelist.storage.root().to_fixed_bytes().to_vec());
+                self.appdata.put(
+                    AppStateKey(app_address, changelist.storage.root()),
+                    changelist.storage,
+                )?;
+            }
+            TransactionData::Create(arg) => {
+                let app_address = tx.to();
+                if self.trie.get(&app_address)?.is_some() {
+                    bail!("app address already exists")
+                }
+                let code_hash = crypto::keccak256(&arg.binary);
+                let changelist = vm.execute_app_create(self, tx.sender(), tx.price(), arg)?;
+                for (addr, state) in changelist.account_changes {
+                    states.insert(addr, state);
+                }
+                let app_state = states.get_mut(&app_address).expect("app state not found");
+                app_state.root_hash = Some(changelist.storage.root().to_fixed_bytes().to_vec());
+                app_state.code_hash = Some(code_hash.as_bytes().to_vec());
+                self.appdata.put(
+                    AppStateKey(app_address, changelist.storage.root()),
+                    changelist.storage,
+                )?;
+            }
+            TransactionData::Update(_) => {
+                unimplemented!("update app transaction not implemented")
+            }
+            TransactionData::RawData(_) => {
+                unimplemented!()
+            }
         }
         Ok(())
     }
@@ -222,7 +274,7 @@ impl State {
 
         for (_, txs) in accounts {
             for tx in txs {
-                self.apply_transaction(tx.0, &mut states)?;
+                self.execute_payment_tx(tx.0, &mut states)?;
             }
         }
 
@@ -241,7 +293,7 @@ impl State {
             .map(|hash| hash.to_fixed_bytes())
     }
 
-    fn apply_transaction(
+    fn execute_payment_tx(
         &self,
         transaction: &SignedTransaction,
         states: &mut BTreeMap<Address, AccountState>,
@@ -297,8 +349,8 @@ impl State {
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
         let mut path = PathBuf::new();
         path.push(self.path.as_path());
-        let trie = TrieDB::open(path.join("state").as_path())?;
-        let appdata = TrieDB::open(path.join("appdata").as_path())?;
+        let trie = TrieDB::open_read_only_at_root(path.join("state").as_path(), &root)?;
+        let appdata = TrieDB::open_read_only_at_root(path.join("appdata").as_path(), &root)?;
         Ok(Arc::new(State {
             trie: Arc::new(trie),
             appdata: Arc::new(appdata),
@@ -324,39 +376,4 @@ impl State {
 
 pub trait MorphCheckPoint {
     fn checkpoint(&self) -> State;
-}
-
-#[cfg(test)]
-mod tests {
-    use tempdir::TempDir;
-
-    use account::create_account;
-    use types::network::Network;
-
-    use super::*;
-
-    #[test]
-    fn test_morph() {
-        let temp = TempDir::new("state").unwrap();
-        let mut path = PathBuf::new();
-        path.push(temp.path());
-        let state = State::new(&path).unwrap();
-        let alice = create_account(Network::Testnet);
-        let _bob = create_account(Network::Testnet);
-        let _jake = create_account(Network::Testnet);
-        println!(
-            "{}",
-            state.credit_balance(&alice.address, 1_000_000).unwrap()
-        );
-        state.commit().unwrap();
-        println!(
-            "{}",
-            state.credit_balance(&alice.address, 1_000_000).unwrap()
-        );
-        state.commit().unwrap();
-        println!(
-            "{}",
-            state.credit_balance(&alice.address, 1_000_000).unwrap()
-        );
-    }
 }

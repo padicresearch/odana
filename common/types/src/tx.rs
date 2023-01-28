@@ -11,7 +11,9 @@ use crypto::ecdsa::{PublicKey, Signature};
 use crypto::sha256;
 use primitive_types::{Address, H256};
 
-use crate::account::{get_address_from_app_id, get_address_from_pub_key, Account};
+use crate::account::{
+    get_address_from_app_id, get_address_from_pub_key, get_address_from_seed, Account,
+};
 use crate::network::Network;
 use crate::{cache, Addressing, Hash};
 
@@ -92,8 +94,8 @@ pub struct ApplicationCallTx {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]
 pub struct CreateApplicationTx {
-    #[prost(bytes, tag = "1")]
-    pub app_id: Vec<u8>,
+    #[prost(string, tag = "1")]
+    pub package_name: String,
     #[prost(bytes, tag = "2")]
     pub binary: Vec<u8>,
 }
@@ -270,7 +272,7 @@ impl Transaction {
             }
             TransactionData::Create(v) => {
                 pack.extend_from_slice(&3u32.to_be_bytes());
-                pack.extend_from_slice(&v.app_id);
+                pack.extend_from_slice(v.package_name.as_bytes());
                 pack.extend_from_slice(&v.binary);
             }
             TransactionData::Update(v) => {
@@ -429,8 +431,12 @@ impl SignedTransaction {
                 Address::from_slice(app_id).map_err(|_| anyhow!("invalid address"))?
             }
             TransactionData::RawData(_) => Default::default(),
-            TransactionData::Create(CreateApplicationTx { app_id, .. }) => {
-                Address::from_slice(app_id).map_err(|_| anyhow!("invalid address"))?
+            TransactionData::Create(CreateApplicationTx { package_name, .. }) => {
+                get_address_from_seed(
+                    package_name.as_bytes(),
+                    from.network()
+                        .ok_or(anyhow!("network not specified on senders address"))?,
+                )?
             }
             TransactionData::Update(UpdateApplicationTx { app_id, .. }) => {
                 Address::from_slice(app_id).map_err(|_| anyhow!("invalid address"))?
@@ -482,6 +488,10 @@ impl SignedTransaction {
         &self.tx
     }
 
+    pub fn data(&self) -> &TransactionData {
+        &self.tx.data
+    }
+
     pub fn raw_origin(&self) -> Result<PublicKey> {
         let signature = Signature::from_rsv((&self.r, &self.s, self.v))?;
         let pub_key = signature.recover_public_key(&self.sig_hash()?)?;
@@ -491,11 +501,12 @@ impl SignedTransaction {
     pub fn from(&self) -> Address {
         self.from
     }
-
+    pub fn network(&self) -> Network {
+        self.from.network().unwrap_or(Network::Testnet)
+    }
     pub fn fees(&self) -> u64 {
         self.tx.fee
     }
-
     pub fn price(&self) -> u64 {
         self.tx.value
     }
