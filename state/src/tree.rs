@@ -64,9 +64,9 @@ pub struct TrieDB<K, V, H = DefaultTreeHasher> {
 }
 
 impl<K, V> TrieDB<K, V, DefaultTreeHasher>
-    where
-        K: Codec,
-        V: Codec,
+where
+    K: Codec,
+    V: Codec,
 {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open(path)?;

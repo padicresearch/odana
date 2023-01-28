@@ -111,8 +111,8 @@ mod num_traits {
 
 #[cfg(feature = "impl-serde")]
 mod serde {
-    use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
     use impl_serde::serde::ser::Error;
+    use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
 
     use super::*;
 
@@ -148,7 +148,10 @@ mod serde {
             Ok(Address(bytes))
         }
 
-        fn visit_string<E: ::impl_serde::serde::de::Error>(self, v: String) -> Result<Self::Value, E> {
+        fn visit_string<E: ::impl_serde::serde::de::Error>(
+            self,
+            v: String,
+        ) -> Result<Self::Value, E> {
             self.visit_str(&v)
         }
     }
@@ -159,7 +162,8 @@ mod serde {
                 S: ::impl_serde::serde::Serializer,
         {
             serializer.serialize_str(
-                &String::from_utf8(self.0.to_vec()).map_err(|e| S::Error::custom(&e.to_string()))?,
+                &String::from_utf8(self.0.to_vec())
+                    .map_err(|e| S::Error::custom(&e.to_string()))?,
             )
         }
     }
@@ -214,7 +218,8 @@ mod binarycodec {
         fn borrow_decode<D: ::impl_bincode::bincode::de::BorrowDecoder<'de>>(
             decoder: &mut D,
         ) -> core::result::Result<Self, ::impl_bincode::bincode::error::DecodeError> {
-            <[u8; ADDRESS_LEN] as ::impl_bincode::bincode::BorrowDecode>::borrow_decode(decoder).map(Address)
+            <[u8; ADDRESS_LEN] as ::impl_bincode::bincode::BorrowDecode>::borrow_decode(decoder)
+                .map(Address)
         }
     }
 }
@@ -637,7 +642,7 @@ impl Address {
     pub fn from_slice(slice: &[u8]) -> Result<Self, ()> {
         let mut bytes = [0; ADDRESS_LEN];
         if slice.len() != bytes.len() {
-            return Err(())
+            return Err(());
         }
         bytes.copy_from_slice(slice);
         Ok(Self(bytes))

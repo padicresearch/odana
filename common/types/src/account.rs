@@ -8,11 +8,11 @@ use bech32::{ToBase32, Variant};
 use serde::{Deserialize, Serialize};
 
 use crate::network::{Network, ALPHA_HRP, MAINNET_HRP, TESTNET_HRP};
+use crate::Addressing;
 use codec::{Decodable, Encodable};
 use crypto::ecdsa::{PublicKey, SecretKey, Signature};
 use crypto::keccak256;
 use primitive_types::{Address, ADDRESS_LEN, H160, H256};
-use crate::Addressing;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, prost::Message)]
 pub struct AccountState {
@@ -158,18 +158,17 @@ pub fn get_eth_address_from_pub_key(pub_key: PublicKey) -> H160 {
 
 #[cfg(test)]
 mod tests {
-    use crate::account::{Address, get_address_from_app_id};
-    use serde::{Deserialize, Serialize};
+    use crate::account::{get_address_from_app_id, Address};
+    use crate::network::Network;
     use bech32::{ToBase32, Variant};
     use crypto::keccak256;
-    use crate::network::Network;
+    use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug)]
     struct CAccount {
         account_id: Address,
         balance: i32,
     }
-
 
     #[test]
     fn test_address_derv() {

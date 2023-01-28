@@ -32,9 +32,9 @@ mod internal {
 }
 #[doc(hidden)]
 include!(concat!(env!("OUT_DIR"), "/runtime.rs"));
-use rt_std::prelude::*;
-use prost::Message;
 use primitive_types::{Address, H256};
+use prost::Message;
+use rt_std::prelude::*;
 
 pub struct GenericBlock {
     pub block_level: u32,
@@ -71,10 +71,10 @@ pub trait RuntimeApplication {
 }
 
 pub mod syscall {
+    use crate::{internal, GenericBlock};
     use alloc::boxed::Box;
     use core::iter::once;
     use primitive_types::{Address, H256, H512};
-    use crate::{GenericBlock, internal};
 
     // Returns the block hash at a specific level
     pub fn block_hash(level: u32) -> H256 {
@@ -94,7 +94,10 @@ pub mod syscall {
     // Generates a new keypair and returns it as a tuple of private and public keys
     pub fn generate_keypair() -> (H256, H256) {
         let (sk, pk) = internal::syscall::generate_keypair();
-        (H256::from_slice(sk.as_slice()), H256::from_slice(pk.as_slice()))
+        (
+            H256::from_slice(sk.as_slice()),
+            H256::from_slice(pk.as_slice()),
+        )
     }
 
     // Generates a new native address given a seed
@@ -127,14 +130,10 @@ impl<T> app::App for T
     }
 
     fn call(call: Vec<u8>) -> () {
-        T::call(
-            T::Call::decode(call.as_slice()).expect("error parsing call"),
-        )
+        T::call(T::Call::decode(call.as_slice()).expect("error parsing call"))
     }
 
     fn query(query: Vec<u8>) -> Vec<u8> {
         T::query(T::Query::decode(query.as_slice()).expect("error parsing query")).encode_to_vec()
     }
 }
-
-

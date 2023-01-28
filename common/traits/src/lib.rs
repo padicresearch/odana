@@ -4,12 +4,12 @@ use anyhow::Result;
 
 use primitive_types::{Address, Compact, H160, H256};
 use smt::SparseMerkleTree;
-use types::account::{AccountState};
+use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
-use types::tx::{ApplicationCallTx, SignedTransaction};
-use types::Hash;
 use types::network::Network;
 use types::receipt::Receipt;
+use types::tx::{ApplicationCallTx, SignedTransaction};
+use types::Hash;
 
 pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;

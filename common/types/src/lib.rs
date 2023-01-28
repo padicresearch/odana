@@ -129,7 +129,6 @@ where
     out
 }
 
-
 pub trait Addressing {
     fn is_mainnet(&self) -> bool;
     fn is_testnet(&self) -> bool;
@@ -150,5 +149,3 @@ pub mod prelude {
     #[derive(Clone, PartialEq, Eq, ::prost::Message)]
     pub struct Empty;
 }
-
-

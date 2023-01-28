@@ -6,7 +6,6 @@ use primitive_types::Address;
 
 use traits::StateDB;
 
-
 #[derive(Clone)]
 pub struct TxNoncer {
     fallback: Arc<dyn StateDB>,

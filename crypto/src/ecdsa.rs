@@ -7,9 +7,9 @@ use k256::elliptic_curve::sec1::{Tag, ToEncodedPoint};
 use rand_core::{CryptoRng, RngCore};
 use sha2::Sha256;
 
+use crate::error::Error;
 use crate::keccak256;
 use primitive_types::{H256, H512};
-use crate::error::Error;
 
 pub const SECRET_KEY_LENGTH: usize = 32;
 pub const PUBLIC_KEY_LENGTH: usize = 65;

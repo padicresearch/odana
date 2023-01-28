@@ -1,28 +1,24 @@
 #![no_std]
 
 use anyhow::{bail, Result};
-use core::marker::PhantomData;
 use blake2b_simd::{blake2b, Params};
+use core::marker::PhantomData;
 use rt_std::prelude::*;
 
 pub trait StorageKeyHasher {
     fn hash(payload: &[u8]) -> Box<[u8]>;
 }
 
-
 pub struct Hashing;
 
 impl Hashing {
     pub fn blake2b(input: &[u8]) -> [u8; 32] {
-        let hash = Params::new()
-            .hash_length(32)
-            .hash(input);
+        let hash = Params::new().hash_length(32).hash(input);
         let mut out = [0_u8; 32];
         out.copy_from_slice(hash.as_bytes());
         out
     }
 }
-
 
 mod internal {
     include!(concat!(env!("OUT_DIR"), "/io.rs"));
@@ -51,7 +47,6 @@ pub trait StorageMap<H, K, V>
         V: prost::Message + Default,
 {
     fn storage_prefix() -> &'static [u8];
-
 
     fn insert(key: K, value: V) {
         let prefix = Self::storage_prefix();

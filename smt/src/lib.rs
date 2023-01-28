@@ -41,7 +41,6 @@ pub trait StorageBackend: Clone {
     fn new() -> Self;
 }
 
-
 #[derive(Clone)]
 pub struct MemoryStorage {
     data: BTreeMap<Vec<u8>, Vec<u8>>,
@@ -105,4 +104,3 @@ impl TreeHasher for DefaultTreeHasher {
         H256::from_slice(hasher.finalize().as_ref())
     }
 }
-

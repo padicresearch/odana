@@ -14,7 +14,11 @@ pub struct SignedTransactionResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTransactionStatusResponse {
-    #[prost(enumeration = "::types::prelude::TransactionStatus", repeated, tag = "1")]
+    #[prost(
+    enumeration = "::types::prelude::TransactionStatus",
+    repeated,
+    tag = "1"
+    )]
     pub status: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -97,10 +101,7 @@ pub mod transactions_service_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
             where
                 F: tonic::service::Interceptor,
         {
@@ -128,10 +129,7 @@ pub mod transactions_service_server {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -140,23 +138,18 @@ pub mod transactions_service_server {
                 "/rpc.TransactionsService/SignTransaction" => {
                     #[allow(non_camel_case_types)]
                     struct SignTransactionSvc<T: TransactionsService>(pub Arc<T>);
-                    impl<
-                        T: TransactionsService,
-                    > tonic::server::UnaryService<super::UnsignedTransactionRequest>
-                    for SignTransactionSvc<T> {
+                    impl<T: TransactionsService>
+                    tonic::server::UnaryService<super::UnsignedTransactionRequest>
+                    for SignTransactionSvc<T>
+                    {
                         type Response = super::SignedTransactionResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::UnsignedTransactionRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).sign_transaction(request).await
-                            };
+                            let fut = async move { (*inner).sign_transaction(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -167,11 +160,10 @@ pub mod transactions_service_server {
                         let inner = inner.0;
                         let method = SignTransactionSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -180,23 +172,18 @@ pub mod transactions_service_server {
                 "/rpc.TransactionsService/SignSendTransaction" => {
                     #[allow(non_camel_case_types)]
                     struct SignSendTransactionSvc<T: TransactionsService>(pub Arc<T>);
-                    impl<
-                        T: TransactionsService,
-                    > tonic::server::UnaryService<super::UnsignedTransactionRequest>
-                    for SignSendTransactionSvc<T> {
+                    impl<T: TransactionsService>
+                    tonic::server::UnaryService<super::UnsignedTransactionRequest>
+                    for SignSendTransactionSvc<T>
+                    {
                         type Response = super::SignedTransactionResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::UnsignedTransactionRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).sign_send_transaction(request).await
-                            };
+                            let fut = async move { (*inner).sign_send_transaction(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -207,11 +194,10 @@ pub mod transactions_service_server {
                         let inner = inner.0;
                         let method = SignSendTransactionSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -220,23 +206,18 @@ pub mod transactions_service_server {
                 "/rpc.TransactionsService/SendTransaction" => {
                     #[allow(non_camel_case_types)]
                     struct SendTransactionSvc<T: TransactionsService>(pub Arc<T>);
-                    impl<
-                        T: TransactionsService,
-                    > tonic::server::UnaryService<::types::prelude::SignedTransaction>
-                    for SendTransactionSvc<T> {
+                    impl<T: TransactionsService>
+                    tonic::server::UnaryService<::types::prelude::SignedTransaction>
+                    for SendTransactionSvc<T>
+                    {
                         type Response = super::TransactionHash;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<::types::prelude::SignedTransaction>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).send_transaction(request).await
-                            };
+                            let fut = async move { (*inner).send_transaction(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -247,11 +228,10 @@ pub mod transactions_service_server {
                         let inner = inner.0;
                         let method = SendTransactionSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -260,23 +240,18 @@ pub mod transactions_service_server {
                 "/rpc.TransactionsService/GetTransactionStatus" => {
                     #[allow(non_camel_case_types)]
                     struct GetTransactionStatusSvc<T: TransactionsService>(pub Arc<T>);
-                    impl<
-                        T: TransactionsService,
-                    > tonic::server::UnaryService<super::TransactionHashes>
-                    for GetTransactionStatusSvc<T> {
+                    impl<T: TransactionsService>
+                    tonic::server::UnaryService<super::TransactionHashes>
+                    for GetTransactionStatusSvc<T>
+                    {
                         type Response = super::GetTransactionStatusResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::TransactionHashes>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_transaction_status(request).await
-                            };
+                            let fut = async move { (*inner).get_transaction_status(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -287,11 +262,10 @@ pub mod transactions_service_server {
                         let inner = inner.0;
                         let method = GetTransactionStatusSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -300,23 +274,19 @@ pub mod transactions_service_server {
                 "/rpc.TransactionsService/GetPendingTransactions" => {
                     #[allow(non_camel_case_types)]
                     struct GetPendingTransactionsSvc<T: TransactionsService>(pub Arc<T>);
-                    impl<
-                        T: TransactionsService,
-                    > tonic::server::UnaryService<::types::prelude::Empty>
-                    for GetPendingTransactionsSvc<T> {
+                    impl<T: TransactionsService>
+                    tonic::server::UnaryService<::types::prelude::Empty>
+                    for GetPendingTransactionsSvc<T>
+                    {
                         type Response = super::PendingTransactionsResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<::types::prelude::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_pending_transactions(request).await
-                            };
+                            let fut =
+                                async move { (*inner).get_pending_transactions(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -327,11 +297,10 @@ pub mod transactions_service_server {
                         let inner = inner.0;
                         let method = GetPendingTransactionsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -340,23 +309,18 @@ pub mod transactions_service_server {
                 "/rpc.TransactionsService/GetTxpoolContent" => {
                     #[allow(non_camel_case_types)]
                     struct GetTxpoolContentSvc<T: TransactionsService>(pub Arc<T>);
-                    impl<
-                        T: TransactionsService,
-                    > tonic::server::UnaryService<::types::prelude::Empty>
-                    for GetTxpoolContentSvc<T> {
+                    impl<T: TransactionsService>
+                    tonic::server::UnaryService<::types::prelude::Empty>
+                    for GetTxpoolContentSvc<T>
+                    {
                         type Response = super::TxpoolContentResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<::types::prelude::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_txpool_content(request).await
-                            };
+                            let fut = async move { (*inner).get_txpool_content(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -367,28 +331,23 @@ pub mod transactions_service_server {
                         let inner = inner.0;
                         let method = GetTxpoolContentSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }
@@ -407,13 +366,14 @@ pub mod transactions_service_server {
             Self(self.0.clone())
         }
     }
+
     impl<T: std::fmt::Debug> std::fmt::Debug for _Inner<T> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: TransactionsService> tonic::server::NamedService
-    for TransactionsServiceServer<T> {
+
+    impl<T: TransactionsService> tonic::server::NamedService for TransactionsServiceServer<T> {
         const NAME: &'static str = "rpc.TransactionsService";
     }
 }
@@ -471,10 +431,7 @@ pub mod account_service_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
             where
                 F: tonic::service::Interceptor,
         {
@@ -502,10 +459,7 @@ pub mod account_service_server {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -514,15 +468,9 @@ pub mod account_service_server {
                 "/rpc.AccountService/GetBalance" => {
                     #[allow(non_camel_case_types)]
                     struct GetBalanceSvc<T: AccountService>(pub Arc<T>);
-                    impl<
-                        T: AccountService,
-                    > tonic::server::UnaryService<super::GetAccountRequest>
-                    for GetBalanceSvc<T> {
+                    impl<T: AccountService> tonic::server::UnaryService<super::GetAccountRequest> for GetBalanceSvc<T> {
                         type Response = super::GetAccountBalanceResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetAccountRequest>,
@@ -539,11 +487,10 @@ pub mod account_service_server {
                         let inner = inner.0;
                         let method = GetBalanceSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -552,15 +499,9 @@ pub mod account_service_server {
                 "/rpc.AccountService/GetNonce" => {
                     #[allow(non_camel_case_types)]
                     struct GetNonceSvc<T: AccountService>(pub Arc<T>);
-                    impl<
-                        T: AccountService,
-                    > tonic::server::UnaryService<super::GetAccountRequest>
-                    for GetNonceSvc<T> {
+                    impl<T: AccountService> tonic::server::UnaryService<super::GetAccountRequest> for GetNonceSvc<T> {
                         type Response = super::GetAccountNonceResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetAccountRequest>,
@@ -577,11 +518,10 @@ pub mod account_service_server {
                         let inner = inner.0;
                         let method = GetNonceSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -590,23 +530,17 @@ pub mod account_service_server {
                 "/rpc.AccountService/GetAccountState" => {
                     #[allow(non_camel_case_types)]
                     struct GetAccountStateSvc<T: AccountService>(pub Arc<T>);
-                    impl<
-                        T: AccountService,
-                    > tonic::server::UnaryService<super::GetAccountRequest>
-                    for GetAccountStateSvc<T> {
+                    impl<T: AccountService> tonic::server::UnaryService<super::GetAccountRequest>
+                    for GetAccountStateSvc<T>
+                    {
                         type Response = ::types::prelude::AccountState;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetAccountRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_account_state(request).await
-                            };
+                            let fut = async move { (*inner).get_account_state(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -617,28 +551,23 @@ pub mod account_service_server {
                         let inner = inner.0;
                         let method = GetAccountStateSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }
@@ -747,10 +676,7 @@ pub mod chain_service_server {
                 send_compression_encodings: Default::default(),
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
             where
                 F: tonic::service::Interceptor,
         {
@@ -778,10 +704,7 @@ pub mod chain_service_server {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
-        fn poll_ready(
-            &mut self,
-            _cx: &mut Context<'_>,
-        ) -> Poll<Result<(), Self::Error>> {
+        fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
             Poll::Ready(Ok(()))
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
@@ -790,23 +713,15 @@ pub mod chain_service_server {
                 "/rpc.ChainService/CurrentHead" => {
                     #[allow(non_camel_case_types)]
                     struct CurrentHeadSvc<T: ChainService>(pub Arc<T>);
-                    impl<
-                        T: ChainService,
-                    > tonic::server::UnaryService<::types::prelude::Empty>
-                    for CurrentHeadSvc<T> {
+                    impl<T: ChainService> tonic::server::UnaryService<::types::prelude::Empty> for CurrentHeadSvc<T> {
                         type Response = super::CurrentHeadResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<::types::prelude::Empty>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).current_head(request).await
-                            };
+                            let fut = async move { (*inner).current_head(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -817,11 +732,10 @@ pub mod chain_service_server {
                         let inner = inner.0;
                         let method = CurrentHeadSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -830,15 +744,9 @@ pub mod chain_service_server {
                 "/rpc.ChainService/BlockLevel" => {
                     #[allow(non_camel_case_types)]
                     struct BlockLevelSvc<T: ChainService>(pub Arc<T>);
-                    impl<
-                        T: ChainService,
-                    > tonic::server::UnaryService<::types::prelude::Empty>
-                    for BlockLevelSvc<T> {
+                    impl<T: ChainService> tonic::server::UnaryService<::types::prelude::Empty> for BlockLevelSvc<T> {
                         type Response = super::GetBlockNumberResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<::types::prelude::Empty>,
@@ -855,11 +763,10 @@ pub mod chain_service_server {
                         let inner = inner.0;
                         let method = BlockLevelSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -868,23 +775,17 @@ pub mod chain_service_server {
                 "/rpc.ChainService/GetBlockByHash" => {
                     #[allow(non_camel_case_types)]
                     struct GetBlockByHashSvc<T: ChainService>(pub Arc<T>);
-                    impl<
-                        T: ChainService,
-                    > tonic::server::UnaryService<super::GetBlockByHashRequest>
-                    for GetBlockByHashSvc<T> {
+                    impl<T: ChainService> tonic::server::UnaryService<super::GetBlockByHashRequest>
+                    for GetBlockByHashSvc<T>
+                    {
                         type Response = ::types::prelude::Block;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetBlockByHashRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_block_by_hash(request).await
-                            };
+                            let fut = async move { (*inner).get_block_by_hash(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -895,11 +796,10 @@ pub mod chain_service_server {
                         let inner = inner.0;
                         let method = GetBlockByHashSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -908,23 +808,17 @@ pub mod chain_service_server {
                 "/rpc.ChainService/GetBlockByLevel" => {
                     #[allow(non_camel_case_types)]
                     struct GetBlockByLevelSvc<T: ChainService>(pub Arc<T>);
-                    impl<
-                        T: ChainService,
-                    > tonic::server::UnaryService<super::GetBlockByLevelRequest>
-                    for GetBlockByLevelSvc<T> {
+                    impl<T: ChainService> tonic::server::UnaryService<super::GetBlockByLevelRequest>
+                    for GetBlockByLevelSvc<T>
+                    {
                         type Response = ::types::prelude::Block;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetBlockByLevelRequest>,
                         ) -> Self::Future {
                             let inner = self.0.clone();
-                            let fut = async move {
-                                (*inner).get_block_by_level(request).await
-                            };
+                            let fut = async move { (*inner).get_block_by_level(request).await };
                             Box::pin(fut)
                         }
                     }
@@ -935,11 +829,10 @@ pub mod chain_service_server {
                         let inner = inner.0;
                         let method = GetBlockByLevelSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
@@ -948,15 +841,9 @@ pub mod chain_service_server {
                 "/rpc.ChainService/GetBlocks" => {
                     #[allow(non_camel_case_types)]
                     struct GetBlocksSvc<T: ChainService>(pub Arc<T>);
-                    impl<
-                        T: ChainService,
-                    > tonic::server::UnaryService<super::GetBlocksRequest>
-                    for GetBlocksSvc<T> {
+                    impl<T: ChainService> tonic::server::UnaryService<super::GetBlocksRequest> for GetBlocksSvc<T> {
                         type Response = super::GetBlocksResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetBlocksRequest>,
@@ -973,28 +860,23 @@ pub mod chain_service_server {
                         let inner = inner.0;
                         let method = GetBlocksSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
                         let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", "12")
-                                .header("content-type", "application/grpc")
-                                .body(empty_body())
-                                .unwrap(),
-                        )
-                    })
-                }
+                _ => Box::pin(async move {
+                    Ok(http::Response::builder()
+                        .status(200)
+                        .header("grpc-status", "12")
+                        .header("content-type", "application/grpc")
+                        .body(empty_body())
+                        .unwrap())
+                }),
             }
         }
     }

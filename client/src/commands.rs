@@ -6,7 +6,7 @@ use primitive_types::{Address, H256};
 use std::collections::HashMap;
 use std::str::FromStr;
 use transaction::make_payment_sign_transaction;
-use types::account::{get_address_from_secret_key};
+use types::account::get_address_from_secret_key;
 use types::network::Network;
 use types::prelude::Empty;
 
@@ -147,24 +147,14 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                 .get_ref()
                 .queued
                 .iter()
-                .map(|r| {
-                    (
-                        Address::from_slice(&r.address).unwrap_or_default(),
-                        &r.txs,
-                    )
-                })
+                .map(|r| (Address::from_slice(&r.address).unwrap_or_default(), &r.txs))
                 .collect();
 
             let pending_txs: HashMap<_, _> = txpool_content
                 .get_ref()
                 .pending
                 .iter()
-                .map(|r| {
-                    (
-                        Address::from_slice(&r.address).unwrap_or_default(),
-                        &r.txs,
-                    )
-                })
+                .map(|r| (Address::from_slice(&r.address).unwrap_or_default(), &r.txs))
                 .collect();
 
             // TODO: use table in pretty mode
