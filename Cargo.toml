@@ -35,10 +35,8 @@ members = [
     "common/bech32",
     #runtime
     "runtime/std",
-    "runtime/io",
-    "runtime/core",
-    "runtime/vm",
     "runtime/framework",
+    "runtime/vm",
     #utils
     "utils/wasm-builder",
     "utils/wit-codegen"

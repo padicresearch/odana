@@ -1,9 +1,11 @@
-#![no_std]
+mod internal {
+    include!(concat!(env!("OUT_DIR"), "/io.rs"));
+}
 
 use anyhow::{bail, Result};
 use blake2b_simd::{blake2b, Params};
 use core::marker::PhantomData;
-use rt_std::prelude::*;
+use rune_std::prelude::*;
 
 pub trait StorageKeyHasher {
     fn hash(payload: &[u8]) -> Box<[u8]>;
@@ -18,10 +20,6 @@ impl Hashing {
         out.copy_from_slice(hash.as_bytes());
         out
     }
-}
-
-mod internal {
-    include!(concat!(env!("OUT_DIR"), "/io.rs"));
 }
 
 pub trait StorageApi {
@@ -41,10 +39,10 @@ pub struct RawStorage;
 impl StorageApi for RawStorage {}
 
 pub trait StorageMap<H, K, V>
-where
-    H: StorageKeyHasher,
-    K: prost::Message + Default,
-    V: prost::Message + Default,
+    where
+        H: StorageKeyHasher,
+        K: prost::Message + Default,
+        V: prost::Message + Default,
 {
     fn storage_prefix() -> &'static [u8];
 

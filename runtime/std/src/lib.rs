@@ -1,20 +1,46 @@
-#![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(
-    feature = "std",
-    doc = "Odana runtime standard library as compiled when linked with Rust's standard library."
-)]
-#![cfg_attr(
-    not(feature = "std"),
-    doc = "Odana runtime standard library as compiled without Rust's standard library."
-)]
+#![no_std]
+pub extern crate alloc;
 
-#[cfg(feature = "std")]
-include!("../with_std.rs");
+pub use alloc::boxed;
+pub use alloc::rc;
+pub use alloc::sync;
+pub use alloc::vec;
+pub use core::any;
+pub use core::cell;
+pub use core::clone;
+pub use core::cmp;
+pub use core::convert;
+pub use core::default;
+pub use core::fmt;
+pub use core::hash;
+pub use core::iter;
+pub use core::marker;
+pub use core::mem;
+pub use core::num;
+pub use core::ops;
+pub use core::ptr;
+pub use core::result;
+pub use core::slice;
+pub use core::str;
+pub use core::time;
 
-#[cfg(not(feature = "std"))]
-include!("../without_std.rs");
+pub mod collections {
+    pub use alloc::collections::btree_map;
+    pub use alloc::collections::btree_set;
+    pub use alloc::collections::vec_deque;
+}
 
-/// A target for `core::write!` macro - constructs a string in memory.
+pub mod borrow {
+    pub use alloc::borrow::*;
+    pub use core::borrow::*;
+}
+
+pub mod thread {
+    pub fn panicking() -> bool {
+        false
+    }
+}
+
 #[derive(Default)]
 pub struct Writer(vec::Vec<u8>);
 
@@ -26,20 +52,14 @@ impl fmt::Write for Writer {
 }
 
 impl Writer {
-    /// Access the content of this `Writer` e.g. for printout
     pub fn inner(&self) -> &vec::Vec<u8> {
         &self.0
     }
 
-    /// Convert into the content of this `Writer`
     pub fn into_inner(self) -> vec::Vec<u8> {
         self.0
     }
 }
-
-/// Prelude of common useful imports.
-///
-/// This should include only things which are in the normal std prelude.
 pub mod prelude {
     pub use crate::{
         borrow::ToOwned,
@@ -50,9 +70,4 @@ pub mod prelude {
         vec,
         vec::Vec,
     };
-
-    // Re-export `vec!` macro here, but not in `std` mode, since
-    // std's prelude already brings `vec!` into the scope.
-    #[cfg(not(feature = "std"))]
-    pub use crate::vec;
 }

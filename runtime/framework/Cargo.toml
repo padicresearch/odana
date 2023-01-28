@@ -1,14 +1,16 @@
 [package]
-name = "rt-framework"
+name = "rune-framework"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rt-std = { path = "../std" }
-[features]
-default = ["std"]
-std = [
-    "rt-std/std"
-]
+wit-bindgen-guest-rust = { git = "https://github.com/bytecodealliance/wit-bindgen.git" }
+rune-std = { path = "../std" }
+prost = { workspace = true }
+primitive-types = { workspace = true, default-features = false }
+blake2b_simd = { version = "1.0.0", default-feature = false }
+anyhow = { workspace = true }
+[build-dependencies]
+wit-codegen = { workspace = true }
