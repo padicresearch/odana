@@ -1,5 +1,5 @@
-use crate::internal::context::Context;
 use crate::internal::event::Event;
+use crate::internal::execution_context::ExecutionContext;
 use crate::internal::log::Log;
 use crate::internal::storage::Storage;
 use crate::internal::syscall::Syscall;
@@ -11,7 +11,7 @@ use traits::{Blockchain, ChainHeadReader, StateDB};
 use types::account::AccountState;
 use types::Changelist;
 
-pub struct Env<'a> {
+pub struct ExecutionEnvironment<'a> {
     storage: SparseMerkleTree,
     state_db: &'a dyn StateDB,
     blockchain: Arc<dyn ChainHeadReader>,
@@ -19,14 +19,14 @@ pub struct Env<'a> {
     events: Vec<Vec<u8>>,
 }
 
-impl<'a> Env<'a> {
+impl<'a> ExecutionEnvironment<'a> {
     pub fn new(
         app_id: Address,
         value: u64,
         storage: SparseMerkleTree,
         state_db: &'a dyn StateDB,
         blockchain: Arc<dyn ChainHeadReader>,
-    ) -> anyhow::Result<Env> {
+    ) -> anyhow::Result<ExecutionEnvironment> {
         let mut accounts = HashMap::new();
         let mut account_state = state_db.account_state(&app_id);
         account_state.free_balance += value;
@@ -50,7 +50,7 @@ impl<'a> Env<'a> {
     }
 }
 
-impl<'a> Syscall for Env<'a> {
+impl<'a> Syscall for ExecutionEnvironment<'a> {
     fn block_hash(&mut self, level: u32) -> anyhow::Result<Vec<u8>> {
         Ok(self
             .blockchain
@@ -89,7 +89,7 @@ impl<'a> Syscall for Env<'a> {
     }
 }
 
-impl<'a> Storage for Env<'a> {
+impl<'a> Storage for ExecutionEnvironment<'a> {
     fn insert(&mut self, key: Vec<u8>, value: Vec<u8>) -> anyhow::Result<()> {
         let _ = self.storage.update(key, value)?;
         Ok(())
@@ -104,35 +104,43 @@ impl<'a> Storage for Env<'a> {
     }
 }
 
-impl<'a> Event for Env<'a> {
+impl<'a> Event for ExecutionEnvironment<'a> {
     fn emit(&mut self, event: Vec<u8>) -> anyhow::Result<()> {
         Ok(self.events.push(event))
     }
 }
 
-impl<'a> Log for Env<'a> {
+impl<'a> Log for ExecutionEnvironment<'a> {
     fn print(&mut self, output: Vec<char>) -> anyhow::Result<()> {
         println!("{:?}", output);
         Ok(())
     }
 }
 
-impl<'a> Context for Env<'a> {
-    fn call_value(&mut self) -> anyhow::Result<u64> {
+impl<'a> ExecutionContext for ExecutionEnvironment<'a> {
+    fn value(&mut self) -> anyhow::Result<u64> {
         todo!()
     }
 
-    fn caller_address(&mut self) -> anyhow::Result<Vec<u8>> {
+    fn block_level(&mut self) -> anyhow::Result<u32> {
         todo!()
     }
 
-    fn caller_pk(&mut self) -> anyhow::Result<Vec<u8>> {
+    fn sender(&mut self) -> anyhow::Result<Vec<u8>> {
+        todo!()
+    }
+
+    fn network(&mut self) -> anyhow::Result<u32> {
+        todo!()
+    }
+
+    fn sender_pk(&mut self) -> anyhow::Result<Vec<u8>> {
         todo!()
     }
 }
 
-impl<'a> From<Env<'a>> for Changelist {
-    fn from(value: Env) -> Self {
+impl<'a> From<ExecutionEnvironment<'a>> for Changelist {
+    fn from(value: ExecutionEnvironment) -> Self {
         Self {
             account_changes: value.accounts,
             logs: value.events,

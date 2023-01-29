@@ -25,7 +25,7 @@
 
 #![no_std]
 
-mod io;
+pub mod io;
 
 extern crate alloc;
 
@@ -33,7 +33,7 @@ mod internal {
     include!(concat!(env!("OUT_DIR"), "/core.rs"));
 }
 #[doc(hidden)]
-include!(concat!(env!("OUT_DIR"), "/runtime.rs"));
+include!(concat!(env!("OUT_DIR"), "/app.rs"));
 use primitive_types::{Address, H256};
 use prost::Message;
 use rune_std::prelude::*;
@@ -70,6 +70,23 @@ pub trait RuntimeApplication {
     ///
     /// - An instance of the `QueryResponse` type representing the response to the query
     fn query(query: Self::Query) -> Self::QueryResponse;
+}
+
+pub mod context {
+    use crate::{app, execution_context, internal};
+    use primitive_types::Address;
+
+    pub fn sender() -> Address {
+        Address::from_slice(execution_context::sender().as_slice()).unwrap_or_default()
+    }
+
+    pub fn value() -> u64 {
+        execution_context::value()
+    }
+
+    pub fn block_level() -> u32 {
+        execution_context::block_level()
+    }
 }
 
 pub mod syscall {

@@ -39,10 +39,10 @@ pub struct RawStorage;
 impl StorageApi for RawStorage {}
 
 pub trait StorageMap<H, K, V>
-    where
-        H: StorageKeyHasher,
-        K: prost::Message + Default,
-        V: prost::Message + Default,
+where
+    H: StorageKeyHasher,
+    K: prost::Message + Default,
+    V: prost::Message + Default,
 {
     fn storage_prefix() -> &'static [u8];
 

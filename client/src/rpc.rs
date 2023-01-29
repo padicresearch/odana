@@ -53,7 +53,6 @@ pub struct TransactionHashes {
 /// Generated client implementations.
 pub mod transactions_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::http::Uri;
     use tonic::codegen::*;
     #[derive(Debug, Clone)]
@@ -232,7 +231,6 @@ pub struct GetAccountNonceResponse {
 /// Generated client implementations.
 pub mod account_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::http::Uri;
     use tonic::codegen::*;
     #[derive(Debug, Clone)]
@@ -379,7 +377,6 @@ pub struct GetBlockNumberResponse {
 /// Generated client implementations.
 pub mod chain_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::http::Uri;
     use tonic::codegen::*;
     #[derive(Debug, Clone)]

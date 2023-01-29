@@ -1,4 +1,4 @@
-use crate::env::Env;
+use crate::env::ExecutionEnvironment;
 use anyhow::anyhow;
 use parking_lot::RwLock;
 use primitive_types::{Address, H256};
@@ -11,7 +11,7 @@ use wasmtime::{Config, Engine, Store};
 
 mod env;
 
-use crate::internal::Runtime;
+use crate::internal::App;
 use types::account::{get_address_from_seed, AccountState};
 use types::prelude::{ApplicationCallTx, CreateApplicationTx};
 use types::{Addressing, Changelist};
@@ -19,14 +19,14 @@ use types::{Addressing, Changelist};
 mod internal {
     include!(concat!(env!("OUT_DIR"), "/core.rs"));
     include!(concat!(env!("OUT_DIR"), "/io.rs"));
-    include!(concat!(env!("OUT_DIR"), "/runtime.rs"));
+    include!(concat!(env!("OUT_DIR"), "/app.rs"));
 }
 
 pub struct WasmVM {
     engine: Arc<Engine>,
     appdata: Arc<dyn AppData>,
     blockchain: Arc<dyn ChainHeadReader>,
-    apps: Arc<RwLock<BTreeMap<Address, Runtime>>>,
+    apps: Arc<RwLock<BTreeMap<Address, App>>>,
 }
 
 impl WasmVM {
@@ -53,20 +53,20 @@ impl WasmVM {
         let storage = SparseMerkleTree::new();
         let mut store = Store::new(
             engine,
-            Env::new(app_id, value, storage, state_db, self.blockchain.clone())?,
+            ExecutionEnvironment::new(app_id, value, storage, state_db, self.blockchain.clone())?,
         );
 
-        let mut linker = Linker::<Env>::new(engine);
+        let mut linker = Linker::<ExecutionEnvironment>::new(engine);
         internal::syscall::add_to_linker(&mut linker, |env| env)?;
         internal::log::add_to_linker(&mut linker, |env| env)?;
-        internal::context::add_to_linker(&mut linker, |env| env)?;
+        internal::execution_context::add_to_linker(&mut linker, |env| env)?;
         internal::storage::add_to_linker(&mut linker, |env| env)?;
         internal::event::add_to_linker(&mut linker, |env| env)?;
 
         let component = Component::from_binary(engine, binary)?;
         let instance = linker.instantiate(&mut store, &component)?;
-        let app = Runtime::new(&mut store, &instance)?;
-        app.app().genesis(&mut store)?;
+        let app = App::new(&mut store, &instance)?;
+        app.genesis(&mut store)?;
         let env = store.into_data();
         Ok(env.into())
     }
@@ -82,7 +82,7 @@ impl WasmVM {
         let storage = self.appdata.get_app_data(app_id)?;
         let mut store = Store::new(
             engine,
-            Env::new(
+            ExecutionEnvironment::new(
                 app_id,
                 value,
                 storage,
@@ -91,17 +91,17 @@ impl WasmVM {
             )?,
         );
 
-        let mut linker = Linker::<Env>::new(engine);
+        let mut linker = Linker::<ExecutionEnvironment>::new(engine);
         internal::syscall::add_to_linker(&mut linker, |env| env)?;
         internal::log::add_to_linker(&mut linker, |env| env)?;
-        internal::context::add_to_linker(&mut linker, |env| env)?;
+        internal::execution_context::add_to_linker(&mut linker, |env| env)?;
         internal::storage::add_to_linker(&mut linker, |env| env)?;
         internal::event::add_to_linker(&mut linker, |env| env)?;
 
         let component = Component::from_binary(engine, &binary)?;
         let instance = linker.instantiate(&mut store, &component)?;
 
-        let app = Runtime::new(store, &instance)?;
+        let app = App::new(store, &instance)?;
         let mut apps = self.apps.write();
         apps.insert(app_id, app);
         Ok(())
@@ -119,7 +119,7 @@ impl WasmVM {
         let app = apps.get(&app_id).ok_or(anyhow::anyhow!("app not found"))?;
         let mut store = Store::new(
             &self.engine,
-            Env::new(
+            ExecutionEnvironment::new(
                 app_id,
                 value,
                 storage,
@@ -127,7 +127,7 @@ impl WasmVM {
                 self.blockchain.clone(),
             )?,
         );
-        app.app().call(&mut store, call_arg)?;
+        app.call(&mut store, call_arg)?;
         let env = store.into_data();
         Ok(env.into())
     }
@@ -144,7 +144,7 @@ impl WasmVM {
         let app = apps.get(&app_id).ok_or(anyhow::anyhow!("app not found"))?;
         let mut store = Store::new(
             &self.engine,
-            Env::new(
+            ExecutionEnvironment::new(
                 app_id,
                 value,
                 storage,
@@ -152,7 +152,7 @@ impl WasmVM {
                 self.blockchain.clone(),
             ),
         );
-        app.app().query(&mut store, query)
+        app.query(&mut store, query)
     }
 }
 

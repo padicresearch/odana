@@ -1,13 +1,15 @@
-world runtime {
-    export app : interface {
+world app {
+    default export interface {
         genesis : func()
         call : func(call : list<u8>)
         query : func(query : list<u8>) -> list<u8>
     }
 
-    import context : interface {
-        call-value : func() -> u64
-        caller-address : func() -> list<u8>
-        caller-pk : func() -> list<u8>
+    import execution-context : interface {
+        value : func() -> u64
+        block-level : func() -> u32
+        sender : func() -> list<u8>
+        network : func() -> u32
+        sender-pk : func() -> list<u8>
     }
 }
