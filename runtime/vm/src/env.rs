@@ -3,15 +3,22 @@ use crate::internal::execution_context::ExecutionContext;
 use crate::internal::log::Log;
 use crate::internal::storage::Storage;
 use crate::internal::syscall::Syscall;
+use anyhow::anyhow;
+use crypto::ecdsa::PublicKey;
 use primitive_types::Address;
 use smt::SparseMerkleTree;
 use std::collections::HashMap;
 use std::sync::Arc;
 use traits::{Blockchain, ChainHeadReader, StateDB};
-use types::account::AccountState;
-use types::Changelist;
+use types::account::{get_address_from_pub_key, AccountState};
+use types::network::Network;
+use types::{Addressing, Changelist};
 
 pub struct ExecutionEnvironment<'a> {
+    network: Network,
+    sender: Address,
+    app_address: Address,
+    value: u64,
     storage: SparseMerkleTree,
     state_db: &'a dyn StateDB,
     blockchain: Arc<dyn ChainHeadReader>,
@@ -21,6 +28,7 @@ pub struct ExecutionEnvironment<'a> {
 
 impl<'a> ExecutionEnvironment<'a> {
     pub fn new(
+        origin: Address,
         app_id: Address,
         value: u64,
         storage: SparseMerkleTree,
@@ -33,6 +41,10 @@ impl<'a> ExecutionEnvironment<'a> {
         accounts.insert(app_id, account_state);
 
         Ok(Self {
+            network: app_id.network().ok_or(anyhow!("network not found"))?,
+            sender: origin,
+            app_address: app_id,
+            value,
             storage,
             state_db,
             blockchain,
@@ -65,7 +77,10 @@ impl<'a> Syscall for ExecutionEnvironment<'a> {
     }
 
     fn address_from_pk(&mut self, pk: Vec<u8>) -> anyhow::Result<Vec<u8>> {
-        todo!()
+        PublicKey::from_bytes(&pk)
+            .map(|pk| get_address_from_pub_key(pk, self.network))
+            .map(|add| add.as_bytes().to_vec())
+            .map_err(|e| anyhow!(e))
     }
 
     fn generate_keypair(&mut self) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
@@ -80,15 +95,21 @@ impl<'a> Syscall for ExecutionEnvironment<'a> {
         todo!()
     }
 
-    fn transfer(&mut self, to: Vec<u8>, amount: u64) -> anyhow::Result<Result<u64, ()>> {
+    fn transfer(&mut self, to: Vec<u8>, amount: u64) -> anyhow::Result<bool> {
+        let to = Address::from_slice(&to)?;
+        let from_acc = self.get_account_state(self.app_address);
+        let to_acc = self.get_account_state(to);
+        anyhow::ensure!((from_acc.free_balance as i128 - amount as i128) > 0);
+        from_acc.free_balance -= amount;
+        to_acc.free_balance += amount;
+        Ok(true)
+    }
+
+    fn reserve(&mut self, amount: u64) -> anyhow::Result<bool> {
         todo!()
     }
 
-    fn reserve(&mut self, amount: u64) -> anyhow::Result<Result<u64, ()>> {
-        todo!()
-    }
-
-    fn unreserve(&mut self, amount: u64) -> anyhow::Result<Result<u64, ()>> {
+    fn unreserve(&mut self, amount: u64) -> anyhow::Result<bool> {
         todo!()
     }
 }
@@ -123,7 +144,7 @@ impl<'a> Log for ExecutionEnvironment<'a> {
 
 impl<'a> ExecutionContext for ExecutionEnvironment<'a> {
     fn value(&mut self) -> anyhow::Result<u64> {
-        todo!()
+        Ok(self.value)
     }
 
     fn block_level(&mut self) -> anyhow::Result<u32> {

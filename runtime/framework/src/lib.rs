@@ -135,12 +135,12 @@ pub mod syscall {
     }
 
     // Transfers an amount of funds to a specific address
-    pub fn transfer(to: &Address, amount: u64) -> Result<u64, ()> {
+    pub fn transfer(to: &Address, amount: u64) -> bool {
         internal::syscall::transfer(to.as_bytes(), amount)
     }
 
     // Reserve an amount of funds
-    pub fn reserve(amount: u64) -> Result<u64, ()> {
+    pub fn reserve(amount: u64) -> bool {
         internal::syscall::reserve(amount)
     }
 }

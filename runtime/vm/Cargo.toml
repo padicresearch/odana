@@ -11,6 +11,8 @@ traits = { path = "../../common/traits" }
 types = { path = "../../common/types" }
 codec = { path = "../../codec" }
 primitive-types = { path = "../../common/primitive-types" }
+account = { path = "../../account" }
+crypto = { path = "../../crypto" }
 smt = { path = "../../smt" }
 parking_lot = "0.12.1"
 anyhow = { workspace = true }

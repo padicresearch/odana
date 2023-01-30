@@ -57,7 +57,7 @@ impl RuntimeApplication for Nick {
                 } else {
                     ReservationFee::get()?
                 };
-                anyhow::ensure!(rune_framework::syscall::reserve(fee).is_ok());
+                anyhow::ensure!(rune_framework::syscall::reserve(fee));
                 NameMap::insert(
                     sender,
                     ReservationInfo {

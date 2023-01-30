@@ -79,9 +79,9 @@ where
 }
 
 pub trait StorageValue<H, V>
-    where
-        H: StorageKeyHasher,
-        V: prost::Message + Default,
+where
+    H: StorageKeyHasher,
+    V: prost::Message + Default,
 {
     fn storage_prefix() -> &'static [u8];
     fn storage_key() -> &'static [u8];

@@ -45,6 +45,7 @@ impl WasmVM {
     pub fn create_application<'a>(
         &self,
         state_db: &'a dyn StateDB,
+        origin: Address,
         app_id: Address,
         value: u64,
         binary: &[u8],
@@ -53,7 +54,14 @@ impl WasmVM {
         let storage = SparseMerkleTree::new();
         let mut store = Store::new(
             engine,
-            ExecutionEnvironment::new(app_id, value, storage, state_db, self.blockchain.clone())?,
+            ExecutionEnvironment::new(
+                origin,
+                app_id,
+                value,
+                storage,
+                state_db,
+                self.blockchain.clone(),
+            )?,
         );
 
         let mut linker = Linker::<ExecutionEnvironment>::new(engine);
@@ -75,6 +83,7 @@ impl WasmVM {
     pub fn load_application<'a>(
         &self,
         state_db: &'a dyn StateDB,
+        origin: Address,
         app_id: Address,
         value: u64,
         binary: Vec<u8>,
@@ -84,6 +93,7 @@ impl WasmVM {
         let mut store = Store::new(
             engine,
             ExecutionEnvironment::new(
+                origin,
                 app_id,
                 value,
                 storage,
@@ -111,6 +121,7 @@ impl WasmVM {
     pub fn execute_call<'a>(
         &self,
         state_db: &'a dyn StateDB,
+        origin: Address,
         app_id: Address,
         value: u64,
         call_arg: &[u8],
@@ -124,6 +135,7 @@ impl WasmVM {
         let mut store = Store::new(
             &self.engine,
             ExecutionEnvironment::new(
+                origin,
                 app_id,
                 value,
                 storage,
@@ -139,6 +151,7 @@ impl WasmVM {
     pub fn execute_query<'a>(
         &self,
         state_db: &'a dyn StateDB,
+        origin: Address,
         app_id: Address,
         value: u64,
         query: &[u8],
@@ -152,6 +165,7 @@ impl WasmVM {
         let mut store = Store::new(
             &self.engine,
             ExecutionEnvironment::new(
+                origin,
                 app_id,
                 value,
                 storage,
@@ -175,7 +189,7 @@ impl WasmVMInstance for WasmVM {
             call.package_name.as_bytes(),
             sender.network().ok_or(anyhow!("invalid network"))?,
         )?;
-        self.create_application(state_db, app_id, value, &call.binary)
+        self.create_application(state_db, sender, app_id, value, &call.binary)
     }
 
     fn execute_app_tx<'a>(
@@ -187,6 +201,7 @@ impl WasmVMInstance for WasmVM {
     ) -> anyhow::Result<Changelist> {
         self.execute_call(
             state_db,
+            sender,
             Address::from_slice(&call.app_id).map_err(|_| anyhow!("invalid app address"))?,
             value,
             &call.args,
@@ -199,6 +214,6 @@ impl WasmVMInstance for WasmVM {
         app_id: Address,
         raw_query: &[u8],
     ) -> anyhow::Result<Vec<u8>> {
-        self.execute_query(state_db, app_id, 0, raw_query)
+        self.execute_query(state_db, Address::default(), app_id, 0, raw_query)
     }
 }
