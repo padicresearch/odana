@@ -1,0 +1,51 @@
+syntax = "proto3";
+package example.types;
+
+message ReservationInfo {
+  string name = 1;
+  uint64 fee = 2;
+}
+
+message SetName {
+  string name = 1;
+}
+
+message ClearName {}
+
+message GetName {
+  bytes owner = 1;
+}
+
+message Call {
+  oneof data {
+    SetName set_name = 1;
+    ClearName clear_name = 2;
+  }
+}
+
+message Query {
+  oneof data {
+    GetName get_name = 1;
+  }
+}
+
+message QueryResponse {
+  oneof data {
+    string get_name = 1;
+  }
+}
+
+message NameChangedEvent {
+  bytes who = 1;
+}
+
+message NameSetEvent {
+  bytes who = 1;
+}
+
+message Event {
+  oneof data {
+    NameSetEvent name_set = 1;
+    NameChangedEvent name_change = 2;
+  }
+}

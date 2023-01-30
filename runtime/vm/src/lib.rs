@@ -19,7 +19,7 @@ use types::{Addressing, Changelist};
 mod internal {
     include!(concat!(env!("OUT_DIR"), "/core.rs"));
     include!(concat!(env!("OUT_DIR"), "/io.rs"));
-    include!(concat!(env!("OUT_DIR"), "/app.rs"));
+    include!(concat!(env!("OUT_DIR"), "/runtime.rs"));
 }
 
 pub struct WasmVM {
@@ -66,6 +66,7 @@ impl WasmVM {
         let component = Component::from_binary(engine, binary)?;
         let instance = linker.instantiate(&mut store, &component)?;
         let app = App::new(&mut store, &instance)?;
+        let app = app.app();
         app.genesis(&mut store)?;
         let env = store.into_data();
         Ok(env.into())
@@ -116,7 +117,10 @@ impl WasmVM {
     ) -> anyhow::Result<Changelist> {
         let storage = self.appdata.get_app_data(app_id)?;
         let mut apps = self.apps.write();
-        let app = apps.get(&app_id).ok_or(anyhow::anyhow!("app not found"))?;
+        let app = apps
+            .get(&app_id)
+            .ok_or(anyhow::anyhow!("app not found"))?
+            .app();
         let mut store = Store::new(
             &self.engine,
             ExecutionEnvironment::new(
@@ -141,7 +145,10 @@ impl WasmVM {
     ) -> anyhow::Result<Vec<u8>> {
         let storage = self.appdata.get_app_data(app_id)?;
         let mut apps = self.apps.write();
-        let app = apps.get(&app_id).ok_or(anyhow::anyhow!("app not found"))?;
+        let app = apps
+            .get(&app_id)
+            .ok_or(anyhow::anyhow!("app not found"))?
+            .app();
         let mut store = Store::new(
             &self.engine,
             ExecutionEnvironment::new(

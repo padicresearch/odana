@@ -1,4 +1,5 @@
 mod internal {
+    use rune_std::prelude::*;
     include!(concat!(env!("OUT_DIR"), "/io.rs"));
 }
 
@@ -75,4 +76,43 @@ where
         }
         Ok(())
     }
+}
+
+pub trait StorageValue<H, V>
+    where
+        H: StorageKeyHasher,
+        V: prost::Message + Default,
+{
+    fn storage_prefix() -> &'static [u8];
+    fn storage_key() -> &'static [u8];
+
+    fn set(value: V) {
+        let prefix = Self::storage_prefix();
+        let value = value.encode_to_vec();
+        let storage_key = [prefix, Self::storage_key()].concat();
+        internal::storage::insert(&H::hash(storage_key.as_slice()), value.as_slice())
+    }
+
+    fn get() -> Result<V> {
+        let prefix = Self::storage_prefix();
+        let storage_key = [prefix, Self::storage_key()].concat();
+        let storage_key = H::hash(storage_key.as_slice());
+        let Some(raw_value) = internal::storage::get(storage_key.as_ref()) else {
+            bail!("value not found")
+        };
+        let value = V::decode(raw_value.as_slice())?;
+        Ok(value)
+    }
+}
+
+pub struct Blake2bHasher;
+
+impl StorageKeyHasher for Blake2bHasher {
+    fn hash(payload: &[u8]) -> Box<[u8]> {
+        Box::new(Hashing::blake2b(payload))
+    }
+}
+
+pub fn emit<E: prost::Message + Default>(event: E) {
+    internal::event::emit(&event.encode_to_vec())
 }

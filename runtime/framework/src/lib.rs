@@ -34,6 +34,7 @@ mod internal {
 }
 #[doc(hidden)]
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
+use crate::context::Context;
 use primitive_types::{Address, H256};
 use prost::Message;
 use rune_std::prelude::*;
@@ -51,14 +52,14 @@ pub trait RuntimeApplication {
     type QueryResponse: prost::Message + Default;
 
     /// Initializes the runtime application.
-    fn genesis();
+    fn genesis(context: Context) -> anyhow::Result<()>;
 
     /// Handles a call to the runtime application.
     ///
     /// # Parameters
     ///
     /// - `call`: An instance of the `Call` type representing the call to be handled
-    fn call(call: Self::Call);
+    fn call(context: Context, call: Self::Call) -> anyhow::Result<()>;
 
     /// Handles a query to the runtime application and returns a response.
     ///
@@ -76,16 +77,20 @@ pub mod context {
     use crate::{app, execution_context, internal};
     use primitive_types::Address;
 
-    pub fn sender() -> Address {
-        Address::from_slice(execution_context::sender().as_slice()).unwrap_or_default()
-    }
+    pub struct Context;
 
-    pub fn value() -> u64 {
-        execution_context::value()
-    }
+    impl Context {
+        pub fn sender(&self) -> Address {
+            Address::from_slice(execution_context::sender().as_slice()).unwrap_or_default()
+        }
 
-    pub fn block_level() -> u32 {
-        execution_context::block_level()
+        pub fn value(&self) -> u64 {
+            execution_context::value()
+        }
+
+        pub fn block_level(&self) -> u32 {
+            execution_context::block_level()
+        }
     }
 }
 
@@ -130,12 +135,12 @@ pub mod syscall {
     }
 
     // Transfers an amount of funds to a specific address
-    pub fn transfer(to: &Address, amount: u64) -> bool {
+    pub fn transfer(to: &Address, amount: u64) -> Result<u64, ()> {
         internal::syscall::transfer(to.as_bytes(), amount)
     }
 
     // Reserve an amount of funds
-    pub fn reserve(amount: u64) -> bool {
+    pub fn reserve(amount: u64) -> Result<u64, ()> {
         internal::syscall::reserve(amount)
     }
 }
@@ -145,11 +150,15 @@ impl<T> app::App for T
         T: RuntimeApplication,
 {
     fn genesis() {
-        T::genesis()
+        T::genesis(Context).unwrap()
     }
 
     fn call(call: Vec<u8>) -> () {
-        T::call(T::Call::decode(call.as_slice()).expect("error parsing call"))
+        T::call(
+            Context,
+            T::Call::decode(call.as_slice()).expect("error parsing call"),
+        )
+            .unwrap()
     }
 
     fn query(query: Vec<u8>) -> Vec<u8> {

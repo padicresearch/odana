@@ -1,6 +1,7 @@
+use anyhow::{anyhow, bail};
 use std::path::PathBuf;
 use wit_bindgen_core::Files;
-use wit_parser::World;
+use wit_parser::{Resolve, UnresolvedPackage, World};
 
 pub fn guest_generate(macro_export: bool, wit_file: &str, out_dir: &str) -> anyhow::Result<()> {
     let mut opts = wit_bindgen_gen_guest_rust::Opts::default();
@@ -9,10 +10,27 @@ pub fn guest_generate(macro_export: bool, wit_file: &str, out_dir: &str) -> anyh
     opts.unchecked = false;
     opts.macro_export = macro_export;
 
+    let mut resolve = Resolve::default();
     let mut files = Files::default();
     let mut generator = opts.build();
-    let world = World::parse_file(wit_file)?;
-    generator.generate(&world, &mut files);
+
+    let pkg = resolve.push(
+        UnresolvedPackage::parse_file(wit_file.as_ref())?,
+        &Default::default(),
+    )?;
+
+    let mut docs = resolve.packages[pkg].documents.iter();
+    let (_, doc) = docs
+        .next()
+        .ok_or_else(|| anyhow!("no documents found in package"))?;
+    if docs.next().is_some() {
+        bail!("multiple documents found in package, specify which to bind with `--world` argument")
+    }
+    let world = resolve.documents[*doc]
+        .default_world
+        .ok_or_else(|| anyhow!("no default world in document"))?;
+
+    generator.generate(&resolve, world, &mut files);
     let mut path = PathBuf::new();
     path.push(out_dir);
 
@@ -27,15 +45,34 @@ pub fn guest_generate(macro_export: bool, wit_file: &str, out_dir: &str) -> anyh
 }
 
 pub fn host_generate(wit_file: &str, out_dir: &str) -> anyhow::Result<()> {
+    let mut resolve = Resolve::default();
     let mut opts = wasmtime_wit_bindgen::Opts::default();
     opts.rustfmt = true;
-    let world = World::parse_file(wit_file).unwrap();
-    let contents = opts.generate(&world);
+
+    let pkg = resolve.push(
+        UnresolvedPackage::parse_file(wit_file.as_ref())?,
+        &Default::default(),
+    )?;
+
+    let mut docs = resolve.packages[pkg].documents.iter();
+    let (_, doc) = docs
+        .next()
+        .ok_or_else(|| anyhow!("no documents found in package"))?;
+    if docs.next().is_some() {
+        bail!("multiple documents found in package, specify which to bind with `--world` argument")
+    }
+    let world = resolve.documents[*doc]
+        .default_world
+        .ok_or_else(|| anyhow!("no default world in document"))?;
+
+    let name = &resolve.documents[*doc].name;
+
+    let contents = opts.generate(&resolve, world);
     let contents = contents.as_bytes();
 
     let mut dst = PathBuf::new();
     dst.push(out_dir);
-    dst.push(world.name);
+    dst.push(name);
     dst.set_extension("rs");
 
     if let Some(parent) = dst.parent() {

@@ -1,3 +1,4 @@
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UnsignedTransactionRequest {
     #[prost(message, optional, tag = "1")]
@@ -5,6 +6,8 @@ pub struct UnsignedTransactionRequest {
     #[prost(bytes = "vec", tag = "2")]
     pub secret_key: ::prost::alloc::vec::Vec<u8>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SignedTransactionResponse {
     #[prost(bytes = "vec", tag = "1")]
@@ -12,6 +15,8 @@ pub struct SignedTransactionResponse {
     #[prost(message, optional, tag = "2")]
     pub tx: ::core::option::Option<::types::prelude::SignedTransaction>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTransactionStatusResponse {
     #[prost(
@@ -21,11 +26,15 @@ pub struct GetTransactionStatusResponse {
     )]
     pub status: ::prost::alloc::vec::Vec<i32>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PendingTransactionsResponse {
     #[prost(message, repeated, tag = "1")]
     pub pending: ::prost::alloc::vec::Vec<AddressTransactionList>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AddressTransactionList {
     #[prost(bytes = "vec", tag = "1")]
@@ -33,6 +42,8 @@ pub struct AddressTransactionList {
     #[prost(message, optional, tag = "2")]
     pub txs: ::core::option::Option<::types::prelude::TransactionList>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TxpoolContentResponse {
     #[prost(message, repeated, tag = "1")]
@@ -40,11 +51,15 @@ pub struct TxpoolContentResponse {
     #[prost(message, repeated, tag = "2")]
     pub queued: ::prost::alloc::vec::Vec<AddressTransactionList>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHash {
     #[prost(bytes = "vec", tag = "1")]
     pub hash: ::prost::alloc::vec::Vec<u8>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHashes {
     #[prost(bytes = "vec", repeated, tag = "1")]
@@ -375,16 +390,22 @@ pub mod transactions_service_server {
         const NAME: &'static str = "rpc.TransactionsService";
     }
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountRequest {
     #[prost(bytes = "vec", tag = "1")]
     pub address: ::prost::alloc::vec::Vec<u8>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountBalanceResponse {
     #[prost(uint64, tag = "1")]
     pub balance: u64,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountNonceResponse {
     #[prost(uint64, tag = "1")]
@@ -593,6 +614,8 @@ pub mod account_service_server {
         const NAME: &'static str = "rpc.AccountService";
     }
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CurrentHeadResponse {
     #[prost(bytes = "vec", tag = "1")]
@@ -600,16 +623,22 @@ pub struct CurrentHeadResponse {
     #[prost(message, optional, tag = "2")]
     pub header: ::core::option::Option<::types::prelude::BlockHeader>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByHashRequest {
     #[prost(bytes = "vec", tag = "1")]
     pub hash: ::prost::alloc::vec::Vec<u8>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByLevelRequest {
     #[prost(uint32, tag = "1")]
     pub level: u32,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlocksRequest {
     #[prost(uint32, tag = "1")]
@@ -617,11 +646,15 @@ pub struct GetBlocksRequest {
     #[prost(uint32, tag = "2")]
     pub count: u32,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlocksResponse {
     #[prost(message, repeated, tag = "1")]
     pub blocks: ::prost::alloc::vec::Vec<::types::prelude::BlockHeader>,
 }
+
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockNumberResponse {
     #[prost(uint32, tag = "1")]

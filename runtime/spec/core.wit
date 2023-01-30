@@ -1,4 +1,4 @@
-world core {
+default world core {
    import syscall: interface {
        block-hash : func(level : u32) -> list<u8>
        block : func(block-hash : list<u8>) -> list<u8>
@@ -6,7 +6,8 @@ world core {
        generate-keypair : func() -> tuple<list<u8>,list<u8>>
        generate-native-address : func(seed : list<u8>) -> list<u8>
        sign : func(sk : list<u8>, msg : list<u8>) -> list<u8>
-       transfer : func(to : list<u8>, amount : u64) -> bool
-       reserve : func(amount : u64) -> bool
+       transfer : func(to : list<u8>, amount : u64) -> result<u64>
+       reserve : func(amount : u64) -> result<u64>
+       unreserve : func(amount : u64) -> result<u64>
    }
 }

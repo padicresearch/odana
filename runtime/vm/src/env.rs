@@ -80,11 +80,15 @@ impl<'a> Syscall for ExecutionEnvironment<'a> {
         todo!()
     }
 
-    fn transfer(&mut self, to: Vec<u8>, amount: u64) -> anyhow::Result<bool> {
+    fn transfer(&mut self, to: Vec<u8>, amount: u64) -> anyhow::Result<Result<u64, ()>> {
         todo!()
     }
 
-    fn reserve(&mut self, amount: u64) -> anyhow::Result<bool> {
+    fn reserve(&mut self, amount: u64) -> anyhow::Result<Result<u64, ()>> {
+        todo!()
+    }
+
+    fn unreserve(&mut self, amount: u64) -> anyhow::Result<Result<u64, ()>> {
         todo!()
     }
 }

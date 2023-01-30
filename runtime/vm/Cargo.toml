@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wasmtime = { git = "https://github.com/bytecodealliance/wasmtime.git", features = ["component-model"] }
+wasmtime = { git = "https://github.com/padicresearch/wasmtime.git", features = ["component-model"] }
 traits = { path = "../../common/traits" }
 types = { path = "../../common/types" }
 codec = { path = "../../codec" }

@@ -1,5 +1,5 @@
-world app {
-    default export interface {
+default world app {
+     export app : interface {
         genesis : func()
         call : func(call : list<u8>)
         query : func(query : list<u8>) -> list<u8>
