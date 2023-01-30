@@ -83,6 +83,15 @@ impl Account {
         let secrete = SecretKey::from_bytes(self.secret.as_fixed_bytes())?;
         secrete.sign(payload).map_err(|e| e.into())
     }
+
+    pub fn public_key(&self) -> H256 {
+        let secrete = SecretKey::from_bytes(self.secret.as_fixed_bytes()).unwrap();
+        secrete.public().hash()
+    }
+
+    pub fn secrete_key(&self) -> H256 {
+        self.secret
+    }
 }
 
 impl From<Account> for H160 {

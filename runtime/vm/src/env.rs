@@ -4,13 +4,13 @@ use crate::internal::log::Log;
 use crate::internal::storage::Storage;
 use crate::internal::syscall::Syscall;
 use anyhow::anyhow;
-use crypto::ecdsa::PublicKey;
+use crypto::ecdsa::{PublicKey, SecretKey};
 use primitive_types::Address;
 use smt::SparseMerkleTree;
 use std::collections::HashMap;
 use std::sync::Arc;
 use traits::{Blockchain, ChainHeadReader, StateDB};
-use types::account::{get_address_from_pub_key, AccountState};
+use types::account::{get_address_from_pub_key, AccountState, get_address_from_seed};
 use types::network::Network;
 use types::{Addressing, Changelist};
 
@@ -84,33 +84,50 @@ impl<'a> Syscall for ExecutionEnvironment<'a> {
     }
 
     fn generate_keypair(&mut self) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
-        todo!()
+        let account = account::create_account(self.network);
+        Ok((account.secrete_key().as_bytes().to_vec(), account.public_key().as_bytes().to_vec()))
     }
 
     fn generate_native_address(&mut self, seed: Vec<u8>) -> anyhow::Result<Vec<u8>> {
-        todo!()
+        get_address_from_seed(&seed, self.network).map(|address| {
+            address.to_vec()
+        })
     }
 
     fn sign(&mut self, sk: Vec<u8>, msg: Vec<u8>) -> anyhow::Result<Vec<u8>> {
-        todo!()
+        let sk = SecretKey::from_bytes(&sk)?;
+        sk.sign(&msg)
+            .map(|sig| sig.to_bytes().to_vec())
+            .map_err(|e| e.into())
     }
 
     fn transfer(&mut self, to: Vec<u8>, amount: u64) -> anyhow::Result<bool> {
-        let to = Address::from_slice(&to)?;
+        //TODO: very unsafe
+        let to = Address::from_slice(&to).map_err(|_| anyhow!("invalid address"))?;
         let from_acc = self.get_account_state(self.app_address);
-        let to_acc = self.get_account_state(to);
         anyhow::ensure!((from_acc.free_balance as i128 - amount as i128) > 0);
         from_acc.free_balance -= amount;
+        let to_acc = self.get_account_state(to);
         to_acc.free_balance += amount;
         Ok(true)
     }
 
     fn reserve(&mut self, amount: u64) -> anyhow::Result<bool> {
-        todo!()
+        //TODO: very unsafe
+        let from_acc = self.get_account_state(self.sender);
+        anyhow::ensure!((from_acc.free_balance as i128 - amount as i128) > 0);
+        from_acc.free_balance -= amount;
+        from_acc.reserve_balance += amount;
+        Ok(true)
     }
 
     fn unreserve(&mut self, amount: u64) -> anyhow::Result<bool> {
-        todo!()
+        //TODO: very unsafe
+        let from_acc = self.get_account_state(self.sender);
+        anyhow::ensure!((from_acc.reserve_balance as i128 - amount as i128) > 0);
+        from_acc.reserve_balance -= amount;
+        from_acc.free_balance += amount;
+        Ok(true)
     }
 }
 
@@ -152,11 +169,11 @@ impl<'a> ExecutionContext for ExecutionEnvironment<'a> {
     }
 
     fn sender(&mut self) -> anyhow::Result<Vec<u8>> {
-        todo!()
+        Ok(self.sender.to_vec())
     }
 
     fn network(&mut self) -> anyhow::Result<u32> {
-        todo!()
+        Ok(self.network.chain_id())
     }
 
     fn sender_pk(&mut self) -> anyhow::Result<Vec<u8>> {
