@@ -12,7 +12,7 @@ use primitive_types::H256;
 use tracing::{debug, error};
 
 use crate::error::StateError as Error;
-use crate::store::Database;
+use crate::store::TrieCacheDatabase;
 use smt::proof::{verify_proof_with_updates, Proof};
 use smt::treehasher::TreeHasher;
 use smt::{CopyStrategy, DefaultTreeHasher, MemoryStorage, SparseMerkleTree, StorageBackend};
@@ -55,7 +55,7 @@ pub enum Op<K: Codec, V: Codec> {
 }
 
 pub struct TrieDB<K, V, H = DefaultTreeHasher> {
-    db: Arc<Database>,
+    db: Arc<TrieCacheDatabase>,
     head: Arc<RwLock<SparseMerkleTree<MemoryStorage, H>>>,
     staging: Arc<RwLock<SparseMerkleTree<MemoryStorage, H>>>,
     options: Options,
@@ -69,7 +69,7 @@ where
     V: Codec,
 {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let db = Database::open(path)?;
+        let db = TrieCacheDatabase::open(path)?;
         let tree = match db.load_root() {
             Ok(tree) => tree,
             Err(_) => SparseMerkleTree::new(),
@@ -88,10 +88,9 @@ where
     }
 
     pub fn open_read_only_at_root<P: AsRef<Path>>(path: P, root: &H256) -> Result<Self> {
-        let db = Database::open_read_only(path)?;
+        let db = TrieCacheDatabase::open_read_only(path)?;
         let tree = db.get(root)?;
         let options = Options::default();
-        // let staging_tree = tree.subtree(options.strategy, vec![])?;
         Ok(Self {
             db: Arc::new(db),
             head: Arc::new(RwLock::new(tree.clone())),
@@ -103,7 +102,7 @@ where
     }
 
     pub fn in_memory<P: AsRef<Path>>(options: Options) -> Result<Self> {
-        let db = Database::in_memory();
+        let db = TrieCacheDatabase::in_memory();
         let tree = match db.load_root() {
             Ok(tree) => tree,
             Err(_) => SparseMerkleTree::new(),
@@ -128,7 +127,7 @@ where
     H: TreeHasher,
 {
     pub fn open_with_options<P: AsRef<Path>>(hasher: H, path: P, options: Options) -> Result<Self> {
-        let db = Database::open(path)?;
+        let db = TrieCacheDatabase::open(path)?;
         let tree = match db.load_root() {
             Ok(tree) => tree,
             Err(_) => SparseMerkleTree::new_with_hasher(
@@ -413,6 +412,8 @@ mod tests {
                 free_balance: 30000,
                 reserve_balance: 3000,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -423,6 +424,8 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -433,6 +436,8 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -443,6 +448,8 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -454,6 +461,8 @@ mod tests {
                 free_balance: 20000,
                 reserve_balance: 2000,
                 nonce: 2,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -464,6 +473,8 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -474,6 +485,8 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -484,6 +497,8 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -494,6 +509,8 @@ mod tests {
                 free_balance: 200,
                 reserve_balance: 200,
                 nonce: 3,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -507,6 +524,8 @@ mod tests {
                 free_balance: 200,
                 reserve_balance: 200,
                 nonce: 3,
+                root_hash: None,
+                code_hash: None,
             })
         );
         tree.reset(root_1).unwrap();
@@ -517,6 +536,8 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             })
         );
 
@@ -528,6 +549,8 @@ mod tests {
                 free_balance: 90000,
                 reserve_balance: 9000,
                 nonce: 2,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();
@@ -541,6 +564,8 @@ mod tests {
                 free_balance: 90000,
                 reserve_balance: 9000,
                 nonce: 2,
+                root_hash: None,
+                code_hash: None,
             })
         );
 
@@ -555,6 +580,8 @@ mod tests {
                 free_balance: 30000,
                 reserve_balance: 3000,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             },)
         );
 
@@ -582,6 +609,8 @@ mod tests {
                 free_balance: 1_000_000_000,
                 reserve_balance: 0,
                 nonce: 1,
+                root_hash: None,
+                code_hash: None,
             },
         )
         .unwrap();

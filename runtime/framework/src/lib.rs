@@ -146,8 +146,8 @@ pub mod syscall {
 }
 
 impl<T> app::App for T
-    where
-        T: RuntimeApplication,
+where
+    T: RuntimeApplication,
 {
     fn genesis() {
         T::genesis(Context).unwrap()

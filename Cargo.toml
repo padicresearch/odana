@@ -60,6 +60,7 @@ prost-build = { version = "0.11.0" }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde = { version = "1.0.130", default-features = false, features = ["derive", "alloc"] }
 clap = { version = "3.0.13", features = ["derive"] }
+clap_lex = { version = "0.3.1" }
 wit-codegen = { path = "utils/wit-codegen" }
 hex = { path = "common/hex" }
 rune-framework = { path = "runtime/framework" }
@@ -69,3 +70,6 @@ num-traits = "0.2.15"
 getset = "0.1.2"
 bytes = { version = "1", features = ["serde"] }
 chrono = "0.4"
+protobuf = { git = "https://github.com/padicresearch/rust-protobuf.git" }
+protobuf-json-mapping = { git = "https://github.com/padicresearch/rust-protobuf.git" }
+protobuf-parse = { git = "https://github.com/padicresearch/rust-protobuf.git" }

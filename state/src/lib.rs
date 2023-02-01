@@ -18,6 +18,7 @@ use types::tx::{PaymentTx, SignedTransaction, Transaction};
 use types::Hash;
 
 use crate::error::StateError;
+use crate::kvdb::KvDB;
 use crate::tree::{Op, TrieDB};
 
 mod context;
@@ -25,6 +26,7 @@ mod error;
 mod persistent;
 mod store;
 mod tree;
+mod kvdb;
 
 #[derive(Encode, Decode, Clone, Debug)]
 pub struct ReadProof {
@@ -35,7 +37,7 @@ pub struct ReadProof {
 #[derive(Clone)]
 pub struct State {
     trie: Arc<TrieDB<Address, AccountState>>,
-    appdata: Arc<TrieDB<AppStateKey, SparseMerkleTree>>,
+    appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
     path: PathBuf,
     read_only: bool,
 }
@@ -129,8 +131,8 @@ impl AppData for State {
 
         Ok(self
             .appdata
-            .get(&AppStateKey(app_id, app_root))?
-            .unwrap_or_else(|| SparseMerkleTree::new()))
+            .get(&AppStateKey(app_id, app_root))
+            .unwrap_or_else(|_| SparseMerkleTree::new()))
     }
 
     fn set_app_data(&self, app_id: Address, app_data: SparseMerkleTree) -> Result<()> {
@@ -152,15 +154,15 @@ impl AppData for State {
     fn get_app_data_at_root(&self, app_id: Address, root: H256) -> Result<SparseMerkleTree> {
         Ok(self
             .appdata
-            .get(&AppStateKey(app_id, root))?
-            .unwrap_or_else(|| SparseMerkleTree::new()))
+            .get(&AppStateKey(app_id, root))
+            .unwrap_or_else(|_| SparseMerkleTree::new()))
     }
 }
 
 impl State {
     pub fn new(path: &PathBuf) -> Result<Self> {
         let trie = TrieDB::open(path.join("state").as_path())?;
-        let app_state = TrieDB::open(path.join("appdata").as_path())?;
+        let app_state = KvDB::open(path.join("appdata").as_path())?;
         Ok(Self {
             trie: Arc::new(trie),
             appdata: Arc::new(app_state),
@@ -347,10 +349,8 @@ impl State {
     }
 
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
-        let mut path = PathBuf::new();
-        path.push(self.path.as_path());
-        let trie = TrieDB::open_read_only_at_root(path.join("state").as_path(), &root)?;
-        let appdata = TrieDB::open_read_only_at_root(path.join("appdata").as_path(), &root)?;
+        let trie = TrieDB::open_read_only_at_root(self.path.join("state").as_path(), &root)?;
+        let appdata = KvDB::open_read_only_at_root(self.path.join("appdata").as_path())?;
         Ok(Arc::new(State {
             trie: Arc::new(trie),
             appdata: Arc::new(appdata),

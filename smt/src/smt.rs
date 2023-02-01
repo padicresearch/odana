@@ -492,6 +492,12 @@ impl<Storage: StorageBackend, Hasher: TreeHasher> SparseMerkleTree<Storage, Hash
     pub fn parent(&self) -> H256 {
         self.parent
     }
+    pub fn values(&self) -> Result<StorageBackendSnapshot> {
+        self.values.snapshot()
+    }
+    pub fn nodes(&self) -> Result<StorageBackendSnapshot> {
+        self.nodes.snapshot()
+    }
 }
 
 #[cfg(test)]
@@ -499,6 +505,7 @@ mod tests {
     use crate::smt::SparseMerkleTree;
     use crate::CopyStrategy;
     use alloc::vec;
+    use codec::{Decodable, Encodable};
 
     #[test]
     fn basic_get_set_check_root_test() {
@@ -513,5 +520,12 @@ mod tests {
         smt_2.update(&[1, 2, 3], &[10, 20, 30]).unwrap();
         smt.update(&[1, 2, 3], &[10, 20, 30]).unwrap();
         assert_eq!(smt.root, smt_2.root);
+
+
+        let encoded = smt.encode().unwrap();
+
+        let smt_decoded: SparseMerkleTree = SparseMerkleTree::decode(&encoded).unwrap();
+
+        assert_eq!(smt.get(&[1, 2, 3]).unwrap(), smt_decoded.get(&[1, 2, 3]).unwrap())
     }
 }

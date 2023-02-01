@@ -235,8 +235,51 @@ mod serde {
     impl_fixed_hash_serde!(H256, 32);
     impl_fixed_hash_serde!(H448, 56);
     impl_fixed_hash_serde!(H512, 64);
-    impl_fixed_hash_serde!(Address, ADDRESS_LEN);
     impl_fixed_hash_conversions!(H256, H160);
+
+    struct AddressVisitor;
+
+    impl<'b> ::impl_serde::serde::de::Visitor<'b> for AddressVisitor {
+        type Value = Address;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(formatter, "a string with len {}", ADDRESS_LEN)
+        }
+
+        fn visit_str<E: ::impl_serde::serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            if !v.len() == ADDRESS_LEN {
+                return Err(E::invalid_length(v.len(), &self));
+            }
+            let _ = bech32::decode(v).map_err(|e| E::custom(e))?;
+            let mut bytes = [0; ADDRESS_LEN];
+            bytes.copy_from_slice(v.as_bytes());
+            Ok(Address(bytes))
+        }
+
+        fn visit_string<E: ::impl_serde::serde::de::Error>(self, v: String) -> Result<Self::Value, E> {
+            self.visit_str(&v)
+        }
+    }
+
+    impl ::impl_serde::serde::Serialize for Address {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: ::impl_serde::serde::Serializer,
+        {
+            serializer.serialize_str(
+                &String::from_utf8(self.0.to_vec()).map_err(|e| S::Error::custom(&e.to_string()))?,
+            )
+        }
+    }
+
+    impl<'de> ::impl_serde::serde::Deserialize<'de> for Address {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: ::impl_serde::serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_str(AddressVisitor)
+        }
+    }
 }
 
 #[cfg(feature = "impl-bincode")]

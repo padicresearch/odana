@@ -1,14 +1,25 @@
 use crate::rpc::account_service_client::AccountServiceClient;
 use crate::rpc::transactions_service_client::TransactionsServiceClient;
 use crate::rpc::GetAccountRequest;
+use crate::util::parse_cli_args_to_json;
+use anyhow::{anyhow, bail};
 use clap::{Args, Subcommand};
+use pretty_hex::HexConfig;
 use primitive_types::{Address, H256};
+use protobuf::reflect::FileDescriptor;
+use protobuf::text_format::print_to_string_pretty;
+use protobuf_json_mapping::{Command, CommandError, ParseOptions};
 use std::collections::HashMap;
+use std::f32::consts::E;
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 use std::str::FromStr;
 use transaction::make_payment_sign_transaction;
 use types::account::get_address_from_secret_key;
 use types::network::Network;
 use types::prelude::Empty;
+use types::tx::Transaction;
 
 #[derive(Args, Debug)]
 pub struct ClientArgsCommands {
@@ -24,6 +35,7 @@ pub enum ClientCommands {
     GetNonce(AddressArg),
     GetAccountState(AddressArg),
     SendPayment(SendPaymentArgs),
+    Call(CallArgs),
     GetTxpool,
 }
 
@@ -43,6 +55,25 @@ pub struct SendPaymentArgs {
     fee: u64,
     #[clap(short, long, value_parser = parse_signer)]
     signer: H256,
+}
+
+#[derive(Args, Debug)]
+pub struct CallArgs {
+    #[clap(short, long)]
+    app: String,
+    #[clap(short, long)]
+    proto_include: Vec<PathBuf>,
+    #[clap(short, long)]
+    proto_input: PathBuf,
+    #[clap(short, long)]
+    message: String,
+    #[clap(short, long)]
+    tip: u64,
+    #[clap(short, long)]
+    value: u64,
+
+    #[clap(require_equals = true, multiple = true)]
+    call_args: Vec<String>,
 }
 
 pub(crate) fn parse_address(s: &str) -> Result<Address, String> {
@@ -68,6 +99,36 @@ pub(crate) fn parse_signer(s: &str) -> Result<H256, String> {
     hex::decode(s)
         .map_err(|e| format!("{}", e))
         .map(|decode_hex| H256::from_slice(&decode_hex))
+}
+
+pub fn handle_command(cmd: &Command) -> Result<Vec<u8>, CommandError> {
+    match cmd.op {
+        "hex" => {
+            hex::decode(cmd.data).map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))
+        }
+        "address" => parse_address(cmd.data)
+            .map(|addr| addr.to_vec())
+            .map_err(|e| CommandError::FailedToParseNom(format!("{}", e))),
+
+        "file" => {
+            let file_path = PathBuf::new().join(cmd.data);
+            if !file_path.is_file() {
+                return Err(CommandError::FailedToParseNom(format!("path not file")));
+            }
+            let mut file = File::open(file_path.as_path())
+                .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))?;
+            let mut out = Vec::with_capacity(
+                file.metadata()
+                    .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))?
+                    .len() as usize,
+            );
+            let _read_len = file
+                .read_to_end(&mut out)
+                .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)));
+            Ok(out)
+        }
+        _ => Err(CommandError::FailedToParse),
+    }
 }
 
 pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Result<()> {
@@ -166,6 +227,51 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                 "{}",
                 serde_json::to_string_pretty(&json_rep).unwrap_or_default()
             )
+        }
+        ClientCommands::Call(CallArgs {
+                                 app,
+                                 tip,
+                                 value,
+                                 message,
+                                 proto_include,
+                                 proto_input,
+                                 call_args,
+                             }) => {
+            let opts = ParseOptions {
+                ignore_unknown_fields: false,
+                handler: &handle_command,
+                _future_options: (),
+            };
+
+            let mut hex_config = HexConfig::default();
+            hex_config.ascii = false;
+
+            let json_value = parse_cli_args_to_json(call_args.iter())?;
+            let json_string = serde_json::to_string(&json_value)?;
+
+            let files = protobuf_parse::Parser::new()
+                .includes(
+                    proto_include
+                        .iter()
+                        .map(|f| std::fs::canonicalize(f.as_path()).unwrap()),
+                )
+                .input(std::fs::canonicalize(proto_input.as_path()).unwrap())
+                .file_descriptor_set()?;
+            let proto_file = files.file[0].clone();
+            let file_descriptor = FileDescriptor::new_dynamic(proto_file, &[])?;
+            let call_message = file_descriptor
+                .message_by_package_relative_name(message)
+                .ok_or(anyhow!("message: {message} not found"))?;
+            let msg = protobuf_json_mapping::parse_dyn_from_str_with_options(
+                &call_message,
+                &json_string,
+                &opts,
+            )?;
+            println!("Call: {}", print_to_string_pretty(msg.as_ref()));
+            let mut encoded_message = Vec::new();
+            msg.write_to_vec_dyn(&mut encoded_message)?;
+            println!("Call Encoded");
+            println!("{}", pretty_hex::config_hex(&encoded_message, hex_config));
         }
     }
 

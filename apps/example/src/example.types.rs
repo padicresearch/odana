@@ -64,8 +64,8 @@ pub mod query_response {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Data {
-        #[prost(string, tag = "1")]
-        GetName(::prost::alloc::string::String),
+        #[prost(message, tag = "1")]
+        Info(super::ReservationInfo),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

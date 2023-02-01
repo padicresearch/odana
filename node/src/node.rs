@@ -53,10 +53,13 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     // Setup Logging
     let log_level: Level = args.log_level.into();
     let debug_log = Arc::new(File::create(env.datadir.join("debug.log"))?);
-    let mk_writer = debug_log
-        .with_max_level(Level::DEBUG)
-        .and(std::io::stderr.with_max_level(Level::WARN))
-        .and(std::io::stdout.with_max_level(log_level));
+
+    let mk_writer = std::io::stderr.with_max_level(Level::ERROR).or_else(
+        std::io::stdout
+            .with_max_level(log_level.into())
+            .and(debug_log.with_max_level(Level::DEBUG)),
+    );
+
     tracing_subscriber::fmt()
         .with_max_level(Level::TRACE)
         .with_writer(mk_writer)

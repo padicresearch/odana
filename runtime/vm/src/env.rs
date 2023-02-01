@@ -10,7 +10,7 @@ use smt::SparseMerkleTree;
 use std::collections::HashMap;
 use std::sync::Arc;
 use traits::{Blockchain, ChainHeadReader, StateDB};
-use types::account::{get_address_from_pub_key, AccountState, get_address_from_seed};
+use types::account::{get_address_from_pub_key, get_address_from_seed, AccountState};
 use types::network::Network;
 use types::{Addressing, Changelist};
 
@@ -85,13 +85,14 @@ impl<'a> Syscall for ExecutionEnvironment<'a> {
 
     fn generate_keypair(&mut self) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
         let account = account::create_account(self.network);
-        Ok((account.secrete_key().as_bytes().to_vec(), account.public_key().as_bytes().to_vec()))
+        Ok((
+            account.secrete_key().as_bytes().to_vec(),
+            account.public_key().as_bytes().to_vec(),
+        ))
     }
 
     fn generate_native_address(&mut self, seed: Vec<u8>) -> anyhow::Result<Vec<u8>> {
-        get_address_from_seed(&seed, self.network).map(|address| {
-            address.to_vec()
-        })
+        get_address_from_seed(&seed, self.network).map(|address| address.to_vec())
     }
 
     fn sign(&mut self, sk: Vec<u8>, msg: Vec<u8>) -> anyhow::Result<Vec<u8>> {

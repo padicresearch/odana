@@ -1,7 +1,9 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
+
+extern crate alloc;
 
 use crate::types::call::Data;
-use crate::types::ReservationInfo;
+use crate::types::{query, query_response, GetName, QueryResponse, ReservationInfo};
 use primitive_types::Address;
 use rune_framework::context::Context;
 use rune_framework::io::{Blake2bHasher, StorageMap, StorageValue};
@@ -74,6 +76,21 @@ impl RuntimeApplication for Nick {
     }
 
     fn query(query: Self::Query) -> Self::QueryResponse {
-        todo!()
+        let Some(data) = query.data else {
+            return QueryResponse::default();
+        };
+        match data {
+            query::Data::GetName(GetName { owner }) => {
+                let Ok(Some(data)) = Address::from_slice(&owner).and_then(|owner| {
+                    NameMap::get(owner).map_err(|_| ())
+                })else {
+                    return QueryResponse::default()
+                };
+
+                QueryResponse {
+                    data: Some(query_response::Data::Info(data)),
+                }
+            }
+        }
     }
 }

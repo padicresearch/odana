@@ -47,7 +47,7 @@ impl RocksDB {
 }
 
 impl DatabaseBackend for RocksDB {
-    fn put(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()> {
+    fn put_cn(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()> {
         let cf = self
             .inner
             .cf_handle(column_name)
@@ -57,7 +57,7 @@ impl DatabaseBackend for RocksDB {
             .map_err(|e| e.into())
     }
 
-    fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>> {
+    fn get_cn(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>> {
         let cf = self
             .inner
             .cf_handle(column_name)
@@ -67,7 +67,7 @@ impl DatabaseBackend for RocksDB {
         value.ok_or_else(|| Error::InvalidKey(hex::encode(key, false)).into())
     }
 
-    fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()> {
+    fn delete_cn(&self, column_name: &'static str, key: &[u8]) -> Result<()> {
         let cf = self
             .inner
             .cf_handle(column_name)
@@ -75,6 +75,21 @@ impl DatabaseBackend for RocksDB {
 
         self.inner
             .delete_cf_opt(&cf, key, &default_write_opts())
+            .map_err(|e| e.into())
+    }
+
+    fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        self.inner.put_opt(key, value, &default_write_opts()).map_err(|e| e.into())
+    }
+
+    fn get(&self, key: &[u8]) -> Result<Vec<u8>> {
+        let value = self.inner.get_opt(&key, &default_read_opts())?;
+        value.ok_or_else(|| Error::InvalidKey(hex::encode(key, false)).into())
+    }
+
+    fn delete(&self, key: &[u8]) -> Result<()> {
+        self.inner
+            .delete_opt(&key, &default_write_opts())
             .map_err(|e| e.into())
     }
 
@@ -88,7 +103,7 @@ impl DatabaseBackend for RocksDB {
         Ok(Arc::new(RocksDB::new(db)))
     }
 
-    fn get_or_default(
+    fn get_or_default_cn(
         &self,
         column_name: &'static str,
         key: &[u8],
@@ -99,6 +114,11 @@ impl DatabaseBackend for RocksDB {
             .cf_handle(column_name)
             .ok_or(Error::ColumnFamilyMissing(column_name))?;
         let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
+        Ok(value.unwrap_or(default))
+    }
+
+    fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>> {
+        let value = self.inner.get_opt(&key, &default_read_opts())?;
         Ok(value.unwrap_or(default))
     }
 }
@@ -119,19 +139,19 @@ impl MemoryStore {
 }
 
 impl DatabaseBackend for MemoryStore {
-    fn put(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()> {
+    fn put_cn(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()> {
         let column = self.inner.entry(column_name).or_default();
         column.insert(key.to_vec(), value.to_vec());
         Ok(())
     }
 
-    fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>> {
+    fn get_cn(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>> {
         let column = self.inner.entry(column_name).or_default();
         let value = column.get(key).map(|r| r.value().clone());
         value.ok_or_else(|| Error::InvalidKey(hex::encode(key, false)).into())
     }
 
-    fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()> {
+    fn delete_cn(&self, column_name: &'static str, key: &[u8]) -> Result<()> {
         let column = self.inner.entry(column_name).or_default();
         if !column.contains_key(key) {
             bail!(Error::InvalidKey(hex::encode(key, false)))
@@ -140,13 +160,25 @@ impl DatabaseBackend for MemoryStore {
         Ok(())
     }
 
+    fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
+        self.put_cn("_", key, value)
+    }
+
+    fn get(&self, key: &[u8]) -> Result<Vec<u8>> {
+        self.get_cn("_", key)
+    }
+
+    fn delete(&self, key: &[u8]) -> Result<()> {
+        self.delete_cn("_", key)
+    }
+
     fn checkpoint(&self, _: PathBuf) -> Result<Arc<dyn DatabaseBackend + Send + Sync>> {
         Ok(Arc::new(MemoryStore {
             inner: self.inner.clone(),
         }))
     }
 
-    fn get_or_default(
+    fn get_or_default_cn(
         &self,
         column_name: &'static str,
         key: &[u8],
@@ -155,5 +187,9 @@ impl DatabaseBackend for MemoryStore {
         let column = self.inner.entry(column_name).or_default();
         let value = column.get(key).map(|r| r.value().clone());
         Ok(value.unwrap_or(default))
+    }
+
+    fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>> {
+        self.get_or_default_cn("_", key, default)
     }
 }

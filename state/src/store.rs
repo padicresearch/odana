@@ -33,12 +33,6 @@ fn default_table_options() -> Options {
 
     // block table options
     let mut table_options = BlockBasedOptions::default();
-    // table_options.set_block_cache(&Cache::new_lru_cache(32 * 1024 * 1024).unwrap());
-    // table_options.set_block_size(16 * 1024);
-    // table_options.set_cache_index_and_filter_blocks(true);
-    // table_options.set_pin_l0_filter_and_index_blocks_in_cache(true);
-
-    // set format_version 4 https://rocksdb.org/blog/2019/03/08/format-version-4.html
     table_options.set_format_version(4);
     table_options.set_index_block_restart_interval(16);
 
@@ -48,27 +42,39 @@ fn default_table_options() -> Options {
 }
 
 pub trait DatabaseBackend {
-    fn put(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()>;
+    fn put_cn(&self, column_name: &'static str, key: &[u8], value: &[u8]) -> Result<()>;
 
-    fn get(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>>;
+    fn get_cn(&self, column_name: &'static str, key: &[u8]) -> Result<Vec<u8>>;
 
-    fn delete(&self, column_name: &'static str, key: &[u8]) -> Result<()>;
+    fn delete_cn(&self, column_name: &'static str, key: &[u8]) -> Result<()>;
+
+    fn put(&self, key: &[u8], value: &[u8]) -> Result<()>;
+
+    fn get(&self, key: &[u8]) -> Result<Vec<u8>>;
+
+    fn delete(&self, key: &[u8]) -> Result<()>;
 
     fn checkpoint(&self, path: PathBuf) -> Result<Arc<dyn DatabaseBackend + Send + Sync>>;
 
-    fn get_or_default(
+    fn get_or_default_cn(
         &self,
         column_name: &'static str,
         key: &[u8],
         default: Vec<u8>,
     ) -> Result<Vec<u8>>;
+
+    fn get_or_default(
+        &self,
+        key: &[u8],
+        default: Vec<u8>,
+    ) -> Result<Vec<u8>>;
 }
 
-pub struct Database {
+pub struct TrieCacheDatabase {
     pub inner: Arc<dyn DatabaseBackend + Send + Sync>,
 }
 
-impl Database {
+impl TrieCacheDatabase {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Arc::new(rocksdb::DB::open_cf_descriptors(
             &default_db_opts(),
@@ -104,7 +110,7 @@ impl Database {
         key: H256,
         value: SparseMerkleTree<S, H>,
     ) -> Result<()> {
-        self.inner.put(
+        self.inner.put_cn(
             COLUMN_TREES,
             &Encodable::encode(&key)?,
             &Encodable::encode(&value)?,
@@ -113,11 +119,11 @@ impl Database {
 
     pub fn set_root(&self, new_root: H256) -> Result<()> {
         self.inner
-            .put(COLUMN_ROOT, b"root", &Encodable::encode(&new_root)?)
+            .put_cn(COLUMN_ROOT, b"root", &Encodable::encode(&new_root)?)
     }
 
     pub fn load_root<S: StorageBackend, H: TreeHasher>(&self) -> Result<SparseMerkleTree<S, H>> {
-        let root = self.inner.get(COLUMN_ROOT, b"root")?;
+        let root = self.inner.get_cn(COLUMN_ROOT, b"root")?;
         let root = <H256 as Decodable>::decode(&root)?;
         self.get(&root)
     }
@@ -126,17 +132,17 @@ impl Database {
         &self,
         key: &H256,
     ) -> Result<SparseMerkleTree<S, H>> {
-        <SparseMerkleTree<S, H> as Decodable>::decode(
-            &self.inner.get(COLUMN_TREES, &Encodable::encode(key)?)?,
-        )
+        let raw = &self.inner.get_cn(COLUMN_TREES, &Encodable::encode(key)?)?;
+        let smt = <SparseMerkleTree<S, H> as Decodable>::decode(raw)?;
+        Ok(smt)
     }
 
     pub fn delete(&self, key: &H256) -> Result<()> {
-        self.inner.delete(COLUMN_TREES, &Encodable::encode(key)?)
+        self.inner.delete_cn(COLUMN_TREES, &Encodable::encode(key)?)
     }
 
-    pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<Database> {
-        Ok(Database {
+    pub fn checkpoint<P: AsRef<Path>>(&self, path: P) -> Result<TrieCacheDatabase> {
+        Ok(TrieCacheDatabase {
             inner: self.inner.checkpoint(PathBuf::new().join(path.as_ref()))?,
         })
     }

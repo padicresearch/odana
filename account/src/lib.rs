@@ -27,6 +27,8 @@ pub fn create_account_from_uri(network: Network, uri: &str) -> Account {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+    use primitive_types::Address;
     use crate::create_account_from_uri;
     use types::network::Network;
 
@@ -35,5 +37,11 @@ mod tests {
         let account0 = create_account_from_uri(Network::Testnet, "ama");
         let account1 = create_account_from_uri(Network::Testnet, "ama");
         assert_eq!(account0, account1);
+    }
+
+    #[test]
+    fn test_address() {
+        let account0 = Address::from_str("odanx1kz27mpjh2qnj68psan63gmtw3q46zha2wfucd2").unwrap();
+        println!("{}", account0)
     }
 }

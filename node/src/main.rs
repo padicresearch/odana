@@ -73,7 +73,7 @@ struct RunArgs {
     config_file: Option<PathBuf>,
     #[clap(short, long)]
     identity_file: Option<PathBuf>,
-    #[clap(arg_enum, default_value_t = LogLevel::Debug)]
+    #[clap(arg_enum, default_value_t = LogLevel::Info)]
     log_level: LogLevel,
     #[clap(long)]
     expected_pow: Option<f64>,
