@@ -23,10 +23,10 @@ use crate::tree::{Op, TrieDB};
 
 mod context;
 mod error;
+mod kvdb;
 mod persistent;
 mod store;
 mod tree;
-mod kvdb;
 
 #[derive(Encode, Decode, Clone, Debug)]
 pub struct ReadProof {

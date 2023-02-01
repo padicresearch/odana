@@ -27,9 +27,9 @@ pub fn create_account_from_uri(network: Network, uri: &str) -> Account {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-    use primitive_types::Address;
     use crate::create_account_from_uri;
+    use primitive_types::Address;
+    use std::str::FromStr;
     use types::network::Network;
 
     #[test]

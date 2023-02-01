@@ -12,15 +12,12 @@ pub struct KvDB<K, V> {
 }
 
 impl<K, V> KvDB<K, V>
-    where
-        K: Codec,
-        V: Codec,
+where
+    K: Codec,
+    V: Codec,
 {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let db = Arc::new(rocksdb::DB::open(
-            &default_db_opts(),
-            path.as_ref(),
-        )?);
+        let db = Arc::new(rocksdb::DB::open(&default_db_opts(), path.as_ref())?);
         Ok(Self {
             inner: Arc::new(RocksDB::new(db)),
             _data: Default::default(),

@@ -256,7 +256,10 @@ mod serde {
             Ok(Address(bytes))
         }
 
-        fn visit_string<E: ::impl_serde::serde::de::Error>(self, v: String) -> Result<Self::Value, E> {
+        fn visit_string<E: ::impl_serde::serde::de::Error>(
+            self,
+            v: String,
+        ) -> Result<Self::Value, E> {
             self.visit_str(&v)
         }
     }
@@ -267,7 +270,8 @@ mod serde {
                 S: ::impl_serde::serde::Serializer,
         {
             serializer.serialize_str(
-                &String::from_utf8(self.0.to_vec()).map_err(|e| S::Error::custom(&e.to_string()))?,
+                &String::from_utf8(self.0.to_vec())
+                    .map_err(|e| S::Error::custom(&e.to_string()))?,
             )
         }
     }

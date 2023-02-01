@@ -63,11 +63,7 @@ pub trait DatabaseBackend {
         default: Vec<u8>,
     ) -> Result<Vec<u8>>;
 
-    fn get_or_default(
-        &self,
-        key: &[u8],
-        default: Vec<u8>,
-    ) -> Result<Vec<u8>>;
+    fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>>;
 }
 
 pub struct TrieCacheDatabase {

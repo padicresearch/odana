@@ -79,7 +79,9 @@ impl DatabaseBackend for RocksDB {
     }
 
     fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
-        self.inner.put_opt(key, value, &default_write_opts()).map_err(|e| e.into())
+        self.inner
+            .put_opt(key, value, &default_write_opts())
+            .map_err(|e| e.into())
     }
 
     fn get(&self, key: &[u8]) -> Result<Vec<u8>> {

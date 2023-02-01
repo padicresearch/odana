@@ -521,11 +521,13 @@ mod tests {
         smt.update(&[1, 2, 3], &[10, 20, 30]).unwrap();
         assert_eq!(smt.root, smt_2.root);
 
-
         let encoded = smt.encode().unwrap();
 
         let smt_decoded: SparseMerkleTree = SparseMerkleTree::decode(&encoded).unwrap();
 
-        assert_eq!(smt.get(&[1, 2, 3]).unwrap(), smt_decoded.get(&[1, 2, 3]).unwrap())
+        assert_eq!(
+            smt.get(&[1, 2, 3]).unwrap(),
+            smt_decoded.get(&[1, 2, 3]).unwrap()
+        )
     }
 }
