@@ -28,6 +28,10 @@ mod persistent;
 mod store;
 mod tree;
 
+const ACCOUNT_DB_NAME: &str = "accs";
+const APPDATA_DB_NAME: &str = "data";
+const BINDATA_DB_NAME: &str = "bins";
+
 #[derive(Encode, Decode, Clone, Debug)]
 pub struct ReadProof {
     proof: Proof,
@@ -38,6 +42,7 @@ pub struct ReadProof {
 pub struct State {
     trie: Arc<TrieDB<Address, AccountState>>,
     appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
+    appsource: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
     path: PathBuf,
     read_only: bool,
 }
@@ -161,11 +166,13 @@ impl AppData for State {
 
 impl State {
     pub fn new(path: &PathBuf) -> Result<Self> {
-        let trie = TrieDB::open(path.join("state").as_path())?;
-        let app_state = KvDB::open(path.join("appdata").as_path())?;
+        let trie = TrieDB::open(path.join(ACCOUNT_DB_NAME).as_path())?;
+        let appdata = KvDB::open(path.join(APPDATA_DB_NAME).as_path())?;
+        let appsource = KvDB::open(path.join(BINDATA_DB_NAME).as_path())?;
         Ok(Self {
             trie: Arc::new(trie),
-            appdata: Arc::new(app_state),
+            appdata: Arc::new(appdata),
+            appsource: Arc::new(appsource),
             path: path.clone(),
             read_only: false,
         })
@@ -349,11 +356,14 @@ impl State {
     }
 
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
-        let trie = TrieDB::open_read_only_at_root(self.path.join("state").as_path(), &root)?;
-        let appdata = KvDB::open_read_only_at_root(self.path.join("appdata").as_path())?;
+        let trie =
+            TrieDB::open_read_only_at_root(self.path.join(ACCOUNT_DB_NAME).as_path(), &root)?;
+        let appdata = KvDB::open_read_only_at_root(self.path.join(APPDATA_DB_NAME).as_path())?;
+        let appsource = KvDB::open_read_only_at_root(self.path.join(BINDATA_DB_NAME).as_path())?;
         Ok(Arc::new(State {
             trie: Arc::new(trie),
             appdata: Arc::new(appdata),
+            appsource: Arc::new(appsource),
             path: self.path.clone(),
             read_only: true,
         }))

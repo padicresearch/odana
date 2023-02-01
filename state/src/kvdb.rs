@@ -5,9 +5,12 @@ use codec::Codec;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::Arc;
+use dashmap::DashMap;
 
 pub struct KvDB<K, V> {
     inner: Arc<dyn DatabaseBackend + Send + Sync>,
+    read_only: bool,
+    staging: DashMap<Vec<u8>, Vec<u8>>,
     _data: PhantomData<(K, V)>,
 }
 
@@ -20,6 +23,8 @@ where
         let db = Arc::new(rocksdb::DB::open(&default_db_opts(), path.as_ref())?);
         Ok(Self {
             inner: Arc::new(RocksDB::new(db)),
+            read_only: false,
+            staging: Default::default(),
             _data: Default::default(),
         })
     }
@@ -32,6 +37,8 @@ where
         )?);
         Ok(Self {
             inner: Arc::new(RocksDB::new(db)),
+            read_only: true,
+            staging: Default::default(),
             _data: Default::default(),
         })
     }
@@ -39,17 +46,28 @@ where
     pub(crate) fn put(&self, key: K, value: V) -> Result<()> {
         let key = key.encode()?;
         let value = value.encode()?;
+        if self.read_only {
+            self.staging.insert(key, value);
+            return Ok(())
+        }
         self.inner.put(&key, &value)
     }
 
     pub(crate) fn get(&self, key: &K) -> Result<V> {
         let key = key.encode()?;
+        if let Some(entry) = self.staging.get(&key) {
+            return V::decode(entry.value())
+        }
         let raw = self.inner.get(&key)?;
         V::decode(&raw)
     }
 
     fn delete(&self, key: &K) -> Result<()> {
         let key = key.encode()?;
+        if self.read_only {
+            self.staging.remove(&key);
+            return Ok(())
+        }
         self.inner.delete(&key)
     }
 }

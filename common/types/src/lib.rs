@@ -25,6 +25,7 @@ pub mod events;
 pub mod network;
 pub mod receipt;
 pub mod tx;
+pub mod misc;
 
 pub type Hash = [u8; 32];
 
