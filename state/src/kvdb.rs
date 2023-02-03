@@ -2,10 +2,10 @@ use crate::persistent::{default_db_opts, RocksDB};
 use crate::store::{cfs, DatabaseBackend, TrieCacheDatabase};
 use anyhow::Result;
 use codec::Codec;
+use dashmap::DashMap;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::Arc;
-use dashmap::DashMap;
 
 pub struct KvDB<K, V> {
     inner: Arc<dyn DatabaseBackend + Send + Sync>,
@@ -48,7 +48,7 @@ where
         let value = value.encode()?;
         if self.read_only {
             self.staging.insert(key, value);
-            return Ok(())
+            return Ok(());
         }
         self.inner.put(&key, &value)
     }
@@ -56,7 +56,7 @@ where
     pub(crate) fn get(&self, key: &K) -> Result<V> {
         let key = key.encode()?;
         if let Some(entry) = self.staging.get(&key) {
-            return V::decode(entry.value())
+            return V::decode(entry.value());
         }
         let raw = self.inner.get(&key)?;
         V::decode(&raw)
@@ -66,7 +66,7 @@ where
         let key = key.encode()?;
         if self.read_only {
             self.staging.remove(&key);
-            return Ok(())
+            return Ok(());
         }
         self.inner.delete(&key)
     }

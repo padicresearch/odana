@@ -71,7 +71,7 @@ impl TransactionsService for TransactionsServiceImpl {
             .ok_or_else(|| Status::invalid_argument("tx arg not found or failed to decode"))?;
         let signed_tx = transaction::sign_tx(H256::from_slice(&req.secret_key), tx)
             .map_err(|e| Status::internal(e.to_string()))?;
-        let tx_hash = signed_tx.hash_256();
+        let tx_hash = signed_tx.hash();
         let mut txpool = self.txpool.write().map_err(|_| Status::internal(""))?;
         txpool
             .add_local(signed_tx.clone())

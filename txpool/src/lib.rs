@@ -160,12 +160,12 @@ impl TxPool {
     fn add(&mut self, tx: TransactionRef, local: bool) -> Result<bool> {
         let hash = tx.hash();
         anyhow::ensure!(!self.all.contains(&hash), {
-            trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Discarding already known transaction");
+            trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), "Discarding already known transaction");
             TxPoolError::TransactionAlreadyKnown
         });
         let is_local = local || self.locals.contains_tx(&tx);
         if let Err(e) = self.validate_tx(&tx, is_local) {
-            trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), error = ?e, "Discarding invalid transaction");
+            trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), error = ?e, "Discarding invalid transaction");
             anyhow::bail!(e)
         }
 
@@ -173,7 +173,7 @@ impl TxPool {
         let _all_slots = self.all.slots();
         if self.all.slots() + num_slots(&tx) > self.config.global_slots + self.config.global_queue {
             if !is_local && self.priced.underpriced(tx.clone())? {
-                trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding underpriced transaction");
+                trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), fee = ?tx.fees(), "Discarding underpriced transaction");
                 return Err(TxPoolError::Underpriced.into());
             }
             anyhow::ensure!(
@@ -188,7 +188,7 @@ impl TxPool {
                 Ok(drop) => drop,
                 Err(_) => {
                     if !is_local {
-                        trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding overflown transaction");
+                        trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), fee = ?tx.fees(), "Discarding overflown transaction");
                         return Err(TxPoolError::TxPoolOverflow.into());
                     } else {
                         vec![]
@@ -198,7 +198,7 @@ impl TxPool {
 
             self.changes_since_repack = drop.len() as i32;
             for tx in drop {
-                trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), fee = ?tx.fees(), "Discarding freshly underpriced transaction");
+                trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), fee = ?tx.fees(), "Discarding freshly underpriced transaction");
                 self.remove_tx(tx.hash(), false)?;
             }
         }
@@ -215,7 +215,7 @@ impl TxPool {
                 self.all.add(tx.clone(), is_local);
                 self.priced.put(tx.clone(), is_local);
                 self.queue_event(tx.clone());
-                trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), from = ?from, to = ?tx.to(), "Pooled new executable transaction");
+                trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), from = ?from, to = ?tx.to(), "Pooled new executable transaction");
                 return Ok(old.is_some());
             }
         }
@@ -229,7 +229,7 @@ impl TxPool {
                 self.priced.remove(tx);
             }
         }
-        trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), from = ?from, to = ?tx.to(), "Pooled new future transaction");
+        trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), from = ?from, to = ?tx.to(), "Pooled new future transaction");
         Ok(replaced)
     }
 
@@ -259,7 +259,7 @@ impl TxPool {
         }
 
         if !self.all.contains(&hash) && !add_all {
-            error!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Missing transaction in lookup set");
+            error!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), "Missing transaction in lookup set");
         }
 
         if add_all {
@@ -552,11 +552,10 @@ impl TxPool {
                         for tx in caps {
                             let hash = tx.hash();
                             let nonce = tx.nonce();
-                            let hash_256 = tx.hash_256();
                             self.all.remove(&hash);
                             self.priced.remove(tx);
                             self.pending_nonce.set_if_lower(*offender, nonce);
-                            trace!(target : TXPOOL_LOG_TARGET, hash = ?hash_256, "Removed fairness-exceeding pending transaction");
+                            trace!(target : TXPOOL_LOG_TARGET, hash = ?hash, "Removed fairness-exceeding pending transaction");
                         }
                         pending -= 1;
                     }
@@ -579,7 +578,7 @@ impl TxPool {
                         for tx in caps {
                             let hash = tx.hash();
                             let nonce = tx.nonce();
-                            let hash_256 = tx.hash_256();
+                            let hash_256 = tx.hash();
                             self.all.remove(&hash);
                             self.priced.remove(tx);
                             self.pending_nonce.set_if_lower(*addr, nonce);
@@ -651,11 +650,11 @@ impl TxPool {
             if let Some((drops, invlaids)) = list.filter(self.current_state.balance(addr)) {
                 for tx in drops {
                     let hash = tx.hash();
-                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Removed unpayable pending transaction");
+                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), "Removed unpayable pending transaction");
                     self.all.remove(&hash);
                 }
                 for tx in invlaids {
-                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Demoting pending transaction");
+                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), "Demoting pending transaction");
                     enqueue.push(tx)
                 }
             }
@@ -663,7 +662,7 @@ impl TxPool {
             if !list.is_empty() && list.txs.get(nonce).is_none() {
                 let gapped = list.cap(0);
                 for tx in gapped {
-                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Demoting invalidated transaction");
+                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), "Demoting invalidated transaction");
                     enqueue.push(tx)
                 }
             }
@@ -735,7 +734,7 @@ impl TxPool {
                 for tx in caps {
                     let hash = tx.hash();
                     self.all.remove(&hash);
-                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash_256(), "Removed cap-exceeding queued transaction");
+                    trace!(target : TXPOOL_LOG_TARGET, hash = ?tx.hash(), "Removed cap-exceeding queued transaction");
                 }
             }
 

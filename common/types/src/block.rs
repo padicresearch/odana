@@ -1,6 +1,6 @@
 use core::cmp;
 use std::cmp::Ordering;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::u32;
 
 use anyhow::Result;
@@ -373,7 +373,7 @@ impl Block {
     }
 
     pub fn hash(&self) -> H256 {
-        cache(&self.hash, || self.header.hash())
+        cache(&self.hash, || Ok(self.header.hash()))
     }
 
     pub fn header(&self) -> &BlockHeader {

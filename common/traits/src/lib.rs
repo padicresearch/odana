@@ -45,23 +45,29 @@ pub trait AccountStateReader: Send + Sync {
 }
 
 pub trait WasmVMInstance: Send + Sync {
-    fn execute_app_create<'a>(
+    fn execute_app_create(
         &self,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
         sender: Address,
         value: u64,
         call: &CreateApplicationTx,
     ) -> Result<Changelist>;
-    fn execute_app_tx<'a>(
+    fn execute_app_tx(
         &self,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
         sender: Address,
         value: u64,
         call: &ApplicationCallTx,
     ) -> Result<Changelist>;
-    fn execute_app_query<'a>(
+    fn load_app(
         &self,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
+        app_id: Address, //TODO; use codehash instead of app id
+        binary: Vec<u8>,
+    ) -> Result<()>;
+    fn execute_app_query(
+        &self,
+        state_db: Arc<dyn StateDB>,
         app_id: Address,
         raw_query: &[u8],
     ) -> Result<Vec<u8>>;

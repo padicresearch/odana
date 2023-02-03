@@ -42,7 +42,7 @@ pub struct ReadProof {
 pub struct State {
     trie: Arc<TrieDB<Address, AccountState>>,
     appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
-    appsource: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
+    appsource: Arc<KvDB<H256, Vec<u8>>>,
     path: PathBuf,
     read_only: bool,
 }
@@ -219,30 +219,43 @@ impl State {
             }
             TransactionData::Call(arg) => {
                 let app_address = tx.to();
-                let changelist = vm.execute_app_tx(self, tx.sender(), tx.price(), arg)?;
+                let app_state = states.get_mut(&app_address).expect("app state not found");
+                let binary = self.appsource.get(&H256::from_slice(
+                    app_state
+                        .code_hash
+                        .as_ref()
+                        .ok_or(anyhow::anyhow!("app source not found"))?,
+                ))?;
+
+                let state_db = Arc::new(self.clone());
+
+                vm.load_app(state_db.clone(), app_address, binary)?;
+                let changelist = vm.execute_app_tx(state_db, tx.sender(), tx.price(), arg)?;
+                app_state.root_hash = Some(changelist.storage.root().to_fixed_bytes().to_vec());
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);
                 }
-                let app_state = states.get_mut(&app_address).expect("app state not found");
-                app_state.root_hash = Some(changelist.storage.root().to_fixed_bytes().to_vec());
                 self.appdata.put(
                     AppStateKey(app_address, changelist.storage.root()),
                     changelist.storage,
                 )?;
             }
             TransactionData::Create(arg) => {
+                let state_db = Arc::new(self.clone());
                 let app_address = tx.to();
-                if self.trie.get(&app_address)?.is_some() {
+                let t = self.trie.get(&app_address).ok().flatten();
+                if t.is_some() {
                     bail!("app address already exists")
                 }
                 let code_hash = crypto::keccak256(&arg.binary);
-                let changelist = vm.execute_app_create(self, tx.sender(), tx.price(), arg)?;
+                let changelist = vm.execute_app_create(state_db, tx.sender(), tx.price(), arg)?;
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);
                 }
                 let app_state = states.get_mut(&app_address).expect("app state not found");
                 app_state.root_hash = Some(changelist.storage.root().to_fixed_bytes().to_vec());
                 app_state.code_hash = Some(code_hash.as_bytes().to_vec());
+                self.appsource.put(code_hash, arg.binary.clone())?;
                 self.appdata.put(
                     AppStateKey(app_address, changelist.storage.root()),
                     changelist.storage,
@@ -251,10 +264,22 @@ impl State {
             TransactionData::Update(_) => {
                 unimplemented!("update app transaction not implemented")
             }
-            TransactionData::RawData(_) => {
-                unimplemented!()
+            TransactionData::RawData(raw) => {
+                println!("[NOT AVAILABLE] Raw DATA: {:?}", hex::encode_raw(raw))
             }
         }
+
+        // Update transaction origin nonce
+        let mut from_account_state = states
+            .get_mut(&tx.from())
+            .ok_or(StateError::AccountNotFound)?;
+
+        let next_nonce = if tx.nonce() > from_account_state.nonce {
+            tx.nonce() + 1
+        } else {
+            from_account_state.nonce + 1
+        };
+        from_account_state.nonce = next_nonce;
         Ok(())
     }
 
@@ -307,8 +332,6 @@ impl State {
         transaction: &SignedTransaction,
         states: &mut BTreeMap<Address, AccountState>,
     ) -> Result<()> {
-        //TODO: verify transaction (probably)
-
         let mut from_account_state = states
             .get_mut(&transaction.from())
             .ok_or(StateError::AccountNotFound)?;
@@ -317,18 +340,10 @@ impl State {
             return Err(StateError::InsufficientFunds.into());
         }
         from_account_state.free_balance -= amount;
-        let next_nonce = if transaction.nonce() > from_account_state.nonce {
-            transaction.nonce() + 1
-        } else {
-            from_account_state.nonce + 1
-        };
-        from_account_state.nonce = next_nonce;
-
         let mut to_account_state = states
             .get_mut(&transaction.to())
             .ok_or(StateError::AccountNotFound)?;
         to_account_state.free_balance += transaction.price();
-
         Ok(())
     }
 

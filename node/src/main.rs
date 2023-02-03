@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Duration;
@@ -179,12 +180,13 @@ fn main() -> Result<()> {
         Commands::Account(args) => match &args.command {
             AccountCommands::Create(args) => {
                 let account = account::create_account(args.network);
-                println!("{}", serde_json::to_string_pretty(&account).unwrap());
+                println!("{}", serde_json::to_string_pretty(&account)?);
             }
         },
         Commands::Client(args) => {
             let rt = tokio::runtime::Runtime::new()?;
-            rt.block_on(async { handle_client_command(args).await })?;
+            let resp = rt.block_on(async { handle_client_command(args).await })?;
+            println!("{}", serde_json::to_string_pretty(&resp)?);
         }
     }
 

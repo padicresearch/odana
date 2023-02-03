@@ -3,12 +3,13 @@
 extern crate test;
 
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 
 use crate::account::AccountState;
 use bytes::{Buf, BufMut};
 use codec::{Decodable, Encodable};
+use parking_lot::RwLock;
 use primitive_types::Address;
 use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
@@ -22,10 +23,10 @@ pub mod account;
 pub mod block;
 pub mod config;
 pub mod events;
+pub mod misc;
 pub mod network;
 pub mod receipt;
 pub mod tx;
-pub mod misc;
 
 pub type Hash = [u8; 32];
 
@@ -118,20 +119,24 @@ pub struct TxPoolConfig {
 }
 
 pub fn cache<F, T>(hash: &Arc<RwLock<Option<T>>>, f: F) -> T
-where
-    F: Fn() -> T,
-    T: Copy + Clone,
+    where
+        F: Fn() -> anyhow::Result<T>,
+        T: Copy + Clone + Default,
 {
-    if let Ok(hash) = hash.read() {
+    {
+        let hash = hash.read();
         if let Some(hash) = *hash {
             return hash;
         }
     }
-    let out = f();
-    if let Ok(mut hash) = hash.write() {
-        *hash = Some(out)
+    let mut hash = hash.write();
+    match f() {
+        Ok(out) => {
+            *hash = Some(out);
+            out
+        }
+        Err(_) => T::default(),
     }
-    out
 }
 
 pub trait Addressing {

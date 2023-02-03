@@ -12,6 +12,7 @@ primitive-types = { path = "../common/primitive-types" }
 txpool = { path = "../txpool" }
 p2p = { path = "../p2p" }
 anyhow = { workspace = true }
+serde_json = { workspace = true }
 merkle = { path = "../merkle" }
 chrono = "0.4"
 tracing = { path = "../common/tracing" }

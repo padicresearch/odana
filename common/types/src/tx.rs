@@ -1,11 +1,11 @@
-use std::cmp::Ordering;
-use std::sync::{Arc, RwLock};
-
 use anyhow::{anyhow, Result};
 use bytes::{Buf, BufMut};
+use parking_lot::RwLock;
 use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
+use std::sync::Arc;
 
 use crypto::ecdsa::{PublicKey, Signature};
 use crypto::sha256;
@@ -87,8 +87,10 @@ impl Message for PaymentTx {
 #[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]
 pub struct ApplicationCallTx {
     #[prost(bytes, tag = "1")]
+    #[serde(with = "hex")]
     pub app_id: Vec<u8>,
     #[prost(bytes, tag = "2")]
+    #[serde(with = "hex")]
     pub args: Vec<u8>,
 }
 
@@ -97,14 +99,17 @@ pub struct CreateApplicationTx {
     #[prost(string, tag = "1")]
     pub package_name: String,
     #[prost(bytes, tag = "2")]
+    #[serde(with = "hex")]
     pub binary: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]
 pub struct UpdateApplicationTx {
     #[prost(bytes, tag = "1")]
+    #[serde(with = "hex")]
     pub app_id: Vec<u8>,
     #[prost(bytes, tag = "2")]
+    #[serde(with = "hex")]
     pub binary: Vec<u8>,
     #[prost(bool, tag = "3")]
     pub migrate: bool,
@@ -121,9 +126,9 @@ pub enum TransactionData {
     Create(CreateApplicationTx),
     #[prost(message, tag = "9")]
     Update(UpdateApplicationTx),
-    #[prost(string, tag = "10")]
+    #[prost(bytes, tag = "10")]
     #[serde(rename = "raw")]
-    RawData(String),
+    RawData(Vec<u8>),
 }
 
 impl Default for TransactionData {
@@ -241,6 +246,7 @@ impl prost::Message for Transaction {
             + prost::encoding::uint32::encoded_len(2, &self.chain_id)
             + prost::encoding::bytes::encoded_len(3, &self.genesis_hash)
             + prost::encoding::uint64::encoded_len(4, &self.fee)
+            + prost::encoding::uint64::encoded_len(5, &self.value)
             + self.data.encoded_len()
     }
 
@@ -283,7 +289,7 @@ impl Transaction {
             }
             TransactionData::RawData(v) => {
                 pack.extend_from_slice(&5u32.to_be_bytes());
-                pack.extend_from_slice(v.as_bytes())
+                pack.extend_from_slice(v.as_slice())
             }
         }
         pack
@@ -383,11 +389,11 @@ pub struct SignedTransaction {
     v: u8,
     //caches
     #[serde(skip)]
-    hash: H256,
+    hash: Arc<RwLock<Option<H256>>>,
     #[serde(skip)]
-    from: Address,
+    from: Arc<RwLock<Option<Address>>>,
     #[serde(skip)]
-    to: Address,
+    to: Arc<RwLock<Option<Address>>>,
 }
 
 impl PartialEq for SignedTransaction {
@@ -420,48 +426,19 @@ impl SignedTransaction {
     pub fn new(signature: Signature, tx: Transaction) -> Result<Self> {
         let (r, s, v) = signature.rsv();
 
-        let from = signature
-            .recover_public_key(tx.sig_hash().as_bytes())
-            .map_err(|e| anyhow::anyhow!(e))
-            .map(|key| get_address_from_pub_key(key, Network::from_chain_id(tx.chain_id)))?;
-
-        let to = match &tx.data {
-            TransactionData::Payment(PaymentTx { to, .. }) => *to,
-            TransactionData::Call(ApplicationCallTx { app_id, .. }) => {
-                Address::from_slice(app_id).map_err(|_| anyhow!("invalid address"))?
-            }
-            TransactionData::RawData(_) => Default::default(),
-            TransactionData::Create(CreateApplicationTx { package_name, .. }) => {
-                get_address_from_seed(
-                    package_name.as_bytes(),
-                    from.network()
-                        .ok_or(anyhow!("network not specified on senders address"))?,
-                )?
-            }
-            TransactionData::Update(UpdateApplicationTx { app_id, .. }) => {
-                Address::from_slice(app_id).map_err(|_| anyhow!("invalid address"))?
-            }
-        };
-
-        let hash = tx.sig_hash();
-
         Ok(Self {
             tx,
             r,
             s,
             v,
-            hash,
-            from,
-            to,
+            hash: Default::default(),
+            from: Default::default(),
+            to: Default::default(),
         })
     }
 
     pub fn hash(&self) -> H256 {
-        self.hash
-    }
-
-    pub fn hash_256(&self) -> H256 {
-        H256::from(self.hash())
+        cache(&self.hash, || Ok(self.tx.sig_hash()))
     }
 
     pub fn signature(&self) -> [u8; 65] {
@@ -477,7 +454,24 @@ impl SignedTransaction {
     }
 
     pub fn to(&self) -> Address {
-        self.to
+        cache(&self.to, || match &self.tx.data {
+            TransactionData::Payment(PaymentTx { to, .. }) => Ok(*to),
+            TransactionData::Call(ApplicationCallTx { app_id, .. }) => {
+                Address::from_slice(app_id.as_slice()).map_err(|_| anyhow!("invalid address"))
+            }
+            TransactionData::RawData(_) => Ok(Default::default()),
+            TransactionData::Create(CreateApplicationTx { package_name, .. }) => {
+                get_address_from_seed(
+                    package_name.as_bytes(),
+                    self.from()
+                        .network()
+                        .ok_or(anyhow!("network not specified on senders address"))?,
+                )
+            }
+            TransactionData::Update(UpdateApplicationTx { app_id, .. }) => {
+                Address::from_slice(app_id.as_slice()).map_err(|_| anyhow!("invalid address"))
+            }
+        })
     }
 
     pub fn origin(&self) -> Address {
@@ -499,10 +493,16 @@ impl SignedTransaction {
     }
 
     pub fn from(&self) -> Address {
-        self.from
+        cache(&self.from, || {
+            let signature = Signature::from_rsv((self.r, self.s, self.v)).unwrap();
+            signature
+                .recover_public_key(self.sig_hash()?.as_slice())
+                .map_err(|e| anyhow::anyhow!(e))
+                .map(|key| get_address_from_pub_key(key, Network::from_chain_id(self.tx.chain_id)))
+        })
     }
     pub fn network(&self) -> Network {
-        self.from.network().unwrap_or(Network::Testnet)
+        self.from().network().unwrap_or_default()
     }
     pub fn fees(&self) -> u64 {
         self.tx.fee
@@ -528,9 +528,9 @@ impl prost::Message for SignedTransaction {
         Self: Sized,
     {
         self.tx.encode_raw(buf);
-        prost::encoding::bytes::encode(10, &self.r, buf);
-        prost::encoding::bytes::encode(11, &self.s, buf);
-        prost::encoding::bytes::encode(12, &self.v, buf);
+        prost::encoding::bytes::encode(11, &self.r, buf);
+        prost::encoding::bytes::encode(12, &self.s, buf);
+        prost::encoding::bytes::encode(13, &self.v, buf);
     }
 
     fn merge_field<B>(
@@ -545,20 +545,20 @@ impl prost::Message for SignedTransaction {
         Self: Sized,
     {
         match tag {
-            1..=9 => self.tx.merge_field(tag, wire_type, buf, ctx),
-            10 => prost::encoding::bytes::merge(wire_type, &mut self.r, buf, ctx).map_err(
+            1..=10 => self.tx.merge_field(tag, wire_type, buf, ctx),
+            11 => prost::encoding::bytes::merge(wire_type, &mut self.r, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "r");
                     error
                 },
             ),
-            11 => prost::encoding::bytes::merge(wire_type, &mut self.s, buf, ctx).map_err(
+            12 => prost::encoding::bytes::merge(wire_type, &mut self.s, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "s");
                     error
                 },
             ),
-            12 => prost::encoding::bytes::merge(wire_type, &mut self.v, buf, ctx).map_err(
+            13 => prost::encoding::bytes::merge(wire_type, &mut self.v, buf, ctx).map_err(
                 |mut error| {
                     error.push(STRUCT_NAME, "v");
                     error
@@ -570,9 +570,9 @@ impl prost::Message for SignedTransaction {
 
     fn encoded_len(&self) -> usize {
         self.tx.encoded_len()
-            + prost::encoding::bytes::encoded_len(10, &self.r)
-            + prost::encoding::bytes::encoded_len(11, &self.s)
-            + prost::encoding::bytes::encoded_len(12, &self.v)
+            + prost::encoding::bytes::encoded_len(11, &self.r)
+            + prost::encoding::bytes::encoded_len(12, &self.s)
+            + prost::encoding::bytes::encoded_len(13, &self.v)
     }
 
     fn clear(&mut self) {}

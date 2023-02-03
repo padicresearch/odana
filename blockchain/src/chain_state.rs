@@ -247,7 +247,7 @@ impl ChainState {
             self.sender.send(LocalEventMessage::StateChanged {
                 current_head: self.current_header().unwrap().unwrap().raw,
             })?;
-            info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Applied new block");
+            info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), tx_count = block.transactions().len(), "Applied new block");
             repack = true;
         } else {
             let state = self.state();

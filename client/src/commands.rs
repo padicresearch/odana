@@ -3,23 +3,25 @@ use crate::rpc::transactions_service_client::TransactionsServiceClient;
 use crate::rpc::GetAccountRequest;
 use crate::util::parse_cli_args_to_json;
 use anyhow::{anyhow, bail};
-use clap::{Args, Subcommand};
+use clap::{command, Args, Subcommand};
 use pretty_hex::HexConfig;
 use primitive_types::{Address, H256};
-use protobuf::reflect::FileDescriptor;
+use prost::Message;
+use protobuf::reflect::{FileDescriptor, MessageDescriptor};
 use protobuf::text_format::print_to_string_pretty;
 use protobuf_json_mapping::{Command, CommandError, ParseOptions};
+use serde_json::{json, Number, Value};
 use std::collections::HashMap;
 use std::f32::consts::E;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
-use transaction::make_payment_sign_transaction;
+use transaction::{make_payment_sign_transaction, make_signed_transaction};
 use types::account::get_address_from_secret_key;
 use types::network::Network;
-use types::prelude::Empty;
-use types::tx::Transaction;
+use types::prelude::{get_address_from_seed, Empty};
+use types::tx::{ApplicationCallTx, CreateApplicationTx, Transaction, TransactionData};
 
 #[derive(Args, Debug)]
 pub struct ClientArgsCommands {
@@ -35,45 +37,130 @@ pub enum ClientCommands {
     GetNonce(AddressArg),
     GetAccountState(AddressArg),
     SendPayment(SendPaymentArgs),
-    Call(CallArgs),
+    App(AppArgsCommands),
     GetTxpool,
 }
 
 #[derive(Args, Debug)]
+pub struct AppArgsCommands {
+    #[clap(subcommand)]
+    command: AppCommands,
+}
+
+#[derive(Args, Debug)]
+pub struct SignerArgs {
+    #[clap(long)]
+    tip: u64,
+    #[clap(long)]
+    value: u64,
+    #[clap(long, value_parser = parse_signer)]
+    signer: H256,
+}
+
+#[derive(Args, Debug)]
+pub struct ProtoFilesArg {
+    #[clap(long)]
+    proto_include: Vec<PathBuf>,
+    #[clap(long)]
+    proto_input: Vec<PathBuf>,
+    #[clap(long)]
+    schema_in: String,
+    #[clap(long)]
+    schema_out: Option<String>,
+}
+
+impl ProtoFilesArg {
+    fn find_schemas(&self) -> anyhow::Result<(MessageDescriptor, Option<MessageDescriptor>)> {
+        let mut schema_in = None;
+        let mut schema_out = None;
+        let files = protobuf_parse::Parser::new()
+            .includes(
+                self.proto_include
+                    .iter()
+                    .map(|f| std::fs::canonicalize(f.as_path()).unwrap()),
+            )
+            .inputs(std::fs::canonicalize(self.proto_input.as_path()).unwrap())
+            .file_descriptor_set()?;
+        'files_iter: for proto_file in files.file {
+            let file_descriptor = FileDescriptor::new_dynamic(proto_file, &[])?;
+            for message in file_descriptor.messages() {
+                if schema_in.is_some() && schema_out.is_some() {
+                    break 'files_iter;
+                } else if schema_in.is_some() && self.schema_out.is_none() {
+                    break 'files_iter;
+                }
+                if self.schema_in.eq(message.name()) {
+                    schema_in = Some(message.clone());
+                }
+
+                if let Some(n) = &self.schema_out {
+                    if n == message.name() {
+                        schema_out = Some(message);
+                    }
+                }
+            }
+        }
+        let Some(schema_in) = schema_in else {
+            bail!("input schema [{}] message descriptor not found", self.schema_in)
+        };
+        Ok((schema_in, schema_out))
+    }
+}
+
+#[derive(Subcommand, Debug)]
+pub enum AppCommands {
+    Call(CallArgs),
+    Create(AppCreateArgs),
+    Query(AppQueryArgs),
+}
+
+#[derive(Args, Debug)]
 pub struct AddressArg {
-    #[clap(short, long, value_parser = parse_address)]
+    #[clap(long, value_parser = parse_address)]
     address: Address,
 }
 
 #[derive(Args, Debug)]
 pub struct SendPaymentArgs {
-    #[clap(short, long, value_parser = parse_address)]
+    #[clap(long, value_parser = parse_address)]
     to: Address,
-    #[clap(short, long)]
+    #[clap(long)]
     amount: u64,
-    #[clap(short, long)]
+    #[clap(long)]
     fee: u64,
-    #[clap(short, long, value_parser = parse_signer)]
+    #[clap(long, value_parser = parse_signer)]
     signer: H256,
 }
 
 #[derive(Args, Debug)]
 pub struct CallArgs {
-    #[clap(short, long)]
+    #[clap(long)]
     app: String,
-    #[clap(short, long)]
-    proto_include: Vec<PathBuf>,
-    #[clap(short, long)]
-    proto_input: PathBuf,
-    #[clap(short, long)]
-    message: String,
-    #[clap(short, long)]
-    tip: u64,
-    #[clap(short, long)]
-    value: u64,
-
+    #[clap(flatten)]
+    sign_args: SignerArgs,
+    #[clap(flatten)]
+    proto: ProtoFilesArg,
     #[clap(require_equals = true, multiple = true)]
-    call_args: Vec<String>,
+    params: Vec<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct AppCreateArgs {
+    #[clap(long)]
+    package_name: String,
+    #[clap(flatten)]
+    sign_args: SignerArgs,
+    bin_path: PathBuf,
+}
+
+#[derive(Args, Debug)]
+pub struct AppQueryArgs {
+    #[clap(long)]
+    package_name: String,
+    #[clap(flatten)]
+    proto: ProtoFilesArg,
+    #[clap(require_equals = true, multiple = true)]
+    params: Vec<String>,
 }
 
 pub(crate) fn parse_address(s: &str) -> Result<Address, String> {
@@ -101,7 +188,7 @@ pub(crate) fn parse_signer(s: &str) -> Result<H256, String> {
         .map(|decode_hex| H256::from_slice(&decode_hex))
 }
 
-pub fn handle_command(cmd: &Command) -> Result<Vec<u8>, CommandError> {
+pub fn handle_cmd_string(cmd: &Command) -> Result<Vec<u8>, CommandError> {
     match cmd.op {
         "hex" => {
             hex::decode(cmd.data).map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))
@@ -131,8 +218,120 @@ pub fn handle_command(cmd: &Command) -> Result<Vec<u8>, CommandError> {
     }
 }
 
-pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Result<()> {
-    match &command.command {
+pub async fn handle_app_command(
+    rpc_addr: &str,
+    command: &AppArgsCommands,
+) -> anyhow::Result<Value> {
+    let mut account_service = AccountServiceClient::connect(format!("http://{}", rpc_addr)).await?;
+    let mut tx_service = TransactionsServiceClient::connect(format!("http://{}", rpc_addr)).await?;
+
+    let resp = match &command.command {
+        AppCommands::Call(CallArgs {
+                              app,
+                              sign_args,
+                              proto,
+                              params,
+                          }) => {
+            let signer = sign_args.signer;
+            let value = sign_args.value;
+            let tip = sign_args.tip;
+
+            let signer_address = get_address_from_secret_key(signer, Network::Testnet)?;
+
+            let nonce = account_service
+                .get_nonce(GetAccountRequest {
+                    address: signer_address.to_vec(),
+                })
+                .await?
+                .get_ref()
+                .nonce;
+
+            let app_id = get_address_from_seed(app.as_bytes(), Network::Testnet)?.to_vec();
+
+            let opts = ParseOptions {
+                ignore_unknown_fields: false,
+                handler: &handle_cmd_string,
+                _future_options: (),
+            };
+
+            let mut hex_config = HexConfig::default();
+            hex_config.ascii = false;
+
+            let json_value = parse_cli_args_to_json(params.iter())?;
+            let json_string = serde_json::to_string(&json_value)?;
+
+            let (call_message, _) = proto.find_schemas()?;
+            let msg = protobuf_json_mapping::parse_dyn_from_str_with_options(
+                &call_message,
+                &json_string,
+                &opts,
+            )?;
+            let mut encoded_call = Vec::new();
+            msg.write_to_vec_dyn(&mut encoded_call)?;
+            let data = TransactionData::Call(ApplicationCallTx {
+                app_id,
+                args: encoded_call,
+            });
+            let signed_tx =
+                make_signed_transaction(signer, nonce, value, tip, Network::Testnet, data)?;
+            let signed_tx_size = signed_tx.encode_to_vec().len();
+            let response = tx_service.send_transaction(signed_tx).await?;
+            json!({
+                "tx_size" : signed_tx_size,
+                "tx_hash" : H256::from_slice(&response.get_ref().hash),
+            })
+        }
+        AppCommands::Create(AppCreateArgs {
+                                package_name,
+                                sign_args,
+                                bin_path,
+                            }) => {
+            let signer = sign_args.signer;
+            let value = sign_args.value;
+            let tip = sign_args.tip;
+
+            let signer_address = get_address_from_secret_key(signer, Network::Testnet)?;
+
+            let nonce = account_service
+                .get_nonce(GetAccountRequest {
+                    address: signer_address.to_vec(),
+                })
+                .await?
+                .get_ref()
+                .nonce;
+
+            let mut file = File::open(bin_path)?;
+            let mut binary = Vec::with_capacity(file.metadata()?.len() as usize);
+            let _ = file.read_to_end(&mut binary)?;
+            let code_hash = crypto::keccak256(&binary);
+            println!("Code Hash: {:?}", code_hash);
+            let data = TransactionData::Create(CreateApplicationTx {
+                package_name: package_name.to_owned(),
+                binary,
+            });
+            let signed_tx =
+                make_signed_transaction(signer, nonce, value, tip, Network::Testnet, data)?;
+            let signed_tx_size = signed_tx.encode_to_vec().len();
+            let response = tx_service.send_transaction(signed_tx).await?;
+            json!({
+                "code_hash" : code_hash,
+                "tx_size" : signed_tx_size,
+                "tx_hash" : H256::from_slice(&response.get_ref().hash),
+            })
+        }
+        AppCommands::Query(AppQueryArgs {
+                               package_name,
+                               proto,
+                               params,
+                           }) => {
+            json!({})
+        }
+    };
+    Ok(resp)
+}
+
+pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Result<Value> {
+    let resp = match &command.command {
         ClientCommands::GetBalance(AddressArg { address }) => {
             let mut account_service =
                 AccountServiceClient::connect(format!("http://{}", command.rpc_addr)).await?;
@@ -141,7 +340,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                     address: address.to_vec(),
                 })
                 .await?;
-            println!("{}", balance.get_ref().balance)
+            Value::Number(balance.get_ref().balance.into())
         }
         ClientCommands::GetNonce(AddressArg { address }) => {
             let mut account_service =
@@ -151,7 +350,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                     address: address.to_vec(),
                 })
                 .await?;
-            println!("{}", nonce.get_ref().nonce)
+            Value::Number(nonce.get_ref().nonce.into())
         }
         ClientCommands::GetAccountState(AddressArg { address }) => {
             let mut account_service =
@@ -161,11 +360,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                     address: address.to_vec(),
                 })
                 .await?;
-
-            println!(
-                "{}",
-                serde_json::to_string_pretty(account_state.get_ref()).unwrap_or_default()
-            )
+            serde_json::to_value(account_state.get_ref())?
         }
         ClientCommands::SendPayment(SendPaymentArgs {
             to,
@@ -196,8 +391,14 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                 *fee,
                 Network::Testnet,
             )?;
+
+            let signed_tx_size = signed_tx.encode_to_vec().len();
             let response = tx_service.send_transaction(signed_tx).await?;
-            println!("{}", hex::encode(&response.get_ref().hash, false))
+
+            json!({
+                "tx_size" : signed_tx_size,
+                "tx_hash" : H256::from_slice(&response.get_ref().hash),
+            })
         }
         ClientCommands::GetTxpool => {
             let mut tx_service =
@@ -217,63 +418,12 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                 .iter()
                 .map(|r| (Address::from_slice(&r.address).unwrap_or_default(), &r.txs))
                 .collect();
-
-            // TODO: use table in pretty mode
-            let json_rep = serde_json::json!({
+            json!({
                 "queued" : queued_txs,
                 "pending" : pending_txs,
-            });
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&json_rep).unwrap_or_default()
-            )
+            })
         }
-        ClientCommands::Call(CallArgs {
-                                 app,
-                                 tip,
-                                 value,
-                                 message,
-                                 proto_include,
-                                 proto_input,
-                                 call_args,
-                             }) => {
-            let opts = ParseOptions {
-                ignore_unknown_fields: false,
-                handler: &handle_command,
-                _future_options: (),
-            };
-
-            let mut hex_config = HexConfig::default();
-            hex_config.ascii = false;
-
-            let json_value = parse_cli_args_to_json(call_args.iter())?;
-            let json_string = serde_json::to_string(&json_value)?;
-
-            let files = protobuf_parse::Parser::new()
-                .includes(
-                    proto_include
-                        .iter()
-                        .map(|f| std::fs::canonicalize(f.as_path()).unwrap()),
-                )
-                .input(std::fs::canonicalize(proto_input.as_path()).unwrap())
-                .file_descriptor_set()?;
-            let proto_file = files.file[0].clone();
-            let file_descriptor = FileDescriptor::new_dynamic(proto_file, &[])?;
-            let call_message = file_descriptor
-                .message_by_package_relative_name(message)
-                .ok_or(anyhow!("message: {message} not found"))?;
-            let msg = protobuf_json_mapping::parse_dyn_from_str_with_options(
-                &call_message,
-                &json_string,
-                &opts,
-            )?;
-            println!("Call: {}", print_to_string_pretty(msg.as_ref()));
-            let mut encoded_message = Vec::new();
-            msg.write_to_vec_dyn(&mut encoded_message)?;
-            println!("Call Encoded");
-            println!("{}", pretty_hex::config_hex(&encoded_message, hex_config));
-        }
-    }
-
-    Ok(())
+        ClientCommands::App(a) => handle_app_command(&command.rpc_addr, a).await?,
+    };
+    Ok(resp)
 }

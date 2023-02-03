@@ -17,9 +17,8 @@ message BlockHeader {
 }
 
 message Block {
-  bytes hash = 1;
-  BlockHeader header = 2;
-  repeated SignedTransaction txs = 3;
+  BlockHeader header = 1;
+  repeated SignedTransaction txs = 2;
 }
 
 message PaymentTx {
@@ -68,16 +67,17 @@ message SignedTransaction {
   uint32 chain_id = 2;
   bytes genesis_hash = 3;
   uint64 tip = 4;
+  uint64 value = 5;
   oneof data {
-    PaymentTx payment = 5;
-    ApplicationCallTx call = 6;
-    CreateApplicationTx create = 7;
-    UpdateApplicationTx update = 8;
-    bytes raw = 9;
+    PaymentTx payment = 6;
+    ApplicationCallTx call = 7;
+    CreateApplicationTx create = 8;
+    UpdateApplicationTx update = 9;
+    bytes raw = 10;
   }
-  bytes r = 10;
-  bytes s = 11;
-  uint32 v = 12;
+  bytes r = 11;
+  bytes s = 12;
+  uint32 v = 13;
 }
 
 message TransactionList {

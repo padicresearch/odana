@@ -70,6 +70,7 @@ num-traits = "0.2.15"
 getset = "0.1.2"
 bytes = { version = "1", features = ["serde"] }
 chrono = "0.4"
+parking_lot = "0.12.1"
 protobuf = { git = "https://github.com/padicresearch/rust-protobuf.git" }
 protobuf-json-mapping = { git = "https://github.com/padicresearch/rust-protobuf.git" }
 protobuf-parse = { git = "https://github.com/padicresearch/rust-protobuf.git" }

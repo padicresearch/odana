@@ -31,6 +31,7 @@ use std::{
 use strum::{EnumIter, IntoEnumIterator};
 use toml::value::Table;
 use walkdir::WalkDir;
+use wit_component::ComponentEncoder;
 
 /// Colorize an info message.
 ///
@@ -131,20 +132,20 @@ pub(crate) fn create_and_compile(
     );
 
     let profile = build_project(&project, default_rustflags, cargo_cmd);
-    let (wasm_binary, wasm_binary_compressed, bloaty) =
+    let (wasm_binary, wasm_compact_component_binary, bloaty) =
         compact_wasm_file(&project, profile, project_cargo_toml, wasm_binary_name);
 
     wasm_binary
         .as_ref()
         .map(|wasm_binary| copy_wasm_to_target_directory(project_cargo_toml, wasm_binary));
 
-    wasm_binary_compressed
+    wasm_compact_component_binary
         .as_ref()
         .map(|wasm_binary_compressed| {
             copy_wasm_to_target_directory(project_cargo_toml, wasm_binary_compressed)
         });
 
-    let final_wasm_binary = wasm_binary_compressed.or(wasm_binary);
+    let final_wasm_binary = wasm_compact_component_binary.or(wasm_binary);
 
     generate_rerun_if_changed_instructions(
         project_cargo_toml,
@@ -726,8 +727,8 @@ fn compact_wasm_file(
         .join(profile.directory())
         .join(format!("{}.wasm", default_out_name));
 
-    let (wasm_compact_path, wasm_compact_compressed_path) = if profile.wants_compact() {
-        let wasm_compact_path = project.join(format!("{}.compact.wasm", out_name,));
+    let (wasm_compact_path, wasm_compact_component_path) = if profile.wants_compact() {
+        let wasm_compact_path = project.join(format!("{}.compact.wasm", out_name, ));
         wasm_opt::OptimizationOptions::new_opt_level_0()
             .mvp_features_only()
             .debug_info(true)
@@ -735,12 +736,11 @@ fn compact_wasm_file(
             .run(&in_path, &wasm_compact_path)
             .expect("Failed to compact generated WASM binary.");
 
-        let wasm_compact_compressed_path =
-            project.join(format!("{}.compact.compressed.wasm", out_name));
-        if compress_wasm(&wasm_compact_path, &wasm_compact_compressed_path) {
+        let wasm_compact_component_path = project.join(format!("{}.component.wasm", out_name));
+        if component_wasm(&wasm_compact_path, &wasm_compact_component_path) {
             (
                 Some(WasmBinary(wasm_compact_path)),
-                Some(WasmBinary(wasm_compact_compressed_path)),
+                Some(WasmBinary(wasm_compact_component_path)),
             )
         } else {
             (Some(WasmBinary(wasm_compact_path)), None)
@@ -754,13 +754,22 @@ fn compact_wasm_file(
 
     (
         wasm_compact_path,
-        wasm_compact_compressed_path,
+        wasm_compact_component_path,
         WasmBinaryBloaty(bloaty_path),
     )
 }
 
-fn compress_wasm(_wasm_binary_path: &Path, _compressed_binary_out_path: &Path) -> bool {
-    false
+fn component_wasm(wasm_binary_path: &Path, component_binary_out_path: &Path) -> bool {
+    let wasm = fs::read(wasm_binary_path).expect("failed to read wasm file");
+    let encoder = ComponentEncoder::default()
+        .validate(true)
+        .module(&wasm)
+        .expect("component encoder failed to read wasm module");
+    let component_wasm = encoder
+        .encode()
+        .expect("component encoder failed to encode wasm");
+    fs::write(component_binary_out_path, component_wasm).expect("failed to write component wasm");
+    true
 }
 
 /// Custom wrapper for a [`cargo_metadata::Package`] to store it in

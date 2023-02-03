@@ -10,7 +10,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use blockchain::chain_state::ChainState;
 use merkle::Merkle;
 use p2p::peer_manager::NetworkState;
-use primitive_types::{Address, U256};
+use primitive_types::{Address, H256, U256};
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB, WasmVMInstance};
 use txpool::TxPool;
@@ -132,7 +132,7 @@ pub fn start_worker(
     }
 }
 
-fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedTransaction>)> {
+fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<(H256, Vec<SignedTransaction>)> {
     let txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
     let mut tsx = Vec::new();
     let mut merkle = Merkle::default();
@@ -149,7 +149,7 @@ fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedT
         Some(root) => *root,
     };
 
-    Ok((merkle_root, tsx))
+    Ok((H256::from(merkle_root), tsx))
 }
 
 fn make_block_template(
@@ -167,14 +167,13 @@ fn make_block_template(
     };
     let state = state.state_at(*parent_header.state_root())?;
     let (tx_root, txs) = pack_queued_txs(txpool)?;
-
     let mut mix_nonce = [0; 32];
     U256::one().to_big_endian(&mut mix_nonce);
     let time = Utc::now().timestamp() as u32;
     let mut header = BlockHeader::new(
         parent_header.hash(),
         [0; 32].into(),
-        tx_root.into(),
+        tx_root,
         [0; 32].into(),
         mix_nonce.into(),
         coinbase,

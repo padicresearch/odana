@@ -30,6 +30,26 @@ pub fn make_payment_sign_transaction(
     sign_tx(signer, tx)
 }
 
+pub fn make_signed_transaction(
+    signer: H256,
+    nonce: u64,
+    amount: u64,
+    fee: u64,
+    network: Network,
+    data: TransactionData,
+) -> Result<SignedTransaction> {
+    let chain_id = network.chain_id();
+    let tx = Transaction {
+        nonce,
+        chain_id,
+        genesis_hash: Default::default(),
+        fee,
+        value: amount,
+        data,
+    };
+    sign_tx(signer, tx)
+}
+
 pub fn sign_tx(secret: H256, tx: Transaction) -> Result<SignedTransaction> {
     let payload = tx.sig_hash();
     let secrete = SecretKey::from_bytes(secret.as_fixed_bytes())?;

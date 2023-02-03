@@ -14,25 +14,25 @@ use types::account::{get_address_from_pub_key, get_address_from_seed, AccountSta
 use types::network::Network;
 use types::{Addressing, Changelist};
 
-pub struct ExecutionEnvironment<'a> {
+pub struct ExecutionEnvironment {
     network: Network,
     sender: Address,
     app_address: Address,
     value: u64,
     storage: SparseMerkleTree,
-    state_db: &'a dyn StateDB,
+    state_db: Arc<dyn StateDB>,
     blockchain: Arc<dyn ChainHeadReader>,
     accounts: HashMap<Address, AccountState>,
     events: Vec<Vec<u8>>,
 }
 
-impl<'a> ExecutionEnvironment<'a> {
+impl ExecutionEnvironment {
     pub fn new(
         origin: Address,
         app_id: Address,
         value: u64,
         storage: SparseMerkleTree,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
         blockchain: Arc<dyn ChainHeadReader>,
     ) -> anyhow::Result<ExecutionEnvironment> {
         let mut accounts = HashMap::new();
@@ -62,7 +62,7 @@ impl<'a> ExecutionEnvironment<'a> {
     }
 }
 
-impl<'a> Syscall for ExecutionEnvironment<'a> {
+impl Syscall for ExecutionEnvironment {
     fn block_hash(&mut self, level: u32) -> anyhow::Result<Vec<u8>> {
         Ok(self
             .blockchain
@@ -132,7 +132,7 @@ impl<'a> Syscall for ExecutionEnvironment<'a> {
     }
 }
 
-impl<'a> Storage for ExecutionEnvironment<'a> {
+impl Storage for ExecutionEnvironment {
     fn insert(&mut self, key: Vec<u8>, value: Vec<u8>) -> anyhow::Result<()> {
         let _ = self.storage.update(key, value)?;
         Ok(())
@@ -147,20 +147,20 @@ impl<'a> Storage for ExecutionEnvironment<'a> {
     }
 }
 
-impl<'a> Event for ExecutionEnvironment<'a> {
+impl Event for ExecutionEnvironment {
     fn emit(&mut self, event: Vec<u8>) -> anyhow::Result<()> {
         Ok(self.events.push(event))
     }
 }
 
-impl<'a> Log for ExecutionEnvironment<'a> {
+impl Log for ExecutionEnvironment {
     fn print(&mut self, output: Vec<char>) -> anyhow::Result<()> {
         println!("{:?}", output);
         Ok(())
     }
 }
 
-impl<'a> ExecutionContext for ExecutionEnvironment<'a> {
+impl ExecutionContext for ExecutionEnvironment {
     fn value(&mut self) -> anyhow::Result<u64> {
         Ok(self.value)
     }
@@ -182,7 +182,7 @@ impl<'a> ExecutionContext for ExecutionEnvironment<'a> {
     }
 }
 
-impl<'a> From<ExecutionEnvironment<'a>> for Changelist {
+impl From<ExecutionEnvironment> for Changelist {
     fn from(value: ExecutionEnvironment) -> Self {
         Self {
             account_changes: value.accounts,

@@ -18,6 +18,7 @@ use p2p::start_p2p_server;
 use rpc::start_rpc_server;
 use storage::{PersistentStorage, PersistentStorageBackend};
 use tracing::tracing_subscriber::fmt::writer::MakeWriterExt;
+use tracing::tracing_subscriber::EnvFilter;
 use tracing::{info, tracing_subscriber, warn};
 use traits::Handler;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
@@ -56,14 +57,12 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
 
     let mk_writer = std::io::stderr.with_max_level(Level::ERROR).or_else(
         std::io::stdout
+            .with_filter(|meta| meta.target() != "cranelift_codegen::context")
             .with_max_level(log_level.into())
             .and(debug_log.with_max_level(Level::DEBUG)),
     );
 
-    tracing_subscriber::fmt()
-        .with_max_level(Level::TRACE)
-        .with_writer(mk_writer)
-        .init();
+    tracing_subscriber::fmt().with_writer(mk_writer).init();
 
     // Communications
     let (local_mpsc_sender, mut local_mpsc_receiver) = tokio::sync::mpsc::unbounded_channel();

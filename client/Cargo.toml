@@ -25,6 +25,7 @@ pretty-hex = "0.3.0"
 codec = { path = "../codec" }
 hex = { path = "../common/hex" }
 account = { path = "../account" }
+crypto = { path = "../crypto" }
 transaction = { path = "../transaction" }
 types = { path = "../common/types" }
 primitive-types = { path = "../common/primitive-types" }

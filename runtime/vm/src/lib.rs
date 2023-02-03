@@ -10,6 +10,7 @@ use wasmtime::component::{Component, Linker};
 use wasmtime::{Config, Engine, Store};
 
 mod env;
+mod tests;
 
 use crate::internal::App;
 use types::account::{get_address_from_seed, AccountState};
@@ -34,17 +35,19 @@ impl WasmVM {
         appdata: Arc<dyn AppData>,
         blockchain: Arc<dyn ChainHeadReader>,
     ) -> anyhow::Result<Self> {
-        Engine::new(Config::new().consume_fuel(true)).map(|engine| Self {
-            engine: Arc::new(engine),
-            appdata,
-            blockchain,
-            apps: Arc::new(Default::default()),
+        Engine::new(Config::new().consume_fuel(false).wasm_component_model(true)).map(|engine| {
+            Self {
+                engine: Arc::new(engine),
+                appdata,
+                blockchain,
+                apps: Arc::new(Default::default()),
+            }
         })
     }
 
-    pub fn create_application<'a>(
+    pub fn create_application(
         &self,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
         origin: Address,
         app_id: Address,
         value: u64,
@@ -52,8 +55,9 @@ impl WasmVM {
     ) -> anyhow::Result<Changelist> {
         let engine = &self.engine;
         let storage = SparseMerkleTree::new();
+        println!("creating component store");
         let mut store = Store::new(
-            engine,
+            &engine,
             ExecutionEnvironment::new(
                 origin,
                 app_id,
@@ -64,14 +68,13 @@ impl WasmVM {
             )?,
         );
 
-        let mut linker = Linker::<ExecutionEnvironment>::new(engine);
+        let mut linker = Linker::<ExecutionEnvironment>::new(&engine);
         internal::syscall::add_to_linker(&mut linker, |env| env)?;
         internal::log::add_to_linker(&mut linker, |env| env)?;
         internal::execution_context::add_to_linker(&mut linker, |env| env)?;
         internal::storage::add_to_linker(&mut linker, |env| env)?;
         internal::event::add_to_linker(&mut linker, |env| env)?;
-
-        let component = Component::from_binary(engine, binary)?;
+        let component = Component::from_binary(&engine, binary)?;
         let instance = linker.instantiate(&mut store, &component)?;
         let app = App::new(&mut store, &instance)?;
         let app = app.app();
@@ -80,12 +83,10 @@ impl WasmVM {
         Ok(env.into())
     }
 
-    pub fn load_application<'a>(
+    pub fn load_application(
         &self,
-        state_db: &'a dyn StateDB,
-        origin: Address,
-        app_id: Address,
-        value: u64,
+        state_db: Arc<dyn StateDB>,
+        app_id: Address, //TODO; use codehash instead of app id
         binary: Vec<u8>,
     ) -> anyhow::Result<()> {
         let engine = &self.engine;
@@ -93,9 +94,9 @@ impl WasmVM {
         let mut store = Store::new(
             engine,
             ExecutionEnvironment::new(
-                origin,
+                Default::default(),
                 app_id,
-                value,
+                0,
                 storage,
                 state_db.clone(),
                 self.blockchain.clone(),
@@ -118,9 +119,9 @@ impl WasmVM {
         Ok(())
     }
 
-    pub fn execute_call<'a>(
+    pub fn execute_call(
         &self,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
         origin: Address,
         app_id: Address,
         value: u64,
@@ -148,9 +149,9 @@ impl WasmVM {
         Ok(env.into())
     }
 
-    pub fn execute_query<'a>(
+    pub fn execute_query(
         &self,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
         origin: Address,
         app_id: Address,
         value: u64,
@@ -169,9 +170,9 @@ impl WasmVM {
                 app_id,
                 value,
                 storage,
-                state_db.clone(),
+                state_db,
                 self.blockchain.clone(),
-            ),
+            )?,
         );
         app.query(&mut store, query)
     }
@@ -180,11 +181,12 @@ impl WasmVM {
 impl WasmVMInstance for WasmVM {
     fn execute_app_create<'a>(
         &self,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
         sender: Address,
         value: u64,
         call: &CreateApplicationTx,
     ) -> anyhow::Result<Changelist> {
+        println!("executing create app sender {:?}", sender);
         let app_id = get_address_from_seed(
             call.package_name.as_bytes(),
             sender.network().ok_or(anyhow!("invalid network"))?,
@@ -192,9 +194,9 @@ impl WasmVMInstance for WasmVM {
         self.create_application(state_db, sender, app_id, value, &call.binary)
     }
 
-    fn execute_app_tx<'a>(
+    fn execute_app_tx(
         &self,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
         sender: Address,
         value: u64,
         call: &ApplicationCallTx,
@@ -208,9 +210,21 @@ impl WasmVMInstance for WasmVM {
         )
     }
 
-    fn execute_app_query<'a>(
+    fn load_app(
         &self,
-        state_db: &'a dyn StateDB,
+        state_db: Arc<dyn StateDB>,
+        app_id: Address,
+        binary: Vec<u8>,
+    ) -> anyhow::Result<()> {
+        if self.apps.read().contains_key(&app_id) {
+            return Ok(());
+        }
+        self.load_application(state_db, app_id, binary)
+    }
+
+    fn execute_app_query(
+        &self,
+        state_db: Arc<dyn StateDB>,
         app_id: Address,
         raw_query: &[u8],
     ) -> anyhow::Result<Vec<u8>> {

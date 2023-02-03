@@ -35,7 +35,7 @@ mod internal {
 #[doc(hidden)]
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 use crate::context::Context;
-use primitive_types::{Address, H256};
+use primitive_types::{Address, H256, H512};
 use prost::Message;
 use rune_std::prelude::*;
 

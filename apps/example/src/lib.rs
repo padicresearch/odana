@@ -1,5 +1,5 @@
 #![cfg_attr(not(test), no_std)]
-
+include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 extern crate alloc;
 
 use crate::types::call::Data;
@@ -7,7 +7,7 @@ use crate::types::{query, query_response, GetName, QueryResponse, ReservationInf
 use primitive_types::Address;
 use rune_framework::context::Context;
 use rune_framework::io::{Blake2bHasher, StorageMap, StorageValue};
-use rune_framework::{io, RuntimeApplication};
+use rune_framework::*;
 use rune_std::prelude::*;
 
 #[allow(unused_imports)]
@@ -94,3 +94,5 @@ impl RuntimeApplication for Nick {
         }
     }
 }
+
+export_app!(Nick);
