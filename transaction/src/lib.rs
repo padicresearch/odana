@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 
 use crypto::ecdsa::SecretKey;
 use primitive_types::{Address, H256};
-use types::account::Account;
+
 use types::network::Network;
 use types::prelude::TransactionData;
 use types::tx::{PaymentTx, SignedTransaction, Transaction};
@@ -67,7 +67,7 @@ impl<'a> Eq for NoncePricedTransaction<'a> {}
 
 impl<'a> PartialEq for NoncePricedTransaction<'a> {
     fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
+        self.0.eq(other.0)
     }
 }
 

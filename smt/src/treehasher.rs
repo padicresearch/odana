@@ -7,7 +7,7 @@ pub trait TreeHasher: Encode + Decode + Clone {
     fn digest(&self, data: &[u8]) -> H256;
     #[inline]
     fn path(&self, key: &[u8]) -> H256 {
-        self.digest(&key)
+        self.digest(key)
     }
 
     #[inline]

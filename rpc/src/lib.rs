@@ -22,9 +22,10 @@ use crate::txs::TransactionsServiceImpl;
 
 mod account;
 mod blockchain;
+#[allow(clippy::all)]
 mod rpc;
-mod txs;
 mod runtime;
+mod txs;
 
 pub struct RPC;
 

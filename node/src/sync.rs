@@ -150,7 +150,7 @@ impl SyncService {
             let (_, sync_point) = self.tip_before_sync.as_ref().unwrap();
 
             if sync_point.level() > node_level {
-                self.last_request_index = node_level as u32 + 1;
+                self.last_request_index = node_level + 1;
                 self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index,
                     24,
@@ -158,7 +158,7 @@ impl SyncService {
             } else if sync_point.level() <= node_level {
                 self.tip_before_sync = None;
                 if node_level < self.network_tip.level() {
-                    self.last_request_index = node_level as u32 + 1;
+                    self.last_request_index = node_level + 1;
                     self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip));
                     self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                         self.last_request_index,
@@ -168,8 +168,8 @@ impl SyncService {
             }
         } else {
             self.sync_mode = Arc::new(SyncMode::Backward);
-            if self.last_request_index > node_level as u32 {
-                self.last_request_index = node_level as u32;
+            if self.last_request_index > node_level {
+                self.last_request_index = node_level;
             }
             if self.last_request_index == 0 {
                 // If we are already at zero, lets give up
@@ -233,7 +233,7 @@ impl SyncService {
             self.highest_peer = peer_id.clone();
             if self.tip_before_sync.is_none() && tip.level() > node_height {
                 // TODO; stop mining
-                self.last_request_index = tip.level() as u32;
+                self.last_request_index = tip.level();
                 self.tip_before_sync = Some((peer_id, tip));
                 self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                     node_height + 1,
@@ -263,7 +263,7 @@ impl SyncService {
             consensus,
             block_storage,
             sync_mode,
-            last_request_index: node_height as u32,
+            last_request_index: node_height,
             finder_multiplier: 1,
             network_tip,
             highest_peer: "".to_string(),

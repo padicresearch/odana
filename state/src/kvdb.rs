@@ -1,5 +1,5 @@
 use crate::persistent::{default_db_opts, RocksDB};
-use crate::store::{cfs, DatabaseBackend, TrieCacheDatabase};
+use crate::store::DatabaseBackend;
 use anyhow::Result;
 use codec::Codec;
 use dashmap::DashMap;
@@ -19,7 +19,7 @@ where
     K: Codec,
     V: Codec,
 {
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub(crate) fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Arc::new(rocksdb::DB::open(&default_db_opts(), path.as_ref())?);
         Ok(Self {
             inner: Arc::new(RocksDB::new(db)),
@@ -29,7 +29,7 @@ where
         })
     }
 
-    pub fn open_read_only_at_root<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub(crate) fn open_read_only_at_root<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Arc::new(rocksdb::DB::open_for_read_only(
             &default_db_opts(),
             path.as_ref(),
@@ -64,7 +64,7 @@ where
         V::decode(&raw)
     }
 
-    fn delete(&self, key: &K) -> Result<()> {
+    pub(crate) fn delete(&self, key: &K) -> Result<()> {
         let key = key.encode()?;
         if self.read_only {
             self.staging.remove(&key);

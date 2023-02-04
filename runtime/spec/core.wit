@@ -1,7 +1,6 @@
 default world core {
    import syscall: interface {
        block-hash : func(level : u32) -> list<u8>
-       block : func(block-hash : list<u8>) -> list<u8>
        address-from-pk : func(pk : list<u8>) -> list<u8>
        generate-keypair : func() -> tuple<list<u8>,list<u8>>
        generate-native-address : func(seed : list<u8>) -> list<u8>

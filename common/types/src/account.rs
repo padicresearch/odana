@@ -1,8 +1,6 @@
-use anyhow::{anyhow, bail, Result};
-use serde::ser::Error;
+use anyhow::{anyhow, Result};
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
-use std::str::FromStr;
 
 use bech32::{ToBase32, Variant};
 use serde::{Deserialize, Serialize};
@@ -18,14 +16,51 @@ use primitive_types::{Address, ADDRESS_LEN, H160, H256};
 pub struct AppState {
     #[prost(bytes = "vec", tag = "1")]
     #[serde(with = "hex")]
-    pub root_hash: Vec<u8>,
+    root_hash: Vec<u8>,
     #[prost(bytes = "vec", tag = "2")]
     #[serde(with = "hex")]
-    pub code_hash: Vec<u8>,
+    code_hash: Vec<u8>,
     #[prost(bytes = "vec", tag = "3")]
-    pub creator: Vec<u8>,
+    #[serde(with = "crate::as_address")]
+    creator: Vec<u8>,
     #[prost(uint32, tag = "4")]
-    pub version: u32,
+    version: u32,
+}
+
+impl AppState {
+    pub fn root_hash(&self) -> H256 {
+        H256::from_slice(self.root_hash.as_slice())
+    }
+    pub fn code_hash(&self) -> H256 {
+        H256::from_slice(self.code_hash.as_slice())
+    }
+    pub fn creator(&self) -> Address {
+        Address::from_slice(self.creator.as_slice()).unwrap()
+    }
+    pub fn version(&self) -> u32 {
+        self.version
+    }
+
+    pub fn set_root_hash(&mut self, root_hash: H256) {
+        self.root_hash = root_hash.as_bytes().to_vec();
+    }
+    pub fn set_code_hash(&mut self, code_hash: H256) {
+        self.code_hash = code_hash.as_bytes().to_vec();
+    }
+    pub fn set_creator(&mut self, creator: Address) {
+        self.creator = creator.to_vec();
+    }
+    pub fn set_version(&mut self, version: u32) {
+        self.version = version;
+    }
+    pub fn new(root_hash: H256, code_hash: H256, creator: Address, version: u32) -> Self {
+        Self {
+            root_hash: root_hash.as_bytes().to_vec(),
+            code_hash: code_hash.as_bytes().to_vec(),
+            creator: creator.to_vec(),
+            version,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, prost::Message)]
@@ -190,8 +225,7 @@ pub fn get_eth_address_from_pub_key(pub_key: PublicKey) -> H160 {
 mod tests {
     use crate::account::{get_address_from_app_id, Address};
     use crate::network::Network;
-    use bech32::{ToBase32, Variant};
-    use crypto::keccak256;
+
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug)]

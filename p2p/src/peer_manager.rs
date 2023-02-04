@@ -48,7 +48,7 @@ impl PeerList {
     }
 
     // TODO: use error enums
-    pub fn promote_peer<'a>(
+    pub fn promote_peer(
         &self,
         peer: &PeerId,
         request_id: RequestId,
@@ -84,7 +84,7 @@ impl PeerList {
                     .addrs
                     .get(&peer)
                     .map(|t| t.value().clone())
-                    .ok_or(anyhow::anyhow!("peer address not found"))?;
+                    .ok_or_else(|| anyhow::anyhow!("peer address not found"))?;
                 self.connected_peers.insert(peer.clone(), node);
 
                 Ok((peer, addr))
@@ -271,7 +271,7 @@ mod test {
 
     #[test]
     fn check_pow() {
-        let node_identity = NodeIdentity::generate(NODE_POW_TARGET.into());
+        let node_identity = NodeIdentity::generate(NODE_POW_TARGET);
         println!("Stramp {:#?}", node_identity.to_p2p_node());
     }
 }

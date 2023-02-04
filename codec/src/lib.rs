@@ -4,7 +4,7 @@ extern crate alloc;
 
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use bincode::config::{BigEndian, Fixint, NoLimit, SkipFixedArrayLength};
 use primitive_types::{Address, H160, H256};
 

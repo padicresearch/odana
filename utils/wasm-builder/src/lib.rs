@@ -31,8 +31,6 @@
 //!
 //! ```no_run
 //! use wasm_builder::WasmBuilder;
-//!
-//! fn main() {
 //!     WasmBuilder::new()
 //!         // Tell the builder to build the project (crate) this `build.rs` is part of.
 //!         .with_current_project()
@@ -42,7 +40,6 @@
 //!         .import_memory()
 //!         // Build it.
 //!         .build()
-//! }
 //! ```
 //!
 //! As the final step, you need to add the following to your project:
@@ -213,7 +210,7 @@ fn get_rustup_nightly(selected: Option<String>) -> Option<CargoCommand> {
         Some(selected) => selected,
         None => {
             let output = Command::new("rustup")
-                .args(&["toolchain", "list"])
+                .args(["toolchain", "list"])
                 .output()
                 .ok()?
                 .stdout;

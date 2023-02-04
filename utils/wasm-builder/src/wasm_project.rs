@@ -135,15 +135,13 @@ pub(crate) fn create_and_compile(
     let (wasm_binary, wasm_compact_component_binary, bloaty) =
         compact_wasm_file(&project, profile, project_cargo_toml, wasm_binary_name);
 
-    wasm_binary
-        .as_ref()
-        .map(|wasm_binary| copy_wasm_to_target_directory(project_cargo_toml, wasm_binary));
+    if let Some(wasm_binary) = wasm_binary.as_ref() {
+        copy_wasm_to_target_directory(project_cargo_toml, wasm_binary)
+    }
 
-    wasm_compact_component_binary
-        .as_ref()
-        .map(|wasm_binary_compressed| {
-            copy_wasm_to_target_directory(project_cargo_toml, wasm_binary_compressed)
-        });
+    if let Some(wasm_binary_compressed) = wasm_compact_component_binary.as_ref() {
+        copy_wasm_to_target_directory(project_cargo_toml, wasm_binary_compressed)
+    }
 
     let final_wasm_binary = wasm_compact_component_binary.or(wasm_binary);
 
@@ -414,7 +412,7 @@ fn find_package_by_manifest_path<'a>(
                 pkgs_by_name
             );
         } else {
-            return pkg;
+            pkg
         }
     } else {
         panic!("Failed to find entry for package {pkg_name} ({manifest_path:?}).");
@@ -435,7 +433,7 @@ fn project_enabled_features(
         .features
         .iter()
         .filter(|(f, v)| {
-            let mut feature_env = f.replace("-", "_");
+            let mut feature_env = f.replace('-', "_");
             feature_env.make_ascii_uppercase();
 
             // If this is a feature that corresponds only to an optional dependency
@@ -665,7 +663,7 @@ fn build_project(
     );
 
     build_cmd
-        .args(&["rustc", "--target=wasm32-unknown-unknown"])
+        .args(["rustc", "--target=wasm32-unknown-unknown"])
         .arg(format!("--manifest-path={}", manifest_path.display()))
         .env("RUSTFLAGS", rustflags)
         // Unset the `CARGO_TARGET_DIR` to prevent a cargo deadlock (cargo locks a target dir
@@ -880,7 +878,9 @@ fn generate_rerun_if_changed_instructions(
     // Make sure that if any file/folder of a dependency change, we need to rerun the `build.rs`
     packages.iter().for_each(package_rerun_if_changed);
 
-    compressed_or_compact_wasm.map(|w| rerun_if_changed(w.wasm_binary_path()));
+    if let Some(w) = compressed_or_compact_wasm {
+        rerun_if_changed(w.wasm_binary_path())
+    }
     rerun_if_changed(bloaty_wasm.wasm_binary_bloaty_path());
 
     // Register our env variables

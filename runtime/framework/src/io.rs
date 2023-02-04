@@ -1,11 +1,10 @@
 mod internal {
-    use rune_std::prelude::*;
     include!(concat!(env!("OUT_DIR"), "/io.rs"));
 }
 
 use anyhow::{bail, Result};
-use blake2b_simd::{blake2b, Params};
-use core::marker::PhantomData;
+use blake2b_simd::Params;
+
 use rune_std::prelude::*;
 
 pub trait StorageKeyHasher {
@@ -76,7 +75,7 @@ where
             return false
         };
         if V::decode(raw_value.as_slice()).is_err() {
-            return false
+            return false;
         };
         true
     }

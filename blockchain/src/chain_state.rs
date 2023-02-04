@@ -9,7 +9,7 @@ use rt_vm::WasmVM;
 use state::State;
 use storage::{KVStore, Schema};
 use tracing::{debug, info, trace, warn};
-use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB, WasmVMInstance};
+use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
 use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
@@ -80,7 +80,7 @@ impl ChainState {
         chain_state_storage: Arc<ChainStateStorage>,
         sender: UnboundedSender<LocalEventMessage>,
     ) -> Result<Self> {
-        let state = Arc::new(State::new(&state_dir)?);
+        let state = Arc::new(State::new(state_dir)?);
         if let Some(current_head) = chain_state_storage.get_current_header()? {
             state.reset(*current_head.state_root())?;
             info!(blockhash = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
@@ -262,6 +262,7 @@ impl ChainState {
                 .ok_or_else(|| anyhow!("error accepting block non commit"))?;
             let parent_state_root = parent_header.raw.state_root();
             let commit_state = state.apply_txs_no_commit(
+                self.vm.clone(),
                 *parent_state_root,
                 consensus.miner_reward(block.level()),
                 *block.header().coinbase(),

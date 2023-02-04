@@ -19,7 +19,7 @@ use crate::rpc::{Query, QueryResponse, QueryStorage};
 use primitive_types::Address;
 use std::sync::Arc;
 use tonic::{Code, Request, Response, Status};
-use traits::{Blockchain, StateDB, WasmVMInstance};
+use traits::{StateDB, WasmVMInstance};
 
 pub(crate) struct RuntimeApiServiceImpl {
     state: Arc<dyn StateDB>,
@@ -49,7 +49,7 @@ impl RuntimeApiService for RuntimeApiServiceImpl {
 
     async fn query_runtime_storage(
         &self,
-        request: Request<QueryStorage>,
+        _request: Request<QueryStorage>,
     ) -> Result<Response<QueryResponse>, Status> {
         todo!()
     }

@@ -1,14 +1,16 @@
 use anyhow::{anyhow, bail};
 use std::path::PathBuf;
 use wit_bindgen_core::Files;
-use wit_parser::{Resolve, UnresolvedPackage, World};
+use wit_parser::{Resolve, UnresolvedPackage};
 
 pub fn guest_generate(macro_export: bool, wit_file: &str, out_dir: &str) -> anyhow::Result<()> {
-    let mut opts = wit_bindgen_gen_guest_rust::Opts::default();
-    opts.rustfmt = true;
-    opts.no_std = true;
-    opts.unchecked = false;
-    opts.macro_export = macro_export;
+    let opts = wit_bindgen_gen_guest_rust::Opts {
+        rustfmt: true,
+        unchecked: false,
+        no_std: true,
+        macro_export,
+        ..Default::default()
+    };
 
     let mut resolve = Resolve::default();
     let mut files = Files::default();
@@ -46,8 +48,10 @@ pub fn guest_generate(macro_export: bool, wit_file: &str, out_dir: &str) -> anyh
 
 pub fn host_generate(wit_file: &str, out_dir: &str) -> anyhow::Result<()> {
     let mut resolve = Resolve::default();
-    let mut opts = wasmtime_wit_bindgen::Opts::default();
-    opts.rustfmt = true;
+    let opts = wasmtime_wit_bindgen::Opts {
+        rustfmt: true,
+        ..Default::default()
+    };
 
     let pkg = resolve.push(
         UnresolvedPackage::parse_file(wit_file.as_ref())?,

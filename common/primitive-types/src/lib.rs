@@ -41,6 +41,7 @@ extern crate core;
 pub enum Error {
     /// Overflow encountered.
     Overflow,
+    AddressParseFailed,
 }
 
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Ord, Hash)]
@@ -75,10 +76,10 @@ impl From<[u8; ADDRESS_LEN]> for Address {
 }
 
 impl Address {
-    pub fn from_slice(slice: &[u8]) -> Result<Self, ()> {
+    pub fn from_slice(slice: &[u8]) -> Result<Self, Error> {
         let mut bytes = [0; ADDRESS_LEN];
         if slice.len() != bytes.len() {
-            return Err(());
+            return Err(Error::AddressParseFailed);
         }
         bytes.copy_from_slice(slice);
         Ok(Self(bytes))
@@ -118,11 +119,8 @@ impl prost::encoding::BytesAdapter for Address {
             B: prost::bytes::Buf,
     {
         let buf = buf.copy_to_bytes(buf.remaining());
-        match Address::from_slice(buf.as_ref()) {
-            Ok(addr) => {
-                *self = addr;
-            }
-            Err(_) => {}
+        if let Ok(addr) = Address::from_slice(buf.as_ref()) {
+            *self = addr;
         }
     }
 
@@ -145,6 +143,14 @@ impl FromStr for Address {
         let mut bytes = [0; ADDRESS_LEN];
         bytes.copy_from_slice(input.as_bytes());
         Ok(Address(bytes))
+    }
+}
+
+impl From<Vec<u8>> for Address {
+    fn from(value: Vec<u8>) -> Self {
+        let mut bytes = [0; ADDRESS_LEN];
+        bytes.copy_from_slice(value.as_slice());
+        Address(bytes)
     }
 }
 
@@ -270,8 +276,7 @@ mod serde {
                 S: ::impl_serde::serde::Serializer,
         {
             serializer.serialize_str(
-                &String::from_utf8(self.0.to_vec())
-                    .map_err(|e| S::Error::custom(&e.to_string()))?,
+                &String::from_utf8(self.0.to_vec()).map_err(|e| S::Error::custom(e.to_string()))?,
             )
         }
     }

@@ -1,31 +1,33 @@
 use crate::env::ExecutionEnvironment;
 use anyhow::anyhow;
 use parking_lot::RwLock;
-use primitive_types::{Address, H256};
+use primitive_types::Address;
 use smt::SparseMerkleTree;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::sync::Arc;
-use traits::{Blockchain, ChainHeadReader, StateDB, WasmVMInstance};
+use traits::{ChainHeadReader, StateDB, WasmVMInstance};
 use wasmtime::component::{Component, Linker};
 use wasmtime::{AsContextMut, Config, Engine, Store};
 
 mod env;
 
 use crate::internal::App;
-use types::account::{get_address_from_seed, AccountState};
+use types::account::get_address_from_seed;
 use types::prelude::{ApplicationCallTx, CreateApplicationTx};
 use types::{Addressing, Changelist};
 
+#[allow(clippy::all)]
+#[allow(dead_code)]
 mod internal {
     include!(concat!(env!("OUT_DIR"), "/core.rs"));
     include!(concat!(env!("OUT_DIR"), "/io.rs"));
     include!(concat!(env!("OUT_DIR"), "/runtime.rs"));
 }
-
+type AppStateStore = BTreeMap<Address, (App, Store<ExecutionEnvironment>)>;
 pub struct WasmVM {
     engine: Arc<Engine>,
     blockchain: Arc<dyn ChainHeadReader>,
-    apps: Arc<RwLock<BTreeMap<Address, (App, Store<ExecutionEnvironment>)>>>,
+    apps: Arc<RwLock<AppStateStore>>,
 }
 
 impl WasmVM {
@@ -50,7 +52,7 @@ impl WasmVM {
         let engine = &self.engine;
         let storage = SparseMerkleTree::new();
         let mut store = Store::new(
-            &engine,
+            engine,
             ExecutionEnvironment::new(
                 origin,
                 app_id,
@@ -61,13 +63,13 @@ impl WasmVM {
             )?,
         );
 
-        let mut linker = Linker::<ExecutionEnvironment>::new(&engine);
+        let mut linker = Linker::<ExecutionEnvironment>::new(engine);
         internal::syscall::add_to_linker(&mut linker, |env| env)?;
         internal::log::add_to_linker(&mut linker, |env| env)?;
         internal::execution_context::add_to_linker(&mut linker, |env| env)?;
         internal::storage::add_to_linker(&mut linker, |env| env)?;
         internal::event::add_to_linker(&mut linker, |env| env)?;
-        let component = Component::from_binary(&engine, binary)?;
+        let component = Component::from_binary(engine, binary)?;
         let instance = linker.instantiate(&mut store, &component)?;
         let app = App::new(&mut store, &instance)?;
         let app = app.app();
@@ -84,7 +86,7 @@ impl WasmVM {
         {
             let apps = self.apps.read();
             if apps.contains_key(&app_id) {
-                return Ok(())
+                return Ok(());
             }
         }
         let binary = state_db.get_app_source(app_id)?;
@@ -104,10 +106,8 @@ impl WasmVM {
 
         let mut linker = Linker::<ExecutionEnvironment>::new(engine);
         internal::syscall::add_to_linker(&mut linker, |env| env)?;
-        internal::log::add_to_linker(&mut linker, |env| env)?;
         internal::execution_context::add_to_linker(&mut linker, |env| env)?;
-        internal::storage::add_to_linker(&mut linker, |env| env)?;
-        internal::event::add_to_linker(&mut linker, |env| env)?;
+        internal::Io::add_to_linker(&mut linker, |env| env)?;
 
         let component = Component::from_binary(engine, &binary)?;
         let instance = linker.instantiate(&mut store, &component)?;
@@ -132,7 +132,7 @@ impl WasmVM {
         let mut apps = self.apps.write();
         let (app, store) = apps
             .get_mut(&app_id)
-            .ok_or(anyhow::anyhow!("app not found"))?;
+            .ok_or_else(|| anyhow::anyhow!("app not found"))?;
 
         let app = app.app();
         *store.data_mut() = ExecutionEnvironment::new(
@@ -163,7 +163,7 @@ impl WasmVM {
         let mut apps = self.apps.write();
         let (app, store) = apps
             .get_mut(&app_id)
-            .ok_or(anyhow::anyhow!("app not loaded"))?;
+            .ok_or_else(|| anyhow::anyhow!("app not loaded"))?;
 
         let app = app.app();
         *store.data_mut() = ExecutionEnvironment::new(
@@ -189,7 +189,7 @@ impl WasmVMInstance for WasmVM {
     ) -> anyhow::Result<Changelist> {
         let app_id = get_address_from_seed(
             call.package_name.as_bytes(),
-            sender.network().ok_or(anyhow!("invalid network"))?,
+            sender.network().ok_or_else(|| anyhow!("invalid network"))?,
         )?;
         self.create_application(state_db, sender, app_id, value, &call.binary)
     }

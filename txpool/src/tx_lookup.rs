@@ -5,7 +5,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
 
 use types::tx::SignedTransaction;
-use types::Hash;
 
 use crate::{num_slots, TransactionRef, Transactions};
 

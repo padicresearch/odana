@@ -53,8 +53,8 @@ impl StorageBackend for MemoryStorage {
     }
 
     fn get(&self, key: &[u8]) -> Result<Vec<u8>> {
-        let value = self.data.get(key).map(|v| v.clone());
-        value.ok_or_else(|| Error::StorageErrorKeyNotFound)
+        let value = self.data.get(key).cloned();
+        value.ok_or(Error::StorageErrorKeyNotFound)
     }
 
     fn delete(&mut self, key: &[u8]) -> Result<()> {
@@ -66,7 +66,7 @@ impl StorageBackend for MemoryStorage {
     }
 
     fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>> {
-        let value = self.data.get(key).map(|v| v.clone());
+        let value = self.data.get(key).cloned();
         Ok(value.unwrap_or(default))
     }
 

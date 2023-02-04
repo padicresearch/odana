@@ -245,7 +245,7 @@ mod test {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     #[cfg_attr(all(target_arch = "wasm32"), wasm_bindgen_test)]

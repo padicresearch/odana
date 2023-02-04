@@ -11,11 +11,9 @@ use crypto::ecdsa::{PublicKey, Signature};
 use crypto::sha256;
 use primitive_types::{Address, H256};
 
-use crate::account::{
-    get_address_from_app_id, get_address_from_pub_key, get_address_from_seed, Account,
-};
+use crate::account::{get_address_from_pub_key, get_address_from_seed};
 use crate::network::Network;
-use crate::{cache, Addressing, Hash};
+use crate::{cache, Addressing};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -418,7 +416,7 @@ impl Ord for SignedTransaction {
 
 impl std::hash::Hash for SignedTransaction {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        state.write(&self.hash().as_bytes())
+        state.write(self.hash().as_bytes())
     }
 }
 
@@ -465,7 +463,7 @@ impl SignedTransaction {
                     package_name.as_bytes(),
                     self.from()
                         .network()
-                        .ok_or(anyhow!("network not specified on senders address"))?,
+                        .ok_or_else(|| anyhow!("network not specified on senders address"))?,
                 )
             }
             TransactionData::Update(UpdateApplicationTx { app_id, .. }) => {

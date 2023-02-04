@@ -7,6 +7,7 @@ use crate::rpc::transactions_service_client::TransactionsServiceClient;
 use tonic::codegen::StdError;
 
 pub mod commands;
+#[allow(clippy::all)]
 mod rpc;
 mod util;
 mod value;

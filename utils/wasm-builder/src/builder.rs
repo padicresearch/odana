@@ -97,6 +97,7 @@ pub struct WasmBuilder {
 
 impl WasmBuilder {
     /// Create a new instance of the builder.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> WasmBuilderSelectProject {
         WasmBuilderSelectProject { _ignore: () }
     }

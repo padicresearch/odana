@@ -79,7 +79,7 @@ impl TxSortedList {
     }
 
     pub fn flatten(&self) -> Vec<TransactionRef> {
-        self.txs.iter().map(|(_, tx)| tx.clone()).collect()
+        self.txs.values().cloned().collect()
     }
     pub fn overlaps(&self, nonce: u64) -> bool {
         self.txs.contains_key(&nonce)
@@ -306,49 +306,5 @@ impl TxPricedList {
         std::mem::swap(&mut remain, &mut self.txs);
         let drops: Vec<_> = remain.iter().map(|priced_tx| priced_tx.0.clone()).collect();
         Ok(drops)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use account::create_account;
-    use types::network::Network;
-
-    use crate::tests::make_tx;
-    use crate::tx_list::TxList;
-
-    #[test]
-    fn test_txlist() {
-        let alice = create_account(Network::Testnet);
-        let bob = create_account(Network::Testnet);
-        let mut list = TxList::new(true);
-        list.add(make_tx(&alice, &bob, 1, 100, 0), 10);
-        list.add(make_tx(&alice, &bob, 2, 200, 0), 10);
-        list.add(make_tx(&alice, &bob, 3, 300, 0), 10);
-        list.add(make_tx(&alice, &bob, 5, 400, 0), 10);
-        list.add(make_tx(&alice, &bob, 6, 500, 0), 10);
-        list.add(make_tx(&alice, &bob, 7, 600, 0), 10);
-        list.add(make_tx(&alice, &bob, 8, 800, 0), 10);
-        list.add(make_tx(&alice, &bob, 9, 900, 0), 10);
-
-        //let removed = list.forward(3);
-        let cap = list.cap(4);
-        println!("cap {:#?}", cap);
-        println!("remaining {:#?}", list.txs);
-        // assert_eq!(removed.len(), 2);
-        // assert_eq!(removed.range(3..).count(), 0);
-        // assert_eq!(list.txs.write().unwrap().range(..3).count(), 0);
-
-        // let mut priced_list = TxPricedList::new();
-        // priced_list.put(make_tx(&alice, &bob, 1, 40, 4), false);
-        // priced_list.put(make_tx(&alice, &bob, 2, 20, 2), false);
-        // priced_list.put(make_tx(&alice, &bob, 3, 30, 3), false);
-        // priced_list.put(make_tx(&alice, &bob, 4, 40, 4), false);
-        // priced_list.put(make_tx(&bob, &alice, 8, 100, 10), false);
-        // priced_list.put(make_tx(&bob, &alice, 9, 100, 10), false);
-
-        // println!("{:#?}", priced_list);
-        // println!("-------------------------------------------------------------------------------------------------------");
-        // println!("{:#?}", priced_list.discard(4).unwrap());
     }
 }

@@ -176,7 +176,7 @@ impl BlockByLevel {
     }
 
     pub fn delete(&self, key: u32) -> Result<()> {
-        self.kv.delete(&(key as u32))
+        self.kv.delete(&key)
     }
 }
 

@@ -9,7 +9,7 @@ use primitive_types::Address;
 use smt::SparseMerkleTree;
 use std::collections::HashMap;
 use std::sync::Arc;
-use traits::{Blockchain, ChainHeadReader, StateDB};
+use traits::{ChainHeadReader, StateDB};
 use types::account::{get_address_from_pub_key, get_address_from_seed, AccountState};
 use types::network::Network;
 use types::{Addressing, Changelist};
@@ -41,7 +41,9 @@ impl ExecutionEnvironment {
         accounts.insert(app_id, account_state);
 
         Ok(Self {
-            network: app_id.network().ok_or(anyhow!("network not found"))?,
+            network: app_id
+                .network()
+                .ok_or_else(|| anyhow!("network not found"))?,
             sender: origin,
             app_address: app_id,
             value,
@@ -67,13 +69,9 @@ impl Syscall for ExecutionEnvironment {
         Ok(self
             .blockchain
             .get_header_by_level(level)
-            .and_then(|b| b.ok_or(anyhow::anyhow!("block not found")))
+            .and_then(|b| b.ok_or_else(|| anyhow::anyhow!("block not found")))
             .map(|block| block.hash.as_bytes().to_vec())
             .unwrap_or_default())
-    }
-
-    fn block(&mut self, block_hash: Vec<u8>) -> anyhow::Result<Vec<u8>> {
-        todo!()
     }
 
     fn address_from_pk(&mut self, pk: Vec<u8>) -> anyhow::Result<Vec<u8>> {
@@ -149,7 +147,8 @@ impl Storage for ExecutionEnvironment {
 
 impl Event for ExecutionEnvironment {
     fn emit(&mut self, event: Vec<u8>) -> anyhow::Result<()> {
-        Ok(self.events.push(event))
+        self.events.push(event);
+        Ok(())
     }
 }
 
@@ -181,7 +180,6 @@ impl ExecutionContext for ExecutionEnvironment {
         todo!()
     }
 }
-
 
 impl From<&ExecutionEnvironment> for Changelist {
     fn from(value: &ExecutionEnvironment) -> Self {

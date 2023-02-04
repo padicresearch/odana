@@ -264,13 +264,13 @@ mod tests {
 
     #[test]
     fn should_encode_to_and_from_hex_with_prefix() {
-        assert_eq!(encode(&[0, 1, 2], true), "0x102");
+        assert_eq!(encode([0, 1, 2], true), "0x102");
         assert_eq!([0, 1, 2].encode_hex(), "0x102");
-        assert_eq!(encode(&[0, 1, 2], false), "0x000102");
-        assert_eq!(encode(&[0], true), "0x0");
-        assert_eq!(encode(&[], true), "0x0");
-        assert_eq!(encode(&[], false), "0x");
-        assert_eq!(encode(&[0], false), "0x00");
+        assert_eq!(encode([0, 1, 2], false), "0x000102");
+        assert_eq!(encode([0], true), "0x0");
+        assert_eq!(encode([], true), "0x0");
+        assert_eq!(encode([], false), "0x");
+        assert_eq!(encode([0], false), "0x00");
         assert_eq!(decode("0x0102"), Ok(vec![1, 2]));
         assert_eq!(decode("0x102"), Ok(vec![1, 2]));
         assert_eq!(decode("0xf"), Ok(vec![0xf]));

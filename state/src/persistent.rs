@@ -63,7 +63,7 @@ impl DatabaseBackend for RocksDB {
             .cf_handle(column_name)
             .ok_or(Error::ColumnFamilyMissing(column_name))?;
 
-        let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
+        let value = self.inner.get_cf_opt(&cf, key, &default_read_opts())?;
         value.ok_or_else(|| Error::InvalidKey(hex::encode(key, false)).into())
     }
 
@@ -85,13 +85,13 @@ impl DatabaseBackend for RocksDB {
     }
 
     fn get(&self, key: &[u8]) -> Result<Vec<u8>> {
-        let value = self.inner.get_opt(&key, &default_read_opts())?;
+        let value = self.inner.get_opt(key, &default_read_opts())?;
         value.ok_or_else(|| Error::InvalidKey(hex::encode(key, false)).into())
     }
 
     fn delete(&self, key: &[u8]) -> Result<()> {
         self.inner
-            .delete_opt(&key, &default_write_opts())
+            .delete_opt(key, &default_write_opts())
             .map_err(|e| e.into())
     }
 
@@ -115,12 +115,12 @@ impl DatabaseBackend for RocksDB {
             .inner
             .cf_handle(column_name)
             .ok_or(Error::ColumnFamilyMissing(column_name))?;
-        let value = self.inner.get_cf_opt(&cf, &key, &default_read_opts())?;
+        let value = self.inner.get_cf_opt(&cf, key, &default_read_opts())?;
         Ok(value.unwrap_or(default))
     }
 
     fn get_or_default(&self, key: &[u8], default: Vec<u8>) -> Result<Vec<u8>> {
-        let value = self.inner.get_opt(&key, &default_read_opts())?;
+        let value = self.inner.get_opt(key, &default_read_opts())?;
         Ok(value.unwrap_or(default))
     }
 }

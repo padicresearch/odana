@@ -16,7 +16,7 @@ use traits::{Blockchain, StateDB};
 use types::block::BlockHeader;
 use types::events::LocalEventMessage;
 use types::tx::{SignedTransaction, TransactionList, TransactionStatus};
-use types::{Hash, TxPoolConfig};
+use types::TxPoolConfig;
 
 use crate::error::TxPoolError;
 use crate::prque::PriorityQueue;
@@ -645,7 +645,7 @@ impl TxPool {
             for tx in olds {
                 let hash = tx.hash();
                 self.all.remove(&hash);
-                trace!(target : TXPOOL_LOG_TARGET, hash = ?H256::from(hash), "Removed old pending transaction");
+                trace!(target : TXPOOL_LOG_TARGET, hash = ?hash, "Removed old pending transaction");
             }
             if let Some((drops, invlaids)) = list.filter(self.current_state.balance(addr)) {
                 for tx in drops {

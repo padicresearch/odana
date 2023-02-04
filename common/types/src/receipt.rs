@@ -1,8 +1,5 @@
-use bytes::{Buf, BufMut};
-use getset::{CopyGetters, Getters, MutGetters, Setters};
 use primitive_types::H256;
-use prost::encoding::{DecodeContext, WireType};
-use prost::DecodeError;
+
 use serde::{Deserialize, Serialize};
 
 pub type Log = Vec<u8>;

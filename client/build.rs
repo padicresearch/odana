@@ -6,13 +6,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .extern_path(".uchain.types", "::types::prelude")
         .compile(
             &[
-                &format!("../proto/rpc_txs.proto"),
-                &format!("../proto/rpc_account.proto"),
-                &format!("../proto/rpc_chain.proto"),
-                &format!("../proto/rpc_runtime.proto"),
-                &format!("../proto/types.proto"),
+                &"../proto/rpc_txs.proto".to_string(),
+                &"../proto/rpc_account.proto".to_string(),
+                &"../proto/rpc_chain.proto".to_string(),
+                &"../proto/rpc_runtime.proto".to_string(),
+                &"../proto/types.proto".to_string(),
             ],
-            &[&format!("../proto")],
+            &[&"../proto".to_string()],
         )?;
     Ok(())
 }

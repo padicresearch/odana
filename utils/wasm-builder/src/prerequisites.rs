@@ -55,7 +55,7 @@ fn create_check_toolchain_project(project_dir: &Path) {
     let manifest_path = project_dir.join("Cargo.toml");
 
     write_file_if_changed(
-        &manifest_path,
+        manifest_path,
         r#"
 			[package]
 			name = "wasm-test"
@@ -125,7 +125,7 @@ fn check_wasm_toolchain_installed(
     // Chdir to temp to avoid including project's .cargo/config.toml
     // by accident - it can happen in some CI environments.
     build_cmd.current_dir(&temp);
-    build_cmd.args(&[
+    build_cmd.args([
         "build",
         "--target=wasm32-unknown-unknown",
         "--manifest-path",
@@ -140,7 +140,7 @@ fn check_wasm_toolchain_installed(
     // Chdir to temp to avoid including project's .cargo/config.toml
     // by accident - it can happen in some CI environments.
     run_cmd.current_dir(&temp);
-    run_cmd.args(&["run", "--manifest-path", &manifest_path]);
+    run_cmd.args(["run", "--manifest-path", &manifest_path]);
 
     // Unset the `CARGO_TARGET_DIR` to prevent a cargo deadlock
     build_cmd.env_remove("CARGO_TARGET_DIR");

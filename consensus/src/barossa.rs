@@ -33,7 +33,6 @@ impl BarossaProtocol {
 }
 
 impl BarossaProtocol {
-
     /// Returns work required for given header
     pub fn work_required(
         &self,
@@ -340,12 +339,7 @@ impl Consensus for BarossaProtocol {
             .ok_or(Error::ParentBlockNotFound)?;
         header.set_chain_id(self.network.chain_id());
         header.set_difficulty(
-            self.work_required(
-                parent.hash,
-                header.time(),
-                (header.level() + 1) as u32,
-                chain,
-            )
+            self.work_required(parent.hash, header.time(), header.level() + 1, chain)
                 .into(),
         );
         Ok(())
@@ -436,7 +430,7 @@ mod tests {
 
     use chrono::Utc;
 
-    use primitive_types::{Compact, H256};
+    use primitive_types::{Compact, ADDRESS_LEN, H256};
     use traits::{ChainHeadReader, Consensus};
     use types::block::{BlockHeader, IndexedBlockHeader};
 
@@ -508,7 +502,7 @@ mod tests {
             ]
                 .into(),
             [0; 32].into(),
-            [0; 42].into(),
+            [0; ADDRESS_LEN].into(),
             initial_bits.into(),
             0,
             0,
@@ -523,7 +517,7 @@ mod tests {
                 .unwrap()
                 .unwrap();
 
-            header.raw.set_parent_hash(header.hash.into());
+            header.raw.set_parent_hash(header.hash);
             header.raw.set_time(header.raw.time() + 600);
             header.raw.set_time(height);
             header_provider.insert(header.raw);
@@ -534,7 +528,7 @@ mod tests {
         let current_bits = barossa.work_required(
             header.hash,
             Utc::now().timestamp() as u32,
-            (header.raw.level() + 1) as u32,
+            header.raw.level() + 1,
             header_provider.clone(),
         );
         for height in 2050..2060 {
@@ -542,28 +536,24 @@ mod tests {
                 .get_header_by_level(height - 1)
                 .unwrap()
                 .unwrap();
-            header.raw.set_parent_hash(header.hash.into());
+            header.raw.set_parent_hash(header.hash);
             header.raw.set_time(header.raw.time() + 600);
             header.raw.set_difficulty(current_bits.into());
             header.raw.set_level(header.raw.level() + 1);
             header_provider.insert(header.raw);
             let parent = header_provider
-                .get_header_by_level(height.into())
+                .get_header_by_level(height)
                 .unwrap()
                 .unwrap();
-            let calculated_bits = barossa.work_required_adjusted(
-                parent,
-                0,
-                height as u32 + 1,
-                header_provider.clone(),
-            );
+            let calculated_bits =
+                barossa.work_required_adjusted(parent, 0, height + 1, header_provider.clone());
             debug_assert_eq!(calculated_bits, current_bits);
         }
 
         // Make sure we skip over blocks that are out of wack. To do so, we produce
         // a block that is far in the future
         let mut header = header_provider.get_header_by_level(2059).unwrap().unwrap();
-        *header.raw.parent_hash_mut() = header.hash.into();
+        *header.raw.parent_hash_mut() = header.hash;
         *header.raw.time_mut() = header.raw.time() + 6000;
         *header.raw.difficulty_mut() = current_bits.into();
         header_provider.insert(header.raw);
@@ -573,7 +563,7 @@ mod tests {
 
         // .. and then produce a block with the expected timestamp.
         let mut header = header_provider.get_header_by_level(2060).unwrap().unwrap();
-        *header.raw.parent_hash_mut() = header.hash.into();
+        *header.raw.parent_hash_mut() = header.hash;
         *header.raw.time_mut() = header.raw.time() + 2 * 600 - 6000;
         *header.raw.difficulty_mut() = current_bits.into();
         header_provider.insert(header.raw);

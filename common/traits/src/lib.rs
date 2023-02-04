@@ -7,7 +7,7 @@ use smt::SparseMerkleTree;
 use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
-use types::receipt::Receipt;
+
 use types::tx::{ApplicationCallTx, CreateApplicationTx, SignedTransaction};
 use types::{Changelist, Hash};
 

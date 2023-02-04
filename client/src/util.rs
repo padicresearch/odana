@@ -1,7 +1,6 @@
 use anyhow::bail;
 use json_dotpath::DotPaths;
 use serde_json::Value;
-use std::collections::HashMap;
 
 pub(crate) fn parse_cli_args_to_json(
     iter: impl IntoIterator<Item=impl Into<std::ffi::OsString>>,

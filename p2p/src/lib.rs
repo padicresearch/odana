@@ -386,7 +386,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
                         Ok((peer, address)) => {
                             let chain_network = swarm.behaviour_mut();
                             chain_network.gossipsub.add_explicit_peer(&peer);
-                            chain_network.kad.add_address(&peer, address.clone());
+                            chain_network.kad.add_address(&peer, address);
                             network_state.update_peer_current_head(&peer, msg.current_header()?)?;
 
                             info!(peer = ?peer, peer_node_info = ?msg.node_info, stats = ?peers.stats(),"Connected to new peer");

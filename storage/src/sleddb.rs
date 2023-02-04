@@ -25,7 +25,7 @@ impl SledDB {
 impl<S: Schema> KVStore<S> for SledDB {
     fn get(&self, key: &S::Key) -> anyhow::Result<Option<S::Value>> {
         let key = key.encode()?;
-        let result = self.column(S::column())?.get(&key)?;
+        let result = self.column(S::column())?.get(key)?;
         match result {
             None => Ok(None),
             Some(raw) => Ok(Some(S::Value::decode(raw.as_ref())?)),

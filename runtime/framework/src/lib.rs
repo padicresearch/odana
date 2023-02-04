@@ -32,19 +32,10 @@ extern crate alloc;
 mod internal {
     include!(concat!(env!("OUT_DIR"), "/core.rs"));
 }
-#[doc(hidden)]
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 use crate::context::Context;
-use primitive_types::{Address, H256, H512};
 use prost::Message;
 use rune_std::prelude::*;
-
-pub struct GenericBlock {
-    pub block_level: u32,
-    pub chain_id: u32,
-    pub parent_hash: H256,
-    pub miner: Address,
-}
 
 pub trait RuntimeApplication {
     type Call: prost::Message + Default;
@@ -74,7 +65,7 @@ pub trait RuntimeApplication {
 }
 
 pub mod context {
-    use crate::{app, execution_context, internal};
+    use crate::execution_context;
     use primitive_types::Address;
 
     pub struct Context;
@@ -95,19 +86,13 @@ pub mod context {
 }
 
 pub mod syscall {
-    use crate::{internal, GenericBlock};
-    use alloc::boxed::Box;
-    use core::iter::once;
+    use crate::internal;
+
     use primitive_types::{Address, H256, H512};
 
     // Returns the block hash at a specific level
     pub fn block_hash(level: u32) -> H256 {
         H256::from_slice(internal::syscall::block_hash(level).as_slice())
-    }
-
-    // Returns a block given its hash
-    pub fn block(_block_hash: &H256) -> GenericBlock {
-        unimplemented!()
     }
 
     // Returns the address associated with a specific public key
@@ -143,6 +128,10 @@ pub mod syscall {
     pub fn reserve(amount: u64) -> bool {
         internal::syscall::reserve(amount)
     }
+
+    pub fn unreserve(amount: u64) -> bool {
+        internal::syscall::unreserve(amount)
+    }
 }
 
 impl<T> app::App for T
@@ -153,7 +142,7 @@ where
         T::genesis(Context).unwrap()
     }
 
-    fn call(call: Vec<u8>) -> () {
+    fn call(call: Vec<u8>) {
         T::call(
             Context,
             T::Call::decode(call.as_slice()).expect("error parsing call"),
@@ -162,7 +151,8 @@ where
     }
 
     fn query(query: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
-        let (name, data) = T::query(T::Query::decode(query.as_slice()).expect("error parsing query"));
+        let (name, data) =
+            T::query(T::Query::decode(query.as_slice()).expect("error parsing query"));
         (name.as_bytes().to_vec(), data.encode_to_vec())
     }
 }

@@ -4,7 +4,6 @@ use alloc::vec::Vec;
 use codec::{Decodable, Encodable};
 use primitive_types::H256;
 
-use crate::constants::{HASH_LEN, LEAF_PREFIX, NODE_PREFIX};
 use crate::error::Error;
 use crate::proof::{verify_proof_with_updates, Proof};
 use crate::treehasher::TreeHasher;
@@ -98,6 +97,12 @@ impl SparseMerkleTree<MemoryStorage, DefaultTreeHasher> {
             root: Default::default(),
             parent: Default::default(),
         }
+    }
+}
+
+impl Default for SparseMerkleTree<MemoryStorage, DefaultTreeHasher> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -510,15 +515,15 @@ mod tests {
     #[test]
     fn basic_get_set_check_root_test() {
         let mut smt = SparseMerkleTree::new();
-        smt.update(&[1, 2, 3], &[1, 2, 3]).unwrap();
+        smt.update([1, 2, 3], [1, 2, 3]).unwrap();
         let root1 = smt.root;
-        smt.update(&[4, 5, 3], &[5, 2, 3]).unwrap();
+        smt.update([4, 5, 3], [5, 2, 3]).unwrap();
         let root2 = smt.root;
         assert_ne!(root1, root2);
         let mut smt_2 = smt.subtree(CopyStrategy::Partial, vec![]).unwrap();
         assert_eq!(root2, smt_2.root);
-        smt_2.update(&[1, 2, 3], &[10, 20, 30]).unwrap();
-        smt.update(&[1, 2, 3], &[10, 20, 30]).unwrap();
+        smt_2.update([1, 2, 3], [10, 20, 30]).unwrap();
+        smt.update([1, 2, 3], [10, 20, 30]).unwrap();
         assert_eq!(smt.root, smt_2.root);
 
         let encoded = smt.encode().unwrap();
@@ -526,8 +531,8 @@ mod tests {
         let smt_decoded: SparseMerkleTree = SparseMerkleTree::decode(&encoded).unwrap();
 
         assert_eq!(
-            smt.get(&[1, 2, 3]).unwrap(),
-            smt_decoded.get(&[1, 2, 3]).unwrap()
+            smt.get([1, 2, 3]).unwrap(),
+            smt_decoded.get([1, 2, 3]).unwrap()
         )
     }
 }

@@ -412,8 +412,7 @@ mod tests {
                 free_balance: 30000,
                 reserve_balance: 3000,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -424,8 +423,7 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -436,8 +434,7 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -448,8 +445,7 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -461,8 +457,7 @@ mod tests {
                 free_balance: 20000,
                 reserve_balance: 2000,
                 nonce: 2,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -473,8 +468,7 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -485,8 +479,7 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -497,8 +490,7 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -509,8 +501,7 @@ mod tests {
                 free_balance: 200,
                 reserve_balance: 200,
                 nonce: 3,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -524,8 +515,7 @@ mod tests {
                 free_balance: 200,
                 reserve_balance: 200,
                 nonce: 3,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             })
         );
         tree.reset(root_1).unwrap();
@@ -536,8 +526,7 @@ mod tests {
                 free_balance: 10000,
                 reserve_balance: 1000,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             })
         );
 
@@ -549,8 +538,7 @@ mod tests {
                 free_balance: 90000,
                 reserve_balance: 9000,
                 nonce: 2,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();
@@ -564,8 +552,7 @@ mod tests {
                 free_balance: 90000,
                 reserve_balance: 9000,
                 nonce: 2,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             })
         );
 
@@ -580,8 +567,7 @@ mod tests {
                 free_balance: 30000,
                 reserve_balance: 3000,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },)
         );
 
@@ -609,8 +595,7 @@ mod tests {
                 free_balance: 1_000_000_000,
                 reserve_balance: 0,
                 nonce: 1,
-                root_hash: None,
-                code_hash: None,
+                app_state: None,
             },
         )
         .unwrap();

@@ -1,20 +1,17 @@
-use crate::rpc::account_service_client::AccountServiceClient;
-use crate::rpc::transactions_service_client::TransactionsServiceClient;
 use crate::rpc::{GetAccountRequest, Query};
 use crate::util::parse_cli_args_to_json;
 use crate::Client;
-use anyhow::{anyhow, bail};
-use clap::{command, Args, Subcommand};
-use pretty_hex::HexConfig;
+use anyhow::bail;
+use clap::{Args, Subcommand};
 use primitive_types::{Address, H256};
 use prost::Message;
 use protobuf::descriptor::FileDescriptorSet;
-use protobuf::reflect::{FileDescriptor, MessageDescriptor, MessageRef};
-use protobuf::text_format::print_to_string_pretty;
+use protobuf::reflect::{FileDescriptor, MessageDescriptor};
+
 use protobuf_json_mapping::{Command, CommandError, ParseOptions};
-use serde_json::{json, Number, Value};
+use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::f32::consts::E;
+
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -23,7 +20,7 @@ use transaction::{make_payment_sign_transaction, make_signed_transaction};
 use types::account::get_address_from_secret_key;
 use types::network::Network;
 use types::prelude::{get_address_from_seed, Empty};
-use types::tx::{ApplicationCallTx, CreateApplicationTx, Transaction, TransactionData};
+use types::tx::{ApplicationCallTx, CreateApplicationTx, TransactionData};
 
 #[derive(Args, Debug)]
 pub struct ClientArgsCommands {
@@ -78,7 +75,7 @@ impl ProtoFilesArg {
             //file_descriptor.message_by_full_name()
             for message in file_descriptor.messages() {
                 if self.schema.eq(message.full_name()) {
-                    schema_in = Some(message.clone());
+                    schema_in = Some(message);
                     break 'files_iter;
                 }
             }
@@ -208,12 +205,12 @@ pub fn handle_cmd_string(cmd: &Command) -> Result<Vec<u8>, CommandError> {
         }
         "address" => parse_address(cmd.data)
             .map(|addr| addr.to_vec())
-            .map_err(|e| CommandError::FailedToParseNom(format!("{}", e))),
+            .map_err(CommandError::FailedToParseNom),
 
         "file" => {
             let file_path = PathBuf::new().join(cmd.data);
             if !file_path.is_file() {
-                return Err(CommandError::FailedToParseNom(format!("path not file")));
+                return Err(CommandError::FailedToParseNom("path not file".to_string()));
             }
             let mut file = File::open(file_path.as_path())
                 .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))?;
@@ -235,7 +232,6 @@ pub async fn handle_app_command(
     rpc_client: &Client,
     command: &AppArgsCommands,
 ) -> anyhow::Result<Value> {
-
     let resp = match &command.command {
         AppCommands::Call(CallArgs {
                               app,
@@ -266,9 +262,6 @@ pub async fn handle_app_command(
                 handler: &handle_cmd_string,
                 _future_options: (),
             };
-
-            let mut hex_config = HexConfig::default();
-            hex_config.ascii = false;
 
             let json_value = parse_cli_args_to_json(params.iter())?;
             let json_string = serde_json::to_string(&json_value)?;
@@ -391,11 +384,12 @@ pub async fn handle_app_command(
 }
 
 pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Result<Value> {
-    let mut rpc_client = Client::connect(format!("http://{}", command.rpc_addr)).await?;
+    let rpc_client = Client::connect(format!("http://{}", command.rpc_addr)).await?;
 
     let resp = match &command.command {
         ClientCommands::GetBalance(AddressArg { address }) => {
-            let balance = rpc_client.account_service()
+            let balance = rpc_client
+                .account_service()
                 .get_balance(GetAccountRequest {
                     address: address.to_vec(),
                 })
@@ -403,7 +397,8 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             Value::Number(balance.get_ref().balance.into())
         }
         ClientCommands::GetNonce(AddressArg { address }) => {
-            let nonce = rpc_client.account_service()
+            let nonce = rpc_client
+                .account_service()
                 .get_nonce(GetAccountRequest {
                     address: address.to_vec(),
                 })
@@ -411,7 +406,8 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             Value::Number(nonce.get_ref().nonce.into())
         }
         ClientCommands::GetAccountState(AddressArg { address }) => {
-            let account_state = rpc_client.account_service()
+            let account_state = rpc_client
+                .account_service()
                 .get_account_state(GetAccountRequest {
                     address: address.to_vec(),
                 })
@@ -428,7 +424,8 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
 
             let signer_address = get_address_from_secret_key(*signer, Network::Testnet)?;
 
-            let nonce = rpc_client.account_service()
+            let nonce = rpc_client
+                .account_service()
                 .get_nonce(GetAccountRequest {
                     address: signer_address.to_vec(),
                 })
@@ -446,7 +443,10 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             )?;
 
             let signed_tx_size = signed_tx.encoded_len();
-            let response = rpc_client.transaction_service().send_transaction(signed_tx).await?;
+            let response = rpc_client
+                .transaction_service()
+                .send_transaction(signed_tx)
+                .await?;
 
             json!({
                 "tx_size" : signed_tx_size,
@@ -454,7 +454,10 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             })
         }
         ClientCommands::GetTxpool => {
-            let txpool_content = rpc_client.transaction_service().get_txpool_content(Empty).await?;
+            let txpool_content = rpc_client
+                .transaction_service()
+                .get_txpool_content(Empty)
+                .await?;
 
             let queued_txs: HashMap<_, _> = txpool_content
                 .get_ref()

@@ -1,5 +1,6 @@
 #![feature(test)]
 #![feature(slice_take)]
+extern crate core;
 extern crate test;
 
 use std::collections::HashMap;
@@ -119,9 +120,9 @@ pub struct TxPoolConfig {
 }
 
 pub fn cache<F, T>(hash: &Arc<RwLock<Option<T>>>, f: F) -> T
-    where
-        F: Fn() -> anyhow::Result<T>,
-        T: Copy + Clone + Default,
+where
+    F: Fn() -> anyhow::Result<T>,
+    T: Copy + Clone + Default,
 {
     {
         let hash = hash.read();
@@ -164,4 +165,35 @@ pub mod prelude {
 
     #[derive(Clone, PartialEq, Eq, ::prost::Message)]
     pub struct Empty;
+}
+
+mod as_address {
+    use primitive_types::Address;
+    use serde::de::{Deserialize, Deserializer};
+    use serde::ser::{Serialize, Serializer};
+    use serde_json::to_vec;
+
+    // Serialize to a JSON string, then serialize the string to the output
+    // format.
+    pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            T: Serialize,
+            S: Serializer,
+    {
+        use serde::ser::Error;
+        let bytes = to_vec(value).map_err(Error::custom)?;
+        let address = Address::from_slice(bytes.as_slice())
+            .map_err(|_| Error::custom("failed to parse address"))?;
+        address.serialize(serializer)
+    }
+
+    // Deserialize a string from the input format, then deserialize the content
+    // of that string as JSON.
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+        where
+            D: Deserializer<'de>,
+    {
+        let address = Address::deserialize(deserializer)?;
+        Ok(address.to_vec())
+    }
 }

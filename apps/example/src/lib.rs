@@ -2,14 +2,13 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 extern crate alloc;
 
-use alloc::format;
 use crate::types::call::Data;
 use crate::types::{query, query_response, GetName, QueryResponse, ReservationInfo};
+use alloc::format;
 use primitive_types::Address;
 use rune_framework::context::Context;
 use rune_framework::io::{Blake2bHasher, StorageMap, StorageValue};
 use rune_framework::*;
-use rune_std::prelude::*;
 
 #[allow(unused_imports)]
 #[allow(dead_code)]
@@ -76,7 +75,7 @@ impl RuntimeApplication for Nick {
                 NameMap::remove(sender)?;
             }
         }
-        return Ok(());
+        Ok(())
     }
 
     fn query(query: Self::Query) -> (&'static str, Self::QueryResponse) {
@@ -85,16 +84,19 @@ impl RuntimeApplication for Nick {
         };
         match data {
             query::Data::GetName(GetName { owner }) => {
-                let Ok(Some(data)) = Address::from_slice(&owner).and_then(|owner| {
+                let Ok(Some(data)) = Address::from_slice(&owner).map_err(|_| ()).and_then(|owner| {
                     NameMap::get(owner).map_err(|_| ())
                 })else {
                     return (QUERY_RESP_DESC, QueryResponse::default());
                 };
 
                 io::print(&format!("{:#?}", data));
-                (QUERY_RESP_DESC, QueryResponse {
-                    data: Some(query_response::Data::Info(data)),
-                })
+                (
+                    QUERY_RESP_DESC,
+                    QueryResponse {
+                        data: Some(query_response::Data::Info(data)),
+                    },
+                )
             }
         }
     }

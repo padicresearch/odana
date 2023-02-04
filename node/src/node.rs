@@ -18,7 +18,7 @@ use p2p::start_p2p_server;
 use rpc::start_rpc_server;
 use storage::{PersistentStorage, PersistentStorageBackend};
 use tracing::tracing_subscriber::fmt::writer::MakeWriterExt;
-use tracing::tracing_subscriber::EnvFilter;
+
 use tracing::{info, tracing_subscriber, warn};
 use traits::Handler;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
@@ -34,10 +34,11 @@ enum Event {
     Unhandled,
 }
 
+#[allow(clippy::result_large_err)]
 fn broadcast_message(
     sender: &UnboundedSender<NodeToPeerMessage>,
     message: Msg,
-) -> anyhow::Result<(), SendError<NodeToPeerMessage>> {
+) -> Result<(), SendError<NodeToPeerMessage>> {
     sender.send(NodeToPeerMessage {
         peer_id: None,
         message,
@@ -58,7 +59,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
     let mk_writer = std::io::stderr.with_max_level(Level::ERROR).or_else(
         std::io::stdout
             .with_filter(|meta| meta.target() != "cranelift_codegen::context")
-            .with_max_level(log_level.into())
+            .with_max_level(log_level)
             .and(debug_log.with_max_level(Level::DEBUG)),
     );
 
