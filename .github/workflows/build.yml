@@ -16,7 +16,7 @@ jobs:
       - name: Setup Rust (Nightly)
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2022-07-02
+          toolchain: nightly-2022-11-03
           default: true
       - name: APT dependencies
         if: runner.os == 'Linux'

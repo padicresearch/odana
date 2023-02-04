@@ -147,7 +147,7 @@ where
             Context,
             T::Call::decode(call.as_slice()).expect("error parsing call"),
         )
-            .unwrap()
+        .unwrap()
     }
 
     fn query(query: Vec<u8>) -> (Vec<u8>, Vec<u8>) {

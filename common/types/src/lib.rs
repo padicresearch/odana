@@ -176,9 +176,9 @@ mod as_address {
     // Serialize to a JSON string, then serialize the string to the output
     // format.
     pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            T: Serialize,
-            S: Serializer,
+    where
+        T: Serialize,
+        S: Serializer,
     {
         use serde::ser::Error;
         let bytes = to_vec(value).map_err(Error::custom)?;
@@ -190,8 +190,8 @@ mod as_address {
     // Deserialize a string from the input format, then deserialize the content
     // of that string as JSON.
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let address = Address::deserialize(deserializer)?;
         Ok(address.to_vec())

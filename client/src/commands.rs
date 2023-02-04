@@ -234,11 +234,11 @@ pub async fn handle_app_command(
 ) -> anyhow::Result<Value> {
     let resp = match &command.command {
         AppCommands::Call(CallArgs {
-                              app,
-                              sign_args,
-                              proto,
-                              params,
-                          }) => {
+            app,
+            sign_args,
+            proto,
+            params,
+        }) => {
             let signer = sign_args.signer;
             let value = sign_args.value;
             let tip = sign_args.tip;
@@ -299,10 +299,10 @@ pub async fn handle_app_command(
             })
         }
         AppCommands::Create(AppCreateArgs {
-                                package_name,
-                                sign_args,
-                                bin_path,
-                            }) => {
+            package_name,
+            sign_args,
+            bin_path,
+        }) => {
             let signer = sign_args.signer;
             let value = sign_args.value;
             let tip = sign_args.tip;

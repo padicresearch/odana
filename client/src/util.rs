@@ -3,7 +3,7 @@ use json_dotpath::DotPaths;
 use serde_json::Value;
 
 pub(crate) fn parse_cli_args_to_json(
-    iter: impl IntoIterator<Item=impl Into<std::ffi::OsString>>,
+    iter: impl IntoIterator<Item = impl Into<std::ffi::OsString>>,
 ) -> anyhow::Result<Value> {
     let mut parsed_args = Vec::new();
     let args = clap_lex::RawArgs::new(iter);

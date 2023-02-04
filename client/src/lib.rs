@@ -18,9 +18,9 @@ pub struct Client {
 
 impl Client {
     pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
+    where
+        D: TryInto<tonic::transport::Endpoint>,
+        D::Error: Into<StdError>,
     {
         let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
         Ok(Self { conn })

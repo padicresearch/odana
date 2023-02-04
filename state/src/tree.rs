@@ -381,10 +381,10 @@ impl Verifier {
         key: K,
         value: V,
     ) -> Result<()>
-        where
-            K: Codec,
-            V: Codec,
-            H: TreeHasher,
+    where
+        K: Codec,
+        V: Codec,
+        H: TreeHasher,
     {
         let key = key.encode()?;
         let value = Encodable::encode(&IValue::Value(value.encode()?))?;

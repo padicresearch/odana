@@ -115,8 +115,8 @@ impl prost::encoding::BytesAdapter for Address {
     }
 
     fn replace_with<B>(&mut self, mut buf: B)
-        where
-            B: prost::bytes::Buf,
+    where
+        B: prost::bytes::Buf,
     {
         let buf = buf.copy_to_bytes(buf.remaining());
         if let Ok(addr) = Address::from_slice(buf.as_ref()) {
@@ -125,8 +125,8 @@ impl prost::encoding::BytesAdapter for Address {
     }
 
     fn append_to<B>(&self, buf: &mut B)
-        where
-            B: prost::bytes::BufMut,
+    where
+        B: prost::bytes::BufMut,
     {
         buf.put_slice(self.as_bytes())
     }
@@ -272,8 +272,8 @@ mod serde {
 
     impl ::impl_serde::serde::Serialize for Address {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: ::impl_serde::serde::Serializer,
+        where
+            S: ::impl_serde::serde::Serializer,
         {
             serializer.serialize_str(
                 &String::from_utf8(self.0.to_vec()).map_err(|e| S::Error::custom(e.to_string()))?,
@@ -283,8 +283,8 @@ mod serde {
 
     impl<'de> ::impl_serde::serde::Deserialize<'de> for Address {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where
-                D: ::impl_serde::serde::Deserializer<'de>,
+        where
+            D: ::impl_serde::serde::Deserializer<'de>,
         {
             deserializer.deserialize_str(AddressVisitor)
         }
