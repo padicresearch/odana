@@ -5,7 +5,7 @@ package rpc;
 
 message CurrentHeadResponse {
   bytes hash = 1;
-  uchain.types.BlockHeader header = 2;
+  odana.types.BlockHeader header = 2;
 }
 
 message GetBlockByHashRequest {
@@ -22,7 +22,7 @@ message GetBlocksRequest {
 }
 
 message GetBlocksResponse {
-  repeated uchain.types.BlockHeader blocks = 1;
+  repeated odana.types.BlockHeader blocks = 1;
 }
 
 message GetBlockNumberResponse {
@@ -38,10 +38,10 @@ message ChainInfo {
 }
 
 service ChainService {
-  rpc CurrentHead(uchain.types.Empty) returns (CurrentHeadResponse);
-  rpc BlockLevel(uchain.types.Empty) returns (GetBlockNumberResponse);
-  rpc GetBlockByHash (GetBlockByHashRequest) returns (uchain.types.Block);
-  rpc GetBlockByLevel (GetBlockByLevelRequest) returns (uchain.types.Block);
+  rpc CurrentHead(odana.types.Empty) returns (CurrentHeadResponse);
+  rpc BlockLevel(odana.types.Empty) returns (GetBlockNumberResponse);
+  rpc GetBlockByHash (GetBlockByHashRequest) returns (odana.types.Block);
+  rpc GetBlockByLevel (GetBlockByLevelRequest) returns (odana.types.Block);
   rpc GetBlocks (GetBlocksRequest) returns (GetBlocksResponse);
-  rpc GetBlockchainInfo (uchain.types.Empty) returns (ChainInfo);
+  rpc GetBlockchainInfo (odana.types.Empty) returns (ChainInfo);
 }

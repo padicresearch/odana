@@ -18,5 +18,5 @@ message GetAccountNonceResponse {
 service AccountService {
   rpc GetBalance (GetAccountRequest) returns (GetAccountBalanceResponse);
   rpc GetNonce (GetAccountRequest) returns (GetAccountNonceResponse);
-  rpc GetAccountState (GetAccountRequest) returns (uchain.types.AccountState);
+  rpc GetAccountState (GetAccountRequest) returns (odana.types.AccountState);
 }

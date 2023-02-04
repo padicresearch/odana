@@ -1,8 +1,12 @@
-# µChain - Blockchain for prototyping
+# Odana
 
-> moving to https://github.com/padicresearch/odana
+Odana is an open source decentralized platform for building and running decentralized applications (dapps) and smart
+contracts.
 
-µChain _pronounced_ `mu-chain`, is a blockchain base/framework for prototyping blockchain projects
+## Key Features
+
+* Proof of Work
+* Multi Runtime
 
 ## Quickstart
 
@@ -35,10 +39,10 @@
 
 * Download the source code
     ```shell
-    git clone https://github.com/mambisi/uchain
+    git clone https://github.com/padicresearch/odana
     ```
     ```shell
-    cd uchain
+    cd odana
     ```
 
 ### ⌛️ Running node `Linux/MacOS`
@@ -49,15 +53,15 @@
     ```
 * Generate Node Identity
     ```shell
-    ./target/release/uchain identity generate
+    ./target/release/odana identity generate
     ```
 * Initialize node configuration
     ```shell
-    ./target/release/uchain config init
+    ./target/release/odana config init
     ```
 * Create a miner account (optional - required if you want to run as a miner)
   ```shell
-  ./target/release/uchain account new
+  ./target/release/odana account new
   ```
   Output:
   ```json
@@ -68,9 +72,9 @@
   ```
   Set miner
   ```shell
-  ./target/release/uchain config update --miner="0xffff…ffff"
+  ./target/release/odana config update --miner="0xffff…ffff"
   ```
 * Run node
   ```shell
-  ./target/release/uchain run
+  ./target/release/odana run
   ```

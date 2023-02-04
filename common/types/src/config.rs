@@ -9,6 +9,8 @@ use crate::network::Network;
 use directories::UserDirs;
 use primitive_types::{Address, H256, U192};
 
+pub const DEFAULT_DIR_NAME: &'static str = ".odana";
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeIdentityConfig {
     pub pub_key: H256,
@@ -90,7 +92,7 @@ impl Default for EnvironmentConfig {
     fn default() -> Self {
         let user_dir = UserDirs::new().unwrap();
         let mut default_datadir = PathBuf::from(user_dir.home_dir());
-        default_datadir.push(".uchain");
+        default_datadir.push(DEFAULT_DIR_NAME);
         Self {
             miner: None,
             p2p_host: "0.0.0.0".to_string(),

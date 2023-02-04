@@ -1,5 +1,5 @@
 syntax = "proto3";
-package uchain.types;
+package odana.types;
 message Empty {}
 
 message BlockHeader {

@@ -105,7 +105,7 @@ async fn config_network(
     let max_transmit_size = 1_000_000;
     let config = GossipsubConfigBuilder::default()
         .max_transmit_size(max_transmit_size)
-        .protocol_id_prefix("tuchain")
+        .protocol_id_prefix("odana")
         .idle_timeout(Duration::from_secs(3600))
         .validation_mode(ValidationMode::Permissive)
         .build()
@@ -514,7 +514,7 @@ struct ChainP2pExchangeCodec;
 
 impl ProtocolName for ChainP2pExchangeProtocol {
     fn protocol_name(&self) -> &[u8] {
-        "/tuchain-network/1".as_bytes()
+        "/odana-network/1".as_bytes()
     }
 }
 

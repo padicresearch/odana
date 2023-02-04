@@ -13,7 +13,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use p2p::identity::NodeIdentity;
 use primitive_types::Address;
 use tracing::Level;
-use types::config::EnvironmentConfig;
+use types::config::{EnvironmentConfig, DEFAULT_DIR_NAME};
 use types::network::Network;
 
 pub mod environment;
@@ -194,7 +194,8 @@ fn main() -> Result<()> {
 
 fn create_file_path(datadir: Option<PathBuf>, filename: &str) -> Result<PathBuf> {
     let user_dirs = UserDirs::new().ok_or_else(|| anyhow::anyhow!("user dir not found"))?;
-    let path = datadir.unwrap_or_else(|| PathBuf::from(user_dirs.home_dir()).join(".uchain"));
+    let path =
+        datadir.unwrap_or_else(|| PathBuf::from(user_dirs.home_dir()).join(DEFAULT_DIR_NAME));
     fs_extra::dir::create_all(path.as_path(), false)?;
     Ok(path.join(filename))
 }

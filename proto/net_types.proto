@@ -8,15 +8,15 @@ message PeerNode {
 }
 
 message CurrentHeadMessage {
-  uchain.types.BlockHeader block_header = 1;
+  odana.types.BlockHeader block_header = 1;
 }
 
 message BroadcastTransactionMessage {
-  repeated uchain.types.SignedTransaction txs = 1;
+  repeated odana.types.SignedTransaction txs = 1;
 }
 
 message BroadcastBlockMessage {
-  uchain.types.Block block = 1;
+  odana.types.Block block = 1;
 }
 
 message GetCurrentHeadMessage {
@@ -34,15 +34,15 @@ message FindBlocksMessage {
 }
 
 message BlockTransactionsMessage {
-  repeated uchain.types.SignedTransaction txs = 1;
+  repeated odana.types.SignedTransaction txs = 1;
 }
 
 message BlocksMessage {
-  repeated uchain.types.Block blocks = 1;
+  repeated odana.types.Block blocks = 1;
 }
 
 message BlockHeaderMessage {
-  repeated uchain.types.BlockHeader block_headers = 1;
+  repeated odana.types.BlockHeader block_headers = 1;
 }
 
 message BlocksToDownloadMessage {
@@ -56,7 +56,7 @@ message GetBlockTransactionsMessage {
 
 message ReAckMessage {
   PeerNode node_info = 1;
-  uchain.types.BlockHeader current_header = 2;
+  odana.types.BlockHeader current_header = 2;
 }
 
 message AckMessage {

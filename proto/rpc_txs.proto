@@ -4,17 +4,17 @@ import "types.proto";
 package rpc;
 
 message UnsignedTransactionRequest {
-  uchain.types.Transaction tx = 1;
+  odana.types.Transaction tx = 1;
   bytes secret_key = 2;
 }
 
 message SignedTransactionResponse {
   bytes hash = 1;
-  uchain.types.SignedTransaction tx = 2;
+  odana.types.SignedTransaction tx = 2;
 }
 
 message GetTransactionStatusResponse {
-  repeated uchain.types.TransactionStatus status = 1;
+  repeated odana.types.TransactionStatus status = 1;
 }
 
 message PendingTransactionsResponse {
@@ -23,7 +23,7 @@ message PendingTransactionsResponse {
 
 message AddressTransactionList {
   bytes address = 1;
-  uchain.types.TransactionList txs = 2;
+  odana.types.TransactionList txs = 2;
 }
 
 message TxpoolContentResponse {
@@ -41,8 +41,8 @@ message TransactionHashes {
 service TransactionsService {
   rpc SignTransaction(UnsignedTransactionRequest) returns (SignedTransactionResponse);
   rpc SignSendTransaction(UnsignedTransactionRequest) returns (SignedTransactionResponse);
-  rpc SendTransaction(uchain.types.SignedTransaction) returns (TransactionHash);
+  rpc SendTransaction(odana.types.SignedTransaction) returns (TransactionHash);
   rpc GetTransactionStatus(TransactionHashes) returns (GetTransactionStatusResponse);
-  rpc GetPendingTransactions(uchain.types.Empty) returns (PendingTransactionsResponse);
-  rpc GetTxpoolContent(uchain.types.Empty) returns (TxpoolContentResponse);
+  rpc GetPendingTransactions(odana.types.Empty) returns (PendingTransactionsResponse);
+  rpc GetTxpoolContent(odana.types.Empty) returns (TxpoolContentResponse);
 }

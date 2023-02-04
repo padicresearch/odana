@@ -2,7 +2,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
         .out_dir("src")
         .build_client(false)
-        .extern_path(".uchain.types", "::types::prelude")
+        .extern_path(".odana.types", "::types::prelude")
         .compile(
             &[
                 &"../proto/rpc_txs.proto".to_string(),
