@@ -15,6 +15,20 @@ use crypto::keccak256;
 use primitive_types::{Address, ADDRESS_LEN, H160, H256};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, prost::Message)]
+pub struct AppState {
+    #[prost(bytes = "vec", tag = "1")]
+    #[serde(with = "hex")]
+    pub root_hash: Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    #[serde(with = "hex")]
+    pub code_hash: Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub creator: Vec<u8>,
+    #[prost(uint32, tag = "4")]
+    pub version: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, prost::Message)]
 pub struct AccountState {
     #[prost(uint64, tag = "1")]
     pub free_balance: u64,
@@ -22,10 +36,8 @@ pub struct AccountState {
     pub reserve_balance: u64,
     #[prost(uint64, tag = "3")]
     pub nonce: u64,
-    #[prost(optional, bytes, tag = "4")]
-    pub root_hash: Option<Vec<u8>>,
-    #[prost(optional, bytes, tag = "5")]
-    pub code_hash: Option<Vec<u8>>,
+    #[prost(message, optional, tag = "4")]
+    pub app_state: Option<AppState>,
 }
 
 impl AccountState {
@@ -34,8 +46,7 @@ impl AccountState {
             free_balance: 0u64,
             reserve_balance: 0u64,
             nonce: 1u64,
-            root_hash: None,
-            code_hash: None,
+            app_state: None,
         }
     }
 }

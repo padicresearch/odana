@@ -2,6 +2,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 extern crate alloc;
 
+use alloc::format;
 use crate::types::call::Data;
 use crate::types::{query, query_response, GetName, QueryResponse, ReservationInfo};
 use primitive_types::Address;
@@ -37,6 +38,8 @@ impl StorageValue<Blake2bHasher, u64> for ReservationFee {
     }
 }
 
+const QUERY_RESP_DESC: &str = "example.types.QueryResponse";
+
 impl RuntimeApplication for Nick {
     type Call = types::Call;
     type Query = types::Query;
@@ -66,7 +69,8 @@ impl RuntimeApplication for Nick {
                         name: param.name,
                         fee,
                     },
-                )
+                );
+                anyhow::ensure!(NameMap::contains(sender));
             }
             Data::ClearName(_) => {
                 NameMap::remove(sender)?;
@@ -75,21 +79,22 @@ impl RuntimeApplication for Nick {
         return Ok(());
     }
 
-    fn query(query: Self::Query) -> Self::QueryResponse {
+    fn query(query: Self::Query) -> (&'static str, Self::QueryResponse) {
         let Some(data) = query.data else {
-            return QueryResponse::default();
+            return (QUERY_RESP_DESC, QueryResponse::default());
         };
         match data {
             query::Data::GetName(GetName { owner }) => {
                 let Ok(Some(data)) = Address::from_slice(&owner).and_then(|owner| {
                     NameMap::get(owner).map_err(|_| ())
                 })else {
-                    return QueryResponse::default()
+                    return (QUERY_RESP_DESC, QueryResponse::default());
                 };
 
-                QueryResponse {
+                io::print(&format!("{:#?}", data));
+                (QUERY_RESP_DESC, QueryResponse {
                     data: Some(query_response::Data::Info(data)),
-                }
+                })
             }
         }
     }

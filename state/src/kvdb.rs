@@ -47,9 +47,11 @@ where
         let key = key.encode()?;
         let value = value.encode()?;
         if self.read_only {
+            println!("Stored KV in memory");
             self.staging.insert(key, value);
             return Ok(());
         }
+        println!("Stored KV in persistence");
         self.inner.put(&key, &value)
     }
 

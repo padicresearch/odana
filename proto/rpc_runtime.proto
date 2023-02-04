@@ -1,0 +1,23 @@
+syntax = "proto3";
+import "types.proto";
+
+package rpc;
+
+message Query {
+  bytes app_id = 1;
+  bytes query = 2;
+}
+
+message QueryStorage {
+  bytes app_id = 1;
+  bytes storage_key = 2;
+}
+message QueryResponse {
+  string typename = 1;
+  bytes data = 2;
+}
+
+service RuntimeApiService {
+  rpc QueryRuntime(Query) returns (QueryResponse);
+  rpc QueryRuntimeStorage(QueryStorage) returns (QueryResponse);
+}

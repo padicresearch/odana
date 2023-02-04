@@ -143,6 +143,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         tokio::spawn(start_rpc_server(
             local_mpsc_sender.clone(),
             blockchain.chain_state(),
+            blockchain.chain_state().vm(),
             blockchain.chain_state().state(),
             blockchain.txpool(),
             env,

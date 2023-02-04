@@ -14,6 +14,7 @@ use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
+use types::network::Network;
 use types::ChainStateValue;
 
 use crate::block_storage::BlockStorage;
@@ -64,6 +65,7 @@ impl ChainStateStorage {
 pub struct ChainState {
     lock: RwLock<()>,
     state: Arc<State>,
+    consensus: Arc<dyn Consensus>,
     block_storage: Arc<BlockStorage>,
     chain_state: Arc<ChainStateStorage>,
     vm: Arc<WasmVM>,
@@ -83,6 +85,7 @@ impl ChainState {
             state.reset(*current_head.state_root())?;
             info!(blockhash = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
         } else {
+            // TODO: Clean up genesis generation to use a config file or function
             let mut genesis = consensus.get_genesis_header();
             state.credit_balance(&Address::default(), 1_000_000_000_000)?;
             state.commit()?;
@@ -93,11 +96,12 @@ impl ChainState {
             info!(blockhash = ?genesis.hash(), level = ?genesis.level(), "blockchain state started from genesis");
         }
 
-        let vm = Arc::new(WasmVM::new(state.clone(), block_storage.clone())?);
+        let vm = Arc::new(WasmVM::new(block_storage.clone())?);
 
         Ok(Self {
             lock: Default::default(),
             state,
+            consensus,
             block_storage,
             chain_state: chain_state_storage,
             vm,
@@ -307,6 +311,19 @@ impl Blockchain for ChainState {
 
     fn get_state_at(&self, root: &H256) -> anyhow::Result<Arc<dyn StateDB>> {
         Ok(self.state.get_sate_at(*root)?)
+    }
+
+    fn genesis(&self) -> IndexedBlockHeader {
+        let Ok(Some(genesis)) =
+            self.block_storage
+                .get_header_by_level(0) else {
+            panic!("genesis not found")
+        };
+        genesis
+    }
+
+    fn network(&self) -> Network {
+        self.consensus.network()
     }
 }
 

@@ -8,7 +8,6 @@ edition = "2021"
 
 [dependencies]
 # Workspace Dependecies
-bincode = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 rocksdb = { workspace = true }

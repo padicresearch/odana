@@ -8,6 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &format!("../proto/rpc_txs.proto"),
                 &format!("../proto/rpc_account.proto"),
                 &format!("../proto/rpc_chain.proto"),
+                &format!("../proto/rpc_runtime.proto"),
                 &format!("../proto/types.proto"),
             ],
             &[&format!("../proto")],

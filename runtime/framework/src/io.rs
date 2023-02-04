@@ -67,6 +67,20 @@ where
         Ok(Some(value))
     }
 
+    fn contains(key: K) -> bool {
+        let prefix = Self::storage_prefix();
+        let key = key.encode_to_vec();
+        let storage_key = [prefix, key.as_slice()].concat();
+        let storage_key = H::hash(storage_key.as_slice());
+        let Some(raw_value) = internal::storage::get(storage_key.as_ref()) else {
+            return false
+        };
+        if V::decode(raw_value.as_slice()).is_err() {
+            return false
+        };
+        true
+    }
+
     fn remove(key: K) -> Result<()> {
         let prefix = Self::storage_prefix();
         let key = key.encode_to_vec();
@@ -115,4 +129,8 @@ impl StorageKeyHasher for Blake2bHasher {
 
 pub fn emit<E: prost::Message + Default>(event: E) {
     internal::event::emit(&event.encode_to_vec())
+}
+
+pub fn print(msg: &str) {
+    internal::log::print(msg)
 }

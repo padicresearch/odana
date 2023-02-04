@@ -154,8 +154,8 @@ impl Event for ExecutionEnvironment {
 }
 
 impl Log for ExecutionEnvironment {
-    fn print(&mut self, output: Vec<char>) -> anyhow::Result<()> {
-        println!("{:?}", output);
+    fn print(&mut self, output: String) -> anyhow::Result<()> {
+        println!("{}", output);
         Ok(())
     }
 }
@@ -182,12 +182,13 @@ impl ExecutionContext for ExecutionEnvironment {
     }
 }
 
-impl From<ExecutionEnvironment> for Changelist {
-    fn from(value: ExecutionEnvironment) -> Self {
+
+impl From<&ExecutionEnvironment> for Changelist {
+    fn from(value: &ExecutionEnvironment) -> Self {
         Self {
-            account_changes: value.accounts,
-            logs: value.events,
-            storage: value.storage,
+            account_changes: value.accounts.clone(),
+            logs: value.events.clone(),
+            storage: value.storage.clone(),
         }
     }
 }

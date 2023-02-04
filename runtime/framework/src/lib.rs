@@ -70,7 +70,7 @@ pub trait RuntimeApplication {
     /// # Returns
     ///
     /// - An instance of the `QueryResponse` type representing the response to the query
-    fn query(query: Self::Query) -> Self::QueryResponse;
+    fn query(query: Self::Query) -> (&'static str, Self::QueryResponse);
 }
 
 pub mod context {
@@ -161,7 +161,8 @@ where
             .unwrap()
     }
 
-    fn query(query: Vec<u8>) -> Vec<u8> {
-        T::query(T::Query::decode(query.as_slice()).expect("error parsing query")).encode_to_vec()
+    fn query(query: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
+        let (name, data) = T::query(T::Query::decode(query.as_slice()).expect("error parsing query"));
+        (name.as_bytes().to_vec(), data.encode_to_vec())
     }
 }

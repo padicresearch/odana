@@ -21,6 +21,13 @@ message Block {
   repeated SignedTransaction txs = 2;
 }
 
+message AppState {
+  bytes root_hash = 1;
+  bytes code_hash = 2;
+  bytes creator = 3;
+  uint32 version = 4;
+}
+
 message PaymentTx {
   bytes address = 1;
 }
@@ -88,8 +95,7 @@ message AccountState {
   uint64 free_balance = 1;
   uint64 reserve_balance = 2;
   uint64 nonce = 3;
-  optional bytes root_hash = 4;
-  optional bytes code_hash = 5;
+  optional AppState app_state = 4;
 }
 
 enum TransactionStatus {

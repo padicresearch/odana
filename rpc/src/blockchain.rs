@@ -3,10 +3,7 @@ use std::sync::Arc;
 use tonic::{Code, Request, Response, Status};
 
 use crate::rpc::chain_service_server::ChainService;
-use crate::rpc::{
-    CurrentHeadResponse, GetBlockByHashRequest, GetBlockByLevelRequest, GetBlockNumberResponse,
-    GetBlocksRequest, GetBlocksResponse,
-};
+use crate::rpc::{ChainInfo, CurrentHeadResponse, GetBlockByHashRequest, GetBlockByLevelRequest, GetBlockNumberResponse, GetBlocksRequest, GetBlocksResponse};
 use primitive_types::H256;
 use traits::Blockchain;
 use types::block::Block;
@@ -86,5 +83,18 @@ impl ChainService for ChainServiceImpl {
         _: Request<GetBlocksRequest>,
     ) -> Result<Response<GetBlocksResponse>, Status> {
         todo!()
+    }
+
+    async fn get_blockchain_info(&self, request: Request<Empty>) -> Result<Response<ChainInfo>, Status> {
+        let current_head = self.current_head(request).await?;
+        let current_head = current_head.get_ref().header.unwrap();
+        let chain = ChainInfo {
+            chain: self.blockchain.network().into(),
+            genesis_hash: self.blockchain.genesis().hash.as_bytes().to_vec(),
+            difficulty: current_head.difficulty().into(),
+            network_difficulty: 26,
+            blocks: current_head.level(),
+        };
+        Ok(Response::new(chain))
     }
 }

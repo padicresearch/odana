@@ -9,6 +9,6 @@ default world io {
     }
 
     import log: interface {
-       print : func(output : list<char>)
+       print : func(output : string)
     }
 }

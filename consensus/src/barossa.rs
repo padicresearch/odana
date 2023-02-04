@@ -33,7 +33,6 @@ impl BarossaProtocol {
 }
 
 impl BarossaProtocol {
-    const CHAIN_ID: u32 = 101;
 
     /// Returns work required for given header
     pub fn work_required(
@@ -339,7 +338,7 @@ impl Consensus for BarossaProtocol {
         let parent = chain
             .get_header(header.parent_hash(), header.level() - 1)?
             .ok_or(Error::ParentBlockNotFound)?;
-        header.set_chain_id(Self::CHAIN_ID);
+        header.set_chain_id(self.network.chain_id());
         header.set_difficulty(
             self.work_required(
                 parent.hash,
@@ -347,7 +346,7 @@ impl Consensus for BarossaProtocol {
                 (header.level() + 1) as u32,
                 chain,
             )
-            .into(),
+                .into(),
         );
         Ok(())
     }
@@ -423,6 +422,10 @@ impl Consensus for BarossaProtocol {
             0,
             0,
         )
+    }
+
+    fn network(&self) -> Network {
+        self.network
     }
 }
 

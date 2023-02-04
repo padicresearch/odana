@@ -10,10 +10,10 @@ use serde::{Deserialize, Serialize};
 use primitive_types::{Address, H256};
 use smt::proof::Proof;
 use smt::SparseMerkleTree;
-use traits::{AppData, StateDB, WasmVMInstance};
+use traits::{StateDB, WasmVMInstance};
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
-use types::prelude::{get_address_from_app_id, get_address_from_seed, TransactionData};
+use types::prelude::{get_address_from_app_id, get_address_from_seed, AppState, TransactionData};
 use types::tx::{PaymentTx, SignedTransaction, Transaction};
 use types::Hash;
 
@@ -122,15 +122,13 @@ impl StateDB for State {
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>> {
         Ok(self.get_sate_at(root)?)
     }
-}
 
-impl AppData for State {
     fn get_app_data(&self, app_id: Address) -> Result<SparseMerkleTree> {
         let Ok(Some(app_account_state)) = self.trie.get(&app_id) else {
             bail!("app not found")
         };
 
-        let Some(app_root) = app_account_state.root_hash.map(|root| H256::from_slice(&root)) else {
+        let Some(app_root) = app_account_state.app_state.map(|root| H256::from_slice(&root.root_hash)) else {
             bail!("app not initialized")
         };
 
@@ -140,27 +138,12 @@ impl AppData for State {
             .unwrap_or_else(|_| SparseMerkleTree::new()))
     }
 
-    fn set_app_data(&self, app_id: Address, app_data: SparseMerkleTree) -> Result<()> {
-        self.appdata
-            .put(AppStateKey(app_id, app_data.root()), app_data)
-    }
-
-    fn get_app_root(&self, app_id: Address) -> H256 {
-        let Ok(Some(app_account_state)) = self.trie.get(&app_id) else {
-            return H256::zero()
+    fn get_app_source(&self, app_id: Address) -> Result<Vec<u8>> {
+        let account = self.trie.get(&app_id)?.ok_or(anyhow::anyhow!("app not found"))?;
+        let Some(app_state) = account.app_state else {
+            bail!("address is not an application address")
         };
-
-        let Some(app_root) = app_account_state.root_hash.map(|root| H256::from_slice(&root)) else {
-            return H256::zero()
-        };
-        app_root
-    }
-
-    fn get_app_data_at_root(&self, app_id: Address, root: H256) -> Result<SparseMerkleTree> {
-        Ok(self
-            .appdata
-            .get(&AppStateKey(app_id, root))
-            .unwrap_or_else(|_| SparseMerkleTree::new()))
+        self.appsource.get(&H256::from_slice(&app_state.code_hash))
     }
 }
 
@@ -219,22 +202,18 @@ impl State {
             }
             TransactionData::Call(arg) => {
                 let app_address = tx.to();
-                let app_state = states.get_mut(&app_address).expect("app state not found");
-                let binary = self.appsource.get(&H256::from_slice(
-                    app_state
-                        .code_hash
-                        .as_ref()
-                        .ok_or(anyhow::anyhow!("app source not found"))?,
-                ))?;
-
                 let state_db = Arc::new(self.clone());
-
-                vm.load_app(state_db.clone(), app_address, binary)?;
                 let changelist = vm.execute_app_tx(state_db, tx.sender(), tx.price(), arg)?;
-                app_state.root_hash = Some(changelist.storage.root().to_fixed_bytes().to_vec());
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);
                 }
+                // Update AppState on Account
+                let app_state = states
+                    .get_mut(&app_address)
+                    .map(|account_state| account_state.app_state.as_mut())
+                    .flatten()
+                    .ok_or(anyhow::anyhow!("app state not found"))?;
+                app_state.root_hash = changelist.storage.root().to_fixed_bytes().to_vec();
                 self.appdata.put(
                     AppStateKey(app_address, changelist.storage.root()),
                     changelist.storage,
@@ -252,9 +231,13 @@ impl State {
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);
                 }
-                let app_state = states.get_mut(&app_address).expect("app state not found");
-                app_state.root_hash = Some(changelist.storage.root().to_fixed_bytes().to_vec());
-                app_state.code_hash = Some(code_hash.as_bytes().to_vec());
+                let app_state = states.get_mut(&app_address).ok_or(anyhow::anyhow!("app state not found"))?;
+                app_state.app_state = Some(AppState {
+                    root_hash: changelist.storage.root().to_fixed_bytes().to_vec(),
+                    code_hash: code_hash.as_bytes().to_vec(),
+                    creator: tx.from().to_vec(),
+                    version: 1,
+                });
                 self.appsource.put(code_hash, arg.binary.clone())?;
                 self.appdata.put(
                     AppStateKey(app_address, changelist.storage.root()),

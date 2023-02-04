@@ -15,6 +15,8 @@ pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;
     fn current_header(&self) -> Result<Option<IndexedBlockHeader>>;
     fn get_state_at(&self, root: &H256) -> Result<Arc<dyn StateDB>>;
+    fn genesis(&self) -> IndexedBlockHeader;
+    fn network(&self) -> Network;
 }
 
 pub trait StateDB: Send + Sync {
@@ -29,13 +31,8 @@ pub trait StateDB: Send + Sync {
     fn commit(&self) -> Result<()>;
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;
-}
-
-pub trait AppData: Send + Sync {
     fn get_app_data(&self, app_id: Address) -> Result<SparseMerkleTree>;
-    fn set_app_data(&self, app_id: Address, app_data: SparseMerkleTree) -> Result<()>;
-    fn get_app_root(&self, app_id: Address) -> H256;
-    fn get_app_data_at_root(&self, app_id: Address, root: H256) -> Result<SparseMerkleTree>;
+    fn get_app_source(&self, app_id: Address) -> Result<Vec<u8>>;
 }
 
 pub trait AccountStateReader: Send + Sync {
@@ -59,18 +56,12 @@ pub trait WasmVMInstance: Send + Sync {
         value: u64,
         call: &ApplicationCallTx,
     ) -> Result<Changelist>;
-    fn load_app(
-        &self,
-        state_db: Arc<dyn StateDB>,
-        app_id: Address, //TODO; use codehash instead of app id
-        binary: Vec<u8>,
-    ) -> Result<()>;
     fn execute_app_query(
         &self,
         state_db: Arc<dyn StateDB>,
         app_id: Address,
         raw_query: &[u8],
-    ) -> Result<Vec<u8>>;
+    ) -> Result<(String, Vec<u8>)>;
 }
 
 pub trait StateIntermediate {}
@@ -119,6 +110,7 @@ pub trait Consensus: Send + Sync {
     fn is_genesis(&self, header: &BlockHeader) -> bool;
     fn miner_reward(&self, block_level: u32) -> u64;
     fn get_genesis_header(&self) -> BlockHeader;
+    fn network(&self) -> Network;
 }
 
 pub trait Handler<T> {

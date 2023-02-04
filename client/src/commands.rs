@@ -1,13 +1,15 @@
 use crate::rpc::account_service_client::AccountServiceClient;
 use crate::rpc::transactions_service_client::TransactionsServiceClient;
-use crate::rpc::GetAccountRequest;
+use crate::rpc::{GetAccountRequest, Query};
 use crate::util::parse_cli_args_to_json;
+use crate::Client;
 use anyhow::{anyhow, bail};
 use clap::{command, Args, Subcommand};
 use pretty_hex::HexConfig;
 use primitive_types::{Address, H256};
 use prost::Message;
-use protobuf::reflect::{FileDescriptor, MessageDescriptor};
+use protobuf::descriptor::FileDescriptorSet;
+use protobuf::reflect::{FileDescriptor, MessageDescriptor, MessageRef};
 use protobuf::text_format::print_to_string_pretty;
 use protobuf_json_mapping::{Command, CommandError, ParseOptions};
 use serde_json::{json, Number, Value};
@@ -64,46 +66,57 @@ pub struct ProtoFilesArg {
     #[clap(long)]
     proto_input: Vec<PathBuf>,
     #[clap(long)]
-    schema_in: String,
-    #[clap(long)]
-    schema_out: Option<String>,
+    schema: String,
 }
 
 impl ProtoFilesArg {
-    fn find_schemas(&self) -> anyhow::Result<(MessageDescriptor, Option<MessageDescriptor>)> {
+    fn schema(&self) -> anyhow::Result<MessageDescriptor> {
         let mut schema_in = None;
-        let mut schema_out = None;
-        let files = protobuf_parse::Parser::new()
+        let files = self.get_file_description_sets()?;
+        'files_iter: for proto_file in files.file {
+            let file_descriptor = FileDescriptor::new_dynamic(proto_file, &[])?;
+            //file_descriptor.message_by_full_name()
+            for message in file_descriptor.messages() {
+                if self.schema.eq(message.full_name()) {
+                    schema_in = Some(message.clone());
+                    break 'files_iter;
+                }
+            }
+        }
+        let Some(schema_in) = schema_in else {
+            bail!("input schema [{}] message descriptor not found", self.schema)
+        };
+        Ok(schema_in)
+    }
+
+    fn get_file_description_sets(&self) -> anyhow::Result<FileDescriptorSet> {
+        protobuf_parse::Parser::new()
             .includes(
                 self.proto_include
                     .iter()
                     .map(|f| std::fs::canonicalize(f.as_path()).unwrap()),
             )
-            .inputs(std::fs::canonicalize(self.proto_input.as_path()).unwrap())
-            .file_descriptor_set()?;
-        'files_iter: for proto_file in files.file {
+            .inputs(
+                self.proto_input
+                    .iter()
+                    .map(|f| std::fs::canonicalize(f.as_path()).unwrap()),
+            )
+            .file_descriptor_set()
+    }
+
+    fn schemas(&self) -> anyhow::Result<(MessageDescriptor, HashMap<String, MessageDescriptor>)> {
+        let mut schemas = HashMap::new();
+        let files = self.get_file_description_sets()?;
+        for proto_file in files.file {
             let file_descriptor = FileDescriptor::new_dynamic(proto_file, &[])?;
             for message in file_descriptor.messages() {
-                if schema_in.is_some() && schema_out.is_some() {
-                    break 'files_iter;
-                } else if schema_in.is_some() && self.schema_out.is_none() {
-                    break 'files_iter;
-                }
-                if self.schema_in.eq(message.name()) {
-                    schema_in = Some(message.clone());
-                }
-
-                if let Some(n) = &self.schema_out {
-                    if n == message.name() {
-                        schema_out = Some(message);
-                    }
-                }
+                schemas.insert(message.full_name().to_string(), message);
             }
         }
-        let Some(schema_in) = schema_in else {
-            bail!("input schema [{}] message descriptor not found", self.schema_in)
+        let Some(schema_in) = schemas.get(&self.schema) else {
+            bail!("input schema [{}] message descriptor not found", self.schema)
         };
-        Ok((schema_in, schema_out))
+        Ok((schema_in.clone(), schemas))
     }
 }
 
@@ -156,7 +169,7 @@ pub struct AppCreateArgs {
 #[derive(Args, Debug)]
 pub struct AppQueryArgs {
     #[clap(long)]
-    package_name: String,
+    app: String,
     #[clap(flatten)]
     proto: ProtoFilesArg,
     #[clap(require_equals = true, multiple = true)]
@@ -219,11 +232,9 @@ pub fn handle_cmd_string(cmd: &Command) -> Result<Vec<u8>, CommandError> {
 }
 
 pub async fn handle_app_command(
-    rpc_addr: &str,
+    rpc_client: &Client,
     command: &AppArgsCommands,
 ) -> anyhow::Result<Value> {
-    let mut account_service = AccountServiceClient::connect(format!("http://{}", rpc_addr)).await?;
-    let mut tx_service = TransactionsServiceClient::connect(format!("http://{}", rpc_addr)).await?;
 
     let resp = match &command.command {
         AppCommands::Call(CallArgs {
@@ -238,7 +249,8 @@ pub async fn handle_app_command(
 
             let signer_address = get_address_from_secret_key(signer, Network::Testnet)?;
 
-            let nonce = account_service
+            let nonce = rpc_client
+                .account_service()
                 .get_nonce(GetAccountRequest {
                     address: signer_address.to_vec(),
                 })
@@ -246,7 +258,8 @@ pub async fn handle_app_command(
                 .get_ref()
                 .nonce;
 
-            let app_id = get_address_from_seed(app.as_bytes(), Network::Testnet)?.to_vec();
+            let app_id = get_address_from_seed(app.as_bytes(), Network::Testnet)?;
+            let app_id = app_id.to_vec();
 
             let opts = ParseOptions {
                 ignore_unknown_fields: false,
@@ -260,12 +273,18 @@ pub async fn handle_app_command(
             let json_value = parse_cli_args_to_json(params.iter())?;
             let json_string = serde_json::to_string(&json_value)?;
 
-            let (call_message, _) = proto.find_schemas()?;
+            let schema_in = proto.schema()?;
             let msg = protobuf_json_mapping::parse_dyn_from_str_with_options(
-                &call_message,
+                &schema_in,
                 &json_string,
                 &opts,
             )?;
+
+            let call_json: Value = serde_json::from_str(
+                &protobuf_json_mapping::print_to_string(msg.as_ref())
+                    .expect("failed to print message as json"),
+            )?;
+
             let mut encoded_call = Vec::new();
             msg.write_to_vec_dyn(&mut encoded_call)?;
             let data = TransactionData::Call(ApplicationCallTx {
@@ -274,9 +293,14 @@ pub async fn handle_app_command(
             });
             let signed_tx =
                 make_signed_transaction(signer, nonce, value, tip, Network::Testnet, data)?;
-            let signed_tx_size = signed_tx.encode_to_vec().len();
-            let response = tx_service.send_transaction(signed_tx).await?;
+            let signed_tx_size = signed_tx.encoded_len();
+            let response = rpc_client
+                .transaction_service()
+                .send_transaction(signed_tx)
+                .await?;
+
             json!({
+                "call" : call_json,
                 "tx_size" : signed_tx_size,
                 "tx_hash" : H256::from_slice(&response.get_ref().hash),
             })
@@ -292,7 +316,8 @@ pub async fn handle_app_command(
 
             let signer_address = get_address_from_secret_key(signer, Network::Testnet)?;
 
-            let nonce = account_service
+            let nonce = rpc_client
+                .account_service()
                 .get_nonce(GetAccountRequest {
                     address: signer_address.to_vec(),
                 })
@@ -304,38 +329,73 @@ pub async fn handle_app_command(
             let mut binary = Vec::with_capacity(file.metadata()?.len() as usize);
             let _ = file.read_to_end(&mut binary)?;
             let code_hash = crypto::keccak256(&binary);
-            println!("Code Hash: {:?}", code_hash);
             let data = TransactionData::Create(CreateApplicationTx {
                 package_name: package_name.to_owned(),
                 binary,
             });
             let signed_tx =
                 make_signed_transaction(signer, nonce, value, tip, Network::Testnet, data)?;
-            let signed_tx_size = signed_tx.encode_to_vec().len();
-            let response = tx_service.send_transaction(signed_tx).await?;
+            let signed_tx_size = signed_tx.encoded_len();
+            let response = rpc_client
+                .transaction_service()
+                .send_transaction(signed_tx)
+                .await?;
             json!({
                 "code_hash" : code_hash,
                 "tx_size" : signed_tx_size,
                 "tx_hash" : H256::from_slice(&response.get_ref().hash),
             })
         }
-        AppCommands::Query(AppQueryArgs {
-                               package_name,
-                               proto,
-                               params,
-                           }) => {
-            json!({})
+        AppCommands::Query(AppQueryArgs { app, proto, params }) => {
+            let (schema_in, schemas) = proto.schemas()?;
+
+            let opts = ParseOptions {
+                ignore_unknown_fields: false,
+                handler: &handle_cmd_string,
+                _future_options: (),
+            };
+
+            let app_id = get_address_from_seed(app.as_bytes(), Network::Testnet)?;
+            let app_id = app_id.to_vec();
+            let json_value = parse_cli_args_to_json(params.iter())?;
+            let json_string = serde_json::to_string(&json_value)?;
+            let query_message = protobuf_json_mapping::parse_dyn_from_str_with_options(
+                &schema_in,
+                &json_string,
+                &opts,
+            )?;
+            let mut query = Vec::new();
+            query_message.write_to_vec_dyn(&mut query)?;
+            let response = rpc_client
+                .runtime_api_service()
+                .query_runtime(Query { app_id, query })
+                .await?;
+
+            let Some(response_message_desc) = schemas.get(response.get_ref().typename.as_str()) else {
+                let raw = hex::encode_raw(response.get_ref().data.as_slice());
+                return Ok(
+                    json!({
+                    "raw" : raw
+                }))
+            };
+
+            let mut response_message = response_message_desc.new_instance();
+            response_message.merge_from_bytes_dyn(response.get_ref().data.as_slice())?;
+
+            serde_json::from_str(&protobuf_json_mapping::print_to_string(
+                response_message.as_ref(),
+            )?)?
         }
     };
     Ok(resp)
 }
 
 pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Result<Value> {
+    let mut rpc_client = Client::connect(format!("http://{}", command.rpc_addr)).await?;
+
     let resp = match &command.command {
         ClientCommands::GetBalance(AddressArg { address }) => {
-            let mut account_service =
-                AccountServiceClient::connect(format!("http://{}", command.rpc_addr)).await?;
-            let balance = account_service
+            let balance = rpc_client.account_service()
                 .get_balance(GetAccountRequest {
                     address: address.to_vec(),
                 })
@@ -343,9 +403,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             Value::Number(balance.get_ref().balance.into())
         }
         ClientCommands::GetNonce(AddressArg { address }) => {
-            let mut account_service =
-                AccountServiceClient::connect(format!("http://{}", command.rpc_addr)).await?;
-            let nonce = account_service
+            let nonce = rpc_client.account_service()
                 .get_nonce(GetAccountRequest {
                     address: address.to_vec(),
                 })
@@ -353,9 +411,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             Value::Number(nonce.get_ref().nonce.into())
         }
         ClientCommands::GetAccountState(AddressArg { address }) => {
-            let mut account_service =
-                AccountServiceClient::connect(format!("http://{}", command.rpc_addr)).await?;
-            let account_state = account_service
+            let account_state = rpc_client.account_service()
                 .get_account_state(GetAccountRequest {
                     address: address.to_vec(),
                 })
@@ -369,20 +425,17 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             fee,
         }) => {
             // Todo get network
-            let mut account_service =
-                AccountServiceClient::connect(format!("http://{}", command.rpc_addr)).await?;
 
             let signer_address = get_address_from_secret_key(*signer, Network::Testnet)?;
 
-            let nonce = account_service
+            let nonce = rpc_client.account_service()
                 .get_nonce(GetAccountRequest {
                     address: signer_address.to_vec(),
                 })
                 .await?
                 .get_ref()
                 .nonce;
-            let mut tx_service =
-                TransactionsServiceClient::connect(format!("http://{}", command.rpc_addr)).await?;
+
             let signed_tx = make_payment_sign_transaction(
                 *signer,
                 *to,
@@ -392,8 +445,8 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                 Network::Testnet,
             )?;
 
-            let signed_tx_size = signed_tx.encode_to_vec().len();
-            let response = tx_service.send_transaction(signed_tx).await?;
+            let signed_tx_size = signed_tx.encoded_len();
+            let response = rpc_client.transaction_service().send_transaction(signed_tx).await?;
 
             json!({
                 "tx_size" : signed_tx_size,
@@ -401,9 +454,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             })
         }
         ClientCommands::GetTxpool => {
-            let mut tx_service =
-                TransactionsServiceClient::connect(format!("http://{}", command.rpc_addr)).await?;
-            let txpool_content = tx_service.get_txpool_content(Empty).await?;
+            let txpool_content = rpc_client.transaction_service().get_txpool_content(Empty).await?;
 
             let queued_txs: HashMap<_, _> = txpool_content
                 .get_ref()
@@ -423,7 +474,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                 "pending" : pending_txs,
             })
         }
-        ClientCommands::App(a) => handle_app_command(&command.rpc_addr, a).await?,
+        ClientCommands::App(a) => handle_app_command(&rpc_client, a).await?,
     };
     Ok(resp)
 }
