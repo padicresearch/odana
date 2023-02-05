@@ -32,7 +32,11 @@ contracts.
   **`MacOS`**
 
   ```shell
-  brew install llvm cmake automake libtool
+  brew install llvm cmake automake libtool protobuf
+  ```
+* **Install WASM target**
+  ```shell
+  rustup target add wasm32-unknown-unknown
   ```
 
 ### ⬇️ Download
