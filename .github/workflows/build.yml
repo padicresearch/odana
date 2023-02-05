@@ -27,7 +27,7 @@ jobs:
           sudo apt install cmake libprotobuf-dev protobuf-compiler
       - name: OSX dependencies
         if: runner.os == 'macOS'
-        run: brew install llvm cmake automake libtool
+        run: brew install llvm cmake automake libtool protobuf
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
       - name: cargo check
