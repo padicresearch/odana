@@ -7,35 +7,21 @@ use prost::encoding::{DecodeContext, WireType};
 use prost::DecodeError;
 use serde::{Deserialize, Serialize};
 
-use crypto::{generate_pow_from_pub_key, sha256};
-use primitive_types::U256;
-use primitive_types::{H256, U192};
+use primitive_types::H256;
 use types::config::NodeIdentityConfig;
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub struct PeerNode {
     pub_key: H256,
-    nonce: U192,
 }
 
 impl PeerNode {
-    pub fn new(pub_key: H256, nonce: U192) -> Self {
-        Self { pub_key, nonce }
-    }
-
-    pub fn pow(&self) -> H256 {
-        let mut pow_stamp = [0_u8; 56];
-        pow_stamp[..24].copy_from_slice(&self.nonce.to_le_bytes());
-        pow_stamp[24..].copy_from_slice(self.pub_key.as_bytes());
-        sha256(pow_stamp)
+    pub fn new(pub_key: H256) -> Self {
+        Self { pub_key }
     }
 
     pub fn pub_key(&self) -> &H256 {
         &self.pub_key
-    }
-
-    pub fn nonce(&self) -> &U192 {
-        &self.nonce
     }
 
     pub fn peer_id(&self) -> Result<PeerId> {
@@ -54,7 +40,6 @@ impl prost::Message for PeerNode {
         Self: Sized,
     {
         prost::encoding::bytes::encode(1, &self.pub_key, buf);
-        prost::encoding::bytes::encode(2, &self.nonce, buf);
     }
 
     fn merge_field<B>(
@@ -70,14 +55,12 @@ impl prost::Message for PeerNode {
     {
         match tag {
             1 => prost::encoding::bytes::merge(wire_type, &mut self.pub_key, buf, ctx),
-            2 => prost::encoding::bytes::merge(wire_type, &mut self.nonce, buf, ctx),
             _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
         }
     }
 
     fn encoded_len(&self) -> usize {
         prost::encoding::bytes::encoded_len(1, &self.pub_key)
-            + prost::encoding::bytes::encoded_len(2, &self.nonce)
     }
 
     fn clear(&mut self) {
@@ -90,11 +73,10 @@ pub struct NodeIdentity {
     pub_key: libp2p::identity::ed25519::PublicKey,
     secret_key: libp2p::identity::ed25519::SecretKey,
     peer_id: PeerId,
-    nonce: U192,
 }
 
 impl NodeIdentity {
-    pub fn generate(target: U256) -> Self {
+    pub fn generate() -> Self {
         let keys = libp2p::identity::ed25519::Keypair::generate();
 
         let pub_key = keys.public();
@@ -103,13 +85,10 @@ impl NodeIdentity {
         let peer_id =
             PeerId::from_public_key(&libp2p::identity::PublicKey::Ed25519(pub_key.clone()));
 
-        let (nonce, _) = generate_pow_from_pub_key(H256::from(pub_key.encode()), target);
-
         Self {
             pub_key,
             secret_key,
             peer_id,
-            nonce,
         }
     }
 
@@ -131,17 +110,11 @@ impl NodeIdentity {
         &self.peer_id
     }
 
-    pub fn nonce(&self) -> &U192 {
-        &self.nonce
-    }
-
     pub fn export_as_config(&self) -> NodeIdentityConfig {
         NodeIdentityConfig {
             pub_key: H256::from(self.pub_key.encode()),
             secret_key: H256::from_slice(self.secret_key.as_ref()),
             peer_id: self.peer_id.to_base58(),
-            nonce: self.nonce,
-            pow_stamp: self.stamp(),
         }
     }
 
@@ -151,24 +124,16 @@ impl NodeIdentity {
             pub_key: libp2p::identity::ed25519::PublicKey::decode(config.pub_key.as_bytes())?,
             secret_key: libp2p::identity::ed25519::SecretKey::from_bytes(&mut secret_key_raw)?,
             peer_id: PeerId::from_str(config.peer_id.as_str())?,
-            nonce: config.nonce,
         })
     }
 
-    pub fn stamp(&self) -> H256 {
-        let mut pow_stamp = [0_u8; 56];
-        pow_stamp[..24].copy_from_slice(&self.nonce.to_le_bytes());
-        pow_stamp[24..].copy_from_slice(&self.pub_key.encode());
-        sha256(pow_stamp)
-    }
-
     pub fn to_p2p_node(&self) -> PeerNode {
-        PeerNode::new(H256::from(self.pub_key.encode()), self.nonce)
+        PeerNode::new(H256::from(self.pub_key.encode()))
     }
 }
 
 #[test]
 fn test_generate_identity() {
-    let identity = NodeIdentity::generate(crypto::make_target(20.0));
+    let identity = NodeIdentity::generate();
     println!("{:#?}", identity)
 }

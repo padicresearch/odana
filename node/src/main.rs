@@ -2,13 +2,11 @@ use std::collections::BTreeSet;
 use std::fs::OpenOptions;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::time::Duration;
 
 use anyhow::Result;
 use clap::{ArgEnum, Args, Parser, Subcommand};
 use client::commands::{handle_client_command, ClientArgsCommands};
 use directories::UserDirs;
-use indicatif::{ProgressBar, ProgressStyle};
 
 use p2p::identity::NodeIdentity;
 use primitive_types::Address;
@@ -75,8 +73,6 @@ struct RunArgs {
     identity_file: Option<PathBuf>,
     #[clap(arg_enum, default_value_t = LogLevel::Info)]
     log_level: LogLevel,
-    #[clap(long)]
-    expected_pow: Option<f64>,
     #[clap(long, value_parser = parse_miner_address)]
     miner: Option<Address>,
     #[clap(arg_enum, long)]
@@ -100,8 +96,6 @@ enum IdentityCommands {
 
 #[derive(Args, Debug)]
 struct IdentityGenerateArgs {
-    #[clap(default_value_t = 26.0)]
-    difficulty: f64,
     #[clap(short, long)]
     datadir: Option<PathBuf>,
 }
@@ -207,29 +201,10 @@ fn generate_identity_file(args: &IdentityGenerateArgs) -> Result<()> {
         .read(true)
         .create_new(true)
         .open(identity_file_path.as_path())?;
-    let pb = ProgressBar::new_spinner();
-    pb.enable_steady_tick(Duration::from_millis(120));
-    pb.set_style(
-        ProgressStyle::with_template("{spinner:.blue} {msg}")?.tick_strings(&[
-            "▫▫▫▫",
-            "▪▫▫▫",
-            "▫▪▫▫",
-            "▫▫▪▫",
-            "▫▫▫▪",
-            "▪▪▪▪",
-        ]),
-    );
-    pb.set_message(format!(
-        "Generating node identity... difficulty({})",
-        args.difficulty
-    ));
-    let identity = NodeIdentity::generate(crypto::make_target(args.difficulty));
+    let identity = NodeIdentity::generate();
     serde_json::to_writer(&identity_file, &identity.export_as_config())?;
     identity_file.sync_all()?;
-    pb.finish_with_message(format!(
-        "Created identity path: {:?}  difficulty({})",
-        identity_file_path, args.difficulty
-    ));
+    println!("Created identity path: {:?}", identity_file_path);
     Ok(())
 }
 
@@ -249,10 +224,6 @@ fn handle_config_commands(args: &ConfigCommands) -> Result<()> {
 
             if let Some(coinbase) = args.miner {
                 config.miner = Some(coinbase)
-            }
-
-            if let Some(expected_pow) = args.expected_pow {
-                config.expected_pow = expected_pow
             }
 
             if let Some(p2p_host) = &args.p2p_host {
@@ -334,10 +305,6 @@ fn sanitize_config_args(
 
     if let Some(coinbase) = args.miner {
         config.miner = Some(coinbase)
-    }
-
-    if let Some(expected_pow) = args.expected_pow {
-        config.expected_pow = expected_pow
     }
 
     if let Some(p2p_host) = &args.p2p_host {

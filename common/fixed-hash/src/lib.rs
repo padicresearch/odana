@@ -48,6 +48,7 @@ pub use static_assertions::const_assert;
 mod hash;
 
 #[cfg(test)]
+#[allow(clippy::all)]
 mod tests;
 
 #[cfg(feature = "api-dummy")]

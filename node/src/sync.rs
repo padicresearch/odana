@@ -98,10 +98,8 @@ impl SyncService {
             } else if node_level < self.network_tip.level() {
                 // Tipped peer is offline or Network is at a fork
                 // Get the new tip peer and sync from it
-                let old_bootstrap_peer =
-                    self.tip_before_sync.as_ref().map(|(peer_id, _)| (peer_id));
                 let new_bootstrap_peer = &self.highest_peer;
-                info!(from = ?old_bootstrap_peer, to = ?new_bootstrap_peer, "Bootstrap peer disconnected or failed to send blocks, switching bootstrapping peer");
+                debug!(peer = ?new_bootstrap_peer, "Bootstrap peer disconnected or failed to send blocks, switching bootstrapping peer");
                 self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip));
                 self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index,

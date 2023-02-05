@@ -36,9 +36,8 @@ use libp2p::NetworkBehaviour;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use codec::{Decodable, Encodable};
-use primitive_types::{Compact, U256};
+use primitive_types::Compact;
 use tracing::{debug, info, warn};
-use traits::Blockchain;
 use types::config::EnvironmentConfig;
 
 use crate::identity::*;
@@ -78,7 +77,6 @@ async fn config_network(
     node_identity: NodeIdentity,
     p2p_to_node: UnboundedSender<Msg>,
     network_state: Arc<NetworkState>,
-    pow_target: U256,
 ) -> Result<Swarm<ChainNetworkBehavior>> {
     let auth_keys = libp2p::noise::Keypair::<X25519Spec>::new()
         .into_authentic(&node_identity.identity_keys())
@@ -89,7 +87,7 @@ async fn config_network(
         .authenticate(NoiseConfig::xx(auth_keys).into_authenticated())
         .multiplex(libp2p::mplex::MplexConfig::new())
         .boxed();
-
+    //TODO get topic from config or network info
     let network_topic = Sha256Topic::new("testnet");
     let mdns = Mdns::new(Default::default())
         .await
@@ -102,9 +100,10 @@ async fn config_network(
         cfg,
     );
 
-    let max_transmit_size = 1_000_000;
+    let max_transmit_size = 10_000_000;
     let config = GossipsubConfigBuilder::default()
         .max_transmit_size(max_transmit_size)
+        //TODO get protocol_id_prefix from config or network info
         .protocol_id_prefix("odana")
         .idle_timeout(Duration::from_secs(3600))
         .validation_mode(ValidationMode::Permissive)
@@ -128,9 +127,7 @@ async fn config_network(
         ),
         p2p_to_node,
         topic: network_topic.clone(),
-        node: node_identity.to_p2p_node(),
         state: network_state,
-        pow_target,
     };
 
     behaviour.gossipsub.subscribe(&network_topic)?;
@@ -164,18 +161,11 @@ pub async fn start_p2p_server(
     mut node_to_p2p: UnboundedReceiver<NodeToPeerMessage>,
     p2p_to_node: UnboundedSender<Msg>,
     peer_arg: Vec<String>,
-    pow_target: U256,
     network_state: Arc<NetworkState>,
-    blockchain: Arc<dyn Blockchain>,
     request_handler: Arc<RequestHandler>,
 ) -> Result<()> {
-    let mut swarm = config_network(
-        node_identity.clone(),
-        p2p_to_node,
-        network_state.clone(),
-        pow_target,
-    )
-    .await?;
+    let mut swarm =
+        config_network(node_identity.clone(), p2p_to_node, network_state.clone()).await?;
 
     Swarm::listen_on(
         &mut swarm,
@@ -201,7 +191,6 @@ pub async fn start_p2p_server(
 
     tokio::task::spawn(async move {
         let state = network_state.clone();
-        let blockchain = blockchain.clone();
         let request_handler = request_handler.clone();
         loop {
             tokio::select! {
@@ -218,7 +207,7 @@ pub async fn start_p2p_server(
                     }
                 }
             event = swarm.select_next_some() => {
-                    let res =  handle_swam_event(event, &mut swarm, &state, &blockchain, &request_handler).await;
+                    let res =  handle_swam_event(event, &mut swarm, &state, &request_handler).await;
                     if let Err(error) = res {
                         debug!(error = ?error, "Error handling swarm event");
                     }
@@ -257,7 +246,6 @@ async fn handle_swam_event<T: std::fmt::Debug>(
     event: SwarmEvent<OutEvent, T>,
     swarm: &mut Swarm<ChainNetworkBehavior>,
     network_state: &Arc<NetworkState>,
-    blockchain: &Arc<dyn Blockchain>,
     request_handler: &RequestHandler,
 ) -> Result<()> {
     match event {
@@ -341,69 +329,23 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         })) => match message {
             RequestResponseMessage::Request {
                 request, channel, ..
-            } => match &request {
-                Msg::Ack(_) => {
-                    let chain_network = swarm.behaviour_mut();
-                    let _ = chain_network.requestresponse.send_response(
-                        channel,
-                        Msg::ReAck(ReAckMessage::new(
-                            chain_network.node,
-                            // TODO: Refactor can cause error crashes
-                            blockchain.current_header().unwrap().unwrap().raw,
-                        )),
-                    );
-                }
-                message => {
-                    request_handler
-                        .handle(&peer, message)
-                        .map_err(|e| {
-                            debug!(error = ?e, "failed to handle request");
-                            message.clone()
-                        })
-                        .and_then(|resp| {
-                            let chain_network = swarm.behaviour_mut();
-                            if let Some(resp) = resp {
-                                return chain_network.requestresponse.send_response(channel, resp);
-                            }
-                            Ok(())
-                        })
-                        .map_err(|msg| anyhow!("failed to respond to peer message {:?}", msg))?;
-                }
-            },
+            } => {
+                let Ok(Some(response)) = request_handler.handle(&peer, &request).map_err(|e|{
+                    debug!(error = ?e, "failed to handle request");
+                    e
+                }) else {
+                    return Ok(())
+                };
+                let chain_network = swarm.behaviour_mut();
+                chain_network
+                    .requestresponse
+                    .send_response(channel, response)
+                    .map_err(|e| anyhow!("failed to respond to peer message {:?}", e))?;
+            }
 
-            RequestResponseMessage::Response {
-                request_id,
-                response,
-            } => match &response {
-                Msg::ReAck(msg) => {
-                    let peers = swarm.behaviour().state.peer_list();
-                    match peers.promote_peer(
-                        &peer,
-                        request_id,
-                        msg.node_info()?,
-                        swarm.behaviour().pow_target,
-                    ) {
-                        Ok((peer, address)) => {
-                            let chain_network = swarm.behaviour_mut();
-                            chain_network.gossipsub.add_explicit_peer(&peer);
-                            chain_network.kad.add_address(&peer, address);
-                            network_state.update_peer_current_head(&peer, msg.current_header()?)?;
-
-                            info!(peer = ?peer, peer_node_info = ?msg.node_info, stats = ?peers.stats(),"Connected to new peer");
-                            network_state.handle_new_peer_connected(&peer)?
-                        }
-                        Err(error) => {
-                            warn!(peer = ?&peer, error = ?error,"Failed to promote peer");
-                            if swarm.disconnect_peer_id(peer).is_err() {
-                                debug!(peer_id = ?peer, "Failed to disconnect peer")
-                            }
-                        }
-                    }
-                }
-                _ => {
-                    swarm.behaviour_mut().p2p_to_node.send(response)?;
-                }
-            },
+            RequestResponseMessage::Response { response, .. } => {
+                swarm.behaviour_mut().p2p_to_node.send(response)?;
+            }
         },
 
         SwarmEvent::Behaviour(OutEvent::RequestResponse(
@@ -417,14 +359,7 @@ async fn handle_swam_event<T: std::fmt::Debug>(
         } => {
             let chain_network = swarm.behaviour_mut();
             let peers = chain_network.state.peer_list();
-            if !peers.is_peer_connected(&peer_id) {
-                let request_id = swarm
-                    .behaviour_mut()
-                    .requestresponse
-                    .send_request(&peer_id, Msg::Ack(AckMessage::new()));
-                peers.add_potential_peer(peer_id, request_id);
-                peers.set_peer_address(peer_id, address.clone());
-            }
+            peers.set_peer_address(peer_id, address.clone());
             info!(peer = ?address,"Connection established");
         }
         SwarmEvent::ConnectionClosed {
@@ -467,11 +402,7 @@ struct ChainNetworkBehavior {
     #[behaviour(ignore)]
     topic: Sha256Topic,
     #[behaviour(ignore)]
-    node: PeerNode,
-    #[behaviour(ignore)]
     state: Arc<NetworkState>,
-    #[behaviour(ignore)]
-    pow_target: U256,
 }
 
 #[derive(Debug)]

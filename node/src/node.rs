@@ -123,17 +123,13 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         )
     };
 
-    let identity_expected_pow = crypto::make_target(env.expected_pow);
-
     start_p2p_server(
         env.clone(),
         node_id,
         node_to_peer_receiver,
         peer_to_node_sender,
         env.peers.clone(),
-        identity_expected_pow,
         network_state.clone(),
-        blockchain.chain_state(),
         handler,
     )
     .await?;
@@ -294,10 +290,6 @@ pub(crate) fn setup_environment(args: &RunArgs) -> Result<Arc<EnvironmentConfig>
 
     if let Some(coinbase) = args.miner {
         config.miner = Some(coinbase)
-    }
-
-    if let Some(expected_pow) = args.expected_pow {
-        config.expected_pow = expected_pow
     }
 
     if let Some(p2p_host) = &args.p2p_host {

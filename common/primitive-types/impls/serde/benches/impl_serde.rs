@@ -11,7 +11,7 @@
 //! ```bash
 //! cargo bench
 //! ```
-
+#![allow(clippy::all, deprecated)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion, ParameterizedBenchmark};
 use serde_derive::{Deserialize, Serialize};
 

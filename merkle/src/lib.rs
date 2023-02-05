@@ -209,10 +209,10 @@ mod tests {
     #[test]
     fn test_with_even_inputs() {
         let mut merkle = Merkle::default();
-        merkle.update("hello".as_bytes());
-        merkle.update("world".as_bytes());
-        merkle.update("job".as_bytes());
-        merkle.update("market".as_bytes());
+        merkle.update("hello".as_bytes()).unwrap();
+        merkle.update("world".as_bytes()).unwrap();
+        merkle.update("job".as_bytes()).unwrap();
+        merkle.update("market".as_bytes()).unwrap();
         let root = merkle.finalize();
 
         let hasher = Sha3Keccak256;
@@ -234,13 +234,13 @@ mod tests {
     #[test]
     fn test_proof() {
         let mut merkle = Merkle::default();
-        merkle.update("hello".as_bytes());
-        merkle.update("world".as_bytes());
-        merkle.update("job".as_bytes());
-        merkle.update("market".as_bytes());
-        merkle.update("king".as_bytes());
-        merkle.update("queen".as_bytes());
-        merkle.update("baby".as_bytes());
+        merkle.update("hello".as_bytes()).unwrap();
+        merkle.update("world".as_bytes()).unwrap();
+        merkle.update("job".as_bytes()).unwrap();
+        merkle.update("market".as_bytes()).unwrap();
+        merkle.update("king".as_bytes()).unwrap();
+        merkle.update("queen".as_bytes()).unwrap();
+        merkle.update("baby".as_bytes()).unwrap();
         let root = merkle.finalize();
         let merkle_root = *root.unwrap();
 
@@ -254,18 +254,18 @@ mod tests {
     #[test]
     fn test_error_for_already_inserted_item() {
         let mut merkle = Merkle::default();
-        merkle.update("hello".as_bytes());
+        merkle.update("hello".as_bytes()).unwrap();
         assert!(merkle.update("hello".as_bytes()).is_err());
     }
 
     #[test]
     fn test_root_odd_inputs() {
         let mut merkle = Merkle::default();
-        merkle.update("hello".as_bytes());
-        merkle.update("world".as_bytes());
-        merkle.update("job".as_bytes());
-        merkle.update("market".as_bytes());
-        merkle.update("great".as_bytes());
+        merkle.update("hello".as_bytes()).unwrap();
+        merkle.update("world".as_bytes()).unwrap();
+        merkle.update("job".as_bytes()).unwrap();
+        merkle.update("market".as_bytes()).unwrap();
+        merkle.update("great".as_bytes()).unwrap();
         let root = merkle.finalize();
 
         let hasher = Sha3Keccak256;

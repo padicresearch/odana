@@ -7,8 +7,6 @@ use primitive_types::H256;
 use types::block::{Block, BlockHeader};
 use types::tx::SignedTransaction;
 
-use crate::identity::PeerNode;
-
 #[derive(Eq, PartialEq, prost::Message, Clone)]
 pub struct CurrentHeadMessage {
     #[prost(message, tag = "1")]
@@ -234,43 +232,6 @@ impl prost::Message for GetBlocksMessage {
         self.block_hashes.clear()
     }
 }
-
-#[derive(Eq, PartialEq, Clone, prost::Message)]
-pub struct ReAckMessage {
-    #[prost(message, tag = "1")]
-    pub node_info: Option<PeerNode>,
-    #[prost(message, tag = "2")]
-    pub current_header: Option<BlockHeader>,
-}
-
-impl ReAckMessage {
-    pub fn new(node_info: PeerNode, current_header: BlockHeader) -> Self {
-        Self {
-            node_info: Some(node_info),
-            current_header: Some(current_header),
-        }
-    }
-
-    pub fn node_info(&self) -> anyhow::Result<PeerNode> {
-        self.node_info
-            .ok_or_else(|| anyhow::anyhow!("invalid message"))
-    }
-
-    pub fn current_header(&self) -> anyhow::Result<BlockHeader> {
-        self.current_header
-            .ok_or_else(|| anyhow::anyhow!("invalid message"))
-    }
-}
-
-#[derive(Eq, PartialEq, Clone, prost::Message)]
-pub struct AckMessage;
-
-impl AckMessage {
-    pub(crate) fn new() -> AckMessage {
-        AckMessage
-    }
-}
-
 #[derive(prost::Message, Eq, PartialEq, Clone)]
 pub struct AdvertiseMessage {
     #[prost(string, repeated, tag = "1")]
@@ -315,10 +276,6 @@ pub enum Msg {
     BroadcastTransaction(BroadcastTransactionMessage),
     #[prost(message, tag = "9")]
     BroadcastBlock(BroadcastBlockMessage),
-    #[prost(message, tag = "10")]
-    Ack(AckMessage),
-    #[prost(message, tag = "11")]
-    ReAck(ReAckMessage),
 }
 
 impl From<Msg> for PeerMessage {

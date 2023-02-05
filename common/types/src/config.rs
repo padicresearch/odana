@@ -7,17 +7,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::network::Network;
 use directories::UserDirs;
-use primitive_types::{Address, H256, U192};
+use primitive_types::{Address, H256};
 
-pub const DEFAULT_DIR_NAME: &'static str = ".odana";
+pub const DEFAULT_DIR_NAME: &str = ".odana";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeIdentityConfig {
     pub pub_key: H256,
     pub secret_key: H256,
     pub peer_id: String,
-    pub nonce: U192,
-    pub pow_stamp: H256,
 }
 
 impl NodeIdentityConfig {
@@ -40,7 +38,6 @@ pub struct EnvironmentConfig {
     #[serde(default)]
     pub rpc_host: String,
     pub rpc_port: u16,
-    pub expected_pow: f64,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub peers: Vec<String>,
@@ -99,7 +96,6 @@ impl Default for EnvironmentConfig {
             rpc_host: "127.0.0.1".to_string(),
             p2p_port: 9020,
             rpc_port: 9121,
-            expected_pow: 26.0,
             peers: vec![],
             identity_file: None,
             datadir: default_datadir,
