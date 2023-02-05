@@ -8,6 +8,7 @@ services:
     environment:
       - MINER=ama
     container_name: "node0"
+    entrypoint: ["odana", "run", "--miner", "ama"]
     networks:
       localnet:
         ipv4_address: 192.167.10.2
@@ -17,6 +18,7 @@ services:
       args:
         - HOST_DATADIR=node1
     container_name: "node1"
+    entrypoint: ["odana", "run", "--miner", "kofi"]
     environment:
       - MINER=kofi
     networks:
@@ -30,6 +32,7 @@ services:
     container_name: "node2"
     environment:
       - MINER=kwame
+    entrypoint: ["odana", "run", "--miner", "kwame"]
     networks:
       localnet:
         ipv4_address: 192.167.10.4

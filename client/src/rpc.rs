@@ -61,7 +61,6 @@ pub struct TransactionHashes {
 /// Generated client implementations.
 pub mod transactions_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::http::Uri;
     use tonic::codegen::*;
     #[derive(Debug, Clone)]
@@ -243,7 +242,6 @@ pub struct GetAccountNonceResponse {
 /// Generated client implementations.
 pub mod account_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::http::Uri;
     use tonic::codegen::*;
     #[derive(Debug, Clone)]
@@ -410,7 +408,6 @@ pub struct ChainInfo {
 /// Generated client implementations.
 pub mod chain_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::http::Uri;
     use tonic::codegen::*;
     #[derive(Debug, Clone)]
@@ -589,7 +586,6 @@ pub struct QueryResponse {
 /// Generated client implementations.
 pub mod runtime_api_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
-
     use tonic::codegen::http::Uri;
     use tonic::codegen::*;
     #[derive(Debug, Clone)]
@@ -607,7 +603,6 @@ pub mod runtime_api_service_client {
             Ok(Self::new(conn))
         }
     }
-
     impl<T> RuntimeApiServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,

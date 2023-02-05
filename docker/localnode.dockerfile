@@ -1,6 +1,7 @@
-FROM padicio/ubuntu:20
+FROM odana/builder:ubuntu22
 USER appuser
 RUN rustup default nightly
+RUN rustup target add wasm32-unknown-unknown
 COPY --chown=appuser:appuser .. /home/appuser/odana
 WORKDIR /home/appuser/odana
 RUN cargo build --release --package odana
