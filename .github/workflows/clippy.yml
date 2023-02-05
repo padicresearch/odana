@@ -14,9 +14,14 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2022-11-03
-          components: clippy
+          components: rustfmt, clippy
           override: true
-
+      - name: APT dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt install clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev
+          sudo apt install cmake libprotobuf-dev protobuf-compiler
+          rustup target add wasm32-unknown-unknown
       - name: lint
         uses: actions-rs/clippy-check@v1
         with:
