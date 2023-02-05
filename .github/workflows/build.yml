@@ -17,6 +17,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2022-11-03
+          components: rustfmt, clippy
           default: true
       - name: APT dependencies
         if: runner.os == 'Linux'
@@ -27,6 +28,8 @@ jobs:
       - name: OSX dependencies
         if: runner.os == 'macOS'
         run: brew install llvm cmake automake libtool
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
       - name: cargo check
         uses: actions-rs/cargo@v1
         with:
