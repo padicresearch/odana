@@ -7,4 +7,3 @@ WORKDIR /home/appuser/odana
 RUN cargo build --release --package odana
 USER root
 RUN cp "/home/appuser/odana/target/release/odana" "/usr/bin/odana"
-RUN odana --help
