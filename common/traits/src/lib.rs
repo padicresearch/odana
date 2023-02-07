@@ -33,6 +33,7 @@ pub trait StateDB: Send + Sync {
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;
     fn get_app_data(&self, app_id: Address) -> Result<SparseMerkleTree>;
     fn get_app_source(&self, app_id: Address) -> Result<Vec<u8>>;
+    fn get_app_descriptor(&self, app_id: Address) -> Result<Vec<u8>>;
 }
 
 pub trait AccountStateReader: Send + Sync {
@@ -62,6 +63,12 @@ pub trait WasmVMInstance: Send + Sync {
         app_id: Address,
         raw_query: &[u8],
     ) -> Result<(String, Vec<u8>)>;
+
+    fn execute_get_descriptor(
+        &self,
+        state_db: Arc<dyn StateDB>,
+        app_id: Address,
+    ) -> Result<Vec<u8>>;
 }
 
 pub trait StateIntermediate {}

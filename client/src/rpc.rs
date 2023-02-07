@@ -569,6 +569,18 @@ pub struct Query {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDescriptorRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub app_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDescriptorResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub descriptor: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueryStorage {
     #[prost(bytes = "vec", tag = "1")]
     pub app_id: ::prost::alloc::vec::Vec<u8>,
@@ -678,6 +690,20 @@ pub mod runtime_api_service_client {
             let codec = tonic::codec::ProstCodec::default();
             let path =
                 http::uri::PathAndQuery::from_static("/rpc.RuntimeApiService/QueryRuntimeStorage");
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        pub async fn get_descriptor(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetDescriptorRequest>,
+        ) -> Result<tonic::Response<super::GetDescriptorResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::new(
+                    tonic::Code::Unknown,
+                    format!("Service was not ready: {}", e.into()),
+                )
+            })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/rpc.RuntimeApiService/GetDescriptor");
             self.inner.unary(request.into_request(), path, codec).await
         }
     }

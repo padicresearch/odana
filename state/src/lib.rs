@@ -2,12 +2,9 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{anyhow, bail, Result};
-use bincode::{Decode, Encode};
-use codec::{Decodable, Encodable};
-
+use anyhow::{bail, Result};
 use primitive_types::{Address, H256};
-use smt::proof::Proof;
+use schema::{AppBinaries, AppStateKey, ReadProof};
 use smt::SparseMerkleTree;
 use traits::{StateDB, WasmVMInstance};
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
@@ -23,6 +20,7 @@ use crate::tree::{Op, TrieDB};
 mod error;
 mod kvdb;
 mod persistent;
+mod schema;
 mod store;
 pub mod tree;
 
@@ -30,36 +28,13 @@ const ACCOUNT_DB_NAME: &str = "accs";
 const APPDATA_DB_NAME: &str = "data";
 const BINDATA_DB_NAME: &str = "bins";
 
-#[derive(Encode, Decode, Clone, Debug)]
-pub struct ReadProof {
-    proof: Proof,
-    root: H256,
-}
-
 #[derive(Clone)]
 pub struct State {
     trie: Arc<TrieDB<Address, AccountState>>,
     appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
-    appsource: Arc<KvDB<H256, Vec<u8>>>,
+    appsource: Arc<KvDB<H256, AppBinaries>>,
     path: PathBuf,
     read_only: bool,
-}
-
-#[derive(Encode, Decode, Clone, Debug)]
-struct AppStateKey(Address, H256);
-
-impl Encodable for AppStateKey {
-    fn encode(&self) -> Result<Vec<u8>> {
-        bincode::encode_to_vec(self, codec::config()).map_err(|e| anyhow!(e))
-    }
-}
-
-impl Decodable for AppStateKey {
-    fn decode(buf: &[u8]) -> Result<Self> {
-        bincode::decode_from_slice(buf, codec::config())
-            .map(|(out, _)| out)
-            .map_err(|e| anyhow!(e))
-    }
 }
 
 unsafe impl Sync for State {}
@@ -144,7 +119,22 @@ impl StateDB for State {
         let Some(app_state) = account.app_state else {
             bail!("address is not an application address")
         };
-        self.appsource.get(&app_state.code_hash())
+        self.appsource
+            .get(&app_state.code_hash())
+            .map(|bins| bins.binary)
+    }
+
+    fn get_app_descriptor(&self, app_id: Address) -> Result<Vec<u8>> {
+        let account = self
+            .trie
+            .get(&app_id)?
+            .ok_or_else(|| anyhow::anyhow!("app not found"))?;
+        let Some(app_state) = account.app_state else {
+            bail!("address is not an application address")
+        };
+        self.appsource
+            .get(&app_state.code_hash())
+            .map(|bins| bins.descriptor)
     }
 }
 
@@ -229,7 +219,8 @@ impl State {
                     bail!("app address already exists")
                 }
                 let code_hash = crypto::keccak256(&arg.binary);
-                let changelist = vm.execute_app_create(state_db, tx.sender(), tx.price(), arg)?;
+                let changelist =
+                    vm.execute_app_create(state_db.clone(), tx.sender(), tx.price(), arg)?;
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);
                 }
@@ -242,7 +233,14 @@ impl State {
                     tx.from(),
                     1,
                 ));
-                self.appsource.put(code_hash, arg.binary.clone())?;
+                let app_descriptor = vm.execute_get_descriptor(state_db.clone(), app_address)?;
+                self.appsource.put(
+                    code_hash,
+                    AppBinaries {
+                        binary: arg.binary.clone(),
+                        descriptor: app_descriptor,
+                    },
+                )?;
                 self.appdata.put(
                     AppStateKey(app_address, changelist.storage.root()),
                     changelist.storage,

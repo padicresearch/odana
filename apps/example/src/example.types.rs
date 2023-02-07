@@ -1,3 +1,8 @@
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.ReservationInfo"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReservationInfo {
@@ -6,21 +11,41 @@ pub struct ReservationInfo {
     #[prost(uint64, tag = "2")]
     pub fee: u64,
 }
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.SetName"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetName {
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
 }
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.ClearName"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ClearName {}
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.GetName"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetName {
     #[prost(bytes = "vec", tag = "1")]
     pub owner: ::prost::alloc::vec::Vec<u8>,
 }
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.Call"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Call {
@@ -38,6 +63,11 @@ pub mod call {
         ClearName(super::ClearName),
     }
 }
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.Query"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Query {
@@ -53,6 +83,11 @@ pub mod query {
         GetName(super::GetName),
     }
 }
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.QueryResponse"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueryResponse {
@@ -68,18 +103,33 @@ pub mod query_response {
         Info(super::ReservationInfo),
     }
 }
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.NameChangedEvent"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NameChangedEvent {
     #[prost(bytes = "vec", tag = "1")]
     pub who: ::prost::alloc::vec::Vec<u8>,
 }
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.NameSetEvent"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NameSetEvent {
     #[prost(bytes = "vec", tag = "1")]
     pub who: ::prost::alloc::vec::Vec<u8>,
 }
+#[derive(::prost_reflect::ReflectMessage)]
+#[prost_reflect(
+    descriptor_pool = "crate::DESCRIPTOR_POOL",
+    message_name = "example.types.Event"
+)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Event {

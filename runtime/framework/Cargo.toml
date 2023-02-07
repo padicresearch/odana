@@ -12,5 +12,6 @@ prost = { workspace = true }
 primitive-types = { workspace = true, default-features = false }
 blake2b_simd = { version = "1.0.0", default-feature = false }
 anyhow = { workspace = true, default-features = false }
+prost-reflect = {version = "0.10.1", default-features = false, features = ["derive"]}
 [build-dependencies]
 wit-codegen = { workspace = true }

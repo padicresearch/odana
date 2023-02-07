@@ -97,19 +97,16 @@ where
     V: prost::Message + Default,
 {
     fn storage_prefix() -> &'static [u8];
-    fn storage_key() -> &'static [u8];
 
     fn set(value: V) {
         let prefix = Self::storage_prefix();
         let value = value.encode_to_vec();
-        let storage_key = [prefix, Self::storage_key()].concat();
-        internal::storage::insert(&H::hash(storage_key.as_slice()), value.as_slice())
+        internal::storage::insert(&H::hash(prefix), value.as_slice())
     }
 
     fn get() -> Result<V> {
         let prefix = Self::storage_prefix();
-        let storage_key = [prefix, Self::storage_key()].concat();
-        let storage_key = H::hash(storage_key.as_slice());
+        let storage_key = H::hash(prefix);
         let Some(raw_value) = internal::storage::get(storage_key.as_ref()) else {
             bail!("value not found")
         };

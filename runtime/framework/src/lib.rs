@@ -35,12 +35,13 @@ mod internal {
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 use crate::context::Context;
 use prost::Message;
+use prost_reflect::ReflectMessage;
 use rune_std::prelude::*;
 
 pub trait RuntimeApplication {
     type Call: prost::Message + Default;
     type Query: prost::Message + Default;
-    type QueryResponse: prost::Message + Default;
+    type QueryResponse: prost::Message + Default + prost_reflect::ReflectMessage;
 
     /// Initializes the runtime application.
     fn genesis(context: Context) -> anyhow::Result<()>;
@@ -61,7 +62,9 @@ pub trait RuntimeApplication {
     /// # Returns
     ///
     /// - An instance of the `QueryResponse` type representing the response to the query
-    fn query(query: Self::Query) -> (&'static str, Self::QueryResponse);
+    fn query(query: Self::Query) -> Self::QueryResponse;
+
+    fn descriptor() -> &'static [u8];
 }
 
 pub mod context {
@@ -151,8 +154,14 @@ where
     }
 
     fn query(query: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
-        let (name, data) =
-            T::query(T::Query::decode(query.as_slice()).expect("error parsing query"));
-        (name.as_bytes().to_vec(), data.encode_to_vec())
+        let response = T::query(T::Query::decode(query.as_slice()).expect("error parsing query"));
+        (
+            response.descriptor().full_name().as_bytes().to_vec(),
+            response.encode_to_vec(),
+        )
+    }
+
+    fn descriptor() -> Vec<u8> {
+        T::descriptor().to_vec()
     }
 }

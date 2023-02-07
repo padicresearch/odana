@@ -15,7 +15,7 @@
  */
 
 use crate::rpc::runtime_api_service_server::RuntimeApiService;
-use crate::rpc::{Query, QueryResponse, QueryStorage};
+use crate::rpc::{GetDescriptorRequest, GetDescriptorResponse, Query, QueryResponse, QueryStorage};
 use primitive_types::Address;
 use std::sync::Arc;
 use tonic::{Code, Request, Response, Status};
@@ -52,5 +52,18 @@ impl RuntimeApiService for RuntimeApiServiceImpl {
         _request: Request<QueryStorage>,
     ) -> Result<Response<QueryResponse>, Status> {
         todo!()
+    }
+
+    async fn get_descriptor(
+        &self,
+        request: Request<GetDescriptorRequest>,
+    ) -> Result<Response<GetDescriptorResponse>, Status> {
+        let app_id = Address::from_slice(request.get_ref().app_id.as_slice())
+            .map_err(|_e| Status::new(Code::Unknown, "failed to obtain app address"))?;
+
+        self.state
+            .get_app_descriptor(app_id)
+            .map(|descriptor| Response::new(GetDescriptorResponse { descriptor }))
+            .map_err(|e| Status::new(Code::Unknown, e.to_string()))
     }
 }

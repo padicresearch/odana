@@ -980,6 +980,18 @@ pub struct Query {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDescriptorRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub app_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDescriptorResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub descriptor: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueryStorage {
     #[prost(bytes = "vec", tag = "1")]
     pub app_id: ::prost::alloc::vec::Vec<u8>,
@@ -1009,6 +1021,10 @@ pub mod runtime_api_service_server {
             &self,
             request: tonic::Request<super::QueryStorage>,
         ) -> Result<tonic::Response<super::QueryResponse>, tonic::Status>;
+        async fn get_descriptor(
+            &self,
+            request: tonic::Request<super::GetDescriptorRequest>,
+        ) -> Result<tonic::Response<super::GetDescriptorResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct RuntimeApiServiceServer<T: RuntimeApiService> {
@@ -1114,6 +1130,40 @@ pub mod runtime_api_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = QueryRuntimeStorageSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
+                            accept_compression_encodings,
+                            send_compression_encodings,
+                        );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/rpc.RuntimeApiService/GetDescriptor" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetDescriptorSvc<T: RuntimeApiService>(pub Arc<T>);
+                    impl<T: RuntimeApiService>
+                        tonic::server::UnaryService<super::GetDescriptorRequest>
+                        for GetDescriptorSvc<T>
+                    {
+                        type Response = super::GetDescriptorResponse;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetDescriptorRequest>,
+                        ) -> Self::Future {
+                            let inner = self.0.clone();
+                            let fut = async move { (*inner).get_descriptor(request).await };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = GetDescriptorSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec).apply_compression_config(
                             accept_compression_encodings,

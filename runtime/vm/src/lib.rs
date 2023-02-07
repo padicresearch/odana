@@ -158,8 +158,6 @@ impl WasmVM {
     ) -> anyhow::Result<(String, Vec<u8>)> {
         self.load_application(state_db.clone(), app_id)?;
         let storage = state_db.get_app_data(app_id)?;
-
-        println!("Loaded App At Root Hash {}", storage.root());
         let mut apps = self.apps.write();
         let (app, store) = apps
             .get_mut(&app_id)
@@ -176,6 +174,20 @@ impl WasmVM {
         )?;
         let (n, res) = app.query(store, query)?;
         unsafe { Ok((String::from_utf8_unchecked(n), res)) }
+    }
+
+    pub fn execute_get_app_descriptor(
+        &self,
+        state_db: Arc<dyn StateDB>,
+        app_id: Address,
+    ) -> anyhow::Result<Vec<u8>> {
+        self.load_application(state_db.clone(), app_id)?;
+        let mut apps = self.apps.write();
+        let (app, store) = apps
+            .get_mut(&app_id)
+            .ok_or_else(|| anyhow::anyhow!("app not loaded"))?;
+        let app = app.app();
+        app.descriptor(store)
     }
 }
 
@@ -217,5 +229,13 @@ impl WasmVMInstance for WasmVM {
         raw_query: &[u8],
     ) -> anyhow::Result<(String, Vec<u8>)> {
         self.execute_query(state_db, Address::default(), app_id, 0, raw_query)
+    }
+
+    fn execute_get_descriptor(
+        &self,
+        state_db: Arc<dyn StateDB>,
+        app_id: Address,
+    ) -> anyhow::Result<Vec<u8>> {
+        self.execute_get_app_descriptor(state_db, app_id)
     }
 }

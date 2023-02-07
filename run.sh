@@ -16,45 +16,31 @@ set -e
 # limitations under the License.
 #
 
-
 # Function to install dependencies for Mac OS
 function install_mac_dependencies() {
   echo "Installing dependencies for Mac OS"
-
-  dependencies=(llvm cmake automake libtool protobuf)
-  for dep in "${dependencies[@]}"; do
-    if ! brew list "$dep" >/dev/null 2>&1; then
-      echo "Installing $dep with Homebrew"
-      brew install "$dep"
-    fi
-  done
+  brew install llvm cmake automake libtool protobuf
 }
 
 # Function to install dependencies for Linux OS
 function install_linux_dependencies() {
   echo "Installing dependencies for Linux OS"
-
-  dependencies=(clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev cmake libprotobuf-dev protobuf-compiler)
-  for dep in "${dependencies[@]}"; do
-    if ! dpkg -s "$dep" >/dev/null 2>&1; then
-      echo "Installing $dep with apt-get"
-      sudo apt-get update
-      sudo apt-get install -y "$dep"
-    fi
-  done
+  sudo apt install -y clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev cmake libprotobuf-dev protobuf-compiler
 }
 
 # Function to install Rust and Cargo
 function install_rust_dependencies() {
-  if ! command -v rustc > /dev/null; then
+  if ! command -v rustc >/dev/null; then
     echo "Rust is not installed. Installing with curl..."
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+    source "$HOME/.cargo/env"
   fi
 
-  if ! command -v cargo > /dev/null; then
+  if ! command -v cargo >/dev/null; then
     echo "Cargo is not installed. Installing with rustup..."
     rustup install cargo
   fi
+  rustup target add wasm32-unknown-unknown
 }
 
 # Function to install all dependencies
@@ -72,7 +58,7 @@ function install_dependencies() {
 }
 
 run_docker() {
-  if ! command -v docker > /dev/null; then
+  if ! command -v docker >/dev/null; then
     echo "Docker is not installed. Please install Docker and try again."
     exit 1
   fi
@@ -84,7 +70,7 @@ run_docker() {
 }
 
 run_docker_localnetwork() {
-  if ! command -v docker > /dev/null; then
+  if ! command -v docker >/dev/null; then
     echo "Docker is not installed. Please install Docker and try again."
     exit 1
   fi
@@ -119,29 +105,29 @@ function print_help() {
 }
 
 case "$1" in
-  "install-dependencies")
-    install_dependencies
-    ;;
-  release)
-    build_release
-    ;;
-  node)
-    shift
-    run_node "$@"
-    ;;
-  docker)
-    shift
-    run_docker "$@"
-    ;;
-  localnetwork)
-    shift
-    run_docker_localnetwork "$@"
-    ;;
-  -h|--help)
-    print_help
-    ;;
-  *)
-    echo "run '$0 --help' to get more info"
-    ;;
+"install-dependencies")
+  install_dependencies
+  ;;
+release)
+  build_release
+  ;;
+node)
+  shift
+  run_node "$@"
+  ;;
+docker)
+  shift
+  run_docker "$@"
+  ;;
+localnetwork)
+  shift
+  run_docker_localnetwork "$@"
+  ;;
+-h | --help)
+  print_help
+  ;;
+*)
+  echo "run '$0 --help' to get more info"
+  ;;
 
 esac

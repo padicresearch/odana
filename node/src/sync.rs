@@ -10,7 +10,7 @@ use blockchain::block_storage::BlockStorage;
 use blockchain::chain_state::ChainState;
 use p2p::message::{BlocksMessage, FindBlocksMessage, Msg, NodeToPeerMessage};
 use primitive_types::H256;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 use traits::{Blockchain, ChainReader, Consensus, Handler};
 use txpool::TxPool;
 use types::block::{Block, BlockHeader};
