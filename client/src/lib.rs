@@ -11,6 +11,7 @@ pub mod commands;
 mod rpc;
 mod util;
 mod value;
+mod cmd;
 
 pub struct Client {
     conn: tonic::transport::Channel,

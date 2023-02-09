@@ -117,7 +117,7 @@ pub fn start_worker(
                     break;
                 }
 
-                info!(level = level, blockhash = format!("{}",hex::encode(hash, true)), txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
+                info!(level = level, blockhash = ?hash, txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
                 chain.put_chain(

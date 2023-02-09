@@ -1,6 +1,76 @@
+use crate::cmd::{parse_cmd_str, Command, CommandError};
+use crate::commands::parse_address;
 use anyhow::bail;
 use json_dotpath::DotPaths;
 use serde_json::Value;
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
+
+pub fn handle_cmd_string(cmd: &Command) -> Result<Vec<u8>, CommandError> {
+    match cmd.op {
+        "hex" => {
+            hex::decode(cmd.data).map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))
+        }
+        "address" => parse_address(cmd.data)
+            .map(|addr| addr.to_vec())
+            .map_err(CommandError::FailedToParseNom),
+
+        "file" => {
+            let file_path = PathBuf::new().join(cmd.data);
+            if !file_path.is_file() {
+                return Err(CommandError::FailedToParseNom("path not file".to_string()));
+            }
+            let mut file = File::open(file_path.as_path())
+                .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))?;
+            let mut out = Vec::with_capacity(
+                file.metadata()
+                    .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))?
+                    .len() as usize,
+            );
+            let _read_len = file
+                .read_to_end(&mut out)
+                .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)));
+            Ok(out)
+        }
+        _ => Err(CommandError::FailedToParse),
+    }
+}
+
+pub(crate) fn convert_command_strings(value: &mut Value) -> anyhow::Result<()> {
+    match value {
+        Value::Null => {
+            return Ok(());
+        }
+        Value::Bool(_) => {
+            return Ok(());
+        }
+        Value::Number(_) => {
+            return Ok(());
+        }
+        Value::String(str) => {
+            if let Some(bytes) = parse_cmd_str(str)
+                .map(|cmd| handle_cmd_string(&cmd).ok())
+                .ok()
+                .flatten()
+            {
+                *value = serde_json::json!(bytes)
+            }
+            return Ok(());
+        }
+        Value::Array(val) => {
+            for i in val {
+                convert_command_strings(i)?;
+            }
+        }
+        Value::Object(val) => {
+            for v in val.iter_mut().map(|(_, v)| v) {
+                convert_command_strings(v)?;
+            }
+        }
+    }
+    Ok(())
+}
 
 pub(crate) fn parse_cli_args_to_json(
     iter: impl IntoIterator<Item = impl Into<std::ffi::OsString>>,
@@ -39,6 +109,34 @@ pub(crate) fn parse_cli_args_to_json(
         };
         json_value.dot_set(&path, &jvalue)?;
     }
-
+    convert_command_strings(&mut json_value)?;
     Ok(json_value)
+}
+
+#[cfg(test)]
+mod test {
+    use crate::util::convert_command_strings;
+
+    #[test]
+    fn test_simple_cmd_string() {
+        let mut json = serde_json::json!( {
+            "name" : "mambisi",
+            "bytes" : "$hex(1232323128129893218312)",
+            "bytesArray" : ["$hex(12323221258129893218312)", "$hex(1232123128129893218312)", "$hex(12323231233129893218312)", "$hex(1232323128129893218312)"]
+        });
+        convert_command_strings(&mut json).unwrap();
+        let json_c = serde_json::json!(
+        {
+          "bytes": [18,50,50,49,40,18,152,147,33,131,18
+          ],
+          "bytesArray": [
+            [1,35,35,34,18,88,18,152,147,33,131,18],
+            [18,50,18,49,40,18,152,147,33,131,18],
+            [1,35,35,35,18,51,18,152,147,33,131,18],
+            [18,50,50,49,40,18,152,147,33,131,18]
+          ],
+          "name": "mambisi"
+        });
+        assert_eq!(json, json_c);
+    }
 }

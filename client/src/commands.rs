@@ -1,17 +1,15 @@
-use crate::rpc::{GetAccountRequest, Query};
+use crate::rpc::{GetAccountRequest, GetDescriptorRequest, Query};
 use crate::util::parse_cli_args_to_json;
 use crate::Client;
-use anyhow::bail;
 use clap::{Args, Subcommand};
 use primitive_types::{Address, H256};
 use prost::Message;
-use protobuf::descriptor::FileDescriptorSet;
-use protobuf::reflect::{FileDescriptor, MessageDescriptor};
 
-use protobuf_json_mapping::{Command, CommandError, ParseOptions};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
+use prost_reflect::{DescriptorPool, DynamicMessage};
+use serde::Serialize;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -59,62 +57,7 @@ pub struct SignerArgs {
 #[derive(Args, Debug)]
 pub struct ProtoFilesArg {
     #[clap(long)]
-    proto_include: Vec<PathBuf>,
-    #[clap(long)]
-    proto_input: Vec<PathBuf>,
-    #[clap(long)]
     schema: String,
-}
-
-impl ProtoFilesArg {
-    fn schema(&self) -> anyhow::Result<MessageDescriptor> {
-        let mut schema_in = None;
-        let files = self.get_file_description_sets()?;
-        'files_iter: for proto_file in files.file {
-            let file_descriptor = FileDescriptor::new_dynamic(proto_file, &[])?;
-            //file_descriptor.message_by_full_name()
-            for message in file_descriptor.messages() {
-                if self.schema.eq(message.full_name()) {
-                    schema_in = Some(message);
-                    break 'files_iter;
-                }
-            }
-        }
-        let Some(schema_in) = schema_in else {
-            bail!("input schema [{}] message descriptor not found", self.schema)
-        };
-        Ok(schema_in)
-    }
-
-    fn get_file_description_sets(&self) -> anyhow::Result<FileDescriptorSet> {
-        protobuf_parse::Parser::new()
-            .includes(
-                self.proto_include
-                    .iter()
-                    .map(|f| std::fs::canonicalize(f.as_path()).unwrap()),
-            )
-            .inputs(
-                self.proto_input
-                    .iter()
-                    .map(|f| std::fs::canonicalize(f.as_path()).unwrap()),
-            )
-            .file_descriptor_set()
-    }
-
-    fn schemas(&self) -> anyhow::Result<(MessageDescriptor, HashMap<String, MessageDescriptor>)> {
-        let mut schemas = HashMap::new();
-        let files = self.get_file_description_sets()?;
-        for proto_file in files.file {
-            let file_descriptor = FileDescriptor::new_dynamic(proto_file, &[])?;
-            for message in file_descriptor.messages() {
-                schemas.insert(message.full_name().to_string(), message);
-            }
-        }
-        let Some(schema_in) = schemas.get(&self.schema) else {
-            bail!("input schema [{}] message descriptor not found", self.schema)
-        };
-        Ok((schema_in.clone(), schemas))
-    }
 }
 
 #[derive(Subcommand, Debug)]
@@ -198,36 +141,6 @@ pub(crate) fn parse_signer(s: &str) -> Result<H256, String> {
         .map(|decode_hex| H256::from_slice(&decode_hex))
 }
 
-pub fn handle_cmd_string(cmd: &Command) -> Result<Vec<u8>, CommandError> {
-    match cmd.op {
-        "hex" => {
-            hex::decode(cmd.data).map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))
-        }
-        "address" => parse_address(cmd.data)
-            .map(|addr| addr.to_vec())
-            .map_err(CommandError::FailedToParseNom),
-
-        "file" => {
-            let file_path = PathBuf::new().join(cmd.data);
-            if !file_path.is_file() {
-                return Err(CommandError::FailedToParseNom("path not file".to_string()));
-            }
-            let mut file = File::open(file_path.as_path())
-                .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))?;
-            let mut out = Vec::with_capacity(
-                file.metadata()
-                    .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))?
-                    .len() as usize,
-            );
-            let _read_len = file
-                .read_to_end(&mut out)
-                .map_err(|e| CommandError::FailedToParseNom(format!("{}", e)));
-            Ok(out)
-        }
-        _ => Err(CommandError::FailedToParse),
-    }
-}
-
 pub async fn handle_app_command(
     rpc_client: &Client,
     command: &AppArgsCommands,
@@ -257,29 +170,28 @@ pub async fn handle_app_command(
             let app_id = get_address_from_seed(app.as_bytes(), Network::Testnet)?;
             let app_id = app_id.to_vec();
 
-            let opts = ParseOptions {
-                ignore_unknown_fields: false,
-                handler: &handle_cmd_string,
-                _future_options: (),
-            };
+            //Get App Descriptor bytes
+            let mut rt = rpc_client.runtime_api_service();
+            let descriptor = rt
+                .get_descriptor(GetDescriptorRequest {
+                    app_id: app_id.clone(),
+                })
+                .await?
+                .into_inner()
+                .descriptor;
 
+            let descriptor =
+                DescriptorPool::decode(descriptor.as_slice()).expect("failed to descriptor pool");
+            let message_descriptor = descriptor
+                .get_message_by_name(proto.schema.as_str())
+                .expect("message not found in descriptor pool");
             let json_value = parse_cli_args_to_json(params.iter())?;
-            let json_string = serde_json::to_string(&json_value)?;
+            let message = DynamicMessage::deserialize(message_descriptor, json_value)?;
+            let mut serializer = serde_json::Serializer::new(vec![]);
+            message.serialize(&mut serializer)?;
+            let call_json : Value = serde_json::from_slice(serializer.into_inner().as_slice())?;
+            let encoded_call = message.encode_to_vec();
 
-            let schema_in = proto.schema()?;
-            let msg = protobuf_json_mapping::parse_dyn_from_str_with_options(
-                &schema_in,
-                &json_string,
-                &opts,
-            )?;
-
-            let call_json: Value = serde_json::from_str(
-                &protobuf_json_mapping::print_to_string(msg.as_ref())
-                    .expect("failed to print message as json"),
-            )?;
-
-            let mut encoded_call = Vec::new();
-            msg.write_to_vec_dyn(&mut encoded_call)?;
             let data = TransactionData::Call(ApplicationCallTx {
                 app_id,
                 args: encoded_call,
@@ -340,44 +252,42 @@ pub async fn handle_app_command(
             })
         }
         AppCommands::Query(AppQueryArgs { app, proto, params }) => {
-            let (schema_in, schemas) = proto.schemas()?;
-
-            let opts = ParseOptions {
-                ignore_unknown_fields: false,
-                handler: &handle_cmd_string,
-                _future_options: (),
-            };
-
             let app_id = get_address_from_seed(app.as_bytes(), Network::Testnet)?;
             let app_id = app_id.to_vec();
+
+            let mut rt = rpc_client.runtime_api_service();
+            let descriptor = rt
+                .get_descriptor(GetDescriptorRequest {
+                    app_id: app_id.clone(),
+                })
+                .await?
+                .into_inner()
+                .descriptor;
+
+            let descriptor =
+                DescriptorPool::decode(descriptor.as_slice()).expect("failed to descriptor pool");
+            let message_descriptor = descriptor
+                .get_message_by_name(proto.schema.as_str())
+                .expect("message not found in descriptor pool");
             let json_value = parse_cli_args_to_json(params.iter())?;
-            let json_string = serde_json::to_string(&json_value)?;
-            let query_message = protobuf_json_mapping::parse_dyn_from_str_with_options(
-                &schema_in,
-                &json_string,
-                &opts,
-            )?;
-            let mut query = Vec::new();
-            query_message.write_to_vec_dyn(&mut query)?;
+            let message = DynamicMessage::deserialize(message_descriptor, json_value)?;
+            let query = message.encode_to_vec();
+
             let response = rpc_client
                 .runtime_api_service()
                 .query_runtime(Query { app_id, query })
                 .await?;
 
-            let Some(response_message_desc) = schemas.get(response.get_ref().typename.as_str()) else {
-                let raw = hex::encode_raw(response.get_ref().data.as_slice());
-                return Ok(
-                    json!({
-                    "raw" : raw
-                }))
-            };
+            let message_descriptor = descriptor
+                .get_message_by_name(response.get_ref().typename.as_str())
+                .expect("message_descriptor not found");
+            let message =
+                DynamicMessage::decode(message_descriptor, response.get_ref().data.as_slice())?;
 
-            let mut response_message = response_message_desc.new_instance();
-            response_message.merge_from_bytes_dyn(response.get_ref().data.as_slice())?;
-
-            serde_json::from_str(&protobuf_json_mapping::print_to_string(
-                response_message.as_ref(),
-            )?)?
+            let mut serializer = serde_json::Serializer::new(vec![]);
+            message.serialize(&mut serializer)?;
+            let out : Value = serde_json::from_reader(serializer.into_inner().as_slice())?;
+            out
         }
     };
     Ok(resp)

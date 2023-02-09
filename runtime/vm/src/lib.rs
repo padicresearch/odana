@@ -48,7 +48,7 @@ impl WasmVM {
         app_id: Address,
         value: u64,
         binary: &[u8],
-    ) -> anyhow::Result<Changelist> {
+    ) -> anyhow::Result<(Vec<u8>,Changelist)> {
         let engine = &self.engine;
         let storage = SparseMerkleTree::new();
         let mut store = Store::new(
@@ -74,8 +74,9 @@ impl WasmVM {
         let app = App::new(&mut store, &instance)?;
         let app = app.app();
         app.genesis(&mut store)?;
+        let descriptor = app.descriptor(&mut store)?;
         let env = store.data();
-        Ok(env.into())
+        Ok((descriptor, env.into()))
     }
 
     fn load_application(
@@ -198,7 +199,7 @@ impl WasmVMInstance for WasmVM {
         sender: Address,
         value: u64,
         call: &CreateApplicationTx,
-    ) -> anyhow::Result<Changelist> {
+    ) -> anyhow::Result<(Vec<u8>, Changelist)> {
         let app_id = get_address_from_seed(
             call.package_name.as_bytes(),
             sender.network().ok_or_else(|| anyhow!("invalid network"))?,

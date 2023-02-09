@@ -5,7 +5,9 @@ use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::ops::Deref;
 use std::sync::Arc;
+use codec::{Decodable, Encodable, impl_codec_using_prost};
 
 use crypto::ecdsa::{PublicKey, Signature};
 use crypto::sha256;
@@ -368,11 +370,29 @@ impl AsRef<Vec<Arc<SignedTransaction>>> for TransactionList {
     }
 }
 
+impl From<Vec<SignedTransaction>> for TransactionList {
+    fn from(value: Vec<SignedTransaction>) -> Self {
+        let txs : Vec<_> = value.into_iter().map(Arc::new).collect();
+        Self {
+            txs,
+        }
+    }
+}
+
+impl Into<Vec<SignedTransaction>> for TransactionList {
+    fn into(self) -> Vec<SignedTransaction> {
+        let txs : Vec<_> = self.txs.into_iter().map(|tx| tx.deref().clone()).collect();
+        txs
+    }
+}
+
 impl AsMut<Vec<Arc<SignedTransaction>>> for TransactionList {
     fn as_mut(&mut self) -> &mut Vec<Arc<SignedTransaction>> {
         &mut self.txs
     }
 }
+
+impl_codec_using_prost!(TransactionList);
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct SignedTransaction {
@@ -574,4 +594,18 @@ impl prost::Message for SignedTransaction {
     }
 
     fn clear(&mut self) {}
+}
+
+impl Encodable for SignedTransaction {
+    fn encode(&self) -> Result<Vec<u8>> {
+        Ok(self.encode_to_vec())
+    }
+}
+
+impl Decodable for SignedTransaction {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        Message::decode(buf).map_err(|e| {
+            e.into()
+        })
+    }
 }

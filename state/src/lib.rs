@@ -219,7 +219,7 @@ impl State {
                     bail!("app address already exists")
                 }
                 let code_hash = crypto::keccak256(&arg.binary);
-                let changelist =
+                let (descriptor,changelist) =
                     vm.execute_app_create(state_db.clone(), tx.sender(), tx.price(), arg)?;
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);
@@ -233,12 +233,11 @@ impl State {
                     tx.from(),
                     1,
                 ));
-                let app_descriptor = vm.execute_get_descriptor(state_db.clone(), app_address)?;
                 self.appsource.put(
                     code_hash,
                     AppBinaries {
                         binary: arg.binary.clone(),
-                        descriptor: app_descriptor,
+                        descriptor,
                     },
                 )?;
                 self.appdata.put(
