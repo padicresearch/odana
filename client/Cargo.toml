@@ -16,11 +16,9 @@ tokio = { workspace = true }
 clap = { workspace = true }
 clap_lex = { workspace = true }
 
-protobuf = { workspace = true }
-protobuf-json-mapping = { workspace = true }
-protobuf-parse = { workspace = true }
-
+nom = "7.1.3"
 pretty-hex = "0.3.0"
+prost-reflect = {version  = "0.10.1", features = ["serde", "serde-value"]}
 #local Deps
 codec = { path = "../codec" }
 hex = { path = "../common/hex" }

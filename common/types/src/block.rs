@@ -342,6 +342,10 @@ impl Block {
     pub fn transactions(&self) -> &Vec<SignedTransaction> {
         &self.transactions
     }
+
+    pub fn into_transactions(self) -> Vec<SignedTransaction> {
+        self.transactions
+    }
 }
 
 impl_codec_using_prost!(BlockHeader);

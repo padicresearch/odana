@@ -18,8 +18,8 @@ use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::{alpha1, alphanumeric0, char, one_of};
 use nom::combinator::map_parser;
-use nom::IResult;
 use nom::sequence::delimited;
+use nom::IResult;
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum CommandError {
@@ -35,25 +35,25 @@ pub struct Command<'a> {
     pub data: &'a str,
 }
 
-
 pub(crate) fn parse_cmd_str(input: &str) -> Result<Command, CommandError> {
     match _parse_cmd_str(input) {
         Ok((remaining, cmd)) => {
             if !remaining.is_empty() {
-                return Err(CommandError::FailedToParse)
+                return Err(CommandError::FailedToParse);
             }
             Ok(cmd)
         }
-        Err(e) => {
-            return Err(CommandError::FailedToParseNom(format!("{}", e)))
-        }
+        Err(e) => return Err(CommandError::FailedToParseNom(format!("{}", e))),
     }
 }
 
 fn _parse_cmd_str(input: &str) -> IResult<&str, Command> {
     let (input, _) = tag("$")(input)?;
     let (input, op) = map_parser(take_until("("), alpha1)(input)?;
-    let build_str = alt((delimited(one_of("\"\'"), alphanumeric0, one_of("\"\'")), alphanumeric0));
+    let build_str = alt((
+        delimited(one_of("\"\'"), alphanumeric0, one_of("\"\'")),
+        alphanumeric0,
+    ));
     let (input, data) = delimited(char('('), build_str, char(')'))(input)?;
     Ok((input, Command { op, data }))
 }

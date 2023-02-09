@@ -189,7 +189,7 @@ pub async fn handle_app_command(
             let message = DynamicMessage::deserialize(message_descriptor, json_value)?;
             let mut serializer = serde_json::Serializer::new(vec![]);
             message.serialize(&mut serializer)?;
-            let call_json : Value = serde_json::from_slice(serializer.into_inner().as_slice())?;
+            let call_json: Value = serde_json::from_slice(serializer.into_inner().as_slice())?;
             let encoded_call = message.encode_to_vec();
 
             let data = TransactionData::Call(ApplicationCallTx {
@@ -286,7 +286,7 @@ pub async fn handle_app_command(
 
             let mut serializer = serde_json::Serializer::new(vec![]);
             message.serialize(&mut serializer)?;
-            let out : Value = serde_json::from_reader(serializer.into_inner().as_slice())?;
+            let out: Value = serde_json::from_reader(serializer.into_inner().as_slice())?;
             out
         }
     };

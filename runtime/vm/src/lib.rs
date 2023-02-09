@@ -48,7 +48,7 @@ impl WasmVM {
         app_id: Address,
         value: u64,
         binary: &[u8],
-    ) -> anyhow::Result<(Vec<u8>,Changelist)> {
+    ) -> anyhow::Result<(Vec<u8>, Changelist)> {
         let engine = &self.engine;
         let storage = SparseMerkleTree::new();
         let mut store = Store::new(

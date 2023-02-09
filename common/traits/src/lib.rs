@@ -49,7 +49,7 @@ pub trait WasmVMInstance: Send + Sync {
         sender: Address,
         value: u64,
         call: &CreateApplicationTx,
-    ) -> Result<(Vec<u8>,Changelist)>;
+    ) -> Result<(Vec<u8>, Changelist)>;
     fn execute_app_tx(
         &self,
         state_db: Arc<dyn StateDB>,
