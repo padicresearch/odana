@@ -82,7 +82,6 @@ run_docker_localnetwork() {
 
 # Function to run the Node program
 function run_node() {
-  install_dependencies
   cargo run --release --bin odana -- "$@"
 }
 
