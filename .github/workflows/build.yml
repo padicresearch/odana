@@ -24,10 +24,10 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt install clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev
-          sudo apt install cmake libprotobuf-dev protobuf-compiler
+          sudo apt install cmake libprotobuf-dev protobuf-compiler ninja-build
       - name: OSX dependencies
         if: runner.os == 'macOS'
-        run: brew install llvm cmake automake libtool protobuf
+        run: brew install llvm cmake ninja automake libtool protobuf
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
       - name: cargo check

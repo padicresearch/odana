@@ -3,11 +3,12 @@ use std::sync::atomic::AtomicI8;
 use std::sync::Arc;
 
 use anyhow::Result;
+use rocksdb::ColumnFamilyDescriptor;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::UnboundedSender;
 
 use blockchain::blockchain::Chain;
-use blockchain::column_families;
+use blockchain::column_family_names;
 use consensus::barossa::BarossaProtocol;
 use miner::worker::start_worker;
 use p2p::identity::NodeIdentity;
@@ -16,7 +17,7 @@ use p2p::peer_manager::NetworkState;
 use p2p::request_handler::RequestHandler;
 use p2p::start_p2p_server;
 use rpc::start_rpc_server;
-use storage::{PersistentStorage, PersistentStorageBackend};
+use storage::{default_table_options, PersistentStorage, PersistentStorageBackend};
 use tracing::tracing_subscriber::fmt::writer::MakeWriterExt;
 
 use tracing::{info, tracing_subscriber, warn};
@@ -48,6 +49,13 @@ fn broadcast_message(
 pub(crate) fn run(args: &RunArgs) -> Result<()> {
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async { _start_node(args).await })
+}
+
+pub fn column_families() -> Vec<ColumnFamilyDescriptor> {
+    column_family_names()
+        .into_iter()
+        .map(|name| ColumnFamilyDescriptor::new(name, default_table_options()))
+        .collect()
 }
 
 async fn _start_node(args: &RunArgs) -> Result<()> {

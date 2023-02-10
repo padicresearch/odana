@@ -85,9 +85,14 @@ impl ChainHeadReader for BlockStorage {
 }
 
 impl ChainReader for BlockStorage {
-    fn get_block(&self, hash: &H256, level: u32) -> anyhow::Result<Option<Block>> {
+    fn get_block(&self, hash: &H256, level: u32) -> Result<Option<Block>> {
         let primary_key = BlockPrimaryKey(level, *hash);
-        let (Some(header),Some(transactions)) = (self.headers.get_blockheader(&primary_key)?, self.transactions.get_transactions(&primary_key)?) else {
+        let (Some(header),Some(transactions)) =
+            (
+                self.headers.get_blockheader(&primary_key)?,
+                self.transactions.get_transactions(&primary_key)?
+            )
+            else {
             return Ok(None)
         };
         Ok(Some(Block::new(header, transactions.into())))

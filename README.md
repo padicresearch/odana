@@ -27,12 +27,12 @@ contracts.
   sudo apt install clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev
   ```
   ```shell
-  sudo apt install cmake libprotobuf-dev protobuf-compiler
+  sudo apt install cmake ninja-build libprotobuf-dev protobuf-compiler
   ```
   **`MacOS`**
 
   ```shell
-  brew install llvm cmake automake libtool protobuf
+  brew install llvm cmake ninja automake libtool protobuf
   ```
 * **Install WASM target**
   ```shell
