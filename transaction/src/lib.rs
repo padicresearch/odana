@@ -25,7 +25,7 @@ pub fn make_payment_sign_transaction(
         genesis_hash: Default::default(),
         fee,
         value: amount,
-        data: TransactionData::Payment(PaymentTx { to }),
+        data: Some(TransactionData::Payment(PaymentTx { to })),
     };
     sign_tx(signer, tx)
 }
@@ -45,7 +45,7 @@ pub fn make_signed_transaction(
         genesis_hash: Default::default(),
         fee,
         value: amount,
-        data,
+        data: Some(data),
     };
     sign_tx(signer, tx)
 }

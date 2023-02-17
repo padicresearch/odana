@@ -21,6 +21,7 @@ use crate::block::BlockHeader;
 use crate::network::Network;
 
 pub mod account;
+pub mod app;
 pub mod block;
 pub mod config;
 pub mod events;
@@ -28,6 +29,7 @@ pub mod misc;
 pub mod network;
 pub mod receipt;
 pub mod tx;
+pub mod util;
 
 pub type Hash = [u8; 32];
 

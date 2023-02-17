@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-use bincode::{Decode, Encode};
-use primitive_types::H256;
-use smt::proof::Proof;
+use primitive_types::{Address, H256};
+use rune_framework::io::{Blake2bHasher, StorageMap};
 
-#[derive(Encode, Decode, Clone, Debug)]
-pub struct ReadProof {
-    pub(crate) proof: Proof,
-    pub(crate) root: H256,
+pub(crate) struct RegisteredNameSpaces;
+
+impl StorageMap<Blake2bHasher, H256, Address> for RegisteredNameSpaces {
+    fn storage_prefix() -> &'static [u8] {
+        b"RegisteredNameSpaces"
+    }
 }

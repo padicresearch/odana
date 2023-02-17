@@ -35,6 +35,8 @@ members = [
     "common/bech32",
     #apps
     "apps/example",
+    "apps/namespace-registry",
+    "apps/builtin",
     #runtime
     "runtime/std",
     "runtime/framework",

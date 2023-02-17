@@ -1,6 +1,5 @@
 use std::sync::{Arc, RwLock};
 
-use primitive_types::Address;
 use tonic::{Request, Response, Status};
 
 use crate::rpc::account_service_server::AccountService;
@@ -27,8 +26,9 @@ impl AccountService for AccountServiceImpl {
         request: Request<GetAccountRequest>,
     ) -> Result<Response<GetAccountBalanceResponse>, Status> {
         let req = request.get_ref();
-        let address = Address::from_slice(&req.address)
-            .map_err(|_| Status::unknown("failed to parse address"))?;
+        let address = req
+            .address
+            .ok_or_else(|| Status::unknown("failed to parse address"))?;
         let balance = self.state.balance(&address);
         Ok(Response::new(GetAccountBalanceResponse { balance }))
     }
@@ -38,8 +38,9 @@ impl AccountService for AccountServiceImpl {
         request: Request<GetAccountRequest>,
     ) -> Result<Response<GetAccountNonceResponse>, Status> {
         let req = request.into_inner();
-        let address = Address::from_slice(&req.address)
-            .map_err(|_| Status::unknown("failed to parse address"))?;
+        let address = req
+            .address
+            .ok_or_else(|| Status::unknown("failed to parse address"))?;
         let txpool = self.txpool.read().unwrap();
         let nonce = txpool.nonce(&address);
         Ok(Response::new(GetAccountNonceResponse { nonce }))
@@ -50,8 +51,9 @@ impl AccountService for AccountServiceImpl {
         request: Request<GetAccountRequest>,
     ) -> Result<Response<AccountState>, Status> {
         let req = request.into_inner();
-        let address = Address::from_slice(&req.address)
-            .map_err(|_| Status::unknown("failed to parse address"))?;
+        let address = req
+            .address
+            .ok_or_else(|| Status::unknown("failed to parse address"))?;
         let account_state = self.state.account_state(&address);
         Ok(Response::new(account_state))
     }

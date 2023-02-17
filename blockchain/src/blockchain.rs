@@ -23,6 +23,7 @@ impl Chain {
         consensus: Arc<dyn Consensus>,
         main_storage: Arc<PersistentStorage>,
         lmpsc: UnboundedSender<LocalEventMessage>,
+        built_in_apps: Vec<(&'static str, &[u8])>,
     ) -> Result<Self> {
         let chain_state_storage = Arc::new(ChainStateStorage::new(main_storage.database()));
         let block_storage = Arc::new(BlockStorage::new(main_storage));
@@ -30,6 +31,7 @@ impl Chain {
             dir.join("state"),
             consensus.clone(),
             block_storage,
+            built_in_apps,
             chain_state_storage,
             lmpsc.clone(),
         )?);

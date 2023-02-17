@@ -9,6 +9,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use blockchain::blockchain::Chain;
 use blockchain::column_family_names;
+use builtin::build_in_apps;
 use consensus::barossa::BarossaProtocol;
 use miner::worker::start_worker;
 use p2p::identity::NodeIdentity;
@@ -107,6 +108,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
             consensus.clone(),
             storage,
             local_mpsc_sender.clone(),
+            build_in_apps(),
         )
         .unwrap(),
     )

@@ -43,7 +43,7 @@ where
         })
     }
 
-    pub(crate) fn put(&self, key: K, value: V) -> Result<()> {
+    pub fn put(&self, key: K, value: V) -> Result<()> {
         let key = key.encode()?;
         let value = value.encode()?;
         if self.read_only {

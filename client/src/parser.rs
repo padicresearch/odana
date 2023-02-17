@@ -60,7 +60,7 @@ fn _parse_cmd_str(input: &str) -> IResult<&str, Command> {
 
 #[cfg(test)]
 mod tests {
-    use crate::cmd::parse_cmd_str;
+    use crate::parser::parse_cmd_str;
 
     #[test]
     fn test_parser_alpha() {

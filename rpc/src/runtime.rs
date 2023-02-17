@@ -16,7 +16,6 @@
 
 use crate::rpc::runtime_api_service_server::RuntimeApiService;
 use crate::rpc::{GetDescriptorRequest, GetDescriptorResponse, Query, QueryResponse, QueryStorage};
-use primitive_types::Address;
 use std::sync::Arc;
 use tonic::{Code, Request, Response, Status};
 use traits::{StateDB, WasmVMInstance};
@@ -38,8 +37,10 @@ impl RuntimeApiService for RuntimeApiServiceImpl {
         &self,
         request: Request<Query>,
     ) -> Result<Response<QueryResponse>, Status> {
-        let app_id = Address::from_slice(request.get_ref().app_id.as_slice())
-            .map_err(|_e| Status::new(Code::Unknown, "failed to obtain app address"))?;
+        let app_id = request
+            .get_ref()
+            .app_id
+            .ok_or_else(|| Status::new(Code::Unknown, "failed to obtain app address"))?;
         let raw_query = request.get_ref().query.as_slice();
         self.vm
             .execute_app_query(self.state.clone(), app_id, raw_query)
@@ -58,8 +59,10 @@ impl RuntimeApiService for RuntimeApiServiceImpl {
         &self,
         request: Request<GetDescriptorRequest>,
     ) -> Result<Response<GetDescriptorResponse>, Status> {
-        let app_id = Address::from_slice(request.get_ref().app_id.as_slice())
-            .map_err(|_e| Status::new(Code::Unknown, "failed to obtain app address"))?;
+        let app_id = request
+            .get_ref()
+            .app_id
+            .ok_or_else(|| Status::new(Code::Unknown, "failed to obtain app address"))?;
 
         self.state
             .get_app_descriptor(app_id)

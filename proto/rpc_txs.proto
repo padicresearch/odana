@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "types.proto";
+import "primitive_types.proto";
 
 package rpc;
 
@@ -9,7 +10,7 @@ message UnsignedTransactionRequest {
 }
 
 message SignedTransactionResponse {
-  bytes hash = 1;
+  odana.primitive_types.H256 hash = 1;
   odana.types.SignedTransaction tx = 2;
 }
 
@@ -22,7 +23,7 @@ message PendingTransactionsResponse {
 }
 
 message AddressTransactionList {
-  bytes address = 1;
+  odana.primitive_types.Address address = 1;
   odana.types.TransactionList txs = 2;
 }
 
@@ -31,7 +32,7 @@ message TxpoolContentResponse {
   repeated AddressTransactionList queued = 2;
 }
 message TransactionHash {
-  bytes hash = 1;
+  odana.primitive_types.H256 hash = 1;
 }
 
 message TransactionHashes {

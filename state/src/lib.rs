@@ -2,20 +2,20 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::error::StateError;
+use crate::kvdb::KvDB;
+use crate::tree::{Op, TrieDB};
 use anyhow::{bail, Result};
 use primitive_types::{Address, H256};
-use schema::{AppBinaries, AppStateKey, ReadProof};
+use schema::ReadProof;
 use smt::SparseMerkleTree;
 use traits::{StateDB, WasmVMInstance};
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
+use types::app::{AppBinaries, AppStateKey};
 use types::prelude::{AppState, TransactionData};
 use types::tx::SignedTransaction;
 use types::Hash;
-
-use crate::error::StateError;
-use crate::kvdb::KvDB;
-use crate::tree::{Op, TrieDB};
 
 mod error;
 mod kvdb;
@@ -31,8 +31,8 @@ const BINDATA_DB_NAME: &str = "bins";
 #[derive(Clone)]
 pub struct State {
     trie: Arc<TrieDB<Address, AccountState>>,
-    appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
-    appsource: Arc<KvDB<H256, AppBinaries>>,
+    pub appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
+    pub appsource: Arc<KvDB<H256, AppBinaries>>,
     path: PathBuf,
     read_only: bool,
 }
@@ -61,6 +61,11 @@ impl StateDB for State {
         let mut account_state = self.get_account_state(address)?;
         account_state.free_balance += amount;
         self.trie.put(*address, account_state)?;
+        Ok(self.root_hash()?.into())
+    }
+
+    fn set_account_state(&self, address: Address, account_state: AccountState) -> Result<H256> {
+        self.trie.put(address, account_state)?;
         Ok(self.root_hash()?.into())
     }
 
@@ -135,6 +140,10 @@ impl StateDB for State {
         self.appsource
             .get(&app_state.code_hash())
             .map(|bins| bins.descriptor)
+    }
+
+    fn set_app_data(&self, app_state_key: AppStateKey, app_data: SparseMerkleTree) -> Result<()> {
+        self.appdata.put(app_state_key, app_data)
     }
 }
 
@@ -218,6 +227,9 @@ impl State {
                 if t.is_some() {
                     bail!("app address already exists")
                 }
+
+                builtin::register_namespace(vm, states, tx, state_db.clone())?;
+
                 let code_hash = crypto::keccak256(&arg.binary);
                 let (descriptor, changelist) =
                     vm.execute_app_create(state_db.clone(), tx.sender(), tx.price(), arg)?;

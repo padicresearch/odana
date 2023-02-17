@@ -1,7 +1,3 @@
-use libp2p::bytes::{Buf, BufMut};
-use prost::encoding::{BytesAdapter, DecodeContext, WireType};
-use prost::DecodeError;
-
 use codec::{Decodable, Encodable};
 use primitive_types::H256;
 use types::block::{Block, BlockHeader};
@@ -41,7 +37,7 @@ impl BroadcastTransactionMessage {
 
 #[derive(Eq, PartialEq, Clone, prost::Message)]
 pub struct BroadcastBlockMessage {
-    #[prost(message, tag = "1")]
+    #[prost(message, optional, tag = "1")]
     pub block: Option<Block>,
 }
 
@@ -69,70 +65,17 @@ impl GetCurrentHeadMessage {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone, Default)]
+#[derive(Eq, PartialEq, Clone, prost::Message)]
 pub struct GetBlockHeaderMessage {
+    #[prost(message, required, tag = "1")]
     pub from: H256,
+    #[prost(message, optional, tag = "2")]
     pub to: Option<H256>,
 }
 
 impl GetBlockHeaderMessage {
     pub fn new(from: H256, to: Option<H256>) -> Self {
         Self { from, to }
-    }
-}
-
-impl prost::Message for GetBlockHeaderMessage {
-    fn encode_raw<B>(&self, buf: &mut B)
-    where
-        B: BufMut,
-        Self: Sized,
-    {
-        prost::encoding::bytes::encode(1, &self.from, buf);
-        if let Some(to) = &self.to {
-            prost::encoding::bytes::encode(2, to, buf)
-        }
-    }
-
-    fn merge_field<B>(
-        &mut self,
-        tag: u32,
-        wire_type: WireType,
-        buf: &mut B,
-        ctx: DecodeContext,
-    ) -> Result<(), DecodeError>
-    where
-        B: Buf,
-        Self: Sized,
-    {
-        match tag {
-            1 => prost::encoding::bytes::merge(wire_type, &mut self.from, buf, ctx),
-            2 => {
-                let value = &mut self.to;
-                prost::encoding::bytes::merge(
-                    wire_type,
-                    value.get_or_insert_with(Default::default),
-                    buf,
-                    ctx,
-                )
-            }
-            _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
-        }
-    }
-
-    fn encoded_len(&self) -> usize {
-        (if !self.from.is_empty() {
-            prost::encoding::bytes::encoded_len(1u32, &self.from)
-        } else {
-            0
-        }) + self
-            .to
-            .as_ref()
-            .map_or(0, |value| prost::encoding::bytes::encoded_len(2u32, value))
-    }
-
-    fn clear(&mut self) {
-        self.from = Default::default();
-        self.to = None
     }
 }
 
@@ -186,8 +129,9 @@ impl BlockHeaderMessage {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone, Default)]
+#[derive(Eq, PartialEq, Clone, prost::Message)]
 pub struct GetBlocksMessage {
+    #[prost(message, repeated, tag = "1")]
     pub block_hashes: Vec<H256>,
 }
 
@@ -197,41 +141,6 @@ impl GetBlocksMessage {
     }
 }
 
-impl prost::Message for GetBlocksMessage {
-    fn encode_raw<B>(&self, buf: &mut B)
-    where
-        B: BufMut,
-        Self: Sized,
-    {
-        prost::encoding::bytes::encode_repeated(1, &self.block_hashes, buf);
-    }
-
-    fn merge_field<B>(
-        &mut self,
-        tag: u32,
-        wire_type: WireType,
-        buf: &mut B,
-        ctx: DecodeContext,
-    ) -> Result<(), DecodeError>
-    where
-        B: Buf,
-        Self: Sized,
-    {
-        if tag == 1 {
-            prost::encoding::bytes::merge_repeated(wire_type, &mut self.block_hashes, buf, ctx)
-        } else {
-            prost::encoding::skip_field(wire_type, tag, buf, ctx)
-        }
-    }
-
-    fn encoded_len(&self) -> usize {
-        prost::encoding::bytes::encoded_len_repeated(1, &self.block_hashes)
-    }
-
-    fn clear(&mut self) {
-        self.block_hashes.clear()
-    }
-}
 #[derive(prost::Message, Eq, PartialEq, Clone)]
 pub struct AdvertiseMessage {
     #[prost(string, repeated, tag = "1")]

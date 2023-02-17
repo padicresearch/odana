@@ -8,6 +8,7 @@ use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 
+use types::app::AppStateKey;
 use types::tx::{ApplicationCallTx, CreateApplicationTx, SignedTransaction};
 use types::{Changelist, Hash};
 
@@ -21,6 +22,7 @@ pub trait Blockchain: ChainReader {
 
 pub trait StateDB: Send + Sync {
     fn nonce(&self, address: &Address) -> u64;
+    fn set_account_state(&self, address: Address, account_state: AccountState) -> Result<H256>;
     fn account_state(&self, address: &Address) -> AccountState;
     fn balance(&self, address: &Address) -> u64;
     fn credit_balance(&self, address: &Address, amount: u64) -> Result<H256>;
@@ -32,6 +34,7 @@ pub trait StateDB: Send + Sync {
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;
     fn get_app_data(&self, app_id: Address) -> Result<SparseMerkleTree>;
+    fn set_app_data(&self, app_state_key: AppStateKey, app_data: SparseMerkleTree) -> Result<()>;
     fn get_app_source(&self, app_id: Address) -> Result<Vec<u8>>;
     fn get_app_descriptor(&self, app_id: Address) -> Result<Vec<u8>>;
 }

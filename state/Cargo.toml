@@ -22,8 +22,10 @@ commitlog = "0.2"
 primitive-types = { path = "../common/primitive-types" }
 tracing = { path = "../common/tracing" }
 transaction = { path = "../transaction" }
+builtin = { path = "../apps/builtin" }
 smt = { path = "../smt" }
 bincode = { workspace = true }
+prost = { workspace = true }
 rocksdb = { version = "0.17.0" }
 num_cpus = "1.13.1"
 tempdir = "0.3.7"

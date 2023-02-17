@@ -15,9 +15,9 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
 use transaction::{make_payment_sign_transaction, make_signed_transaction};
-use types::account::get_address_from_secret_key;
+use types::account::{get_address_from_package_name, get_address_from_secret_key};
 use types::network::Network;
-use types::prelude::{get_address_from_seed, Empty};
+use types::prelude::Empty;
 use types::tx::{ApplicationCallTx, CreateApplicationTx, TransactionData};
 
 #[derive(Args, Debug)]
@@ -161,20 +161,19 @@ pub async fn handle_app_command(
             let nonce = rpc_client
                 .account_service()
                 .get_nonce(GetAccountRequest {
-                    address: signer_address.to_vec(),
+                    address: Some(signer_address),
                 })
                 .await?
                 .get_ref()
                 .nonce;
 
-            let app_id = get_address_from_seed(app.as_bytes(), Network::Testnet)?;
-            let app_id = app_id.to_vec();
+            let app_id = get_address_from_package_name(app, Network::Testnet)?;
 
             //Get App Descriptor bytes
             let mut rt = rpc_client.runtime_api_service();
             let descriptor = rt
                 .get_descriptor(GetDescriptorRequest {
-                    app_id: app_id.clone(),
+                    app_id: Some(app_id),
                 })
                 .await?
                 .into_inner()
@@ -207,7 +206,7 @@ pub async fn handle_app_command(
             json!({
                 "call" : call_json,
                 "tx_size" : signed_tx_size,
-                "tx_hash" : H256::from_slice(&response.get_ref().hash),
+                "tx_hash" :  response.get_ref().hash,
             })
         }
         AppCommands::Create(AppCreateArgs {
@@ -224,7 +223,7 @@ pub async fn handle_app_command(
             let nonce = rpc_client
                 .account_service()
                 .get_nonce(GetAccountRequest {
-                    address: signer_address.to_vec(),
+                    address: Some(signer_address),
                 })
                 .await?
                 .get_ref()
@@ -248,18 +247,15 @@ pub async fn handle_app_command(
             json!({
                 "code_hash" : code_hash,
                 "tx_size" : signed_tx_size,
-                "tx_hash" : H256::from_slice(&response.get_ref().hash),
+                "tx_hash" : response.get_ref().hash,
             })
         }
         AppCommands::Query(AppQueryArgs { app, proto, params }) => {
-            let app_id = get_address_from_seed(app.as_bytes(), Network::Testnet)?;
-            let app_id = app_id.to_vec();
+            let app_id = Some(get_address_from_package_name(app, Network::Testnet)?);
 
             let mut rt = rpc_client.runtime_api_service();
             let descriptor = rt
-                .get_descriptor(GetDescriptorRequest {
-                    app_id: app_id.clone(),
-                })
+                .get_descriptor(GetDescriptorRequest { app_id })
                 .await?
                 .into_inner()
                 .descriptor;
@@ -301,7 +297,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             let balance = rpc_client
                 .account_service()
                 .get_balance(GetAccountRequest {
-                    address: address.to_vec(),
+                    address: Some(*address),
                 })
                 .await?;
             Value::Number(balance.get_ref().balance.into())
@@ -310,7 +306,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             let nonce = rpc_client
                 .account_service()
                 .get_nonce(GetAccountRequest {
-                    address: address.to_vec(),
+                    address: Some(*address),
                 })
                 .await?;
             Value::Number(nonce.get_ref().nonce.into())
@@ -319,7 +315,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             let account_state = rpc_client
                 .account_service()
                 .get_account_state(GetAccountRequest {
-                    address: address.to_vec(),
+                    address: Some(*address),
                 })
                 .await?;
             serde_json::to_value(account_state.get_ref())?
@@ -337,7 +333,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
             let nonce = rpc_client
                 .account_service()
                 .get_nonce(GetAccountRequest {
-                    address: signer_address.to_vec(),
+                    address: Some(signer_address),
                 })
                 .await?
                 .get_ref()
@@ -360,7 +356,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
 
             json!({
                 "tx_size" : signed_tx_size,
-                "tx_hash" : H256::from_slice(&response.get_ref().hash),
+                "tx_hash" : response.get_ref().hash,
             })
         }
         ClientCommands::GetTxpool => {
@@ -373,14 +369,14 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
                 .get_ref()
                 .queued
                 .iter()
-                .map(|r| (Address::from_slice(&r.address).unwrap_or_default(), &r.txs))
+                .map(|r| (r.address.unwrap_or_default(), &r.txs))
                 .collect();
 
             let pending_txs: HashMap<_, _> = txpool_content
                 .get_ref()
                 .pending
                 .iter()
-                .map(|r| (Address::from_slice(&r.address).unwrap_or_default(), &r.txs))
+                .map(|r| (r.address.unwrap_or_default(), &r.txs))
                 .collect();
             json!({
                 "queued" : queued_txs,

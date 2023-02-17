@@ -1,14 +1,15 @@
 syntax = "proto3";
+import "primitive_types.proto";
 package odana.types;
 message Empty {}
 
 message BlockHeader {
-  bytes parent_hash = 1;
-  bytes receipt_hash = 2;
-  bytes merkle_root = 3;
-  bytes state_root = 4;
-  bytes mix_nonce = 5;
-  bytes coinbase = 6;
+  odana.primitive_types.H256 parent_hash = 1;
+  odana.primitive_types.H256 receipt_hash = 2;
+  odana.primitive_types.H256 tx_root = 3;
+  odana.primitive_types.H256 state_root = 4;
+  odana.primitive_types.U256 mix_nonce = 5;
+  odana.primitive_types.Address coinbase = 6;
   uint32 difficulty = 7;
   uint32 chain_id = 8;
   uint32 level = 9;
@@ -22,18 +23,18 @@ message Block {
 }
 
 message AppState {
-  bytes root_hash = 1;
-  bytes code_hash = 2;
-  bytes creator = 3;
+  odana.primitive_types.H256 root_hash = 1;
+  odana.primitive_types.H256 code_hash = 2;
+  odana.primitive_types.Address creator = 3;
   uint32 version = 4;
 }
 
 message PaymentTx {
-  bytes address = 1;
+  odana.primitive_types.Address address = 1;
 }
 
 message ApplicationCallTx{
-  bytes app_id = 1;
+  odana.primitive_types.Address app_id = 1;
   bytes args = 2;
 }
 
@@ -43,7 +44,7 @@ message CreateApplicationTx{
 }
 
 message UpdateApplicationTx{
-  bytes app_id = 1;
+  odana.primitive_types.Address app_id = 1;
   bytes binary = 2;
   bool migrate = 3;
 }
@@ -51,7 +52,7 @@ message UpdateApplicationTx{
 message Transaction {
   uint64 nonce = 1;
   uint32 chain_id = 2;
-  bytes genesis_hash = 3;
+  odana.primitive_types.H256 genesis_hash = 3;
   uint64 tip = 4;
   uint64 value = 5;
   oneof data {
@@ -63,28 +64,19 @@ message Transaction {
   }
 }
 message Receipt {
-  uint32 app_id = 1;
-  uint32 tx_hash = 2;
+  odana.primitive_types.Address app_id = 1;
+  odana.primitive_types.H256 tx_hash = 2;
   repeated bytes logs = 3;
   uint32 fuel_used = 4;
+  odana.primitive_types.H256 post_state = 5;
+  bool status = 6;
 }
 
 message SignedTransaction {
-  uint64 nonce = 1;
-  uint32 chain_id = 2;
-  bytes genesis_hash = 3;
-  uint64 tip = 4;
-  uint64 value = 5;
-  oneof data {
-    PaymentTx payment = 6;
-    ApplicationCallTx call = 7;
-    CreateApplicationTx create = 8;
-    UpdateApplicationTx update = 9;
-    bytes raw = 10;
-  }
-  bytes r = 11;
-  bytes s = 12;
-  uint32 v = 13;
+  Transaction tx = 1;
+  odana.primitive_types.H256 r = 2;
+  odana.primitive_types.H256 s = 3;
+  uint32 v = 4;
 }
 
 message TransactionList {
@@ -95,7 +87,7 @@ message AccountState {
   uint64 free_balance = 1;
   uint64 reserve_balance = 2;
   uint64 nonce = 3;
-  AppState app_state = 4;
+  optional AppState app_state = 4;
 }
 
 enum TransactionStatus {

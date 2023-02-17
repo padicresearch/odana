@@ -5,7 +5,7 @@ use rand_chacha::ChaCha20Rng;
 
 use crypto::ecdsa::Keypair;
 use crypto::SHA256;
-use primitive_types::H256;
+use primitive_types::{Address, H256};
 use types::account::{get_address_from_pub_key, Account};
 use types::network::Network;
 
@@ -25,6 +25,12 @@ pub fn create_account_from_uri(network: Network, uri: &str) -> Account {
     Account { address, secret }
 }
 
+pub const ROOT: Address = Address([
+    111, 100, 97, 110, 120, 49, 107, 122, 50, 55, 109, 112, 106, 104, 50, 113, 110, 106, 54, 56,
+    112, 115, 97, 110, 54, 51, 103, 109, 116, 119, 51, 113, 52, 54, 122, 104, 97, 50, 119, 102,
+    117, 99, 100, 50,
+]);
+
 #[cfg(test)]
 mod tests {
     use crate::create_account_from_uri;
@@ -42,6 +48,6 @@ mod tests {
     #[test]
     fn test_address() {
         let account0 = Address::from_str("odanx1kz27mpjh2qnj68psan63gmtw3q46zha2wfucd2").unwrap();
-        println!("{}", account0)
+        println!("{:?}", account0.0)
     }
 }

@@ -9,8 +9,8 @@ pub struct UnsignedTransactionRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SignedTransactionResponse {
-    #[prost(bytes = "vec", tag = "1")]
-    pub hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub hash: ::core::option::Option<::primitive_types::H256>,
     #[prost(message, optional, tag = "2")]
     pub tx: ::core::option::Option<::types::prelude::SignedTransaction>,
 }
@@ -33,8 +33,8 @@ pub struct PendingTransactionsResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AddressTransactionList {
-    #[prost(bytes = "vec", tag = "1")]
-    pub address: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub address: ::core::option::Option<::primitive_types::Address>,
     #[prost(message, optional, tag = "2")]
     pub txs: ::core::option::Option<::types::prelude::TransactionList>,
 }
@@ -49,8 +49,8 @@ pub struct TxpoolContentResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransactionHash {
-    #[prost(bytes = "vec", tag = "1")]
-    pub hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub hash: ::core::option::Option<::primitive_types::H256>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -224,8 +224,8 @@ pub mod transactions_service_client {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountRequest {
-    #[prost(bytes = "vec", tag = "1")]
-    pub address: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub address: ::core::option::Option<::primitive_types::Address>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -354,16 +354,16 @@ pub mod account_service_client {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CurrentHeadResponse {
-    #[prost(bytes = "vec", tag = "1")]
-    pub hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub hash: ::core::option::Option<::primitive_types::H256>,
     #[prost(message, optional, tag = "2")]
     pub header: ::core::option::Option<::types::prelude::BlockHeader>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBlockByHashRequest {
-    #[prost(bytes = "vec", tag = "1")]
-    pub hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub hash: ::core::option::Option<::primitive_types::H256>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -396,8 +396,8 @@ pub struct GetBlockNumberResponse {
 pub struct ChainInfo {
     #[prost(string, tag = "1")]
     pub chain: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "2")]
-    pub genesis_hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "2")]
+    pub genesis_hash: ::core::option::Option<::primitive_types::H256>,
     #[prost(uint32, tag = "3")]
     pub difficulty: u32,
     #[prost(uint32, tag = "4")]
@@ -562,16 +562,16 @@ pub mod chain_service_client {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Query {
-    #[prost(bytes = "vec", tag = "1")]
-    pub app_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub app_id: ::core::option::Option<::primitive_types::Address>,
     #[prost(bytes = "vec", tag = "2")]
     pub query: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetDescriptorRequest {
-    #[prost(bytes = "vec", tag = "1")]
-    pub app_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub app_id: ::core::option::Option<::primitive_types::Address>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -582,8 +582,8 @@ pub struct GetDescriptorResponse {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueryStorage {
-    #[prost(bytes = "vec", tag = "1")]
-    pub app_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub app_id: ::core::option::Option<::primitive_types::Address>,
     #[prost(bytes = "vec", tag = "2")]
     pub storage_key: ::prost::alloc::vec::Vec<u8>,
 }

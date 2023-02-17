@@ -56,7 +56,7 @@ impl TransactionsService for TransactionsServiceImpl {
         let signed_tx = transaction::sign_tx(H256::from_slice(&secret_key), tx)
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(SignedTransactionResponse {
-            hash: signed_tx.hash().as_bytes().to_vec(),
+            hash: Some(signed_tx.hash()),
             tx: Some(signed_tx),
         }))
     }
@@ -85,7 +85,7 @@ impl TransactionsService for TransactionsServiceImpl {
             })?;
 
         Ok(Response::new(SignedTransactionResponse {
-            hash: tx_hash.as_bytes().to_vec(),
+            hash: Some(tx_hash),
             tx: None,
         }))
     }
@@ -109,7 +109,7 @@ impl TransactionsService for TransactionsServiceImpl {
             })?;
 
         Ok(Response::new(TransactionHash {
-            hash: tx_hash.as_bytes().to_vec(),
+            hash: Some(tx_hash),
         }))
     }
 
@@ -142,7 +142,7 @@ impl TransactionsService for TransactionsServiceImpl {
             .pending()
             .iter()
             .map(|(address, txs)| AddressTransactionList {
-                address: address.to_vec(),
+                address: Some(*address),
                 txs: Some(txs.clone()),
             })
             .collect();
@@ -159,7 +159,7 @@ impl TransactionsService for TransactionsServiceImpl {
             .0
             .iter()
             .map(|(address, txs)| AddressTransactionList {
-                address: address.to_vec(),
+                address: Some(*address),
                 txs: Some(txs.clone()),
             })
             .collect();
@@ -167,7 +167,7 @@ impl TransactionsService for TransactionsServiceImpl {
             .1
             .iter()
             .map(|(address, txs)| AddressTransactionList {
-                address: address.to_vec(),
+                address: Some(*address),
                 txs: Some(txs.clone()),
             })
             .collect();

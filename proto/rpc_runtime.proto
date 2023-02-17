@@ -1,14 +1,15 @@
 syntax = "proto3";
+import "primitive_types.proto";
 
 package rpc;
 
 message Query {
-  bytes app_id = 1;
+  odana.primitive_types.Address app_id = 1;
   bytes query = 2;
 }
 
 message GetDescriptorRequest {
-  bytes app_id = 1;
+  odana.primitive_types.Address app_id = 1;
 }
 
 message GetDescriptorResponse {
@@ -16,7 +17,7 @@ message GetDescriptorResponse {
 }
 
 message QueryStorage {
-  bytes app_id = 1;
+  odana.primitive_types.Address app_id = 1;
   bytes storage_key = 2;
 }
 message QueryResponse {

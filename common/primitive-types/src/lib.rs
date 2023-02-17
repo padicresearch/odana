@@ -44,6 +44,19 @@ pub enum Error {
     AddressParseFailed,
 }
 
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Error::Overflow => {
+                write!(f, "Overflow")
+            }
+            Error::AddressParseFailed => {
+                write!(f, "AddressParseFailed")
+            }
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Ord, Hash)]
 pub struct Address(pub [u8; 44]);
 
@@ -97,6 +110,13 @@ impl Address {
     }
     pub fn to_vec(&self) -> Vec<u8> {
         self.0.to_vec()
+    }
+    pub fn is_zero(&self) -> bool {
+        *self == Address::default()
+    }
+
+    pub fn is_default(&self) -> bool {
+        *self == Address::default()
     }
 
     pub fn to_address20(&self) -> Option<H160> {
@@ -474,6 +494,10 @@ impl_byte_adapter_hash!(H192, 24);
 impl_byte_adapter_hash!(H256, 32);
 impl_byte_adapter_hash!(H448, 56);
 impl_byte_adapter_hash!(H512, 64);
+
+impl_prost_message!(U128);
+impl_prost_message!(U256);
+impl_prost_message!(U512);
 
 impl_prost_message!(Address);
 impl_prost_message!(H128);

@@ -1,11 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-const DESCRIPTOR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/file_descriptor_set.bin"));
-
-static DESCRIPTOR_POOL: Lazy<DescriptorPool> =
-    Lazy::new(|| DescriptorPool::decode(DESCRIPTOR).unwrap());
-
 extern crate alloc;
 
 use crate::types::call::Data;
@@ -16,6 +11,11 @@ use prost_reflect::DescriptorPool;
 use rune_framework::context::Context;
 use rune_framework::io::{Blake2bHasher, StorageMap, StorageValue};
 use rune_framework::*;
+
+const DESCRIPTOR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/file_descriptor_set.bin"));
+
+static DESCRIPTOR_POOL: Lazy<DescriptorPool> =
+    Lazy::new(|| DescriptorPool::decode(DESCRIPTOR).unwrap());
 
 #[allow(unused_imports)]
 #[allow(dead_code)]
@@ -63,7 +63,7 @@ impl RuntimeApplication for Nick {
                     ReservationFee::get()?
                 };
                 anyhow::ensure!(rune_framework::syscall::reserve(fee));
-                AddressReservationInfo::insert(
+                AddressReservationInfo::put(
                     sender,
                     ReservationInfo {
                         name: param.name,

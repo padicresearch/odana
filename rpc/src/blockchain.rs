@@ -7,7 +7,6 @@ use crate::rpc::{
     ChainInfo, CurrentHeadResponse, GetBlockByHashRequest, GetBlockByLevelRequest,
     GetBlockNumberResponse, GetBlocksRequest, GetBlocksResponse,
 };
-use primitive_types::H256;
 use traits::Blockchain;
 use types::block::Block;
 use types::prelude::Empty;
@@ -36,7 +35,7 @@ impl ChainService for ChainServiceImpl {
         let blockheader =
             indexed_blockheader.ok_or_else(|| Status::new(Code::NotFound, "head not available"))?;
 
-        let hash = blockheader.hash.as_bytes().to_vec();
+        let hash = blockheader.hash.into();
         Ok(Response::new(CurrentHeadResponse {
             hash,
             header: Some(blockheader.raw),
@@ -58,8 +57,10 @@ impl ChainService for ChainServiceImpl {
         &self,
         request: Request<GetBlockByHashRequest>,
     ) -> Result<Response<Block>, Status> {
-        let raw_hash = request.into_inner().hash;
-        let block_hash = H256::from_slice(&raw_hash);
+        let block_hash = request
+            .into_inner()
+            .hash
+            .ok_or(Status::invalid_argument("hash not present in message"))?;
         let block = self
             .blockchain
             .get_block_by_hash(&block_hash)
@@ -96,7 +97,7 @@ impl ChainService for ChainServiceImpl {
         let current_head = current_head.get_ref().header.unwrap();
         let chain = ChainInfo {
             chain: self.blockchain.network().into(),
-            genesis_hash: self.blockchain.genesis().hash.as_bytes().to_vec(),
+            genesis_hash: Some(self.blockchain.genesis().hash),
             difficulty: current_head.difficulty().into(),
             network_difficulty: 26,
             blocks: current_head.level(),

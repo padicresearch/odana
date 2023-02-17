@@ -1,10 +1,10 @@
-use crate::cmd::{parse_cmd_str, Command, CommandError};
 use crate::commands::parse_address;
+use crate::parser::{parse_cmd_str, Command, CommandError};
 use anyhow::bail;
 use base64::engine::general_purpose;
 use base64::Engine;
 use json_dotpath::DotPaths;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -56,7 +56,9 @@ pub(crate) fn convert_command_strings(value: &mut Value) -> anyhow::Result<()> {
                 .ok()
                 .flatten()
             {
-                *value = Value::String(general_purpose::STANDARD.encode(bytes))
+                *value = json!({
+                    "value" : Value::String(general_purpose::STANDARD.encode(bytes))
+                })
             }
             return Ok(());
         }

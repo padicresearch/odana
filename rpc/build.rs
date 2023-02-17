@@ -3,6 +3,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .out_dir("src")
         .build_client(false)
         .extern_path(".odana.types", "::types::prelude")
+        .extern_path(".odana.primitive_types", "::primitive_types")
         .compile(
             &[
                 &"../proto/rpc_txs.proto".to_string(),

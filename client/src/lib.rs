@@ -6,8 +6,8 @@ use crate::rpc::runtime_api_service_client::RuntimeApiServiceClient;
 use crate::rpc::transactions_service_client::TransactionsServiceClient;
 use tonic::codegen::StdError;
 
-mod cmd;
 pub mod commands;
+mod parser;
 #[allow(clippy::all)]
 mod rpc;
 mod util;

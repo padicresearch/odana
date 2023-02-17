@@ -35,4 +35,5 @@ client = { path = "../client" }
 account = { path = "../account" }
 traits = { path = "../common/traits" }
 tracing = { path = "../common/tracing" }
+builtin = { path = "../apps/builtin" }
 primitive-types = { path = "../common/primitive-types" }

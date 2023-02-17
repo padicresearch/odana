@@ -6,6 +6,7 @@ use bech32::{ToBase32, Variant};
 use serde::{Deserialize, Serialize};
 
 use crate::network::{Network, ALPHA_HRP, MAINNET_HRP, TESTNET_HRP};
+use crate::util::PackageName;
 use crate::Addressing;
 use codec::{Decodable, Encodable};
 use crypto::ecdsa::{PublicKey, SecretKey, Signature};
@@ -194,9 +195,9 @@ pub fn get_address_from_secret_key(sk: H256, network: Network) -> Result<Address
     Ok(Address(raw_address))
 }
 
-pub fn get_address_from_app_id(app_id: &[u8; 4], network: Network) -> Result<Address> {
-    let key = keccak256(app_id);
-    let checksum = &key[12..];
+pub fn get_address_from_package_name(package_name: &str, network: Network) -> Result<Address> {
+    let package = PackageName::parse(package_name)?;
+    let checksum = &package.package_id[12..];
     let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
         .expect("error creating account id");
     let mut raw_address = [0; ADDRESS_LEN];
@@ -223,7 +224,7 @@ pub fn get_eth_address_from_pub_key(pub_key: PublicKey) -> H160 {
 
 #[cfg(test)]
 mod tests {
-    use crate::account::{get_address_from_app_id, Address};
+    use crate::account::{get_address_from_package_name, Address};
     use crate::network::Network;
 
     use serde::{Deserialize, Serialize};
@@ -236,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_address_derv() {
-        let address = get_address_from_app_id(b"nick", Network::Mainnet).unwrap();
+        let address = get_address_from_package_name("nick", Network::Mainnet).unwrap();
         println!("{}", address);
     }
 }

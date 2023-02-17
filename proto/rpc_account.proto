@@ -1,10 +1,11 @@
 syntax = "proto3";
 import "types.proto";
+import "primitive_types.proto";
 
 package rpc;
 
 message GetAccountRequest {
-  bytes address = 1;
+  odana.primitive_types.Address address = 1;
 }
 
 message GetAccountBalanceResponse {

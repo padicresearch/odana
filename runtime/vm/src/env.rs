@@ -137,7 +137,10 @@ impl Storage for ExecutionEnvironment {
     }
 
     fn get(&mut self, key: Vec<u8>) -> anyhow::Result<Option<Vec<u8>>> {
-        Ok(Some(self.storage.get(key)?))
+        let Ok(data) = self.storage.get(key) else {
+            return Ok(None)
+        };
+        Ok(Some(data))
     }
 
     fn remove(&mut self, key: Vec<u8>) -> anyhow::Result<bool> {

@@ -4,6 +4,8 @@ mod internal {
 
 use anyhow::{bail, Result};
 use blake2b_simd::Params;
+use primitive_types::H256;
+use sha3::Digest;
 
 use rune_std::prelude::*;
 
@@ -14,11 +16,20 @@ pub trait StorageKeyHasher {
 pub struct Hashing;
 
 impl Hashing {
-    pub fn blake2b(input: &[u8]) -> [u8; 32] {
+    #[inline]
+    pub fn blake2b(input: &[u8]) -> H256 {
         let hash = Params::new().hash_length(32).hash(input);
         let mut out = [0_u8; 32];
         out.copy_from_slice(hash.as_bytes());
-        out
+        H256::from(out)
+    }
+
+    #[inline]
+    pub fn keccak256(input: &[u8]) -> H256 {
+        let mut hasher = sha3::Keccak256::default();
+        hasher.update(input);
+        let out = hasher.finalize();
+        H256::from_slice(out.as_ref())
     }
 }
 
@@ -46,7 +57,7 @@ where
 {
     fn storage_prefix() -> &'static [u8];
 
-    fn insert(key: K, value: V) {
+    fn put(key: K, value: V) {
         let prefix = Self::storage_prefix();
         let key = key.encode_to_vec();
         let value = value.encode_to_vec();
@@ -62,22 +73,18 @@ where
         let Some(raw_value) = internal::storage::get(storage_key.as_ref()) else {
             return Ok(None)
         };
+        if raw_value.is_empty() {
+            return Ok(None);
+        }
         let value = V::decode(raw_value.as_slice())?;
         Ok(Some(value))
     }
 
     fn contains(key: K) -> bool {
-        let prefix = Self::storage_prefix();
-        let key = key.encode_to_vec();
-        let storage_key = [prefix, key.as_slice()].concat();
-        let storage_key = H::hash(storage_key.as_slice());
-        let Some(raw_value) = internal::storage::get(storage_key.as_ref()) else {
-            return false
-        };
-        if V::decode(raw_value.as_slice()).is_err() {
-            return false;
-        };
-        true
+        if let Ok(res) = Self::get(key) {
+            return res.is_some();
+        }
+        false
     }
 
     fn remove(key: K) -> Result<()> {
@@ -119,7 +126,7 @@ pub struct Blake2bHasher;
 
 impl StorageKeyHasher for Blake2bHasher {
     fn hash(payload: &[u8]) -> Box<[u8]> {
-        Box::new(Hashing::blake2b(payload))
+        Box::new(Hashing::blake2b(payload).to_fixed_bytes())
     }
 }
 
