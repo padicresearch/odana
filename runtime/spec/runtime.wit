@@ -1,0 +1,17 @@
+default world app {
+
+     export app : interface {
+        genesis : func()
+        call : func(call : list<u8>)
+        query : func(query : list<u8>) -> tuple<list<u8>,list<u8>>
+        descriptor : func() -> list<u8>
+    }
+
+    import execution-context : interface {
+        value : func() -> u64
+        block-level : func() -> u32
+        sender : func() -> list<u8>
+        network : func() -> u32
+        sender-pk : func() -> list<u8>
+    }
+}

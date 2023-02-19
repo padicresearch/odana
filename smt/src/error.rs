@@ -1,20 +1,40 @@
-use thiserror::Error;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::fmt::Formatter;
 
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum Error {
-    #[error("RWPoison")]
-    RWPoison,
-    #[error("ColumnFamilyMissing {0}")]
-    ColumnFamilyMissing(&'static str),
-
-    #[error("Invalid Key {0}")]
-    InvalidKey(String),
-
-    #[error("KeyAlreadyEmpty")]
     KeyAlreadyEmpty,
-    #[error("Non member {0} is equal to member {1}")]
-    NonMembershipPathError(String, String),
-
-    #[error("BadProof")]
+    NonMembershipPathError(Vec<u8>, Vec<u8>),
+    StorageError,
+    CustomError(String),
+    StorageErrorKeyNotFound,
     BadProof(Vec<Vec<Vec<u8>>>),
 }
+
+impl core::fmt::Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Error::KeyAlreadyEmpty => {
+                writeln!(f, "KeyAlreadyEmpty")
+            }
+            Error::NonMembershipPathError(left, right) => {
+                writeln!(f, "NonMembershipPathError {:?} {:?}", left, right)
+            }
+            Error::StorageError => {
+                writeln!(f, "StorageError")
+            }
+            Error::StorageErrorKeyNotFound => {
+                writeln!(f, "StorageErrorNotFound")
+            }
+            Error::BadProof(proof) => {
+                writeln!(f, "BadProof {:?}", proof)
+            }
+            Error::CustomError(error) => {
+                writeln!(f, "CustomError {:?}", error)
+            }
+        }
+    }
+}
+
+impl core::error::Error for Error {}

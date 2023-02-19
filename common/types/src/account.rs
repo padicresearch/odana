@@ -1,50 +1,115 @@
+use anyhow::{anyhow, Result};
+use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 
-use anyhow::Result;
+use bech32::{ToBase32, Variant};
 use serde::{Deserialize, Serialize};
 
-use codec::impl_codec;
-use codec::{Decoder, Encoder};
+use crate::network::{Network, ALPHA_HRP, MAINNET_HRP, TESTNET_HRP};
+use crate::util::PackageName;
+use crate::Addressing;
+use codec::{Decodable, Encodable};
 use crypto::ecdsa::{PublicKey, SecretKey, Signature};
-use crypto::{RIPEMD160, SHA256};
-use primitive_types::{H160, H256};
+use crypto::keccak256;
+use primitive_types::{Address, ADDRESS_LEN, H160, H256};
 
-#[derive(Serialize, Deserialize, Clone, Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AccountState {
-    #[serde(with = "crate::uint_hex_codec")]
-    pub free_balance: u128,
-    #[serde(with = "crate::uint_hex_codec")]
-    pub reserve_balance: u128,
-    #[serde(with = "crate::uint_hex_codec")]
-    pub nonce: u64,
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, prost::Message)]
+pub struct AppState {
+    #[prost(bytes = "vec", tag = "1")]
+    #[serde(with = "hex")]
+    root_hash: Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    #[serde(with = "hex")]
+    code_hash: Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    #[serde(with = "crate::as_address")]
+    creator: Vec<u8>,
+    #[prost(uint32, tag = "4")]
+    version: u32,
 }
 
-impl Default for AccountState {
-    fn default() -> Self {
+impl AppState {
+    pub fn root_hash(&self) -> H256 {
+        H256::from_slice(self.root_hash.as_slice())
+    }
+    pub fn code_hash(&self) -> H256 {
+        H256::from_slice(self.code_hash.as_slice())
+    }
+    pub fn creator(&self) -> Address {
+        Address::from_slice(self.creator.as_slice()).unwrap()
+    }
+    pub fn version(&self) -> u32 {
+        self.version
+    }
+
+    pub fn set_root_hash(&mut self, root_hash: H256) {
+        self.root_hash = root_hash.as_bytes().to_vec();
+    }
+    pub fn set_code_hash(&mut self, code_hash: H256) {
+        self.code_hash = code_hash.as_bytes().to_vec();
+    }
+    pub fn set_creator(&mut self, creator: Address) {
+        self.creator = creator.to_vec();
+    }
+    pub fn set_version(&mut self, version: u32) {
+        self.version = version;
+    }
+    pub fn new(root_hash: H256, code_hash: H256, creator: Address, version: u32) -> Self {
         Self {
-            free_balance: 0,
-            reserve_balance: 0,
-            nonce: 1,
+            root_hash: root_hash.as_bytes().to_vec(),
+            code_hash: code_hash.as_bytes().to_vec(),
+            creator: creator.to_vec(),
+            version,
         }
     }
 }
 
-impl_codec!(AccountState);
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, prost::Message)]
+pub struct AccountState {
+    #[prost(uint64, tag = "1")]
+    pub free_balance: u64,
+    #[prost(uint64, tag = "2")]
+    pub reserve_balance: u64,
+    #[prost(uint64, tag = "3")]
+    pub nonce: u64,
+    #[prost(message, optional, tag = "4")]
+    pub app_state: Option<AppState>,
+}
 
 impl AccountState {
-    pub fn into_proto(self) -> Result<proto::AccountState> {
-        let json_rep = serde_json::to_vec(&self)?;
-        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
+    pub fn new() -> Self {
+        AccountState {
+            free_balance: 0u64,
+            reserve_balance: 0u64,
+            nonce: 1u64,
+            app_state: None,
+        }
+    }
+}
+
+impl Encodable for AccountState {
+    fn encode(&self) -> Result<Vec<u8>> {
+        Ok(prost::Message::encode_to_vec(self))
+    }
+}
+
+impl Decodable for AccountState {
+    fn decode(buf: &[u8]) -> Result<Self> {
+        <AccountState as prost::Message>::decode(buf).map_err(|e| anyhow!(e))
     }
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Account {
-    pub address: H160,
+    pub address: Address,
     pub secret: H256,
 }
 
-impl_codec!(Account);
+impl Display for Account {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.address, f)
+    }
+}
 
 impl PartialEq for Account {
     fn eq(&self, other: &Self) -> bool {
@@ -56,7 +121,7 @@ impl Eq for Account {}
 
 impl Hash for Account {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        state.write(self.address.as_bytes())
+        state.write(&self.address.0)
     }
 }
 
@@ -65,20 +130,114 @@ impl Account {
         let secrete = SecretKey::from_bytes(self.secret.as_fixed_bytes())?;
         secrete.sign(payload).map_err(|e| e.into())
     }
+
+    pub fn public_key(&self) -> H256 {
+        let secrete = SecretKey::from_bytes(self.secret.as_fixed_bytes()).unwrap();
+        secrete.public().hash()
+    }
+
+    pub fn secrete_key(&self) -> H256 {
+        self.secret
+    }
 }
 
 impl From<Account> for H160 {
     fn from(account: Account) -> Self {
-        account.address
+        account.address.to_address20().unwrap()
     }
 }
 
-pub fn get_address_from_pub_key(pub_key: PublicKey) -> H160 {
-    let address = RIPEMD160::digest(SHA256::digest(&pub_key.to_bytes()).as_bytes());
-    address
+impl Addressing for Address {
+    fn is_mainnet(&self) -> bool {
+        MAINNET_HRP.eq(&self.hrp())
+    }
+    fn is_testnet(&self) -> bool {
+        TESTNET_HRP.eq(&self.hrp())
+    }
+    fn is_alphanet(&self) -> bool {
+        ALPHA_HRP.eq(&self.hrp())
+    }
+    fn is_valid(&self) -> bool {
+        match bech32::decode(&String::from_utf8_lossy(&self.0)) {
+            Ok((hrp, _, _)) => ALPHA_HRP.eq(&hrp) || TESTNET_HRP.eq(&hrp) || MAINNET_HRP.eq(&hrp),
+            Err(_) => false,
+        }
+    }
+    fn network(&self) -> Option<Network> {
+        match self.hrp().as_str() {
+            MAINNET_HRP => Some(Network::Mainnet),
+            TESTNET_HRP => Some(Network::Testnet),
+            ALPHA_HRP => Some(Network::Alphanet),
+            _ => None,
+        }
+    }
 }
 
-pub fn get_address_from_secret_key(key: H256) -> Result<H160> {
-    let secret = SecretKey::from_bytes(key.as_bytes())?;
-    Ok(get_address_from_pub_key(secret.public()))
+pub fn get_address_from_pub_key(pub_key: PublicKey, network: Network) -> Address {
+    let key = pub_key.hash();
+    let checksum = &key[12..];
+    let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
+        .expect("error creating account id");
+    let mut raw_address = [0; ADDRESS_LEN];
+    raw_address.copy_from_slice(address.as_bytes());
+    Address(raw_address)
+}
+
+pub fn get_address_from_secret_key(sk: H256, network: Network) -> Result<Address> {
+    let sk = SecretKey::from_bytes(sk.as_bytes())?;
+    let pk = sk.public();
+    let key = pk.hash();
+    let checksum = &key[12..];
+    let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
+        .expect("error creating account id");
+    let mut raw_address = [0; ADDRESS_LEN];
+    raw_address.copy_from_slice(address.as_bytes());
+    Ok(Address(raw_address))
+}
+
+pub fn get_address_from_package_name(package_name: &str, network: Network) -> Result<Address> {
+    let package = PackageName::parse(package_name)?;
+    let checksum = &package.package_id[12..];
+    let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
+        .expect("error creating account id");
+    let mut raw_address = [0; ADDRESS_LEN];
+    raw_address.copy_from_slice(&address.as_bytes()[0..ADDRESS_LEN]);
+    Ok(Address(raw_address))
+}
+
+pub fn get_address_from_seed(seed: &[u8], network: Network) -> Result<Address> {
+    let key = keccak256(seed);
+    let checksum = &key[12..];
+    let address: String = bech32::encode(network.hrp(), checksum.to_base32(), Variant::Bech32m)
+        .expect("error creating account id");
+    let mut raw_address = [0; ADDRESS_LEN];
+    raw_address.copy_from_slice(&address.as_bytes()[0..ADDRESS_LEN]);
+    Ok(Address(raw_address))
+}
+
+pub fn get_eth_address_from_pub_key(pub_key: PublicKey) -> H160 {
+    let pubkey_bytes = pub_key.to_bytes();
+    let key = keccak256(&pubkey_bytes[1..]).to_fixed_bytes();
+    let checksum = &key[12..];
+    H160::from_slice(checksum)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::account::{get_address_from_package_name, Address};
+    use crate::network::Network;
+
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Deserialize, Debug)]
+    struct CAccount {
+        account_id: Address,
+        balance: i32,
+    }
+
+    #[test]
+    fn test_address_derv() {
+        let address = get_address_from_package_name("nick", Network::Mainnet).unwrap();
+        println!("{}", address);
+    }
 }

@@ -4,35 +4,54 @@ use std::collections::BTreeSet;
 use anyhow::{anyhow, Result};
 
 use crypto::ecdsa::SecretKey;
-use crypto::SHA256;
-use primitive_types::H256;
-use proto::UnsignedTransaction;
-use types::account::Account;
-use types::tx::{SignedTransaction, Transaction};
-use types::Address;
+use primitive_types::{Address, H256};
 
-pub fn make_sign_transaction(
-    account: &Account,
-    nonce: u64,
+use types::network::Network;
+use types::prelude::TransactionData;
+use types::tx::{PaymentTx, SignedTransaction, Transaction};
+
+pub fn make_payment_sign_transaction(
+    signer: H256,
     to: Address,
-    amount: u128,
-    fee: u128,
-    data: String,
+    nonce: u64,
+    amount: u64,
+    fee: u64,
+    network: Network,
 ) -> Result<SignedTransaction> {
-    let data = Transaction {
+    let chain_id = network.chain_id();
+    let tx = Transaction {
         nonce,
-        to: to.into(),
-        amount: amount.into(),
-        fee: fee.into(),
-        data,
+        chain_id,
+        genesis_hash: Default::default(),
+        fee,
+        value: amount,
+        data: Some(TransactionData::Payment(PaymentTx { to })),
     };
-    let sig = account.sign(SHA256::digest(data.sig_hash()).as_fixed_bytes())?;
-    SignedTransaction::new(sig, data.into_proto()?)
+    sign_tx(signer, tx)
 }
 
-pub fn sign_tx(secret: H256, tx: UnsignedTransaction) -> Result<SignedTransaction> {
-    let raw = Transaction::from_proto(&tx)?;
-    let payload = raw.sig_hash();
+pub fn make_signed_transaction(
+    signer: H256,
+    nonce: u64,
+    amount: u64,
+    fee: u64,
+    network: Network,
+    data: TransactionData,
+) -> Result<SignedTransaction> {
+    let chain_id = network.chain_id();
+    let tx = Transaction {
+        nonce,
+        chain_id,
+        genesis_hash: Default::default(),
+        fee,
+        value: amount,
+        data: Some(data),
+    };
+    sign_tx(signer, tx)
+}
+
+pub fn sign_tx(secret: H256, tx: Transaction) -> Result<SignedTransaction> {
+    let payload = tx.sig_hash();
     let secrete = SecretKey::from_bytes(secret.as_fixed_bytes())?;
     let sig = secrete
         .sign(payload.as_bytes())
@@ -42,23 +61,23 @@ pub fn sign_tx(secret: H256, tx: UnsignedTransaction) -> Result<SignedTransactio
 }
 
 #[derive(Debug)]
-pub struct NoncePricedTransaction(pub SignedTransaction);
+pub struct NoncePricedTransaction<'a>(pub &'a SignedTransaction);
 
-impl Eq for NoncePricedTransaction {}
+impl<'a> Eq for NoncePricedTransaction<'a> {}
 
-impl PartialEq for NoncePricedTransaction {
+impl<'a> PartialEq for NoncePricedTransaction<'a> {
     fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
+        self.0.eq(other.0)
     }
 }
 
-impl PartialOrd for NoncePricedTransaction {
+impl<'a> PartialOrd for NoncePricedTransaction<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for NoncePricedTransaction {
+impl<'a> Ord for NoncePricedTransaction<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
         match self.0.nonce().cmp(&other.0.nonce()) {
             Ordering::Less => Ordering::Less,
@@ -67,16 +86,5 @@ impl Ord for NoncePricedTransaction {
         }
     }
 }
-pub type TransactionsByNonceAndPrice = BTreeSet<NoncePricedTransaction>;
 
-#[cfg(test)]
-mod test {
-    use account::create_account;
-    use proto::TransactionStatus;
-
-    #[test]
-    fn generate_sudo_address() {
-        let sudo_account = create_account();
-        println!("{:?}", sudo_account);
-    }
-}
+pub type TransactionsByNonceAndPrice<'a> = BTreeSet<NoncePricedTransaction<'a>>;

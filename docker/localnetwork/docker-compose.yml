@@ -1,0 +1,46 @@
+version: '3'
+services:
+  node0:
+    build:
+      dockerfile: run.dockerfile
+      args:
+        - HOST_DATADIR=node0
+    environment:
+      - MINER=ama
+    container_name: "node0"
+    entrypoint: ["odana", "run", "--miner", "ama"]
+    networks:
+      localnet:
+        ipv4_address: 192.167.10.2
+  node1:
+    build:
+      dockerfile: run.dockerfile
+      args:
+        - HOST_DATADIR=node1
+    container_name: "node1"
+    entrypoint: ["odana", "run", "--miner", "kofi"]
+    environment:
+      - MINER=kofi
+    networks:
+      localnet:
+        ipv4_address: 192.167.10.3
+  node2:
+    build:
+      dockerfile: run.dockerfile
+      args:
+        - HOST_DATADIR=node2
+    container_name: "node2"
+    environment:
+      - MINER=kwame
+    entrypoint: ["odana", "run", "--miner", "kwame"]
+    networks:
+      localnet:
+        ipv4_address: 192.167.10.4
+networks:
+  localnet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        -
+          subnet: 192.167.10.0/16

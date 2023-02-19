@@ -1,0 +1,23 @@
+syntax = "proto3";
+import "types.proto";
+import "primitive_types.proto";
+
+package rpc;
+
+message GetAccountRequest {
+  odana.primitive_types.Address address = 1;
+}
+
+message GetAccountBalanceResponse {
+  uint64 balance = 1;
+}
+
+message GetAccountNonceResponse {
+  uint64 nonce = 1;
+}
+
+service AccountService {
+  rpc GetBalance (GetAccountRequest) returns (GetAccountBalanceResponse);
+  rpc GetNonce (GetAccountRequest) returns (GetAccountNonceResponse);
+  rpc GetAccountState (GetAccountRequest) returns (odana.types.AccountState);
+}

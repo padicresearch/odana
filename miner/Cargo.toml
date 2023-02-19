@@ -11,12 +11,13 @@ types = { path = "../common/types" }
 primitive-types = { path = "../common/primitive-types" }
 txpool = { path = "../txpool" }
 p2p = { path = "../p2p" }
-anyhow = "1"
-merkle = { path = "../merkle" }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
 chrono = "0.4"
 tracing = { path = "../common/tracing" }
 account = { path = "../account" }
 tempdir = "0.3.7"
 tokio = { version = "1", features = ["full"] }
-hex = "0.4.3"
+hex = { workspace = true }
 blockchain = { path = "../blockchain" }
+smt = { path = "../smt" }

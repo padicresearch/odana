@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use rocksdb::{BlockBasedOptions, ColumnFamilyDescriptor, Options};
+use rocksdb::{BlockBasedOptions, Options};
 
 use codec::Codec;
 
@@ -41,9 +41,6 @@ pub trait Schema {
     type Key: Codec + Clone;
     type Value: Codec;
     fn column() -> &'static str;
-    fn descriptor() -> ColumnFamilyDescriptor {
-        ColumnFamilyDescriptor::new(Self::column(), default_table_options())
-    }
 }
 
 pub enum PersistentStorageBackend {
@@ -136,10 +133,6 @@ mod test {
 
         fn column() -> &'static str {
             "block_storage"
-        }
-
-        fn descriptor() -> ColumnFamilyDescriptor {
-            todo!()
         }
     }
 

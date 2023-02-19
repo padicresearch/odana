@@ -1,0 +1,21 @@
+[package]
+name = "rt-vm"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wasmtime = { git = "https://github.com/padicresearch/wasmtime.git", features = ["component-model", "cranelift"] }
+traits = { path = "../../common/traits" }
+types = { path = "../../common/types" }
+codec = { path = "../../codec" }
+primitive-types = { path = "../../common/primitive-types" }
+account = { path = "../../account" }
+crypto = { path = "../../crypto" }
+smt = { path = "../../smt" }
+parking_lot = "0.12.1"
+anyhow = { workspace = true }
+[build-dependencies]
+wit-codegen = { workspace = true }
+fs_extra = "1.2.0"

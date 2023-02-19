@@ -1,92 +1,105 @@
 use core::cmp;
 use std::cmp::Ordering;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use std::u32;
 
 use anyhow::Result;
 use bytes::{Buf, Bytes, BytesMut};
+use codec::impl_codec_using_prost;
+use codec::ConsensusCodec;
+use codec::{Decodable, Encodable};
+use crypto::dhash256;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
+use primitive_types::{Address, Compact, ADDRESS_LEN, H256, U256};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-
-use codec::{impl_codec, ConsensusCodec};
-use codec::{Decoder, Encoder};
-use crypto::SHA256;
-use primitive_types::{Compact, H256, U128, U256};
-use proto::{Block as ProtoBlock, BlockHeader as ProtoBlockHeader};
 
 use crate::tx::SignedTransaction;
 
 use super::*;
 
-const HEADER_SIZE: usize = 180;
+const HEADER_SIZE: usize = 212;
 
 #[derive(Clone, Copy, PartialOrd, PartialEq, Ord, Eq, Debug, Serialize, Deserialize)]
-pub struct BlockPrimaryKey(pub Hash, pub i32);
+pub struct BlockPrimaryKey(pub u32, pub H256);
 
-impl Encoder for BlockPrimaryKey {
+impl Encodable for BlockPrimaryKey {
     fn encode(&self) -> Result<Vec<u8>> {
         let mut encoded = Vec::with_capacity(36);
-        encoded.extend(self.1.to_be_bytes());
-        encoded.extend(self.0.iter());
+        encoded.extend_from_slice(&self.0.to_be_bytes());
+        encoded.extend_from_slice(self.1.as_bytes());
 
         Ok(encoded)
     }
-    fn encoded_size(&self) -> Result<u64> {
-        Ok(36)
-    }
 }
 
-impl Decoder for BlockPrimaryKey {
+impl Decodable for BlockPrimaryKey {
     fn decode(buf: &[u8]) -> Result<Self> {
         let mut level: [u8; 4] = [0; 4];
         level.copy_from_slice(&buf[..4]);
-        let level = i32::from_be_bytes(level);
+        let level = u32::from_be_bytes(level);
         let mut hash: [u8; 32] = [0; 32];
         hash.copy_from_slice(&buf[4..]);
-        Ok(Self(hash, level))
+        Ok(Self(level, hash.into()))
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Getters, Setters, MutGetters, CopyGetters)]
+#[derive(
+    Serialize, Deserialize, Copy, Clone, Getters, Setters, MutGetters, CopyGetters, prost::Message,
+)]
 pub struct BlockHeader {
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    #[prost(required, message, tag = "1")]
     parent_hash: H256,
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
-    merkle_root: H256,
+    #[prost(required, message, tag = "2")]
+    receipt_hash: H256,
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    #[prost(required, message, tag = "3")]
+    tx_root: H256,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    #[prost(required, message, tag = "4")]
     state_root: H256,
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    #[prost(required, message, tag = "5")]
     mix_nonce: U256,
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
-    coinbase: H160,
+    #[prost(required, message, tag = "6")]
+    coinbase: Address,
     #[getset(set = "pub", get_mut = "pub")]
+    #[prost(uint32, tag = "7")]
     difficulty: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    #[prost(uint32, tag = "8")]
     chain_id: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
-    level: i32,
+    #[prost(uint32, tag = "9")]
+    level: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    #[prost(uint32, tag = "10")]
     time: u32,
     #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
-    nonce: U128,
+    #[prost(uint64, tag = "11")]
+    nonce: u64,
 }
 #[allow(clippy::too_many_arguments)]
 impl BlockHeader {
     pub fn new(
         parent_hash: H256,
-        merkle_root: H256,
+        receipt_hash: H256,
+        tx_root: H256,
         state_root: H256,
         mix_nonce: U256,
-        coinbase: H160,
+        coinbase: Address,
         difficulty: u32,
         chain_id: u32,
-        level: i32,
+        level: u32,
         time: u32,
-        nonce: U128,
+        nonce: u64,
     ) -> Self {
         Self {
             parent_hash,
-            merkle_root,
+            receipt_hash,
+            tx_root,
             state_root,
             mix_nonce,
             coinbase,
@@ -99,16 +112,11 @@ impl BlockHeader {
     }
 
     pub fn hash(&self) -> H256 {
-        SHA256::digest(self.consensus_encode())
+        dhash256(self.consensus_encode())
     }
 
     pub fn difficulty(&self) -> Compact {
         Compact::from(self.difficulty)
-    }
-
-    pub fn into_proto(self) -> Result<ProtoBlockHeader> {
-        let json_rep = serde_json::to_vec(&self)?;
-        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
 
@@ -116,7 +124,8 @@ impl ConsensusCodec for BlockHeader {
     fn consensus_encode(self) -> Vec<u8> {
         let mut encoded = BytesMut::with_capacity(HEADER_SIZE);
         encoded.extend(self.parent_hash.as_bytes());
-        encoded.extend(self.merkle_root.as_bytes());
+        encoded.extend(self.receipt_hash.as_bytes());
+        encoded.extend(self.tx_root.as_bytes());
         encoded.extend(self.state_root.as_bytes());
         encoded.extend(self.mix_nonce.to_be_bytes());
         encoded.extend(self.coinbase.as_bytes());
@@ -132,20 +141,22 @@ impl ConsensusCodec for BlockHeader {
         let mut bytes = Bytes::copy_from_slice(buf);
         Ok(Self {
             parent_hash: H256::from_slice(&bytes.copy_to_bytes(32)),
-            merkle_root: H256::from_slice(&bytes.copy_to_bytes(32)),
+            receipt_hash: H256::from_slice(&bytes.copy_to_bytes(32)),
+            tx_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             state_root: H256::from_slice(&bytes.copy_to_bytes(32)),
             mix_nonce: U256::from_big_endian(&bytes.copy_to_bytes(32)),
-            coinbase: H160::from_slice(&bytes.copy_to_bytes(20)),
+            coinbase: Address::from_slice(&bytes.copy_to_bytes(ADDRESS_LEN))
+                .map_err(|_| anyhow::anyhow!("error decoding coinbase address"))?,
             difficulty: bytes.get_u32(),
             chain_id: bytes.get_u32(),
-            level: bytes.get_i32(),
+            level: bytes.get_u32(),
             time: bytes.get_u32(),
-            nonce: U128::from(bytes.get_u128()),
+            nonce: bytes.get_u64(),
         })
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug)]
 pub struct Block {
     header: BlockHeader,
     transactions: Vec<SignedTransaction>,
@@ -153,14 +164,72 @@ pub struct Block {
     hash: Arc<RwLock<Option<H256>>>,
 }
 
+impl prost::Message for Block {
+    #[allow(unused_variables)]
+    fn encode_raw<B>(&self, buf: &mut B)
+    where
+        B: BufMut,
+    {
+        ::prost::encoding::message::encode(1u32, &self.header, buf);
+        for msg in &self.transactions {
+            prost::encoding::message::encode(2u32, msg, buf);
+        }
+    }
+    #[allow(unused_variables)]
+    fn merge_field<B>(
+        &mut self,
+        tag: u32,
+        wire_type: WireType,
+        buf: &mut B,
+        ctx: DecodeContext,
+    ) -> core::result::Result<(), DecodeError>
+    where
+        B: Buf,
+    {
+        const STRUCT_NAME: &'static str = stringify!(Block);
+        match tag {
+            1u32 => {
+                let value = &mut self.header;
+                prost::encoding::message::merge(wire_type, value, buf, ctx).map_err(|mut error| {
+                    error.push(STRUCT_NAME, stringify!(header));
+                    error
+                })
+            }
+            2u32 => {
+                let value = &mut self.transactions;
+                prost::encoding::message::merge_repeated(wire_type, value, buf, ctx).map_err(
+                    |mut error| {
+                        error.push(STRUCT_NAME, stringify!(transactions));
+                        error
+                    },
+                )
+            }
+            _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
+        }
+    }
+    #[inline]
+    fn encoded_len(&self) -> usize {
+        prost::encoding::message::encoded_len(1u32, &self.header)
+            + prost::encoding::message::encoded_len_repeated(2u32, &self.transactions)
+    }
+    fn clear(&mut self) {
+        self.header.clear();
+        self.transactions.clear();
+    }
+}
+
 impl Block {
     pub fn transactions(&self) -> &Vec<SignedTransaction> {
         &self.transactions
     }
+
+    pub fn into_transactions(self) -> Vec<SignedTransaction> {
+        self.transactions
+    }
 }
 
-impl_codec!(Block);
-impl_codec!(BlockHeader);
+impl_codec_using_prost!(BlockHeader);
+impl_codec_using_prost!(Block);
 
 impl PartialEq for Block {
     fn eq(&self, other: &Self) -> bool {
@@ -188,26 +257,17 @@ impl Block {
     }
 
     pub fn hash(&self) -> H256 {
-        cache(&self.hash, || self.header.hash())
+        cache(&self.hash, || Ok(self.header.hash()))
     }
 
     pub fn header(&self) -> &BlockHeader {
         &self.header
     }
-    pub fn level(&self) -> i32 {
+    pub fn level(&self) -> u32 {
         self.header.level
     }
     pub fn parent_hash(&self) -> &H256 {
         self.header.parent_hash()
-    }
-    pub fn into_proto(self) -> Result<ProtoBlock> {
-        let jsblock = json!({
-            "hash" : self.hash(),
-            "header" : self.header(),
-            "txs" : self.transactions()
-        });
-        let json_rep = serde_json::to_vec(&jsblock)?;
-        serde_json::from_slice(&json_rep).map_err(|e| anyhow::anyhow!("{}", e))
     }
 }
 
@@ -282,62 +342,5 @@ impl PartialOrd for HeightSortedBlockHeader {
 impl Ord for HeightSortedBlockHeader {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.level.cmp(&other.0.level)
-    }
-}
-
-#[test]
-fn test_proto_conversions() {
-    let block_header = BlockHeader::new(
-        H256::from([1; 32]),
-        H256::from([2; 32]),
-        H256::from([6; 32]),
-        U256::from(400),
-        H160::from([7; 20]),
-        30,
-        30,
-        30,
-        10000000,
-        U128::from(5),
-    );
-
-    let pheader = block_header.into_proto().unwrap();
-
-    println!("{:#?}", pheader);
-    println!("{:#02x}", U128::from(5));
-}
-
-#[cfg(test)]
-mod tests {
-    use std::str::FromStr;
-
-    use chrono::Utc;
-
-    use codec::ConsensusCodec;
-    use primitive_types::{H160, H256, U128, U256};
-
-    use crate::BlockHeader;
-
-    #[test]
-    fn test_consensus_codec() {
-        let block_header = BlockHeader::new(
-            H256::from_str("0x0000014f092233bd0d41ab40817649d9a188ef86dc2f631a4c96e15997080499")
-                .unwrap(),
-            H256::from_str("0x0000000000000000000000000000000000000000000000000000000000000000")
-                .unwrap(),
-            H256::from_str("0x0c191dd909dad74ef2f96ed5dad8e9778e75b46979178cfb61f051ec06882ea8")
-                .unwrap(),
-            U256::from_str("0x1").unwrap(),
-            H160::from_str("0x350dc631bd1dc8f21d76a636ecea2ed4482a0a97").unwrap(),
-            30,
-            30,
-            30,
-            Utc::now().timestamp_subsec_millis(),
-            U128::from(5),
-        );
-        let a = block_header.into_proto();
-        let encoded = block_header.consensus_encode();
-        let block_header = BlockHeader::consensus_decode(&encoded).unwrap();
-        let b = block_header.into_proto();
-        assert_eq!(a.unwrap(), b.unwrap());
     }
 }

@@ -1,27 +1,35 @@
-use std::fmt::Debug;
+use alloc::vec;
+use alloc::vec::Vec;
 
-use hex::ToHex;
-use serde::{Deserialize, Serialize};
-
-use codec::{Decoder, Encoder};
+use bincode::{Decode, Encode};
+use codec::{Decodable, Encodable};
 use primitive_types::H256;
 
 use crate::error::Error;
 use crate::treehasher::TreeHasher;
 use crate::utils::get_bits_at_from_msb;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Encode, Decode)]
 pub struct Proof {
     pub side_nodes: Vec<H256>,
     pub non_membership_leaf_data: Option<Vec<u8>>,
     pub sibling_data: Option<Vec<u8>>,
 }
 
-impl Encoder for Proof {}
+impl Encodable for Proof {
+    fn encode(&self) -> anyhow::Result<Vec<u8>> {
+        bincode::encode_to_vec(self, codec::config()).map_err(|e| e.into())
+    }
+}
 
-impl Decoder for Proof {}
+impl Decodable for Proof {
+    fn decode(buf: &[u8]) -> anyhow::Result<Self> {
+        bincode::decode_from_slice(buf, codec::config())
+            .map(|(output, _)| output)
+            .map_err(|e| e.into())
+    }
+}
 
-#[derive(Serialize, Deserialize)]
 pub struct CompatProof {
     pub side_nodes: Vec<H256>,
     pub non_membership_leaf_data: Vec<u8>,
@@ -30,21 +38,24 @@ pub struct CompatProof {
     pub sibling_data: Option<Vec<u8>>,
 }
 
-pub fn verify_proof(proof: &Proof, root: H256, key: &[u8], value: &[u8]) -> bool {
-    verify_proof_with_updates(proof, root, key, value).is_ok()
+pub fn verify_proof<T: TreeHasher>(
+    hasher: &T,
+    proof: &Proof,
+    root: H256,
+    key: &[u8],
+    value: &[u8],
+) -> bool {
+    verify_proof_with_updates(hasher, proof, root, key, value).is_ok()
 }
 
-struct Hasher;
-
-impl TreeHasher for Hasher {}
-
-pub(crate) fn verify_proof_with_updates(
+pub fn verify_proof_with_updates<T: TreeHasher>(
+    hasher: &T,
     proof: &Proof,
     root: H256,
     key: &[u8],
     value: &[u8],
 ) -> Result<Vec<Vec<Vec<u8>>>, Error> {
-    let th = Hasher;
+    let th = hasher;
     let path = th.path(key);
     let mut updates = Vec::new();
 
@@ -57,8 +68,8 @@ pub(crate) fn verify_proof_with_updates(
             let (actual_path, value_hash) = th.parse_leaf(non_membership_leaf_data);
             if actual_path.eq(path.as_bytes()) {
                 return Err(Error::NonMembershipPathError(
-                    actual_path.encode_hex::<String>(),
-                    path.as_bytes().encode_hex::<String>(),
+                    actual_path.to_vec(),
+                    path.as_bytes().to_vec(),
                 ));
             }
             let (l, current_data) = th.digest_leaf(actual_path, value_hash);
@@ -101,36 +112,40 @@ pub(crate) fn verify_proof_with_updates(
 
 #[cfg(test)]
 mod tests {
-    use primitive_types::H256;
-
     use crate::proof::verify_proof;
     use crate::smt::SparseMerkleTree;
+    use crate::StorageBackend;
+    use alloc::vec::Vec;
+
+    use primitive_types::H256;
 
     #[test]
     fn test_proof_basic() {
-        let mut smt = SparseMerkleTree::default();
+        let mut smt = SparseMerkleTree::new();
+
+        let hasher = smt.hasher.clone();
 
         // Generate and verify a proof on an empty key.
         let proof = smt.proof(b"testKey3").unwrap();
-        let result = verify_proof(&proof, H256::zero(), b"testKey3", &Vec::new());
+        let result = verify_proof(&hasher, &proof, H256::zero(), b"testKey3", &Vec::new());
         assert!(result, "valid proof on empty key failed to verify");
-        let result = verify_proof(&proof, H256::zero(), b"testKey3", b"badValue");
+        let result = verify_proof(&hasher, &proof, H256::zero(), b"testKey3", b"badValue");
         assert!(!result, "invalid proof verification returned true");
 
         // Add a key, generate and verify a Merkle proof.
         let root = smt.update(b"testKey", b"testValue").unwrap();
         let proof = smt.proof(b"testKey").unwrap();
-        let result = verify_proof(&proof, root, b"testKey", b"testValue");
+        let result = verify_proof(&hasher, &proof, root, b"testKey", b"testValue");
         assert!(result, "valid proof failed to verify");
-        let result = verify_proof(&proof, root, b"testKey", b"badValue");
+        let result = verify_proof(&hasher, &proof, root, b"testKey", b"badValue");
         assert!(!result, "invalid proof verification returned true");
 
         //  Add a key, generate and verify both Merkle proofs.
         let root = smt.update(b"testKey2", b"testValue").unwrap();
         let proof = smt.proof(b"testKey").unwrap();
-        let result = verify_proof(&proof, root, b"testKey", b"testValue");
+        let result = verify_proof(&hasher, &proof, root, b"testKey", b"testValue");
         assert!(result, "valid proof failed to verify");
-        let result = verify_proof(&proof, root, b"testKey", b"badValue");
+        let result = verify_proof(&hasher, &proof, root, b"testKey", b"badValue");
         assert!(!result, "invalid proof verification returned true");
     }
 }

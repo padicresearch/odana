@@ -1,14 +1,12 @@
-use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
-use tonic::{Code, Request, Response, Status};
+use tonic::{Request, Response, Status};
 
-use primitive_types::H160;
-use proto::rpc::account_service_server::AccountService;
-use proto::rpc::{GetAccountBalanceResponse, GetAccountNonceResponse, GetAccountRequest};
-use proto::AccountState;
+use crate::rpc::account_service_server::AccountService;
+use crate::rpc::{GetAccountBalanceResponse, GetAccountNonceResponse, GetAccountRequest};
 use traits::StateDB;
 use txpool::TxPool;
+use types::account::AccountState;
 
 pub(crate) struct AccountServiceImpl {
     state: Arc<dyn StateDB>,
@@ -23,31 +21,29 @@ impl AccountServiceImpl {
 
 #[tonic::async_trait]
 impl AccountService for AccountServiceImpl {
-    async fn get_account_balance(
+    async fn get_balance(
         &self,
         request: Request<GetAccountRequest>,
     ) -> Result<Response<GetAccountBalanceResponse>, Status> {
-        let req = request.into_inner();
-        let address = H160::from_str(&req.address)
-            .map_err(|_| Status::new(Code::InvalidArgument, "Invalid Request"))?;
+        let req = request.get_ref();
+        let address = req
+            .address
+            .ok_or_else(|| Status::unknown("failed to parse address"))?;
         let balance = self.state.balance(&address);
-        Ok(Response::new(GetAccountBalanceResponse {
-            balance: balance.to_string(),
-        }))
+        Ok(Response::new(GetAccountBalanceResponse { balance }))
     }
 
-    async fn get_account_nonce(
+    async fn get_nonce(
         &self,
         request: Request<GetAccountRequest>,
     ) -> Result<Response<GetAccountNonceResponse>, Status> {
         let req = request.into_inner();
-        let address = H160::from_str(&req.address)
-            .map_err(|_| Status::new(Code::InvalidArgument, "Invalid Request"))?;
+        let address = req
+            .address
+            .ok_or_else(|| Status::unknown("failed to parse address"))?;
         let txpool = self.txpool.read().unwrap();
         let nonce = txpool.nonce(&address);
-        Ok(Response::new(GetAccountNonceResponse {
-            nonce: format!("{:#02x}", nonce),
-        }))
+        Ok(Response::new(GetAccountNonceResponse { nonce }))
     }
 
     async fn get_account_state(
@@ -55,9 +51,10 @@ impl AccountService for AccountServiceImpl {
         request: Request<GetAccountRequest>,
     ) -> Result<Response<AccountState>, Status> {
         let req = request.into_inner();
-        let address = H160::from_str(&req.address)
-            .map_err(|_| Status::new(Code::InvalidArgument, "Invalid Request"))?;
+        let address = req
+            .address
+            .ok_or_else(|| Status::unknown("failed to parse address"))?;
         let account_state = self.state.account_state(&address);
-        Ok(Response::new(account_state.into_proto().unwrap()))
+        Ok(Response::new(account_state))
     }
 }

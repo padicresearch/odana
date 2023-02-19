@@ -1,0 +1,38 @@
+[package]
+name = "odana"
+version = "0.1.0"
+authors = ["mambisi <lilbizi96@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Workspace Dependecies
+tokio = { workspace = true }
+anyhow = { workspace = true }
+rocksdb = { workspace = true }
+thiserror = { workspace = true }
+clap = { workspace = true }
+serde_json ={ workspace = true }
+# Crate Dependecies
+indexmap = "1.8.2"
+temp-dir = "0.1.11"
+fs_extra = "1.2.0"
+directories = "4.0.1"
+# Local Dependencies
+crypto = { path = "../crypto" }
+blockchain = { path = "../blockchain" }
+p2p = { path = "../p2p" }
+storage = { path = "../storage" }
+types = { path = "../common/types" }
+txpool = { path = "../txpool" }
+state = { path = "../state" }
+rpc = { path = "../rpc" }
+consensus = { path = "../consensus" }
+miner = { path = "../miner" }
+client = { path = "../client" }
+account = { path = "../account" }
+traits = { path = "../common/traits" }
+tracing = { path = "../common/tracing" }
+builtin = { path = "../apps/builtin" }
+primitive-types = { path = "../common/primitive-types" }

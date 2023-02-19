@@ -44,4 +44,7 @@ pub enum StateError {
     CodecErrorEncoding,
     #[error("InsufficientFunds")]
     InsufficientFunds,
+
+    #[error("Invalid Key {0}")]
+    InvalidKey(String),
 }

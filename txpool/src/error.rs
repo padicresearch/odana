@@ -20,7 +20,7 @@ pub enum TxPoolError {
     #[error("`bad origin")]
     BadOrigin,
     #[error("`insufficient funds for fee: {0} + amount: {1}`")]
-    InsufficientFunds(u128, u128),
+    InsufficientFunds(u64, u64),
     #[error("`Explict coinbase transaction not allowed`")]
     ExplictCoinbase,
     #[error("`transaction in index missing from primary`")]

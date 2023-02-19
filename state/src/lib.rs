@@ -2,33 +2,37 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-
-use codec::impl_codec;
-use codec::{Decoder, Encoder};
-use primitive_types::{H160, H256};
-use smt::proof::Proof;
-use smt::{Op, Tree};
-use traits::StateDB;
+use crate::error::StateError;
+use crate::kvdb::KvDB;
+use crate::tree::{Op, TreeDB};
+use anyhow::{bail, Result};
+use primitive_types::{Address, H256};
+use schema::ReadProof;
+use smt::SparseMerkleTree;
+use traits::{StateDB, WasmVMInstance};
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
+use types::app::{AppBinaries, AppStateKey};
+use types::prelude::{AppState, TransactionData};
 use types::tx::SignedTransaction;
 use types::Hash;
 
-use crate::error::StateError;
-
 mod error;
+mod kvdb;
+mod persistent;
+mod schema;
+mod store;
+mod tree;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ReadProof {
-    proof: Proof,
-    root: H256,
-}
+const ACCOUNT_DB_NAME: &str = "accs";
+const APPDATA_DB_NAME: &str = "data";
+const BINDATA_DB_NAME: &str = "bins";
 
 #[derive(Clone)]
 pub struct State {
-    trie: Arc<Tree<H160, AccountState>>,
+    trie: Arc<TreeDB<Address, AccountState>>,
+    appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
+    appsource: Arc<KvDB<H256, AppBinaries>>,
     path: PathBuf,
     read_only: bool,
 }
@@ -38,42 +42,37 @@ unsafe impl Sync for State {}
 unsafe impl Send for State {}
 
 impl StateDB for State {
-    fn nonce(&self, address: &H160) -> u64 {
-        self.trie
-            .get(address)
-            .map(|account_state| account_state.map(|account_state| account_state.nonce))
-            .unwrap_or_default()
-            .unwrap_or_default()
+    fn nonce(&self, address: &Address) -> u64 {
+        self.account_state(address).nonce
     }
 
-    fn account_state(&self, address: &H160) -> AccountState {
-        self.trie
-            .get(address)
-            .unwrap_or_default()
-            .unwrap_or_default()
-    }
-
-    fn balance(&self, address: &H160) -> u128 {
-        self.account_state(address).free_balance
-    }
-
-    fn credit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
-        let action = StateOperation::CreditBalance {
-            account: *address,
-            amount,
-            tx_hash: [0; 32],
-        };
-        self.apply_operation(action)?;
+    fn set_account_state(&self, address: Address, account_state: AccountState) -> Result<H256> {
+        self.trie.put(address, account_state)?;
         Ok(self.root_hash()?.into())
     }
 
-    fn debit_balance(&self, address: &H160, amount: u128) -> Result<H256> {
-        let action = StateOperation::DebitBalance {
-            account: *address,
-            amount,
-            tx_hash: [0; 32],
-        };
-        self.apply_operation(action)?;
+    fn account_state(&self, address: &Address) -> AccountState {
+        match self.trie.get(address) {
+            Ok(Some(account_state)) => account_state,
+            _ => AccountState::new(),
+        }
+    }
+
+    fn balance(&self, address: &Address) -> u64 {
+        self.account_state(address).free_balance
+    }
+
+    fn credit_balance(&self, address: &Address, amount: u64) -> Result<H256> {
+        let mut account_state = self.get_account_state(address)?;
+        account_state.free_balance += amount;
+        self.trie.put(*address, account_state)?;
+        Ok(self.root_hash()?.into())
+    }
+
+    fn debit_balance(&self, address: &Address, amount: u64) -> Result<H256> {
+        let mut account_state = self.get_account_state(address)?;
+        account_state.free_balance -= amount;
+        self.trie.put(*address, account_state)?;
         Ok(self.root_hash()?.into())
     }
 
@@ -81,8 +80,8 @@ impl StateDB for State {
         self.trie.reset(root)
     }
 
-    fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<H256> {
-        self.apply_txs(txs)?;
+    fn apply_txs(&self, vm: Arc<dyn WasmVMInstance>, txs: &[SignedTransaction]) -> Result<H256> {
+        self.apply_txs(vm, txs)?;
         self.root_hash().map(H256::from)
     }
 
@@ -101,21 +100,70 @@ impl StateDB for State {
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>> {
         Ok(self.get_sate_at(root)?)
     }
+
+    fn get_app_data(&self, app_id: Address) -> Result<SparseMerkleTree> {
+        let Ok(Some(app_account_state)) = self.trie.get(&app_id) else {
+            bail!("app not found")
+        };
+
+        let Some(app_root) = app_account_state.app_state.map(|root| root.root_hash()) else {
+            bail!("app not initialized")
+        };
+
+        Ok(self
+            .appdata
+            .get(&AppStateKey(app_id, app_root))
+            .unwrap_or_else(|_| SparseMerkleTree::new()))
+    }
+
+    fn set_app_data(&self, app_state_key: AppStateKey, app_data: SparseMerkleTree) -> Result<()> {
+        self.appdata.put(app_state_key, app_data)
+    }
+
+    fn get_app_source(&self, app_id: Address) -> Result<Vec<u8>> {
+        let account = self
+            .trie
+            .get(&app_id)?
+            .ok_or_else(|| anyhow::anyhow!("app not found"))?;
+        let Some(app_state) = account.app_state else {
+            bail!("address is not an application address")
+        };
+        self.appsource
+            .get(&app_state.code_hash())
+            .map(|bins| bins.binary)
+    }
+
+    fn get_app_descriptor(&self, app_id: Address) -> Result<Vec<u8>> {
+        let account = self
+            .trie
+            .get(&app_id)?
+            .ok_or_else(|| anyhow::anyhow!("app not found"))?;
+        let Some(app_state) = account.app_state else {
+            bail!("address is not an application address")
+        };
+        self.appsource
+            .get(&app_state.code_hash())
+            .map(|bins| bins.descriptor)
+    }
 }
 
 impl State {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let trie = Tree::open(path.as_ref())?;
+        let trie = TreeDB::open(path.as_ref().join(ACCOUNT_DB_NAME).as_path())?;
+        let appdata = KvDB::open(path.as_ref().join(APPDATA_DB_NAME).as_path())?;
+        let appsource = KvDB::open(path.as_ref().join(BINDATA_DB_NAME).as_path())?;
         Ok(Self {
             trie: Arc::new(trie),
-            path: PathBuf::from(path.as_ref()),
+            appdata: Arc::new(appdata),
+            appsource: Arc::new(appsource),
+            path: path.as_ref().to_path_buf(),
             read_only: false,
         })
     }
 
-    pub fn apply_txs(&self, txs: Vec<SignedTransaction>) -> Result<()> {
-        let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
-        let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
+    pub fn apply_txs(&self, vm: Arc<dyn WasmVMInstance>, txs: &[SignedTransaction]) -> Result<()> {
+        let mut accounts: BTreeMap<Address, TransactionsByNonceAndPrice> = BTreeMap::new();
+        let mut states: BTreeMap<Address, AccountState> = BTreeMap::new();
 
         for tx in txs {
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
@@ -131,26 +179,116 @@ impl State {
         }
 
         for (_, txs) in accounts {
-            for tx in txs {
-                self.apply_transaction(tx.0, &mut states)?;
+            for tx in txs.into_iter().map(|tx| tx.0) {
+                self.apply_transaction(vm.as_ref(), &mut states, tx)?;
             }
         }
-
+        //TODO; Check accounts for negative balances
         for (acc, state) in states {
             self.trie.put(acc, state)?;
         }
         Ok(())
     }
 
+    fn apply_transaction(
+        &self,
+        vm: &dyn WasmVMInstance,
+        states: &mut BTreeMap<Address, AccountState>,
+        tx: &SignedTransaction,
+    ) -> Result<()> {
+        match tx.data() {
+            TransactionData::Payment(_) => {
+                self.execute_payment_tx(tx, states)?;
+            }
+            TransactionData::Call(arg) => {
+                let app_address = tx.to();
+                let state_db = Arc::new(self.clone());
+                let changelist = vm.execute_app_tx(state_db, tx.sender(), tx.price(), arg)?;
+
+                // Apply Account Changes
+                for (addr, state) in changelist.account_changes {
+                    states.insert(addr, state);
+                }
+                // Update AppState on Account
+                let app_state = states
+                    .get_mut(&app_address)
+                    .and_then(|account_state| account_state.app_state.as_mut())
+                    .ok_or_else(|| anyhow::anyhow!("app state not found"))?;
+                app_state.set_root_hash(changelist.storage.root());
+                self.appdata.put(
+                    AppStateKey(app_address, changelist.storage.root()),
+                    changelist.storage,
+                )?;
+            }
+            TransactionData::Create(arg) => {
+                let state_db = Arc::new(self.clone());
+                let app_address = tx.to();
+                let t = self.trie.get(&app_address).ok().flatten();
+                if t.is_some() {
+                    bail!("app address already exists")
+                }
+
+                builtin::register_namespace(vm, states, tx, state_db.clone())?;
+
+                let code_hash = crypto::keccak256(&arg.binary);
+                let (descriptor, changelist) =
+                    vm.execute_app_create(state_db.clone(), tx.sender(), tx.price(), arg)?;
+                for (addr, state) in changelist.account_changes {
+                    states.insert(addr, state);
+                }
+                let app_state = states
+                    .get_mut(&app_address)
+                    .ok_or_else(|| anyhow::anyhow!("app state not found"))?;
+                app_state.app_state = Some(AppState::new(
+                    changelist.storage.root(),
+                    code_hash,
+                    tx.from(),
+                    1,
+                ));
+                self.appsource.put(
+                    code_hash,
+                    AppBinaries {
+                        binary: arg.binary.clone(),
+                        descriptor,
+                    },
+                )?;
+                self.appdata.put(
+                    AppStateKey(app_address, changelist.storage.root()),
+                    changelist.storage,
+                )?;
+            }
+            TransactionData::Update(_) => {
+                unimplemented!("update app transaction not implemented")
+            }
+            TransactionData::RawData(raw) => {
+                println!("[NOT AVAILABLE] Raw DATA: {:?}", hex::encode_raw(raw))
+            }
+        }
+
+        // Update transaction origin nonce
+        let mut from_account_state = states
+            .get_mut(&tx.from())
+            .ok_or(StateError::AccountNotFound)?;
+
+        let next_nonce = if tx.nonce() > from_account_state.nonce {
+            tx.nonce() + 1
+        } else {
+            from_account_state.nonce + 1
+        };
+        from_account_state.nonce = next_nonce;
+        Ok(())
+    }
+
     pub fn apply_txs_no_commit(
         &self,
+        vm: Arc<dyn WasmVMInstance>,
         at_root: H256,
-        reward: u128,
-        coinbase: H160,
-        txs: Vec<SignedTransaction>,
+        reward: u64,
+        coinbase: Address,
+        txs: &[SignedTransaction],
     ) -> Result<Hash> {
-        let mut accounts: BTreeMap<H160, TransactionsByNonceAndPrice> = BTreeMap::new();
-        let mut states: BTreeMap<H160, AccountState> = BTreeMap::new();
+        let mut accounts: BTreeMap<Address, TransactionsByNonceAndPrice> = BTreeMap::new();
+        let mut states: BTreeMap<Address, AccountState> = BTreeMap::new();
 
         for tx in txs {
             if let std::collections::btree_map::Entry::Vacant(e) = states.entry(tx.from()) {
@@ -166,27 +304,19 @@ impl State {
         }
 
         for (_, txs) in accounts {
-            for tx in txs {
-                self.apply_transaction(tx.0, &mut states)?;
+            for tx in txs.iter().map(|tx| tx.0) {
+                self.apply_transaction(vm.as_ref(), &mut states, tx)?;
             }
         }
 
         let mut batch: Vec<_> = states.into_iter().map(|(k, v)| Op::Put(k, v)).collect();
 
-        let coinbase_account_state = self
+        let mut coinbase_account_state = self
             .trie
             .get_at_root(&at_root, &coinbase)
             .unwrap_or_default()
             .unwrap_or_default();
-        let coinbase_account_state = self.apply_action(
-            &StateOperation::CreditBalance {
-                account: coinbase,
-                amount: reward,
-                tx_hash: [0; 32],
-            },
-            coinbase_account_state,
-        )?;
-
+        coinbase_account_state.free_balance += reward;
         batch.push(Op::Put(coinbase, coinbase_account_state));
 
         self.trie
@@ -194,49 +324,23 @@ impl State {
             .map(|hash| hash.to_fixed_bytes())
     }
 
-    fn apply_transaction(
+    fn execute_payment_tx(
         &self,
-        transaction: SignedTransaction,
-        states: &mut BTreeMap<H160, AccountState>,
+        transaction: &SignedTransaction,
+        states: &mut BTreeMap<Address, AccountState>,
     ) -> Result<()> {
-        //TODO: verify transaction (probably)
-        let mut from_account_state = states.get(&transaction.from()).copied().unwrap_or_default();
-        let mut to_account_state = states.get(&transaction.to()).copied().unwrap_or_default();
-        from_account_state = self.apply_action(
-            &StateOperation::DebitBalance {
-                account: transaction.from(),
-                amount: transaction.price() + transaction.fees(),
-                tx_hash: [0; 32],
-            },
-            from_account_state,
-        )?;
-        from_account_state = self.apply_action(
-            &StateOperation::UpdateNonce {
-                account: transaction.from(),
-                nonce: from_account_state.nonce,
-                tx_hash: [0; 32],
-            },
-            from_account_state,
-        )?;
-
-        to_account_state = self.apply_action(
-            &StateOperation::CreditBalance {
-                account: transaction.to(),
-                amount: transaction.price(),
-                tx_hash: [0; 32],
-            },
-            to_account_state,
-        )?;
-
-        states.insert(transaction.from(), from_account_state);
-        states.insert(transaction.to(), to_account_state);
-        Ok(())
-    }
-
-    fn apply_operation(&self, action: StateOperation) -> Result<()> {
-        let current_account_state = self.get_account_state(&action.get_address())?;
-        let new_account_state = self.apply_action(&action, current_account_state)?;
-        self.trie.put(action.get_address(), new_account_state)?;
+        let mut from_account_state = states
+            .get_mut(&transaction.from())
+            .ok_or(StateError::AccountNotFound)?;
+        let amount = transaction.price() + transaction.fees();
+        if from_account_state.free_balance < amount {
+            return Err(StateError::InsufficientFunds.into());
+        }
+        from_account_state.free_balance -= amount;
+        let mut to_account_state = states
+            .get_mut(&transaction.to())
+            .ok_or(StateError::AccountNotFound)?;
+        to_account_state.free_balance += transaction.price();
         Ok(())
     }
 
@@ -249,61 +353,35 @@ impl State {
         Ok(())
     }
 
-    fn apply_action(
-        &self,
-        action: &StateOperation,
-        account_state: AccountState,
-    ) -> Result<AccountState> {
-        let mut account_state = account_state;
-        match action {
-            StateOperation::DebitBalance { amount, .. } => {
-                if account_state.free_balance < *amount {
-                    return Err(StateError::InsufficientFunds.into());
-                }
-                account_state.free_balance = account_state.free_balance.saturating_sub(*amount);
-                Ok(account_state)
-            }
-            StateOperation::CreditBalance { amount, .. } => {
-                account_state.free_balance = account_state.free_balance.saturating_add(*amount);
-                Ok(account_state)
-            }
-            StateOperation::UpdateNonce { nonce, .. } => {
-                let next_nonce = if *nonce > account_state.nonce {
-                    *nonce + 1
-                } else {
-                    account_state.nonce + 1
-                };
-                account_state.nonce = next_nonce;
-                Ok(account_state)
-            }
+    fn get_account_state(&self, address: &Address) -> Result<AccountState> {
+        match self.trie.get(address) {
+            Ok(Some(account_state)) => Ok(account_state),
+            _ => Ok(AccountState::new()),
         }
     }
 
-    fn get_account_state(&self, address: &H160) -> Result<AccountState> {
-        Ok(self
-            .trie
-            .get(address)
-            .unwrap_or_default()
-            .unwrap_or_default())
-    }
-
-    fn get_account_state_at_root(&self, at_root: &H256, address: &H160) -> Result<AccountState> {
-        Ok(self
-            .trie
-            .get_at_root(at_root, address)
-            .unwrap_or_default()
-            .unwrap_or_default())
+    fn get_account_state_at_root(&self, at_root: &H256, address: &Address) -> Result<AccountState> {
+        match self.trie.get_at_root(at_root, address) {
+            Ok(Some(account_state)) => Ok(account_state),
+            _ => Ok(AccountState::new()),
+        }
     }
 
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
+        let trie =
+            TreeDB::open_read_only_at_root(self.path.join(ACCOUNT_DB_NAME).as_path(), &root)?;
+        let appdata = KvDB::open_read_only_at_root(self.path.join(APPDATA_DB_NAME).as_path())?;
+        let appsource = KvDB::open_read_only_at_root(self.path.join(BINDATA_DB_NAME).as_path())?;
         Ok(Arc::new(State {
-            trie: Arc::new(Tree::open_read_only_at_root(self.path.as_path(), &root)?),
+            trie: Arc::new(trie),
+            appdata: Arc::new(appdata),
+            appsource: Arc::new(appsource),
             path: self.path.clone(),
             read_only: true,
         }))
     }
 
-    fn get_account_state_with_proof(&self, address: &H160) -> Result<(AccountState, ReadProof)> {
+    fn get_account_state_with_proof(&self, address: &Address) -> Result<(AccountState, ReadProof)> {
         let (account_state, proof) = self.trie.get_with_proof(address)?;
         let root = self.trie.root()?;
         Ok((account_state, ReadProof { proof, root }))
@@ -315,92 +393,5 @@ impl State {
 
     pub fn root_hash(&self) -> Result<Hash> {
         self.trie.root().map(|root| root.to_fixed_bytes())
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum StateOperation {
-    DebitBalance {
-        account: H160,
-        amount: u128,
-        tx_hash: Hash,
-    },
-    CreditBalance {
-        account: H160,
-        amount: u128,
-        tx_hash: Hash,
-    },
-    UpdateNonce {
-        account: H160,
-        nonce: u64,
-        tx_hash: Hash,
-    },
-}
-
-impl StateOperation {
-    fn get_address(&self) -> H160 {
-        match self {
-            StateOperation::DebitBalance { account, .. } => *account,
-            StateOperation::CreditBalance { account, .. } => *account,
-            StateOperation::UpdateNonce { account, .. } => *account,
-        }
-    }
-}
-
-pub fn get_operations(tx: &SignedTransaction) -> Vec<StateOperation> {
-    let mut ops = Vec::new();
-    let tx_hash = tx.hash();
-    ops.push(StateOperation::DebitBalance {
-        account: tx.from(),
-        amount: tx.price() + tx.fees(),
-        tx_hash,
-    });
-    ops.push(StateOperation::CreditBalance {
-        account: tx.to(),
-        amount: tx.price(),
-        tx_hash,
-    });
-    ops.push(StateOperation::UpdateNonce {
-        account: tx.from(),
-        nonce: tx.nonce(),
-        tx_hash,
-    });
-    ops
-}
-impl_codec!(StateOperation);
-
-pub trait MorphCheckPoint {
-    fn checkpoint(&self) -> State;
-}
-
-#[cfg(test)]
-mod tests {
-    use tempdir::TempDir;
-
-    use account::create_account;
-
-    use super::*;
-
-    #[test]
-    fn test_morph() {
-        let path = TempDir::new("state").unwrap();
-        let state = State::new(path.path()).unwrap();
-        let alice = create_account();
-        let _bob = create_account();
-        let _jake = create_account();
-        println!(
-            "{}",
-            state.credit_balance(&alice.address, 1_000_000).unwrap()
-        );
-        state.commit().unwrap();
-        println!(
-            "{}",
-            state.credit_balance(&alice.address, 1_000_000).unwrap()
-        );
-        state.commit().unwrap();
-        println!(
-            "{}",
-            state.credit_balance(&alice.address, 1_000_000).unwrap()
-        );
     }
 }

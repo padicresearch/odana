@@ -1,22 +1,21 @@
-use std::collections::HashMap;
-
-use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
-use primitive_types::{H256, U128};
-use proto::rpc::transactions_service_server::TransactionsService;
-use proto::rpc::{
-    GetTransactionStatusResponse, PendingTransactionsResponse, SignedTransactionResponse,
-    TransactionHash, TransactionHashes, TxpoolContentResponse, UnsignedTransactionRequest,
+use crate::rpc::transactions_service_server::TransactionsService;
+use crate::rpc::{
+    AddressTransactionList, GetTransactionStatusResponse, PendingTransactionsResponse,
+    SignedTransactionResponse, TransactionHash, TransactionHashes, TxpoolContentResponse,
+    UnsignedTransactionRequest,
 };
-use proto::{Empty, Transaction};
+use primitive_types::H256;
 use tracing::warn;
 use txpool::TxPool;
 use types::account::get_address_from_secret_key;
 use types::events::LocalEventMessage;
+use types::network::Network;
+use types::prelude::Empty;
 use types::tx::SignedTransaction;
 
 pub(crate) struct TransactionsServiceImpl {
@@ -40,26 +39,25 @@ impl TransactionsService for TransactionsServiceImpl {
         request: Request<UnsignedTransactionRequest>,
     ) -> Result<Response<SignedTransactionResponse>, Status> {
         let txpool = self.txpool.read().map_err(|_| Status::internal(""))?;
-        let req = request.into_inner();
-        let mut tx = req
+        let request = request.into_inner();
+        let secret_key = request.secret_key;
+        let mut tx = request
             .tx
             .ok_or_else(|| Status::invalid_argument("tx arg not found or failed to decode"))?;
         let address = get_address_from_secret_key(
-            H256::from_str(&req.key).map_err(|e| Status::internal(e.to_string()))?,
+            H256::from_slice(&secret_key),
+            Network::from_chain_id(tx.chain_id),
         )
         .map_err(|e| Status::internal(e.to_string()))?;
-        let nonce = U128::from_str(&tx.nonce).unwrap_or_default();
-        if nonce.as_u128() == 0 {
-            tx.nonce = prefix_hex::encode(U128::from(txpool.nonce(&address)));
+        if tx.nonce == 0 {
+            tx.nonce = txpool.nonce(&address);
         }
-        let signed_tx = transaction::sign_tx(H256::from_str(&req.key).unwrap_or_default(), tx)
+
+        let signed_tx = transaction::sign_tx(H256::from_slice(&secret_key), tx)
             .map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(SignedTransactionResponse {
-            hash: format!("{:?}", signed_tx.hash_256()),
-            tx: signed_tx
-                .into_proto()
-                .map(Some)
-                .map_err(|e| Status::internal(e.to_string()))?,
+            hash: Some(signed_tx.hash()),
+            tx: Some(signed_tx),
         }))
     }
 
@@ -71,9 +69,9 @@ impl TransactionsService for TransactionsServiceImpl {
         let tx = req
             .tx
             .ok_or_else(|| Status::invalid_argument("tx arg not found or failed to decode"))?;
-        let signed_tx = transaction::sign_tx(H256::from_str(&req.key).unwrap_or_default(), tx)
+        let signed_tx = transaction::sign_tx(H256::from_slice(&req.secret_key), tx)
             .map_err(|e| Status::internal(e.to_string()))?;
-        let tx_hash = signed_tx.hash_256();
+        let tx_hash = signed_tx.hash();
         let mut txpool = self.txpool.write().map_err(|_| Status::internal(""))?;
         txpool
             .add_local(signed_tx.clone())
@@ -87,18 +85,17 @@ impl TransactionsService for TransactionsServiceImpl {
             })?;
 
         Ok(Response::new(SignedTransactionResponse {
-            hash: format!("{:?}", tx_hash),
+            hash: Some(tx_hash),
             tx: None,
         }))
     }
 
     async fn send_transaction(
         &self,
-        request: Request<Transaction>,
+        request: Request<SignedTransaction>,
     ) -> Result<Response<TransactionHash>, Status> {
-        let signed_tx = SignedTransaction::from_proto(request.into_inner())
-            .map_err(|_| Status::internal(""))?;
-        let tx_hash = signed_tx.hash_256();
+        let signed_tx = request.into_inner();
+        let tx_hash = signed_tx.hash();
         let mut txpool = self.txpool.write().map_err(|_| Status::internal(""))?;
         txpool
             .add_local(signed_tx.clone())
@@ -112,7 +109,7 @@ impl TransactionsService for TransactionsServiceImpl {
             })?;
 
         Ok(Response::new(TransactionHash {
-            hash: format!("{:?}", tx_hash),
+            hash: Some(tx_hash),
         }))
     }
 
@@ -121,15 +118,19 @@ impl TransactionsService for TransactionsServiceImpl {
         request: Request<TransactionHashes>,
     ) -> Result<Response<GetTransactionStatusResponse>, Status> {
         let txpool = self.txpool.read().map_err(|_| Status::internal(""))?;
-        let json_rep = serde_json::to_vec(&request.into_inner().tx_hashes)
-            .map_err(|_| Status::internal(""))?;
-        let txs: Vec<H256> = serde_json::from_slice(&json_rep).unwrap_or_default();
-        let status = txpool.status(txs);
-        let json_rep = serde_json::to_vec(&status).map_err(|_| Status::internal(""))?;
-        let tx_status = serde_json::from_slice(&json_rep).map_err(|_| Status::internal(""))?;
-        Ok(Response::new(GetTransactionStatusResponse {
-            status: tx_status,
-        }))
+        let txs: Vec<_> = request
+            .get_ref()
+            .txs
+            .iter()
+            .map(|tx_hash| H256::from_slice(tx_hash))
+            .collect();
+        let status: Vec<_> = txpool
+            .status(txs)
+            .iter()
+            .copied()
+            .map(|tx_status| tx_status as i32)
+            .collect();
+        Ok(Response::new(GetTransactionStatusResponse { status }))
     }
 
     async fn get_pending_transactions(
@@ -137,10 +138,14 @@ impl TransactionsService for TransactionsServiceImpl {
         _: Request<Empty>,
     ) -> Result<Response<PendingTransactionsResponse>, Status> {
         let txpool = self.txpool.read().map_err(|_| Status::internal(""))?;
-        let pending = txpool.pending();
-        let json_rep = serde_json::to_vec(&pending).unwrap();
-        let pending: HashMap<String, proto::TransactionList> =
-            serde_json::from_slice(&json_rep).unwrap_or_default();
+        let pending: Vec<_> = txpool
+            .pending()
+            .iter()
+            .map(|(address, txs)| AddressTransactionList {
+                address: Some(*address),
+                txs: Some(txs.clone()),
+            })
+            .collect();
         Ok(Response::new(PendingTransactionsResponse { pending }))
     }
 
@@ -150,14 +155,22 @@ impl TransactionsService for TransactionsServiceImpl {
     ) -> Result<Response<TxpoolContentResponse>, Status> {
         let txpool = self.txpool.read().map_err(|_| Status::internal(""))?;
         let content = txpool.content();
-        let json_rep = serde_json::to_vec(&content.0)
-            .map_err(|_| Status::internal("Error parsing message"))?;
-        let pending: HashMap<String, proto::TransactionList> =
-            serde_json::from_slice(&json_rep).unwrap_or_default();
-        let json_rep = serde_json::to_vec(&content.1)
-            .map_err(|_| Status::internal("Error parsing message"))?;
-        let queued: HashMap<String, proto::TransactionList> =
-            serde_json::from_slice(&json_rep).unwrap_or_default();
+        let pending: Vec<_> = content
+            .0
+            .iter()
+            .map(|(address, txs)| AddressTransactionList {
+                address: Some(*address),
+                txs: Some(txs.clone()),
+            })
+            .collect();
+        let queued: Vec<_> = content
+            .1
+            .iter()
+            .map(|(address, txs)| AddressTransactionList {
+                address: Some(*address),
+                txs: Some(txs.clone()),
+            })
+            .collect();
         Ok(Response::new(TxpoolContentResponse { pending, queued }))
     }
 }

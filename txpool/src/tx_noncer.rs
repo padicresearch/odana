@@ -2,16 +2,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use dashmap::DashMap;
+use primitive_types::Address;
 
-use primitive_types::H160;
 use traits::StateDB;
-
-use crate::Address;
 
 #[derive(Clone)]
 pub struct TxNoncer {
     fallback: Arc<dyn StateDB>,
-    nonces: Arc<DashMap<H160, u64>>,
+    nonces: Arc<DashMap<Address, u64>>,
 }
 
 impl TxNoncer {
@@ -21,7 +19,7 @@ impl TxNoncer {
             nonces: Arc::new(Default::default()),
         }
     }
-    pub fn get(&self, address: &H160) -> u64 {
+    pub fn get(&self, address: &Address) -> u64 {
         *self
             .nonces
             .entry(*address)
@@ -29,11 +27,11 @@ impl TxNoncer {
             .value()
     }
 
-    pub fn set(&self, account_id: H160, nonce: u64) {
+    pub fn set(&self, account_id: Address, nonce: u64) {
         self.nonces.insert(account_id, nonce);
     }
 
-    pub fn set_if_lower(&self, address: H160, nonce: u64) {
+    pub fn set_if_lower(&self, address: Address, nonce: u64) {
         let mut entry = self
             .nonces
             .entry(address)

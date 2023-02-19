@@ -16,17 +16,20 @@ jobs:
       - name: Setup Rust (Nightly)
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2022-07-02
+          toolchain: nightly-2022-11-03
+          components: rustfmt, clippy
           default: true
       - name: APT dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -y
           sudo apt install clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev
-          sudo apt install cmake libprotobuf-dev protobuf-compiler
+          sudo apt install cmake libprotobuf-dev protobuf-compiler ninja-build
       - name: OSX dependencies
         if: runner.os == 'macOS'
-        run: brew install llvm cmake automake libtool
+        run: brew install llvm cmake ninja automake libtool protobuf
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
       - name: cargo check
         uses: actions-rs/cargo@v1
         with:

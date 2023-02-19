@@ -1,0 +1,38 @@
+syntax = "proto3";
+package network.odax.namespace.registry.types;
+import "primitive_types.proto";
+
+message Namespace {
+  bytes id = 1;
+}
+
+message Register {
+  odana.primitive_types.H256 namespace = 1;
+  odana.primitive_types.Address owner = 2;
+}
+
+message GetOwner {
+  odana.primitive_types.H256 namespace = 1;
+}
+
+message GetOwnerResponse {
+  odana.primitive_types.Address address = 1;
+}
+
+message Call {
+  oneof data {
+    Register register = 1;
+  }
+}
+
+message Query {
+  oneof data {
+    GetOwner get_owner = 1;
+  }
+}
+
+message QueryResponse {
+  oneof data {
+    GetOwnerResponse owner = 1;
+  }
+}

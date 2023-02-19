@@ -17,21 +17,161 @@
 #![allow(clippy::assign_op_pattern)]
 
 use core::convert::TryFrom;
-
+use core::fmt::{Debug, Display, Formatter};
+use core::str::FromStr;
+use prost::bytes::{Buf, BufMut};
+use prost::encoding::{DecodeContext, WireType};
+use prost::DecodeError;
 #[cfg(feature = "scale-info")]
 use scale_info_crate::TypeInfo;
 
 use fixed_hash::{construct_fixed_hash, impl_fixed_hash_conversions};
 use uint::{construct_uint, uint_full_mul_reg};
 
+pub const ADDRESS_LEN: usize = 44;
+
 #[cfg(feature = "fp-conversion")]
 mod fp_conversion;
+
+extern crate alloc;
+extern crate core;
 
 /// Error type for conversion.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     /// Overflow encountered.
     Overflow,
+    AddressParseFailed,
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Error::Overflow => {
+                write!(f, "Overflow")
+            }
+            Error::AddressParseFailed => {
+                write!(f, "AddressParseFailed")
+            }
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Ord, Hash)]
+pub struct Address(pub [u8; 44]);
+
+impl Default for Address {
+    fn default() -> Self {
+        Self([0; 44])
+    }
+}
+
+impl Debug for Address {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&String::from_utf8_lossy(&self.0))
+    }
+}
+
+impl Display for Address {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = String::from_utf8_lossy(&self.0);
+        f.write_str(&s[..6])?;
+        f.write_str("...")?;
+        f.write_str(&s[36..])?;
+        Ok(())
+    }
+}
+
+impl From<[u8; ADDRESS_LEN]> for Address {
+    fn from(slice: [u8; ADDRESS_LEN]) -> Self {
+        Address(slice)
+    }
+}
+
+impl Address {
+    pub fn from_slice(slice: &[u8]) -> Result<Self, Error> {
+        let mut bytes = [0; ADDRESS_LEN];
+        if slice.len() != bytes.len() {
+            return Err(Error::AddressParseFailed);
+        }
+        bytes.copy_from_slice(slice);
+        Ok(Self(bytes))
+    }
+
+    pub fn hrp(&self) -> String {
+        match bech32::decode(&String::from_utf8_lossy(&self.0)) {
+            Ok((hrp, _, _)) => hrp,
+            Err(_) => String::new(),
+        }
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0[..]
+    }
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.0.to_vec()
+    }
+    pub fn is_zero(&self) -> bool {
+        *self == Address::default()
+    }
+
+    pub fn is_default(&self) -> bool {
+        *self == Address::default()
+    }
+
+    pub fn to_address20(&self) -> Option<H160> {
+        match bech32::decode(&String::from_utf8_lossy(&self.0))
+            .and_then(|(_, address_32, _)| bech32::convert_bits(&address_32, 5, 8, false))
+        {
+            Ok(address) => Some(H160::from_slice(&address)),
+            Err(_) => None,
+        }
+    }
+}
+
+impl prost::encoding::BytesAdapter for Address {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    fn replace_with<B>(&mut self, mut buf: B)
+    where
+        B: prost::bytes::Buf,
+    {
+        let buf = buf.copy_to_bytes(buf.remaining());
+        if let Ok(addr) = Address::from_slice(buf.as_ref()) {
+            *self = addr;
+        }
+    }
+
+    fn append_to<B>(&self, buf: &mut B)
+    where
+        B: prost::bytes::BufMut,
+    {
+        buf.put_slice(self.as_bytes())
+    }
+}
+
+impl FromStr for Address {
+    type Err = bech32::Error;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        if !input.len() == ADDRESS_LEN {
+            return Err(Self::Err::InvalidLength);
+        }
+        let _ = bech32::decode(input)?;
+        let mut bytes = [0; ADDRESS_LEN];
+        bytes.copy_from_slice(input.as_bytes());
+        Ok(Address(bytes))
+    }
+}
+
+impl From<Vec<u8>> for Address {
+    fn from(value: Vec<u8>) -> Self {
+        let mut bytes = [0; ADDRESS_LEN];
+        bytes.copy_from_slice(value.as_slice());
+        Address(bytes)
+    }
 }
 
 construct_uint! {
@@ -105,6 +245,7 @@ mod num_traits {
 
 #[cfg(feature = "impl-serde")]
 mod serde {
+    use impl_serde::serde::ser::Error;
     use impl_serde::{impl_fixed_hash_serde, impl_uint_serde};
 
     use super::*;
@@ -121,6 +262,73 @@ mod serde {
     impl_fixed_hash_serde!(H448, 56);
     impl_fixed_hash_serde!(H512, 64);
     impl_fixed_hash_conversions!(H256, H160);
+
+    struct AddressVisitor;
+
+    impl<'b> ::impl_serde::serde::de::Visitor<'b> for AddressVisitor {
+        type Value = Address;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(formatter, "a string with len {}", ADDRESS_LEN)
+        }
+
+        fn visit_str<E: ::impl_serde::serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            if !v.len() == ADDRESS_LEN {
+                return Err(E::invalid_length(v.len(), &self));
+            }
+            let _ = bech32::decode(v).map_err(|e| E::custom(e))?;
+            let mut bytes = [0; ADDRESS_LEN];
+            bytes.copy_from_slice(v.as_bytes());
+            Ok(Address(bytes))
+        }
+
+        fn visit_string<E: ::impl_serde::serde::de::Error>(
+            self,
+            v: String,
+        ) -> Result<Self::Value, E> {
+            self.visit_str(&v)
+        }
+    }
+
+    impl ::impl_serde::serde::Serialize for Address {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: ::impl_serde::serde::Serializer,
+        {
+            serializer.serialize_str(
+                &String::from_utf8(self.0.to_vec()).map_err(|e| S::Error::custom(e.to_string()))?,
+            )
+        }
+    }
+
+    impl<'de> ::impl_serde::serde::Deserialize<'de> for Address {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: ::impl_serde::serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_str(AddressVisitor)
+        }
+    }
+}
+
+#[cfg(feature = "impl-bincode")]
+mod binarycodec {
+    use impl_bincode::{impl_fixed_hash_bincode, impl_uint_bincode};
+
+    use super::*;
+
+    impl_uint_bincode!(U128, 2);
+    impl_uint_bincode!(U192, 3);
+    impl_uint_bincode!(U256, 4);
+    impl_uint_bincode!(U512, 8);
+
+    impl_fixed_hash_bincode!(H128, 16);
+    impl_fixed_hash_bincode!(H160, 20);
+    impl_fixed_hash_bincode!(H192, 24);
+    impl_fixed_hash_bincode!(H256, 32);
+    impl_fixed_hash_bincode!(H448, 56);
+    impl_fixed_hash_bincode!(H512, 64);
+    impl_fixed_hash_bincode!(Address, ADDRESS_LEN);
 }
 
 #[cfg(feature = "impl-codec")]
@@ -157,6 +365,147 @@ mod rlp {
     impl_fixed_hash_rlp!(H448, 56);
     impl_fixed_hash_rlp!(H512, 64);
 }
+
+macro_rules! impl_hex_primitives {
+    ($name: ident, $len: expr) => {
+        impl hex::ToHex for $name {
+            fn encode_hex(&self) -> alloc::string::String {
+                let bytes = self.to_be_bytes();
+                hex::encode(&bytes, true)
+            }
+        }
+
+        impl hex::FromHex for $name {
+            fn from_hex(v: &str) -> Result<$name, hex::FromHexError> {
+                let mut raw = [0; $len];
+                let decoded = hex::decode(v)?;
+                let start_index = $len - decoded.len();
+                let mut iter = decoded.iter().copied();
+                for i in start_index..$len {
+                    raw[i] = iter.next().ok_or(hex::FromHexError::InvalidLength)?;
+                }
+                Ok($name::from_big_endian(&raw))
+            }
+        }
+    };
+}
+
+impl_hex_primitives!(U128, 16);
+impl_hex_primitives!(U192, 24);
+impl_hex_primitives!(U256, 32);
+
+macro_rules! impl_byte_adapter_hash {
+    ($name: ident, $len: expr) => {
+        impl prost::encoding::BytesAdapter for $name {
+            fn len(&self) -> usize {
+                $len
+            }
+
+            fn replace_with<B>(&mut self, mut buf: B)
+            where
+                B: prost::bytes::Buf,
+            {
+                let buf = buf.copy_to_bytes(buf.remaining());
+                *self = $name::from_slice(buf.as_ref());
+            }
+
+            fn append_to<B>(&self, buf: &mut B)
+            where
+                B: prost::bytes::BufMut,
+            {
+                buf.put_slice(self.as_bytes())
+            }
+        }
+    };
+}
+
+macro_rules! impl_prost_message {
+    ($name: ident) => {
+        impl prost::Message for $name {
+            fn encode_raw<B>(&self, buf: &mut B)
+            where
+                B: BufMut,
+                Self: Sized,
+            {
+                prost::encoding::bytes::encode(1, self, buf)
+            }
+
+            fn merge_field<B>(
+                &mut self,
+                tag: u32,
+                wire_type: WireType,
+                buf: &mut B,
+                ctx: DecodeContext,
+            ) -> Result<(), DecodeError>
+            where
+                B: Buf,
+                Self: Sized,
+            {
+                match tag {
+                    1 => prost::encoding::bytes::merge(wire_type, self, buf, ctx),
+                    _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
+                }
+            }
+
+            fn encoded_len(&self) -> usize {
+                prost::encoding::bytes::encoded_len(1, self)
+            }
+
+            fn clear(&mut self) {
+                *self = $name::default()
+            }
+        }
+    };
+}
+
+macro_rules! impl_byte_adapter_uint {
+    ($name: ident, $len: expr) => {
+        impl prost::encoding::BytesAdapter for $name {
+            fn len(&self) -> usize {
+                $len * 8
+            }
+
+            fn replace_with<B>(&mut self, mut buf: B)
+            where
+                B: prost::bytes::Buf,
+            {
+                let buf = buf.copy_to_bytes(buf.remaining());
+                *self = $name::from_big_endian(buf.as_ref());
+            }
+
+            fn append_to<B>(&self, buf: &mut B)
+            where
+                B: prost::bytes::BufMut,
+            {
+                buf.put_slice(&self.to_be_bytes())
+            }
+        }
+    };
+}
+
+impl_byte_adapter_uint!(U128, 2);
+impl_byte_adapter_uint!(U192, 3);
+impl_byte_adapter_uint!(U256, 4);
+impl_byte_adapter_uint!(U512, 8);
+
+impl_byte_adapter_hash!(H128, 16);
+impl_byte_adapter_hash!(H160, 20);
+impl_byte_adapter_hash!(H192, 24);
+impl_byte_adapter_hash!(H256, 32);
+impl_byte_adapter_hash!(H448, 56);
+impl_byte_adapter_hash!(H512, 64);
+
+impl_prost_message!(U128);
+impl_prost_message!(U256);
+impl_prost_message!(U512);
+
+impl_prost_message!(Address);
+impl_prost_message!(H128);
+impl_prost_message!(H160);
+impl_prost_message!(H192);
+impl_prost_message!(H256);
+impl_prost_message!(H448);
+impl_prost_message!(H512);
 
 impl U128 {
     /// Multiplies two 128-bit integers to produce full 256-bit integer.
@@ -199,6 +548,14 @@ impl U256 {
     #[inline(always)]
     pub fn to_be_bytes(self) -> [u8; 32] {
         let mut out = [0_u8; 32];
+        self.to_big_endian(&mut out);
+        out
+    }
+}
+impl U512 {
+    #[inline(always)]
+    pub fn to_be_bytes(self) -> [u8; 64] {
+        let mut out = [0_u8; 64];
         self.to_big_endian(&mut out);
         out
     }
@@ -411,6 +768,7 @@ impl Compact {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use hex::{FromHex, ToHex};
 
     #[test]
     fn test_compact_to_u256() {
@@ -463,5 +821,45 @@ mod tests {
             Compact::new(0x12345678).to_f64(),
             5913134931067755359633408.0,
         ));
+    }
+
+    #[test]
+    fn should_encode_from_primitives() {
+        assert_eq!(
+            U128::from_hex(&U128::from(20).encode_hex()).unwrap(),
+            U128::from(20)
+        );
+        assert_eq!(
+            U256::from_hex(&U256::from(20).encode_hex()).unwrap(),
+            U256::from(20)
+        );
+        assert_eq!(
+            U192::from_hex(&U128::from(20).encode_hex()).unwrap(),
+            U192::from(20)
+        );
+        assert_eq!(
+            U128::from_hex(&U128::from(1).encode_hex()).unwrap(),
+            U128::from(1)
+        );
+        assert_eq!(
+            U256::from_hex(&U256::from(1).encode_hex()).unwrap(),
+            U256::from(1)
+        );
+        assert_eq!(
+            U192::from_hex(&U128::from(1).encode_hex()).unwrap(),
+            U192::from(1)
+        );
+        assert_eq!(
+            U128::from_hex(&U128::from(0).encode_hex()).unwrap(),
+            U128::from(0)
+        );
+        assert_eq!(
+            U256::from_hex(&U256::from(0).encode_hex()).unwrap(),
+            U256::from(0)
+        );
+        assert_eq!(
+            U192::from_hex(&U128::from(0).encode_hex()).unwrap(),
+            U192::from(0)
+        );
     }
 }

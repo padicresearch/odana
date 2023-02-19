@@ -13,8 +13,6 @@ pub enum BlockChainError {
     #[error("RWPoison")]
     RWPoison,
     #[error("`{0}`")]
-    HexError(#[from] hex::FromHexError),
-    #[error("`{0}`")]
     GenericError(#[from] anyhow::Error),
     #[error("UTXOError `{0}`")]
     UTXOError(&'static str),

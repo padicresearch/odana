@@ -1,0 +1,49 @@
+syntax = "proto3";
+import "types.proto";
+import "primitive_types.proto";
+
+package rpc;
+
+message UnsignedTransactionRequest {
+  odana.types.Transaction tx = 1;
+  bytes secret_key = 2;
+}
+
+message SignedTransactionResponse {
+  odana.primitive_types.H256 hash = 1;
+  odana.types.SignedTransaction tx = 2;
+}
+
+message GetTransactionStatusResponse {
+  repeated odana.types.TransactionStatus status = 1;
+}
+
+message PendingTransactionsResponse {
+  repeated AddressTransactionList pending = 1;
+}
+
+message AddressTransactionList {
+  odana.primitive_types.Address address = 1;
+  odana.types.TransactionList txs = 2;
+}
+
+message TxpoolContentResponse {
+  repeated AddressTransactionList pending = 1;
+  repeated AddressTransactionList queued = 2;
+}
+message TransactionHash {
+  odana.primitive_types.H256 hash = 1;
+}
+
+message TransactionHashes {
+  repeated bytes txs = 1;
+}
+
+service TransactionsService {
+  rpc SignTransaction(UnsignedTransactionRequest) returns (SignedTransactionResponse);
+  rpc SignSendTransaction(UnsignedTransactionRequest) returns (SignedTransactionResponse);
+  rpc SendTransaction(odana.types.SignedTransaction) returns (TransactionHash);
+  rpc GetTransactionStatus(TransactionHashes) returns (GetTransactionStatusResponse);
+  rpc GetPendingTransactions(odana.types.Empty) returns (PendingTransactionsResponse);
+  rpc GetTxpoolContent(odana.types.Empty) returns (TxpoolContentResponse);
+}

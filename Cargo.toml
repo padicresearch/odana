@@ -2,9 +2,7 @@ cargo-features = ["edition2021"]
 [workspace]
 members = [
     #core
-    "merkle",
-    "trie",
-    "uchain",
+    "node",
     "crypto",
     "blockchain",
     "storage",
@@ -17,18 +15,63 @@ members = [
     "miner",
     "p2p",
     "smt",
-    "proto",
     "rpc",
+    "client",
     #common
     "common/traits",
     "common/uint",
     "common/primitive-types/impls/num-traits",
     "common/primitive-types/impls/serde",
+    "common/primitive-types/impls/bincode",
     "common/primitive-types",
-    "common/prefix-hex",
+    "common/hex",
     "common/fixed-hash",
     "common/types",
     "common/tracing",
     "common/rlp",
     "common/rlp-derive",
+    "common/tiny-bip39",
+    "common/bech32",
+    #apps
+    "apps/example",
+    "apps/namespace-registry",
+    "apps/builtin",
+    #runtime
+    "runtime/std",
+    "runtime/framework",
+    "runtime/vm",
+    #utils
+    "utils/wasm-builder",
+    "utils/wit-codegen"
 ]
+
+[patch.crates-io]
+prost = { git = 'https://github.com/mambisi/prost', branch = "bytes-mod" }
+
+
+[workspace.dependencies]
+anyhow = "1.0.65"
+bincode = { version = "2.0.0-rc.2", default-feature = false, features = ["alloc"] }
+rocksdb = { version = "0.17.0" }
+tokio = { version = "1", features = ["full"] }
+thiserror = "1.0.30"
+tonic = "0.8.0"
+prost = { version = "0.11.0", default-feature = false, features = ["prost-derive"] }
+prost-build = { version = "0.11.0" }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+serde = { version = "1.0.130", default-features = false, features = ["derive", "alloc"] }
+clap = { version = "3.0.13", features = ["derive"] }
+clap_lex = { version = "0.3.1" }
+wit-codegen = { path = "utils/wit-codegen" }
+hex = { path = "common/hex" }
+rune-framework = { path = "runtime/framework" }
+rune-std = { path = "runtime/std" }
+primitive-types = { path = "common/primitive-types" }
+num-traits = "0.2.15"
+getset = "0.1.2"
+bytes = { version = "1", features = ["serde"] }
+chrono = "0.4"
+parking_lot = "0.12.1"
+protobuf = { git = "https://github.com/padicresearch/rust-protobuf.git" }
+protobuf-json-mapping = { git = "https://github.com/padicresearch/rust-protobuf.git" }
+protobuf-parse = { git = "https://github.com/padicresearch/rust-protobuf.git" }

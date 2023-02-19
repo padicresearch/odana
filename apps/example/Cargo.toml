@@ -1,0 +1,18 @@
+[package]
+name = "example"
+version = "0.1.0"
+edition = "2021"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rune-framework = { workspace = true }
+rune-std = { workspace = true }
+prost = { workspace = true }
+once_cell = {version = "1.17.0", default-features = false, features = ["alloc"]}
+prost-reflect = {version = "0.10.1", default-features = false, features = ["derive"]}
+primitive-types = { workspace = true }
+anyhow = { workspace = true, default-features = false }
+[build-dependencies]
+prost-build = { workspace = true }
+prost-reflect-build = "0.10.0"
+wasm-builder = { path = "../../utils/wasm-builder" }

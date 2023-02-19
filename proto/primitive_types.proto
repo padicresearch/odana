@@ -1,0 +1,33 @@
+syntax = "proto3";
+package odana.primitive_types;
+message U128 {
+  bytes value = 1;
+}
+
+message U192 {
+  bytes value = 1;
+}
+
+message U256 {
+  bytes value = 1;
+}
+
+message U512 {
+  bytes value = 1;
+}
+
+message Address {
+  bytes value = 1;
+}
+
+message H128 {
+  bytes value = 1;
+}
+
+message H256 {
+  bytes value = 1;
+}
+
+message H512 {
+  bytes value = 1;
+}

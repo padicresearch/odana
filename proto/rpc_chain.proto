@@ -1,0 +1,48 @@
+syntax = "proto3";
+import "types.proto";
+import "primitive_types.proto";
+
+package rpc;
+
+message CurrentHeadResponse {
+  odana.primitive_types.H256 hash = 1;
+  odana.types.BlockHeader header = 2;
+}
+
+message GetBlockByHashRequest {
+  odana.primitive_types.H256 hash = 1;
+}
+
+message GetBlockByLevelRequest {
+  uint32 level = 1;
+}
+
+message GetBlocksRequest {
+  uint32 from = 1;
+  uint32 count = 2;
+}
+
+message GetBlocksResponse {
+  repeated odana.types.BlockHeader blocks = 1;
+}
+
+message GetBlockNumberResponse {
+  uint32 level = 1;
+}
+
+message ChainInfo {
+  string chain = 1;
+  odana.primitive_types.H256 genesis_hash = 2;
+  uint32 difficulty = 3;
+  uint32 network_difficulty = 4;
+  uint32 blocks = 5;
+}
+
+service ChainService {
+  rpc CurrentHead(odana.types.Empty) returns (CurrentHeadResponse);
+  rpc BlockLevel(odana.types.Empty) returns (GetBlockNumberResponse);
+  rpc GetBlockByHash (GetBlockByHashRequest) returns (odana.types.Block);
+  rpc GetBlockByLevel (GetBlockByLevelRequest) returns (odana.types.Block);
+  rpc GetBlocks (GetBlocksRequest) returns (GetBlocksResponse);
+  rpc GetBlockchainInfo (odana.types.Empty) returns (ChainInfo);
+}

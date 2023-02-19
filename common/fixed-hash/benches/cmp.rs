@@ -5,9 +5,8 @@
 // <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
-
+#![allow(clippy::all, deprecated)]
 //! Benchmarks for fixed-hash cmp implementation.
-
 use criterion::{black_box, criterion_group, criterion_main, Criterion, ParameterizedBenchmark};
 
 use fixed_hash::construct_fixed_hash;

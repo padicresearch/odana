@@ -6,11 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.45"
-thiserror = "1.0.30"
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+num-traits = { workspace = true }
+chrono = { workspace = true }
 types = { path = "../common/types" }
 traits = { path = "../common/traits" }
 crypto = { path = "../crypto" }
+smt = { path = "../smt" }
 primitive-types = { path = "../common/primitive-types" }
-hex = "0.4.3"
-chrono = "0.4"

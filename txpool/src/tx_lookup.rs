@@ -1,16 +1,15 @@
 #![allow(dead_code)]
 
+use primitive_types::{Address, H256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
 
-use primitive_types::H160;
 use types::tx::SignedTransaction;
-use types::Hash;
 
-use crate::{num_slots, Address, TransactionRef, Transactions};
+use crate::{num_slots, TransactionRef, Transactions};
 
 pub struct AccountSet {
-    accounts: BTreeSet<H160>,
+    accounts: BTreeSet<Address>,
 }
 
 impl Default for AccountSet {
@@ -33,7 +32,7 @@ impl AccountSet {
         }
     }
 
-    pub(crate) fn contains(&self, address: &H160) -> bool {
+    pub(crate) fn contains(&self, address: &Address) -> bool {
         self.accounts.contains(address)
     }
 
@@ -46,7 +45,7 @@ impl AccountSet {
         self.contains(&address)
     }
 
-    pub(crate) fn add(&mut self, address: H160) {
+    pub(crate) fn add(&mut self, address: Address) {
         self.accounts.insert(address);
     }
 
@@ -55,7 +54,7 @@ impl AccountSet {
         self.add(address);
     }
 
-    pub(crate) fn flatten(&self) -> Vec<H160> {
+    pub(crate) fn flatten(&self) -> Vec<Address> {
         self.accounts.iter().copied().collect()
     }
 
@@ -67,8 +66,8 @@ impl AccountSet {
 #[derive(Debug, Clone)]
 pub struct TxLookup {
     slots: u64,
-    locals: BTreeMap<Hash, TransactionRef>,
-    remotes: BTreeMap<Hash, TransactionRef>,
+    locals: BTreeMap<H256, TransactionRef>,
+    remotes: BTreeMap<H256, TransactionRef>,
 }
 
 impl TxLookup {
@@ -88,7 +87,7 @@ impl Default for TxLookup {
 }
 
 impl TxLookup {
-    pub fn range(&self, f: fn(&Hash, &TransactionRef, bool) -> bool, local: bool, remote: bool) {
+    pub fn range(&self, f: fn(&H256, &TransactionRef, bool) -> bool, local: bool, remote: bool) {
         if local {
             for (key, value) in self.locals.iter() {
                 if !f(key, value, true) {
@@ -106,22 +105,22 @@ impl TxLookup {
         }
     }
 
-    pub fn get(&self, hash: &Hash) -> Option<TransactionRef> {
+    pub fn get(&self, hash: &H256) -> Option<TransactionRef> {
         self.locals
             .get(hash)
             .cloned()
             .or_else(|| self.remotes.get(hash).cloned())
     }
 
-    pub fn contains(&self, hash: &Hash) -> bool {
+    pub fn contains(&self, hash: &H256) -> bool {
         self.locals.contains_key(hash) || self.remotes.contains_key(hash)
     }
 
-    pub fn get_local(&self, hash: &Hash) -> Option<TransactionRef> {
+    pub fn get_local(&self, hash: &H256) -> Option<TransactionRef> {
         self.locals.get(hash).cloned()
     }
 
-    pub fn get_remote(&self, hash: &Hash) -> Option<TransactionRef> {
+    pub fn get_remote(&self, hash: &H256) -> Option<TransactionRef> {
         self.remotes.get(hash).cloned()
     }
 
@@ -145,7 +144,7 @@ impl TxLookup {
             self.remotes.insert(tx.hash(), tx);
         }
     }
-    pub fn remove(&mut self, hash: &Hash) {
+    pub fn remove(&mut self, hash: &H256) {
         let locals_deleted = self.locals.remove(hash);
         let remotes_deleted = self.remotes.remove(hash);
 

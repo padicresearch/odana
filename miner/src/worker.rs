@@ -8,16 +8,14 @@ use chrono::Utc;
 use tokio::sync::mpsc::UnboundedSender;
 
 use blockchain::chain_state::ChainState;
-use merkle::Merkle;
 use p2p::peer_manager::NetworkState;
-use primitive_types::{H160, U128, U256};
+use primitive_types::{Address, U256};
 use tracing::{debug, info, warn};
-use traits::{Blockchain, ChainHeadReader, Consensus, StateDB};
+use traits::{Blockchain, ChainHeadReader, Consensus, StateDB, WasmVMInstance};
 use txpool::TxPool;
 use types::block::{Block, BlockHeader};
 use types::events::LocalEventMessage;
 use types::tx::SignedTransaction;
-use types::Address;
 
 pub const SHUTDOWN: i8 = -1;
 pub const RESET: i8 = 0;
@@ -26,9 +24,10 @@ pub const START: i8 = 2;
 
 #[allow(clippy::too_many_arguments)]
 pub fn start_worker(
-    coinbase: H160,
+    coinbase: Address,
     lmpsc: UnboundedSender<LocalEventMessage>,
     consensus: Arc<dyn Consensus>,
+    vm: Arc<dyn WasmVMInstance>,
     txpool: Arc<RwLock<TxPool>>,
     chain: Arc<ChainState>,
     network: Arc<NetworkState>,
@@ -60,9 +59,10 @@ pub fn start_worker(
         }
 
         let (mut block_template, txs) = {
-            let (head, txs) = make_block_template(
-                coinbase.to_fixed_bytes(),
+            let (head, txs) = block_template(
+                coinbase,
                 consensus.clone(),
+                vm.clone(),
                 txpool.clone(),
                 chain.get_current_state()?,
                 chain.clone(),
@@ -97,9 +97,9 @@ pub fn start_worker(
                 let mut out = [0; 32];
                 mix_nonce.to_big_endian(&mut out);
                 block_template.set_mix_nonce(out.into());
-                block_template.set_nonce(0.into());
+                block_template.set_nonce(0);
             };
-            *block_template.nonce_mut() += U128::one();
+            *block_template.nonce_mut() += 1;
             if consensus
                 .verify_header(chain_header_reader.clone(), &block_template)
                 .is_ok()
@@ -116,7 +116,7 @@ pub fn start_worker(
                     break;
                 }
 
-                info!(level = level, blockhash = format!("{}",hex::encode(hash)), txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
+                info!(level = level, blockhash = ?hash, txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
                 chain.put_chain(
@@ -131,29 +131,22 @@ pub fn start_worker(
     }
 }
 
-fn pack_queued_txs(txpool: Arc<RwLock<TxPool>>) -> Result<([u8; 32], Vec<SignedTransaction>)> {
+fn pending_txs(txpool: Arc<RwLock<TxPool>>) -> Result<Vec<SignedTransaction>> {
     let txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
-    let mut tsx = Vec::new();
-    let mut merkle = Merkle::default();
     let pending_txs = txpool.pending();
-    for (_, list) in pending_txs {
-        for tx in list.as_ref().iter() {
-            merkle.update(&tx.hash())?;
-        }
-        tsx.extend(list.as_ref().iter().map(|tx_ref| tx_ref.deref().clone()));
-    }
+    let txs: Vec<_> = pending_txs
+        .into_iter()
+        .map(|(_, tx_list)| tx_list.txs.into_iter().map(|tx| tx.deref().clone()))
+        .flatten()
+        .collect();
 
-    let merkle_root = match merkle.finalize() {
-        None => [0; 32],
-        Some(root) => *root,
-    };
-
-    Ok((merkle_root, tsx))
+    Ok(txs)
 }
 
-fn make_block_template(
+fn block_template(
     coinbase: Address,
     consensus: Arc<dyn Consensus>,
+    vm: Arc<dyn WasmVMInstance>,
     txpool: Arc<RwLock<TxPool>>,
     state: Arc<dyn StateDB>,
     chain: Arc<dyn Blockchain>,
@@ -164,24 +157,14 @@ fn make_block_template(
         Some(header) => header.raw,
     };
     let state = state.state_at(*parent_header.state_root())?;
-    let (merkle_root, txs) = pack_queued_txs(txpool)?;
-
-    let mut mix_nonce = [0; 32];
-    U256::one().to_big_endian(&mut mix_nonce);
+    let txs = pending_txs(txpool)?;
     let time = Utc::now().timestamp() as u32;
-    let mut header = BlockHeader::new(
-        parent_header.hash(),
-        merkle_root.into(),
-        [0; 32].into(),
-        mix_nonce.into(),
-        coinbase.into(),
-        0,
-        0,
-        parent_header.level() + 1,
-        time,
-        0.into(),
-    );
+    let mut header = BlockHeader::default();
+    header.set_level(parent_header.level() + 1);
+    header.set_parent_hash(parent_header.hash());
+    header.set_coinbase(coinbase);
+    header.set_time(time);
     consensus.prepare_header(chain_header_reader.clone(), &mut header)?;
-    consensus.finalize(chain_header_reader, &mut header, state.clone(), txs.clone())?;
+    consensus.finalize(chain_header_reader, &mut header, vm, state.clone(), &txs)?;
     Ok((header, txs))
 }

@@ -1,18 +1,24 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
+use account::ROOT;
 use anyhow::{anyhow, bail, Result};
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::{H160, H256};
+use primitive_types::{Address, H256};
+use rt_vm::WasmVM;
 use state::State;
 use storage::{KVStore, Schema};
 use tracing::{debug, info, trace, warn};
 use traits::{Blockchain, ChainHeadReader, ChainReader, Consensus, StateDB};
 use txpool::tx_lookup::AccountSet;
 use txpool::{ResetRequest, TxPool};
+use types::account::{get_address_from_package_name, AppState};
+use types::app::AppStateKey;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::events::LocalEventMessage;
+use types::network::Network;
 use types::ChainStateValue;
 
 use crate::block_storage::BlockStorage;
@@ -63,8 +69,10 @@ impl ChainStateStorage {
 pub struct ChainState {
     lock: RwLock<()>,
     state: Arc<State>,
+    consensus: Arc<dyn Consensus>,
     block_storage: Arc<BlockStorage>,
     chain_state: Arc<ChainStateStorage>,
+    vm: Arc<WasmVM>,
     sender: UnboundedSender<LocalEventMessage>,
 }
 
@@ -73,29 +81,68 @@ impl ChainState {
         state_dir: PathBuf,
         consensus: Arc<dyn Consensus>,
         block_storage: Arc<BlockStorage>,
+        built_in: Vec<(&'static str, &[u8])>,
         chain_state_storage: Arc<ChainStateStorage>,
         sender: UnboundedSender<LocalEventMessage>,
     ) -> Result<Self> {
         let state = Arc::new(State::new(state_dir)?);
-        if let Some(current_head) = chain_state_storage.get_current_header()? {
+        let vm = if let Some(current_head) = chain_state_storage.get_current_header()? {
             state.reset(*current_head.state_root())?;
+            let vm = Arc::new(WasmVM::new(block_storage.clone())?);
+            for (pkn, binary) in built_in {
+                let _ = vm.install_builtin(
+                    state.clone(),
+                    get_address_from_package_name(pkn, consensus.network())?,
+                    binary,
+                    false,
+                )?;
+            }
             info!(blockhash = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
+            vm
         } else {
+            // TODO: Clean up genesis generation to use a config file or function
             let mut genesis = consensus.get_genesis_header();
-            state.credit_balance(&H160::from(&[0; 20]), 1_000_000_000_000)?;
+            state.credit_balance(&Address::default(), 1_000_000_000_000)?;
+            let vm = Arc::new(WasmVM::new(block_storage.clone())?);
+            let mut states = HashMap::new();
+            for (pkn, binary) in built_in {
+                let app_address = get_address_from_package_name(pkn, consensus.network())?;
+                let changelist = vm
+                    .install_builtin(state.clone(), app_address, binary, true)?
+                    .ok_or(anyhow!("required app not installed"))?;
+                let code_hash = crypto::keccak256(binary);
+                for (addr, state) in changelist.account_changes {
+                    states.insert(addr, state);
+                }
+                let app_state = states
+                    .get_mut(&app_address)
+                    .ok_or_else(|| anyhow::anyhow!("app state not found"))?;
+                app_state.app_state =
+                    Some(AppState::new(changelist.storage.root(), code_hash, ROOT, 1));
+                state.set_app_data(
+                    AppStateKey(app_address, changelist.storage.root()),
+                    changelist.storage,
+                )?;
+            }
+            for (addr, account_state) in states {
+                state.set_account_state(addr, account_state)?;
+            }
             state.commit()?;
             genesis.set_state_root(H256::from(state.root()));
             let block = Block::new(genesis, vec![]);
             block_storage.put(block)?;
             chain_state_storage.set_current_header(genesis)?;
             info!(blockhash = ?genesis.hash(), level = ?genesis.level(), "blockchain state started from genesis");
-        }
+            vm
+        };
 
         Ok(Self {
             lock: Default::default(),
             state,
+            consensus,
             block_storage,
             chain_state: chain_state_storage,
+            vm,
             sender,
         })
     }
@@ -209,8 +256,9 @@ impl ChainState {
         consensus.finalize(
             self.block_storage.clone(),
             &mut header,
+            self.vm.clone(),
             parent_state,
-            block.transactions().clone(),
+            block.transactions(),
         )?;
         consensus
             .verify_header(self.block_storage.clone(), &header)
@@ -233,7 +281,7 @@ impl ChainState {
         let mut repack = false;
         if block.parent_hash().eq(&current_head.hash) {
             let state = self.state();
-            state.apply_txs(block.transactions().clone())?;
+            state.apply_txs(self.vm.clone(), block.transactions())?;
             let _ =
                 state.credit_balance(header.coinbase(), consensus.miner_reward(header.level()))?;
             state.commit()?;
@@ -241,7 +289,7 @@ impl ChainState {
             self.sender.send(LocalEventMessage::StateChanged {
                 current_head: self.current_header().unwrap().unwrap().raw,
             })?;
-            info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Applied new block");
+            info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), tx_count = block.transactions().len(), "Applied new block");
             repack = true;
         } else {
             let state = self.state();
@@ -252,10 +300,11 @@ impl ChainState {
                 .ok_or_else(|| anyhow!("error accepting block non commit"))?;
             let parent_state_root = parent_header.raw.state_root();
             let commit_state = state.apply_txs_no_commit(
+                self.vm.clone(),
                 *parent_state_root,
                 consensus.miner_reward(block.level()),
                 *block.header().coinbase(),
-                block.transactions().clone(),
+                block.transactions(),
             )?;
             let commit_state = H256::from(commit_state);
             if commit_state.ne(header.state_root()) {
@@ -283,6 +332,9 @@ impl ChainState {
     pub fn state(&self) -> Arc<State> {
         self.state.clone()
     }
+    pub fn vm(&self) -> Arc<WasmVM> {
+        self.vm.clone()
+    }
 }
 
 impl Blockchain for ChainState {
@@ -299,10 +351,23 @@ impl Blockchain for ChainState {
     fn get_state_at(&self, root: &H256) -> anyhow::Result<Arc<dyn StateDB>> {
         Ok(self.state.get_sate_at(*root)?)
     }
+
+    fn genesis(&self) -> IndexedBlockHeader {
+        let Ok(Some(genesis)) =
+            self.block_storage
+                .get_header_by_level(0) else {
+            panic!("genesis not found")
+        };
+        genesis
+    }
+
+    fn network(&self) -> Network {
+        self.consensus.network()
+    }
 }
 
 impl ChainReader for ChainState {
-    fn get_block(&self, hash: &H256, level: i32) -> Result<Option<Block>> {
+    fn get_block(&self, hash: &H256, level: u32) -> Result<Option<Block>> {
         self.block_storage.get_block(hash, level)
     }
 
@@ -310,7 +375,7 @@ impl ChainReader for ChainState {
         self.block_storage.get_block_by_hash(hash)
     }
 
-    fn get_block_by_level(&self, level: i32) -> Result<Option<Block>> {
+    fn get_block_by_level(&self, level: u32) -> Result<Option<Block>> {
         self.block_storage.get_block_by_level(level)
     }
 }

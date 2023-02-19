@@ -1,35 +1,105 @@
 #![feature(test)]
+#![feature(slice_take)]
+extern crate core;
 extern crate test;
 
-use std::sync::{Arc, RwLock};
+use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 
+use crate::account::AccountState;
+use bytes::{Buf, BufMut};
+use codec::{Decodable, Encodable};
+use parking_lot::RwLock;
+use primitive_types::Address;
+use prost::encoding::{DecodeContext, WireType};
+use prost::{DecodeError, Message};
 use serde::{Deserialize, Serialize};
-use serde_big_array::big_array;
-
-use codec::impl_codec;
-use codec::{Decoder, Encoder};
-use primitive_types::H160;
+use smt::SparseMerkleTree;
 
 use crate::block::BlockHeader;
+use crate::network::Network;
 
 pub mod account;
+pub mod app;
 pub mod block;
 pub mod config;
 pub mod events;
+pub mod misc;
 pub mod network;
+pub mod receipt;
 pub mod tx;
-mod uint_hex_codec;
+pub mod util;
 
 pub type Hash = [u8; 32];
-pub type Address = [u8; 20];
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ChainStateValue {
     CurrentHeader(BlockHeader),
 }
 
-impl_codec!(ChainStateValue);
+impl Default for ChainStateValue {
+    fn default() -> Self {
+        Self::CurrentHeader(BlockHeader::default())
+    }
+}
+
+impl prost::Message for ChainStateValue {
+    fn encode_raw<B>(&self, buf: &mut B)
+    where
+        B: BufMut,
+        Self: Sized,
+    {
+        match self {
+            ChainStateValue::CurrentHeader(header) => {
+                prost::encoding::message::encode(1, header, buf)
+            }
+        }
+    }
+
+    fn merge_field<B>(
+        &mut self,
+        tag: u32,
+        wire_type: WireType,
+        buf: &mut B,
+        ctx: DecodeContext,
+    ) -> Result<(), DecodeError>
+    where
+        B: Buf,
+        Self: Sized,
+    {
+        match tag {
+            1 => match self {
+                ChainStateValue::CurrentHeader(header) => {
+                    prost::encoding::message::merge(wire_type, header, buf, ctx)
+                }
+            },
+            _ => panic!("invalid ChainStateValue tag: {}", tag),
+        }
+    }
+
+    fn encoded_len(&self) -> usize {
+        match self {
+            ChainStateValue::CurrentHeader(header) => {
+                prost::encoding::message::encoded_len(1u32, header)
+            }
+        }
+    }
+
+    fn clear(&mut self) {}
+}
+
+impl Encodable for ChainStateValue {
+    fn encode(&self) -> anyhow::Result<Vec<u8>> {
+        Ok(self.encode_to_vec())
+    }
+}
+
+impl Decodable for ChainStateValue {
+    fn decode(buf: &[u8]) -> anyhow::Result<Self> {
+        <Self as prost::Message>::decode(buf).map_err(|e| e.into())
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct TxPoolConfig {
@@ -53,19 +123,79 @@ pub struct TxPoolConfig {
 
 pub fn cache<F, T>(hash: &Arc<RwLock<Option<T>>>, f: F) -> T
 where
-    F: Fn() -> T,
-    T: Copy + Clone,
+    F: Fn() -> anyhow::Result<T>,
+    T: Copy + Clone + Default,
 {
-    if let Ok(hash) = hash.read() {
+    {
+        let hash = hash.read();
         if let Some(hash) = *hash {
             return hash;
         }
     }
-    let out = f();
-    if let Ok(mut hash) = hash.write() {
-        *hash = Some(out)
+    let mut hash = hash.write();
+    match f() {
+        Ok(out) => {
+            *hash = Some(out);
+            out
+        }
+        Err(_) => T::default(),
     }
-    out
 }
 
-big_array! { BigArray; +33,65}
+pub trait Addressing {
+    fn is_mainnet(&self) -> bool;
+    fn is_testnet(&self) -> bool;
+    fn is_alphanet(&self) -> bool;
+    fn is_valid(&self) -> bool;
+    fn network(&self) -> Option<Network>;
+}
+
+pub struct Changelist {
+    pub account_changes: HashMap<Address, AccountState>,
+    pub logs: Vec<Vec<u8>>,
+    pub storage: SparseMerkleTree,
+}
+
+pub mod prelude {
+    pub use crate::account::*;
+    pub use crate::block::*;
+    pub use crate::config::*;
+    pub use crate::events::*;
+    pub use crate::network::*;
+    pub use crate::tx::*;
+    pub use crate::Addressing;
+
+    #[derive(Clone, PartialEq, Eq, ::prost::Message)]
+    pub struct Empty;
+}
+
+mod as_address {
+    use primitive_types::Address;
+    use serde::de::{Deserialize, Deserializer};
+    use serde::ser::{Serialize, Serializer};
+    use serde_json::to_vec;
+
+    // Serialize to a JSON string, then serialize the string to the output
+    // format.
+    pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Serialize,
+        S: Serializer,
+    {
+        use serde::ser::Error;
+        let bytes = to_vec(value).map_err(Error::custom)?;
+        let address = Address::from_slice(bytes.as_slice())
+            .map_err(|_| Error::custom("failed to parse address"))?;
+        address.serialize(serializer)
+    }
+
+    // Deserialize a string from the input format, then deserialize the content
+    // of that string as JSON.
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let address = Address::deserialize(deserializer)?;
+        Ok(address.to_vec())
+    }
+}
