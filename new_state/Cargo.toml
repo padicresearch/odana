@@ -1,0 +1,22 @@
+[package]
+name = "new_state"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+types = { path = "../common/types" }
+traits = { path = "../common/traits" }
+account = { path = "../account" }
+codec = { path = "../codec" }
+crypto = { path = "../crypto" }
+primitive-types = { path = "../common/primitive-types" }
+tracing = { path = "../common/tracing" }
+transaction = { path = "../transaction" }
+builtin = { path = "../apps/builtin" }
+smt = { path = "../smt" }
+sled = "0.34.7"
