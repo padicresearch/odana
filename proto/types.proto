@@ -87,7 +87,7 @@ message AccountState {
   uint64 free_balance = 1;
   uint64 reserve_balance = 2;
   uint64 nonce = 3;
-  optional AppState app_state = 4;
+  AppState app_state = 4;
 }
 
 enum TransactionStatus {
