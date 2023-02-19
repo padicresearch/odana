@@ -13,4 +13,5 @@ chrono = { workspace = true }
 types = { path = "../common/types" }
 traits = { path = "../common/traits" }
 crypto = { path = "../crypto" }
+smt = { path = "../smt" }
 primitive-types = { path = "../common/primitive-types" }

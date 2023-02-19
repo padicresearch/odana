@@ -10,7 +10,6 @@ use crate::error::Error;
 use crate::treehasher::TreeHasher;
 use bincode::{Decode, Encode};
 use primitive_types::H256;
-use sha2::{Digest, Sha256};
 pub use smt::*;
 
 mod constants;
@@ -99,8 +98,6 @@ pub struct DefaultTreeHasher;
 
 impl TreeHasher for DefaultTreeHasher {
     fn digest(&self, data: &[u8]) -> H256 {
-        let mut hasher = Sha256::default();
-        hasher.update(data);
-        H256::from_slice(hasher.finalize().as_ref())
+        crypto::keccak256(data)
     }
 }

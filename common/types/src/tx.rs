@@ -10,7 +10,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use crypto::ecdsa::{PublicKey, Signature};
-use crypto::sha256;
+use crypto::keccak256;
 use primitive_types::{Address, H256};
 
 use crate::account::get_address_from_pub_key;
@@ -156,7 +156,7 @@ pub struct Transaction {
 impl Transaction {
     pub fn sig_hash(&self) -> H256 {
         let pack = self.pack();
-        sha256(pack)
+        keccak256(pack)
     }
 
     pub fn pack(&self) -> Vec<u8> {

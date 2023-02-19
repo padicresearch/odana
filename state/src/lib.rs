@@ -22,7 +22,7 @@ mod kvdb;
 mod persistent;
 mod schema;
 mod store;
-pub mod tree;
+mod tree;
 
 const ACCOUNT_DB_NAME: &str = "accs";
 const APPDATA_DB_NAME: &str = "data";
@@ -46,6 +46,11 @@ impl StateDB for State {
         self.account_state(address).nonce
     }
 
+    fn set_account_state(&self, address: Address, account_state: AccountState) -> Result<H256> {
+        self.trie.put(address, account_state)?;
+        Ok(self.root_hash()?.into())
+    }
+
     fn account_state(&self, address: &Address) -> AccountState {
         match self.trie.get(address) {
             Ok(Some(account_state)) => account_state,
@@ -61,11 +66,6 @@ impl StateDB for State {
         let mut account_state = self.get_account_state(address)?;
         account_state.free_balance += amount;
         self.trie.put(*address, account_state)?;
-        Ok(self.root_hash()?.into())
-    }
-
-    fn set_account_state(&self, address: Address, account_state: AccountState) -> Result<H256> {
-        self.trie.put(address, account_state)?;
         Ok(self.root_hash()?.into())
     }
 
@@ -116,6 +116,10 @@ impl StateDB for State {
             .unwrap_or_else(|_| SparseMerkleTree::new()))
     }
 
+    fn set_app_data(&self, app_state_key: AppStateKey, app_data: SparseMerkleTree) -> Result<()> {
+        self.appdata.put(app_state_key, app_data)
+    }
+
     fn get_app_source(&self, app_id: Address) -> Result<Vec<u8>> {
         let account = self
             .trie
@@ -140,10 +144,6 @@ impl StateDB for State {
         self.appsource
             .get(&app_state.code_hash())
             .map(|bins| bins.descriptor)
-    }
-
-    fn set_app_data(&self, app_state_key: AppStateKey, app_data: SparseMerkleTree) -> Result<()> {
-        self.appdata.put(app_state_key, app_data)
     }
 }
 

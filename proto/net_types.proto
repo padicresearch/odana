@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "types.proto";
+import "primitive_types.proto";
 package uchain.net.types;
 
 message PeerNode {
@@ -24,8 +25,8 @@ message GetCurrentHeadMessage {
 }
 
 message GetBlockHeaderMessage {
-  bytes from = 1;
-  optional bytes to = 2;
+  odana.primitive_types.H256 from = 1;
+  odana.primitive_types.H256 to = 2;
 }
 
 message FindBlocksMessage {
@@ -49,23 +50,6 @@ message BlocksToDownloadMessage {
   repeated bytes block_hashes = 1;
 }
 
-message GetBlockTransactionsMessage {
-  string sender = 1;
-  repeated bytes tx_ids = 2;
-}
-
-message ReAckMessage {
-  PeerNode node_info = 1;
-  odana.types.BlockHeader current_header = 2;
-}
-
-message AckMessage {
-}
-
-message AdvertiseMessage {
-  repeated string peers = 1;
-}
-
 message PeerMessage {
   oneof msg {
     CurrentHeadMessage get_currenthead = 1;
@@ -77,7 +61,5 @@ message PeerMessage {
     BlocksMessage blocks = 7;
     BroadcastTransactionMessage broadcast_transaction = 8;
     BroadcastBlockMessage broadcast_block = 9;
-    AckMessage ack = 10;
-    ReAckMessage reack = 11;
   }
 }

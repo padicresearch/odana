@@ -95,7 +95,7 @@ pub trait Consensus: Send + Sync {
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
     ) -> Result<()>;
-    fn finalize(
+    fn finalize<'a>(
         &self,
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,

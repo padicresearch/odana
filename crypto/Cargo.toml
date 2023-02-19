@@ -9,10 +9,10 @@ edition = "2021"
 [dependencies]
 rand = "0.8.4"
 primitive-types = { path = "../common/primitive-types", default-features = false }
-sha3 = "0.10.2"
-sha2 = "0.10.2"
+sha3 = { version = "0.10.6", default-features = false,  features = ["oid"] }
+sha2 = { version = "0.10.6", default-features = false,  features = ["oid","asm-aarch64", "asm"] }
 digest = "0.10.3"
-ripemd = "0.1.1"
+ripemd = { version = "0.1.1", default-features = false,  features = ["oid"] }
 k256 = { version = "0.11.4", features = ["ecdsa-core", "ecdsa", "keccak256"] }
 rand_core = "0.6.3"
 [dev-dependencies]
