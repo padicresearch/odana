@@ -119,7 +119,7 @@ impl ChainState {
                     .ok_or_else(|| anyhow::anyhow!("app state not found"))?;
                 app_state.app_state =
                     Some(AppState::new(changelist.storage.root(), code_hash, ROOT, 1));
-                state.appdata.put(
+                state.set_app_data(
                     AppStateKey(app_address, changelist.storage.root()),
                     changelist.storage,
                 )?;

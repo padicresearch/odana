@@ -31,8 +31,8 @@ const BINDATA_DB_NAME: &str = "bins";
 #[derive(Clone)]
 pub struct State {
     trie: Arc<TrieDB<Address, AccountState>>,
-    pub appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
-    pub appsource: Arc<KvDB<H256, AppBinaries>>,
+    appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
+    appsource: Arc<KvDB<H256, AppBinaries>>,
     path: PathBuf,
     read_only: bool,
 }
