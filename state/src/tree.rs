@@ -54,7 +54,7 @@ pub enum Op<K: Codec, V: Codec> {
     Put(K, V),
 }
 
-pub struct TrieDB<K, V, H = DefaultTreeHasher> {
+pub struct TreeDB<K, V, H = DefaultTreeHasher> {
     db: Arc<TrieCacheDatabase>,
     head: Arc<RwLock<SparseMerkleTree<MemoryStorage, H>>>,
     staging: Arc<RwLock<SparseMerkleTree<MemoryStorage, H>>>,
@@ -63,7 +63,7 @@ pub struct TrieDB<K, V, H = DefaultTreeHasher> {
     _data: PhantomData<(K, V)>,
 }
 
-impl<K, V> TrieDB<K, V, DefaultTreeHasher>
+impl<K, V> TreeDB<K, V, DefaultTreeHasher>
 where
     K: Codec,
     V: Codec,
@@ -120,7 +120,7 @@ where
     }
 }
 
-impl<K, V, H> TrieDB<K, V, H>
+impl<K, V, H> TreeDB<K, V, H>
 where
     K: Codec,
     V: Codec,
@@ -398,14 +398,14 @@ impl Verifier {
 mod tests {
     use tempdir::TempDir;
 
-    use crate::tree::{TrieDB, Verifier};
+    use crate::tree::{TreeDB, Verifier};
     use primitive_types::{H160, H256};
     use types::account::AccountState;
 
     #[test]
     fn basic_test() {
         let tmp_dir = TempDir::new("test").unwrap();
-        let tree = TrieDB::open(tmp_dir.path()).unwrap();
+        let tree = TreeDB::open(tmp_dir.path()).unwrap();
         tree.put(
             H256::from_slice(&[1; 32]),
             AccountState {
@@ -588,7 +588,7 @@ mod tests {
     #[test]
     fn basic_test_genesis_root() {
         let tmp_dir = TempDir::new("test").unwrap();
-        let tree = TrieDB::open(tmp_dir.path()).unwrap();
+        let tree = TreeDB::open(tmp_dir.path()).unwrap();
         tree.put(
             H160::from_slice(&[0; 20]),
             AccountState {

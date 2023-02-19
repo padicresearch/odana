@@ -1,3 +1,4 @@
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt::Formatter;
 
@@ -6,6 +7,7 @@ pub enum Error {
     KeyAlreadyEmpty,
     NonMembershipPathError(Vec<u8>, Vec<u8>),
     StorageError,
+    CustomError(String),
     StorageErrorKeyNotFound,
     BadProof(Vec<Vec<Vec<u8>>>),
 }
@@ -27,6 +29,9 @@ impl core::fmt::Display for Error {
             }
             Error::BadProof(proof) => {
                 writeln!(f, "BadProof {:?}", proof)
+            }
+            Error::CustomError(error) => {
+                writeln!(f, "CustomError {:?}", error)
             }
         }
     }

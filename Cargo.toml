@@ -17,6 +17,7 @@ members = [
     "smt",
     "rpc",
     "client",
+    "new_state",
     #common
     "common/traits",
     "common/uint",
