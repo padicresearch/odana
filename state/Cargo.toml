@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 tiny-keccak = { version = "2.0", features = ["keccak", "sha3"] }
-serde = { version = "1.0.130", features = ["derive"] }
+serde = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }
-thiserror = "1.0.30"
+thiserror = { workspace = true }
 storage = { path = "../storage" }
 types = { path = "../common/types" }
 traits = { path = "../common/traits" }

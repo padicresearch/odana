@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::error::StateError;
 use crate::kvdb::KvDB;
-use crate::tree::{Op, TrieDB};
+use crate::tree::{Op, TreeDB};
 use anyhow::{bail, Result};
 use primitive_types::{Address, H256};
 use schema::ReadProof;
@@ -30,9 +30,9 @@ const BINDATA_DB_NAME: &str = "bins";
 
 #[derive(Clone)]
 pub struct State {
-    trie: Arc<TrieDB<Address, AccountState>>,
-    pub appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
-    pub appsource: Arc<KvDB<H256, AppBinaries>>,
+    trie: Arc<TreeDB<Address, AccountState>>,
+    appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
+    appsource: Arc<KvDB<H256, AppBinaries>>,
     path: PathBuf,
     read_only: bool,
 }
@@ -149,7 +149,7 @@ impl StateDB for State {
 
 impl State {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let trie = TrieDB::open(path.as_ref().join(ACCOUNT_DB_NAME).as_path())?;
+        let trie = TreeDB::open(path.as_ref().join(ACCOUNT_DB_NAME).as_path())?;
         let appdata = KvDB::open(path.as_ref().join(APPDATA_DB_NAME).as_path())?;
         let appsource = KvDB::open(path.as_ref().join(BINDATA_DB_NAME).as_path())?;
         Ok(Self {
@@ -369,7 +369,7 @@ impl State {
 
     pub fn get_sate_at(&self, root: H256) -> Result<Arc<Self>> {
         let trie =
-            TrieDB::open_read_only_at_root(self.path.join(ACCOUNT_DB_NAME).as_path(), &root)?;
+            TreeDB::open_read_only_at_root(self.path.join(ACCOUNT_DB_NAME).as_path(), &root)?;
         let appdata = KvDB::open_read_only_at_root(self.path.join(APPDATA_DB_NAME).as_path())?;
         let appsource = KvDB::open_read_only_at_root(self.path.join(BINDATA_DB_NAME).as_path())?;
         Ok(Arc::new(State {
@@ -394,8 +394,4 @@ impl State {
     pub fn root_hash(&self) -> Result<Hash> {
         self.trie.root().map(|root| root.to_fixed_bytes())
     }
-}
-
-pub trait MorphCheckPoint {
-    fn checkpoint(&self) -> State;
 }

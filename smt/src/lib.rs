@@ -26,7 +26,7 @@ pub enum CopyStrategy {
     None,
 }
 
-pub(crate) type Result<T> = core::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 pub type StorageBackendSnapshot = Vec<(Vec<u8>, Vec<u8>)>;
 
