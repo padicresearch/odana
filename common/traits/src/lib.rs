@@ -29,7 +29,7 @@ pub trait StateDB: Send + Sync {
     fn debit_balance(&self, address: &Address, amount: u64) -> Result<H256>;
     fn reset(&self, root: H256) -> Result<()>;
     fn apply_txs(&self, vm: Arc<dyn WasmVMInstance>, txs: &[SignedTransaction]) -> Result<H256>;
-    fn root(&self) -> Hash;
+    fn root(&self) -> H256;
     fn commit(&self) -> Result<()>;
     fn snapshot(&self) -> Result<Arc<dyn StateDB>>;
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>>;

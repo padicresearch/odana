@@ -389,17 +389,17 @@ impl TxPool {
     fn reset(&mut self, old_head: Option<BlockHeader>, new_head: BlockHeader) -> Result<()> {
         let mut reinject = Vec::new();
         if let Some(old_head) = old_head {
-            if old_head.hash().ne(new_head.parent_hash()) {
-                let old_num = old_head.level();
-                let new_num = new_head.level();
+            if old_head.hash().ne(&new_head.parent_hash) {
+                let old_num = old_head.level;
+                let new_num = new_head.level;
                 let depth = (old_num as i32 - new_num as i32).abs();
                 if depth > 64 {
                     debug!(target : TXPOOL_LOG_TARGET, depth = ?depth, "Skipping deep transaction repack");
                 } else {
                     let mut discarded = BTreeSet::new();
                     let mut included = BTreeSet::new();
-                    let rem = self.chain.get_block(&old_head.hash(), old_head.level())?;
-                    let mut add = match self.chain.get_block(&new_head.hash(), new_head.level())? {
+                    let rem = self.chain.get_block(&old_head.hash(), old_head.level)?;
+                    let mut add = match self.chain.get_block(&new_head.hash(), new_head.level)? {
                         None => {
                             error!(target : TXPOOL_LOG_TARGET, new_head = ?new_head.hash(), "Transaction pool reset with missing newhead");
                             return Err(TxPoolError::MissingBlock.into());
@@ -490,7 +490,7 @@ impl TxPool {
                 }
             }
         }
-        let state = match self.chain.get_state_at(new_head.state_root()) {
+        let state = match self.chain.get_state_at(&new_head.state_root) {
             Ok(state) => state,
             Err(e) => {
                 error!(target : TXPOOL_LOG_TARGET, error = ?e, "Failed to reset txpool state");

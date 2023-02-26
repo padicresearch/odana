@@ -48,7 +48,7 @@ impl StateDB for State {
 
     fn set_account_state(&self, address: Address, account_state: AccountState) -> Result<H256> {
         self.trie.put(address, account_state)?;
-        Ok(self.root_hash()?.into())
+        self.root_hash()
     }
 
     fn account_state(&self, address: &Address) -> AccountState {
@@ -66,14 +66,14 @@ impl StateDB for State {
         let mut account_state = self.get_account_state(address)?;
         account_state.free_balance += amount;
         self.trie.put(*address, account_state)?;
-        Ok(self.root_hash()?.into())
+        self.root_hash()
     }
 
     fn debit_balance(&self, address: &Address, amount: u64) -> Result<H256> {
         let mut account_state = self.get_account_state(address)?;
         account_state.free_balance -= amount;
         self.trie.put(*address, account_state)?;
-        Ok(self.root_hash()?.into())
+        self.root_hash()
     }
 
     fn reset(&self, root: H256) -> Result<()> {
@@ -85,7 +85,7 @@ impl StateDB for State {
         self.root_hash().map(H256::from)
     }
 
-    fn root(&self) -> Hash {
+    fn root(&self) -> H256 {
         self.root_hash().unwrap()
     }
 
@@ -391,7 +391,7 @@ impl State {
         unimplemented!()
     }
 
-    pub fn root_hash(&self) -> Result<Hash> {
-        self.trie.root().map(|root| root.to_fixed_bytes())
+    pub fn root_hash(&self) -> Result<H256> {
+        self.trie.root()
     }
 }

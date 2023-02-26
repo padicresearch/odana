@@ -128,7 +128,7 @@ impl ChainState {
                 state.set_account_state(addr, account_state)?;
             }
             state.commit()?;
-            genesis.set_state_root(H256::from(state.root()));
+            genesis.state_root = state.root();
             let block = Block::new(genesis, vec![]);
             block_storage.put(block)?;
             chain_state_storage.set_current_header(genesis)?;

@@ -44,42 +44,31 @@ impl Decodable for BlockPrimaryKey {
 }
 
 #[derive(
-    Serialize, Deserialize, Copy, Clone, Getters, Setters, MutGetters, CopyGetters, prost::Message,
+    Serialize, Deserialize, Copy, Clone, prost::Message,
 )]
 pub struct BlockHeader {
-    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     #[prost(required, message, tag = "1")]
-    parent_hash: H256,
-    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    pub parent_hash: H256,
     #[prost(required, message, tag = "2")]
-    receipt_hash: H256,
-    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    pub receipt_hash: H256,
     #[prost(required, message, tag = "3")]
-    tx_root: H256,
-    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    pub tx_root: H256,
     #[prost(required, message, tag = "4")]
-    state_root: H256,
-    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    pub state_root: H256,
     #[prost(required, message, tag = "5")]
-    mix_nonce: U256,
-    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    pub mix_nonce: U256,
     #[prost(required, message, tag = "6")]
-    coinbase: Address,
-    #[getset(set = "pub", get_mut = "pub")]
+    pub coinbase: Address,
     #[prost(uint32, tag = "7")]
-    difficulty: u32,
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    pub difficulty: u32,
     #[prost(uint32, tag = "8")]
-    chain_id: u32,
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    pub chain_id: u32,
     #[prost(uint32, tag = "9")]
-    level: u32,
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    pub level: u32,
     #[prost(uint32, tag = "10")]
-    time: u32,
-    #[getset(get_copy = "pub", set = "pub", get_mut = "pub")]
+    pub time: u32,
     #[prost(uint64, tag = "11")]
-    nonce: u64,
+    pub nonce: u64,
 }
 #[allow(clippy::too_many_arguments)]
 impl BlockHeader {
@@ -267,7 +256,7 @@ impl Block {
         self.header.level
     }
     pub fn parent_hash(&self) -> &H256 {
-        self.header.parent_hash()
+        &self.header.parent_hash
     }
 }
 
