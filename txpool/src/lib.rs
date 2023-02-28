@@ -10,7 +10,8 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 use tracing::{debug, error, info, trace, warn};
 use traits::{Blockchain, StateDB};
 use types::block::BlockHeader;

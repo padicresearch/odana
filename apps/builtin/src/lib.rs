@@ -1,4 +1,4 @@
-use primitive_types::Address;
+use primitive_types::address::Address;
 use prost::Message;
 use std::collections::BTreeMap;
 use std::sync::Arc;

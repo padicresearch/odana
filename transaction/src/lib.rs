@@ -4,7 +4,8 @@ use std::collections::BTreeSet;
 use anyhow::{anyhow, Result};
 
 use crypto::ecdsa::SecretKey;
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 
 use types::network::Network;
 use types::prelude::TransactionData;

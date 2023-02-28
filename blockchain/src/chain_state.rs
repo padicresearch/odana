@@ -6,7 +6,8 @@ use account::ROOT;
 use anyhow::{anyhow, bail, Result};
 use tokio::sync::mpsc::UnboundedSender;
 
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 use rt_vm::WasmVM;
 use state::State;
 use storage::{KVStore, Schema};
@@ -87,7 +88,7 @@ impl ChainState {
     ) -> Result<Self> {
         let state = Arc::new(State::new(state_dir)?);
         let vm = if let Some(current_head) = chain_state_storage.get_current_header()? {
-            state.reset(*current_head.state_root())?;
+            state.reset(current_head.state_root)?;
             let vm = Arc::new(WasmVM::new(block_storage.clone())?);
             for (pkn, binary) in built_in {
                 let _ = vm.install_builtin(
@@ -97,7 +98,7 @@ impl ChainState {
                     false,
                 )?;
             }
-            info!(blockhash = ?current_head.hash(), level = ?current_head.level(), "restore from blockchain state");
+            info!(blockhash = ?current_head.hash(), level = ?current_head.level, "restore from blockchain state");
             vm
         } else {
             // TODO: Clean up genesis generation to use a config file or function
@@ -132,7 +133,7 @@ impl ChainState {
             let block = Block::new(genesis, vec![]);
             block_storage.put(block)?;
             chain_state_storage.set_current_header(genesis)?;
-            info!(blockhash = ?genesis.hash(), level = ?genesis.level(), "blockchain state started from genesis");
+            info!(blockhash = ?genesis.hash(), level = ?genesis.level, "blockchain state started from genesis");
             vm
         };
 
@@ -160,7 +161,7 @@ impl ChainState {
             current_head.ok_or_else(|| anyhow!("failed to load current head, state invalid"))?;
         let first_block = blocks.peek().unwrap();
         if first_block.parent_hash().ne(&current_head.hash)
-            && current_head.raw.level() > first_block.level() - 1
+            && current_head.raw.level > first_block.level() - 1
         {
             // Reset header to common head
             let _header = first_block.header();
@@ -170,12 +171,12 @@ impl ChainState {
                 .ok_or_else(|| anyhow!("error accepting block non commit"))?;
 
             let parent_header_raw = &parent_header.raw;
-            let parent_state_root = parent_header_raw.state_root();
-            debug!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Resetting state to");
-            self.state.reset(*parent_state_root)?;
+            let parent_state_root = parent_header_raw.state_root;
+            debug!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level, "Resetting state to");
+            self.state.reset(parent_state_root)?;
             self.chain_state.set_current_header(*parent_header_raw)?;
-            info!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level(), "Rolled back chain to previous");
-            debug!(chain_head = ?current_head.hash, chain_tail = ?parent_header.hash, level = current_head.raw.level(), "Removing stale chain");
+            info!(blockhash = ?parent_header_raw.hash(), level = parent_header_raw.level, "Rolled back chain to previous");
+            debug!(chain_head = ?current_head.hash, chain_tail = ?parent_header.hash, level = current_head.raw.level, "Removing stale chain");
             // Remove current chain
             {
                 let block_storage = self.block_storage();
@@ -183,14 +184,14 @@ impl ChainState {
                 let mut remove_count = 0;
                 loop {
                     let (next, level) = match block_storage.get_header_by_hash(&head) {
-                        Ok(Some(block)) => (*block.raw.parent_hash(), block.raw.level()),
+                        Ok(Some(block)) => (block.raw.parent_hash, block.raw.level),
                         _ => break,
                     };
 
                     // Delete Head from storage
                     block_storage.delete(&head, level)?;
                     remove_count += 1;
-                    debug!(blockhash = ?head,level = current_head.raw.level(), "Deleting block");
+                    debug!(blockhash = ?head,level = current_head.raw.level, "Deleting block");
                     head = next;
 
                     if next.ne(&parent_header.hash) {
@@ -222,7 +223,7 @@ impl ChainState {
                     }
                 }
                 Err(e) => {
-                    trace!(header = ?header.hash(), parent_hash = ?format!("{}", header.parent_hash()), level = header.level(), error = ?e, "Error updating chain state");
+                    trace!(header = ?header.hash(), parent_hash = ?format!("{}", header.parent_hash), level = header.level, error = ?e, "Error updating chain state");
                     return Err(e);
                 }
             };
@@ -251,8 +252,8 @@ impl ChainState {
         let parent_header = block_storage
             .get_header_by_hash(block.parent_hash())?
             .ok_or_else(|| anyhow!("error processing block parent block not found"))?;
-        let parent_state_root = parent_header.raw.state_root();
-        let parent_state = self.state.get_sate_at(*parent_state_root)?;
+        let parent_state_root = parent_header.raw.state_root;
+        let parent_state = self.state.get_sate_at(parent_state_root)?;
         consensus.finalize(
             self.block_storage.clone(),
             &mut header,
@@ -282,14 +283,13 @@ impl ChainState {
         if block.parent_hash().eq(&current_head.hash) {
             let state = self.state();
             state.apply_txs(self.vm.clone(), block.transactions())?;
-            let _ =
-                state.credit_balance(header.coinbase(), consensus.miner_reward(header.level()))?;
+            let _ = state.credit_balance(&header.coinbase, consensus.miner_reward(header.level))?;
             state.commit()?;
             self.chain_state.set_current_header(*header)?;
             self.sender.send(LocalEventMessage::StateChanged {
                 current_head: self.current_header().unwrap().unwrap().raw,
             })?;
-            info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), tx_count = block.transactions().len(), "Applied new block");
+            info!(header = ?header.hash(), level = header.level, parent_hash = ?format!("{}", header.parent_hash), tx_count = block.transactions().len(), "Applied new block");
             repack = true;
         } else {
             let state = self.state();
@@ -298,26 +298,26 @@ impl ChainState {
             let parent_header = block_storage
                 .get_header_by_hash(block.parent_hash())?
                 .ok_or_else(|| anyhow!("error accepting block non commit"))?;
-            let parent_state_root = parent_header.raw.state_root();
+            let parent_state_root = parent_header.raw.state_root;
             let commit_state = state.apply_txs_no_commit(
                 self.vm.clone(),
-                *parent_state_root,
+                parent_state_root,
                 consensus.miner_reward(block.level()),
-                *block.header().coinbase(),
+                block.header().coinbase,
                 block.transactions(),
             )?;
             let commit_state = H256::from(commit_state);
-            if commit_state.ne(header.state_root()) {
-                warn!(header = ?header.hash(), expected_state_root = ?commit_state , block_state_root = ?header.state_root(), parent_hash = ?format!("{}", header.parent_hash()), "Rejected block with invalid state");
+            if commit_state.ne(&header.state_root) {
+                warn!(header = ?header.hash(), expected_state_root = ?commit_state , block_state_root = ?header.state_root, parent_hash = ?format!("{}", header.parent_hash), "Rejected block with invalid state");
                 bail!("Invalid or Corrupt Block")
             }
 
-            info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Accepted block No Commit");
-            if block.level() > current_head.raw.level() {
-                debug!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Resetting state");
-                self.state.reset(*header.state_root())?;
+            info!(header = ?header.hash(), level = header.level, parent_hash = ?format!("{}", header.parent_hash), "Accepted block No Commit");
+            if block.level() > current_head.raw.level {
+                debug!(header = ?header.hash(), level = header.level, parent_hash = ?format!("{}", header.parent_hash), "Resetting state");
+                self.state.reset(header.state_root)?;
                 self.chain_state.set_current_header(*header)?;
-                info!(header = ?header.hash(), level = header.level(), parent_hash = ?format!("{}", header.parent_hash()), "Chain changed, network fork");
+                info!(header = ?header.hash(), level = header.level, parent_hash = ?format!("{}", header.parent_hash), "Chain changed, network fork");
                 repack = true
             }
         }

@@ -9,7 +9,8 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use blockchain::chain_state::ChainState;
 use p2p::peer_manager::NetworkState;
-use primitive_types::{Address, U256};
+use primitive_types::address::Address;
+use primitive_types::U256;
 use tracing::{debug, info, warn};
 use traits::{Blockchain, ChainHeadReader, Consensus, StateDB, WasmVMInstance};
 use txpool::TxPool;
@@ -47,11 +48,11 @@ pub fn start_worker(
 
         let network_head = network
             .network_head()
-            .map(|block| block.level())
+            .map(|block| block.level)
             .unwrap_or_default();
         let node_head = chain
             .current_header()
-            .map(|block| block.map(|block| block.raw.level()).unwrap_or_default())
+            .map(|block| block.map(|block| block.raw.level).unwrap_or_default())
             .unwrap_or_default();
 
         if network_head > node_head {
@@ -81,42 +82,40 @@ pub fn start_worker(
 
             let node_head = chain.current_header()?.unwrap();
 
-            let network_height = network_head
-                .map(|header| header.level())
-                .unwrap_or_default();
-            let node_height = node_head.raw.level();
+            let network_height = network_head.map(|header| header.level).unwrap_or_default();
+            let node_height = node_head.raw.level;
 
             if network_height > node_height {
                 break;
             }
 
-            if U256::from(block_template.nonce()) + U256::one() > U256::from(u128::MAX) {
-                let nonce = U256::from(block_template.nonce()) + U256::one();
-                let mut mix_nonce = *block_template.mix_nonce();
+            if U256::from(block_template.nonce) + U256::one() > U256::from(u128::MAX) {
+                let nonce = U256::from(block_template.nonce) + U256::one();
+                let mut mix_nonce = block_template.mix_nonce;
                 mix_nonce += nonce;
                 let mut out = [0; 32];
                 mix_nonce.to_big_endian(&mut out);
-                block_template.set_mix_nonce(out.into());
-                block_template.set_nonce(0);
+                block_template.mix_nonce = out.into();
+                block_template.nonce = 0;
             };
-            *block_template.nonce_mut() += 1;
+            block_template.nonce += 1;
             if consensus
                 .verify_header(chain_header_reader.clone(), &block_template)
                 .is_ok()
             {
                 let hash = block_template.hash();
-                let level = block_template.level();
+                let level = block_template.level;
 
                 let node_head = chain
                     .current_header_blocking()
-                    .map(|block| block.map(|block| block.raw.level()).unwrap_or_default())
+                    .map(|block| block.map(|block| block.raw.level).unwrap_or_default())
                     .unwrap_or_default();
 
                 if node_head >= level {
                     break;
                 }
 
-                info!(level = level, blockhash = ?hash, txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash()), "⛏ mined new block");
+                info!(level = level, blockhash = ?hash, txs_count = ?txs.len(), parent_hash = ?format!("{}", block_template.parent_hash), "⛏ mined new block");
                 let block = Block::new(block_template, txs);
                 interrupt.store(RESET, Ordering::Release);
                 chain.put_chain(
@@ -156,14 +155,17 @@ fn block_template(
         None => consensus.get_genesis_header(),
         Some(header) => header.raw,
     };
-    let state = state.state_at(*parent_header.state_root())?;
+    let state = state.state_at(parent_header.state_root)?;
     let txs = pending_txs(txpool)?;
     let time = Utc::now().timestamp() as u32;
-    let mut header = BlockHeader::default();
-    header.set_level(parent_header.level() + 1);
-    header.set_parent_hash(parent_header.hash());
-    header.set_coinbase(coinbase);
-    header.set_time(time);
+    let mut header = BlockHeader {
+        level: parent_header.level + 1,
+        parent_hash: parent_header.hash(),
+        coinbase,
+        time,
+        ..Default::default()
+    };
+
     consensus.prepare_header(chain_header_reader.clone(), &mut header)?;
     consensus.finalize(chain_header_reader, &mut header, vm, state.clone(), &txs)?;
     Ok((header, txs))

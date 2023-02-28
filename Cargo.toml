@@ -33,21 +33,19 @@ members = [
     "common/tiny-bip39",
     "common/bech32",
     #apps
-    "apps/example",
     "apps/namespace-registry",
     "apps/builtin",
     #runtime
     "runtime/std",
     "runtime/framework",
+    "utils/prost-extra-derive",
+    "utils/prost-extra-build",
+    "utils/prost-extra",
     "runtime/vm",
     #utils
     "utils/wasm-builder",
     "utils/wit-codegen"
 ]
-
-[patch.crates-io]
-prost = { git = 'https://github.com/mambisi/prost', branch = "bytes-mod" }
-
 
 [workspace.dependencies]
 anyhow = "1.0.65"
@@ -58,11 +56,15 @@ thiserror = "1.0.30"
 tonic = "0.8.0"
 prost = { version = "0.11.0", default-feature = false, features = ["prost-derive"] }
 prost-build = { version = "0.11.0" }
+prost-reflect = { version = "0.10.0", default-features = false, features = ["derive"]}
+prost-reflect-build = { version = "0.10.0"}
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde = { version = "1.0.130", default-features = false, features = ["derive", "alloc"] }
 clap = { version = "3.0.13", features = ["derive"] }
 clap_lex = { version = "0.3.1" }
 wit-codegen = { path = "utils/wit-codegen" }
+prost-extra = { path = "utils/prost-extra" }
+prost-extra-build = { path = "utils/prost-extra-build" }
 hex = { path = "common/hex" }
 rune-framework = { path = "runtime/framework" }
 rune-std = { path = "runtime/std" }

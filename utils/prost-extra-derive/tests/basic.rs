@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-use primitive_types::address::Address;
-use primitive_types::H256;
-use rune_framework::io::{Blake2bHasher, StorageMap};
+use prost::Message;
+use prost_extra::MessageExt;
 
-pub(crate) struct RegisteredNameSpaces;
+#[derive(Message, MessageExt)]
+#[prost_extra(message_name = "package.MyMessage")]
+pub struct MyMessage {}
 
-impl StorageMap<Blake2bHasher, H256, Address> for RegisteredNameSpaces {
-    fn storage_prefix() -> &'static [u8] {
-        b"RegisteredNameSpaces"
-    }
+fn main() {
+    assert_eq!(MyMessage {}.full_name(), "package.MyMessage");
 }

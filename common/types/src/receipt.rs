@@ -1,5 +1,6 @@
-use primitive_types::{Address, H256};
+use primitive_types::H256;
 
+use primitive_types::address::Address;
 use serde::{Deserialize, Serialize};
 
 pub type Log = Vec<u8>;

@@ -5,7 +5,7 @@ use crate::internal::storage::Storage;
 use crate::internal::syscall::Syscall;
 use anyhow::anyhow;
 use crypto::ecdsa::{PublicKey, SecretKey};
-use primitive_types::Address;
+use primitive_types::address::Address;
 use smt::SparseMerkleTree;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -102,7 +102,7 @@ impl Syscall for ExecutionEnvironment {
 
     fn transfer(&mut self, to: Vec<u8>, amount: u64) -> anyhow::Result<bool> {
         //TODO: very unsafe
-        let to = Address::from_slice(&to).map_err(|_| anyhow!("invalid address"))?;
+        let to = Address::from_slice(&to);
         let from_acc = self.get_account_state(self.app_address);
         anyhow::ensure!((from_acc.free_balance as i128 - amount as i128) > 0);
         from_acc.free_balance -= amount;

@@ -6,7 +6,8 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use anyhow::{anyhow, Result};
 use bincode::config::{BigEndian, Fixint, NoLimit, SkipFixedArrayLength};
-use primitive_types::{Address, H160, H256};
+use primitive_types::address::Address;
+use primitive_types::{H160, H256};
 
 pub trait ConsensusCodec: Sized {
     fn consensus_encode(self) -> Vec<u8>;
@@ -136,7 +137,7 @@ impl Encodable for Address {
 
 impl Decodable for Address {
     fn decode(buf: &[u8]) -> Result<Self> {
-        Address::from_slice(buf).map_err(|_| anyhow!("error decoding address"))
+        Ok(Address::from_slice(buf))
     }
 }
 

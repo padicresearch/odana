@@ -49,7 +49,7 @@ impl ChainService for ChainServiceImpl {
         let ch = self.current_head(request).await?;
         let inner = ch.into_inner();
         Ok(Response::new(GetBlockNumberResponse {
-            level: inner.header.map(|head| head.level()).unwrap_or_default(),
+            level: inner.header.map(|head| head.level).unwrap_or_default(),
         }))
     }
 
@@ -100,7 +100,7 @@ impl ChainService for ChainServiceImpl {
             genesis_hash: Some(self.blockchain.genesis().hash),
             difficulty: current_head.difficulty().into(),
             network_difficulty: 26,
-            blocks: current_head.level(),
+            blocks: current_head.level,
         };
         Ok(Response::new(chain))
     }

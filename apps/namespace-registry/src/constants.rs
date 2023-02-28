@@ -15,13 +15,9 @@
  */
 
 use primitive_types::address::Address;
-use primitive_types::H256;
-use rune_framework::io::{Blake2bHasher, StorageMap};
 
-pub(crate) struct RegisteredNameSpaces;
-
-impl StorageMap<Blake2bHasher, H256, Address> for RegisteredNameSpaces {
-    fn storage_prefix() -> &'static [u8] {
-        b"RegisteredNameSpaces"
-    }
-}
+pub const ADMIN: Address = Address([
+    111, 100, 97, 110, 120, 49, 107, 122, 50, 55, 109, 112, 106, 104, 50, 113, 110, 106, 54, 56,
+    112, 115, 97, 110, 54, 51, 103, 109, 116, 119, 51, 113, 52, 54, 122, 104, 97, 50, 119, 102,
+    117, 99, 100, 50,
+]);

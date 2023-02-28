@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-use primitive_types::address::Address;
-use primitive_types::H256;
-use rune_framework::io::{Blake2bHasher, StorageMap};
+#[test]
+fn tests() {
+    let tests = trybuild::TestCases::new();
 
-pub(crate) struct RegisteredNameSpaces;
-
-impl StorageMap<Blake2bHasher, H256, Address> for RegisteredNameSpaces {
-    fn storage_prefix() -> &'static [u8] {
-        b"RegisteredNameSpaces"
-    }
+    tests.pass("tests/basic.rs");
 }

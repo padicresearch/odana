@@ -90,12 +90,12 @@ impl SyncService {
     fn handle_import_blocks(&mut self, msg: &BlocksMessage) -> Result<()> {
         let blocks_to_import = &msg.blocks;
         let node_head = self.chain.current_header_blocking().unwrap();
-        let node_level = node_head.map(|block| block.raw.level()).unwrap();
+        let node_level = node_head.map(|block| block.raw.level).unwrap();
 
         if blocks_to_import.is_empty() {
-            if node_level >= self.network_tip.level() {
+            if node_level >= self.network_tip.level {
                 self.sync_mode = Arc::new(SyncMode::Normal);
-            } else if node_level < self.network_tip.level() {
+            } else if node_level < self.network_tip.level {
                 // Tipped peer is offline or Network is at a fork
                 // Get the new tip peer and sync from it
                 let new_bootstrap_peer = &self.highest_peer;
@@ -128,7 +128,7 @@ impl SyncService {
                     |_| false,
                     |block| {
                         block
-                            .map(|block| state_db.get_sate_at(*block.header().state_root()).is_ok())
+                            .map(|block| state_db.get_sate_at(block.header().state_root).is_ok())
                             .unwrap_or(false)
                     },
                 )
@@ -143,19 +143,19 @@ impl SyncService {
             )?;
             self.sync_mode = Arc::new(SyncMode::Forward);
             let node_head = self.chain.current_header().unwrap();
-            let node_level = node_head.map(|block| block.raw.level()).unwrap();
+            let node_level = node_head.map(|block| block.raw.level).unwrap();
 
             let (_, sync_point) = self.tip_before_sync.as_ref().unwrap();
 
-            if sync_point.level() > node_level {
+            if sync_point.level > node_level {
                 self.last_request_index = node_level + 1;
                 self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                     self.last_request_index,
                     24,
                 )));
-            } else if sync_point.level() <= node_level {
+            } else if sync_point.level <= node_level {
                 self.tip_before_sync = None;
-                if node_level < self.network_tip.level() {
+                if node_level < self.network_tip.level {
                     self.last_request_index = node_level + 1;
                     self.tip_before_sync = Some((self.highest_peer.clone(), self.network_tip));
                     self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
@@ -226,12 +226,12 @@ impl SyncService {
             let current_header = self.chain.current_header_blocking()?;
             let current_header = current_header.unwrap();
             let tip = tip.unwrap_or(current_header.raw);
-            let node_height = current_header.raw.level();
+            let node_height = current_header.raw.level;
             self.network_tip = tip;
             self.highest_peer = peer_id.clone();
-            if self.tip_before_sync.is_none() && tip.level() > node_height {
+            if self.tip_before_sync.is_none() && tip.level > node_height {
                 // TODO; stop mining
-                self.last_request_index = tip.level();
+                self.last_request_index = tip.level;
                 self.tip_before_sync = Some((peer_id, tip));
                 self.send_peer_message(Msg::FindBlocks(FindBlocksMessage::new(
                     node_height + 1,
@@ -253,7 +253,7 @@ impl SyncService {
         sync_mode: Arc<SyncMode>,
     ) -> Self {
         let node_height = chain.current_header().unwrap();
-        let node_height = node_height.map(|block| block.raw.level()).unwrap();
+        let node_height = node_height.map(|block| block.raw.level).unwrap();
         let network_tip = consensus.get_genesis_header();
         Self {
             chain,

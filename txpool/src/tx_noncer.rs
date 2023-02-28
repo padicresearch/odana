@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use dashmap::DashMap;
-use primitive_types::Address;
+use primitive_types::address::Address;
 
 use traits::StateDB;
 

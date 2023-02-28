@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use anyhow::Result;
 
-use primitive_types::{Address, Compact, H160, H256};
+use primitive_types::address::Address;
+use primitive_types::{Compact, H160, H256};
 use smt::SparseMerkleTree;
 use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
@@ -10,7 +11,7 @@ use types::network::Network;
 
 use types::app::AppStateKey;
 use types::tx::{ApplicationCallTx, CreateApplicationTx, SignedTransaction};
-use types::{Changelist, Hash};
+use types::Changelist;
 
 pub trait Blockchain: ChainReader {
     fn get_current_state(&self) -> Result<Arc<dyn StateDB>>;

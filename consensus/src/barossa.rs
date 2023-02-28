@@ -339,9 +339,9 @@ impl Consensus for BarossaProtocol {
             .get_header(&header.parent_hash, header.level - 1)?
             .ok_or(Error::ParentBlockNotFound)?;
         header.chain_id = self.network.chain_id();
-        header.difficulty =
-            self.work_required(parent.hash, header.time, header.level + 1, chain)
-                .into();
+        header.difficulty = self
+            .work_required(parent.hash, header.time, header.level + 1, chain)
+            .into();
         Ok(())
     }
 
@@ -388,12 +388,7 @@ impl Consensus for BarossaProtocol {
         let parent_header = chain
             .get_header_by_hash(parent)?
             .ok_or(Error::ParentBlockNotFound)?;
-        Ok(self.work_required(
-            parent_header.hash,
-            time,
-            parent_header.raw.level + 1,
-            chain,
-        ))
+        Ok(self.work_required(parent_header.hash, time, parent_header.raw.level + 1, chain))
     }
 
     fn is_genesis(&self, _header: &BlockHeader) -> bool {

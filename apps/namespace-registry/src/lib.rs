@@ -4,25 +4,20 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub const PACKAGE_NAME: &'static str = "network.odax.namespace.registry";
 
+pub mod constants;
 mod genesis;
 mod store;
 
+use crate::constants::ADMIN;
 use crate::genesis::restricted_namespaces;
 use crate::store::RegisteredNameSpaces;
 use crate::types::call::Data;
 use crate::types::GetOwnerResponse;
-use core::str::FromStr;
-use once_cell::sync::Lazy;
-use primitive_types::Address;
-use prost_reflect::DescriptorPool;
 use rune_framework::context::Context;
 use rune_framework::io::StorageMap;
 use rune_framework::*;
 
 const DESCRIPTOR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/file_descriptor_set.bin"));
-
-static DESCRIPTOR_POOL: Lazy<DescriptorPool> =
-    Lazy::new(|| DescriptorPool::decode(DESCRIPTOR).unwrap());
 
 #[allow(unused_imports)]
 #[allow(dead_code)]
@@ -34,16 +29,6 @@ pub mod types {
 }
 
 pub struct PackageNameRegistry;
-
-pub const ADMIN: Address = Address([
-    111, 100, 97, 110, 120, 49, 107, 122, 50, 55, 109, 112, 106, 104, 50, 113, 110, 106, 54, 56,
-    112, 115, 97, 110, 54, 51, 103, 109, 116, 119, 51, 113, 52, 54, 122, 104, 97, 50, 119, 102,
-    117, 99, 100, 50,
-]);
-
-pub fn admin() -> Address {
-    Address::from_str("odanx1kz27mpjh2qnj68psan63gmtw3q46zha2wfucd2").unwrap()
-}
 
 impl RuntimeApplication for PackageNameRegistry {
     type Call = types::Call;

@@ -35,13 +35,13 @@ mod internal {
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 use crate::context::Context;
 use prost::Message;
-use prost_reflect::ReflectMessage;
+use prost_extra::MessageExt;
 use rune_std::prelude::*;
 
 pub trait RuntimeApplication {
     type Call: prost::Message + Default;
     type Query: prost::Message + Default;
-    type QueryResponse: prost::Message + Default + prost_reflect::ReflectMessage;
+    type QueryResponse: prost_extra::MessageExt + Default;
 
     /// Initializes the runtime application.
     fn genesis(context: Context) -> anyhow::Result<()>;
@@ -69,13 +69,13 @@ pub trait RuntimeApplication {
 
 pub mod context {
     use crate::execution_context;
-    use primitive_types::Address;
+    use primitive_types::address::Address;
 
     pub struct Context;
 
     impl Context {
         pub fn sender(&self) -> Address {
-            Address::from_slice(execution_context::sender().as_slice()).unwrap_or_default()
+            Address::from_slice(execution_context::sender().as_slice())
         }
 
         pub fn value(&self) -> u64 {
@@ -91,7 +91,8 @@ pub mod context {
 pub mod syscall {
     use crate::internal;
 
-    use primitive_types::{Address, H256, H512};
+    use primitive_types::address::Address;
+    use primitive_types::{H256, H512};
 
     // Returns the block hash at a specific level
     pub fn block_hash(level: u32) -> H256 {
@@ -100,7 +101,7 @@ pub mod syscall {
 
     // Returns the address associated with a specific public key
     pub fn address_from_pk(pk: &H256) -> Address {
-        Address::from_slice(&internal::syscall::address_from_pk(pk.as_bytes())).unwrap()
+        Address::from_slice(&internal::syscall::address_from_pk(pk.as_bytes()))
     }
 
     // Generates a new keypair and returns it as a tuple of private and public keys
@@ -114,7 +115,7 @@ pub mod syscall {
 
     // Generates a new native address given a seed
     pub fn generate_native_address(seed: &[u8]) -> Address {
-        Address::from_slice(&internal::syscall::generate_native_address(seed)).unwrap()
+        Address::from_slice(&internal::syscall::generate_native_address(seed))
     }
 
     // Sign a message with a specific private key and returns the signature
@@ -156,7 +157,7 @@ where
     fn query(query: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
         let response = T::query(T::Query::decode(query.as_slice()).expect("error parsing query"));
         (
-            response.descriptor().full_name().as_bytes().to_vec(),
+            response.full_name().as_bytes().to_vec(),
             response.encode_to_vec(),
         )
     }
