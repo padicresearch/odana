@@ -60,7 +60,7 @@ pub struct TreeDB<K, V, H = DefaultTreeHasher> {
     staging: Arc<RwLock<SparseMerkleTree<MemoryStorage, H>>>,
     options: Options,
     hasher: H,
-    _data: PhantomData<(K, V)>,
+    _data: PhantomData<(K, V, H)>,
 }
 
 impl<K, V> TreeDB<K, V, DefaultTreeHasher>

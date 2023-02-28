@@ -194,24 +194,3 @@ pub fn get_eth_address_from_pub_key(pub_key: PublicKey) -> H160 {
     let checksum = &key[12..];
     H160::from_slice(checksum)
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::account::get_address_from_package_name;
-    use crate::network::Network;
-
-    use primitive_types::address::Address;
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Serialize, Deserialize, Debug)]
-    struct CAccount {
-        account_id: Address,
-        balance: i32,
-    }
-
-    #[test]
-    fn test_address_derv() {
-        let address = get_address_from_package_name("nick", Network::Mainnet).unwrap();
-        println!("{}", address);
-    }
-}

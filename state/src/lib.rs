@@ -23,7 +23,7 @@ mod kvdb;
 mod persistent;
 mod schema;
 mod store;
-mod tree;
+pub(crate) mod tree;
 
 const ACCOUNT_DB_NAME: &str = "accs";
 const APPDATA_DB_NAME: &str = "data";
@@ -107,7 +107,7 @@ impl StateDB for State {
             bail!("app not found")
         };
 
-        let Some(app_root) = app_account_state.app_state.map(|root| root.root_hash()) else {
+        let Some(app_root) = app_account_state.app_state.map(|root| root.root_hash) else {
             bail!("app not initialized")
         };
 
@@ -130,7 +130,7 @@ impl StateDB for State {
             bail!("address is not an application address")
         };
         self.appsource
-            .get(&app_state.code_hash())
+            .get(&app_state.code_hash)
             .map(|bins| bins.binary)
     }
 
@@ -143,7 +143,7 @@ impl StateDB for State {
             bail!("address is not an application address")
         };
         self.appsource
-            .get(&app_state.code_hash())
+            .get(&app_state.code_hash)
             .map(|bins| bins.descriptor)
     }
 }
@@ -215,7 +215,7 @@ impl State {
                     .get_mut(&app_address)
                     .and_then(|account_state| account_state.app_state.as_mut())
                     .ok_or_else(|| anyhow::anyhow!("app state not found"))?;
-                app_state.set_root_hash(changelist.storage.root());
+                app_state.root_hash = changelist.storage.root();
                 self.appdata.put(
                     AppStateKey(app_address, changelist.storage.root()),
                     changelist.storage,

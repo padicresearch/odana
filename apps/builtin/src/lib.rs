@@ -81,7 +81,7 @@ pub fn register_namespace(
 
     let namespace_registry_changes = vm.execute_app_tx(
         state_db.clone(),
-        namespace_registry::ADMIN,
+        namespace_registry::constants::ADMIN,
         0,
         &ApplicationCallTx {
             app_id: namespace_app_id,
@@ -97,7 +97,7 @@ pub fn register_namespace(
         .get_mut(&namespace_app_id)
         .and_then(|account_state| account_state.app_state.as_mut())
         .ok_or_else(|| anyhow::anyhow!("app state not found"))?;
-    app_state.set_root_hash(namespace_registry_changes.storage.root());
+    app_state.root_hash = namespace_registry_changes.storage.root();
 
     state_db.set_app_data(
         AppStateKey(namespace_app_id, namespace_registry_changes.storage.root()),

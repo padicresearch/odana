@@ -20,7 +20,7 @@ chrono = "0.4.19"
 hex = { path = "../common/hex" }
 commitlog = "0.2"
 primitive-types = { path = "../common/primitive-types" }
-tracing = { path = "../common/tracing" }
+tracing = { workspace = true }
 transaction = { path = "../transaction" }
 builtin = { path = "../apps/builtin" }
 smt = { path = "../smt" }

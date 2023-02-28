@@ -14,7 +14,7 @@ p2p = { path = "../p2p" }
 anyhow = { workspace = true }
 serde_json = { workspace = true }
 chrono = "0.4"
-tracing = { path = "../common/tracing" }
+tracing =  { workspace = true }
 account = { path = "../account" }
 tempdir = "0.3.7"
 tokio = { version = "1", features = ["full"] }

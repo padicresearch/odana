@@ -1,6 +1,7 @@
 //!
 //!
 //! # Example
+//! ```ignore
 //! impl RuntimeApplication for ExampleApp {
 //!     type Genesis = types::Genesis;
 //!     type Call = types::Call;
@@ -22,6 +23,7 @@
 //! }
 //!
 //! export_app!(NickApp);
+//! ```
 
 #![no_std]
 

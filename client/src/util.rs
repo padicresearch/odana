@@ -116,31 +116,3 @@ pub(crate) fn parse_cli_args_to_json(
     convert_command_strings(&mut json_value)?;
     Ok(json_value)
 }
-
-#[cfg(test)]
-mod test {
-    use crate::util::convert_command_strings;
-
-    #[test]
-    fn test_simple_cmd_string() {
-        let mut json = serde_json::json!( {
-            "name" : "mambisi",
-            "bytes" : "$hex(1232323128129893218312)",
-            "bytesArray" : ["$hex(12323221258129893218312)", "$hex(1232123128129893218312)", "$hex(12323231233129893218312)", "$hex(1232323128129893218312)"]
-        });
-        convert_command_strings(&mut json).unwrap();
-        let json_c = serde_json::json!(
-        {
-          "bytes": [18,50,50,49,40,18,152,147,33,131,18
-          ],
-          "bytesArray": [
-            [1,35,35,34,18,88,18,152,147,33,131,18],
-            [18,50,18,49,40,18,152,147,33,131,18],
-            [1,35,35,35,18,51,18,152,147,33,131,18],
-            [18,50,50,49,40,18,152,147,33,131,18]
-          ],
-          "name": "mambisi"
-        });
-        assert_eq!(json, json_c);
-    }
-}

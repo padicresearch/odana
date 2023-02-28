@@ -27,7 +27,6 @@ members = [
     "common/hex",
     "common/fixed-hash",
     "common/types",
-    "common/tracing",
     "common/rlp",
     "common/rlp-derive",
     "common/tiny-bip39",
@@ -54,6 +53,8 @@ rocksdb = { version = "0.17.0" }
 tokio = { version = "1", features = ["full"] }
 thiserror = "1.0.30"
 tonic = "0.8.0"
+tracing = "0.1"
+tracing-subscriber = "0.2"
 prost = { version = "0.11.0", default-feature = false, features = ["prost-derive"] }
 prost-build = { version = "0.11.0" }
 prost-reflect = { version = "0.10.0", default-features = false, features = ["derive"]}

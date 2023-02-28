@@ -436,6 +436,7 @@ mod tests {
     use types::block::{BlockHeader, IndexedBlockHeader};
 
     use crate::barossa::{BarossaProtocol, Network};
+    use crate::constants::{RETARGETING_INTERVAL, TARGET_SPACING_SECONDS};
 
     #[derive(Default)]
     struct MemoryBlockHeaderReader {
@@ -512,35 +513,38 @@ mod tests {
         ));
 
         // Pile up some blocks every 10 mins to establish some history.
-        for height in 1..2050 {
+        for height in 1..10251 {
             let mut header = header_provider
                 .get_header_by_level(height - 1)
                 .unwrap()
                 .unwrap();
 
-            header.raw.set_parent_hash(header.hash);
-            header.raw.set_time(header.raw.time() + 600);
-            header.raw.set_time(height);
+            header.raw.parent_hash = header.hash;
+            header.raw.time = header.raw.time + TARGET_SPACING_SECONDS;
+            header.raw.level = height;
             header_provider.insert(header.raw);
         }
 
         // Difficulty stays the same as long as we produce a block every 10 mins.
-        let header = header_provider.get_header_by_level(2049).unwrap().unwrap();
+        let header = header_provider
+            .get_header_by_level(10251 - 1)
+            .unwrap()
+            .unwrap();
         let current_bits = barossa.work_required(
             header.hash,
-            Utc::now().timestamp() as u32,
-            header.raw.level() + 1,
+            0,
+            header.raw.level + 2,
             header_provider.clone(),
         );
-        for height in 2050..2060 {
+        for height in 10251..10261 {
             let mut header = header_provider
                 .get_header_by_level(height - 1)
                 .unwrap()
                 .unwrap();
-            header.raw.set_parent_hash(header.hash);
-            header.raw.set_time(header.raw.time() + 600);
-            header.raw.set_difficulty(current_bits.into());
-            header.raw.set_level(header.raw.level() + 1);
+            header.raw.parent_hash = header.hash;
+            header.raw.time = header.raw.time + TARGET_SPACING_SECONDS;
+            header.raw.difficulty = current_bits.into();
+            header.raw.level = header.raw.level + 1;
             header_provider.insert(header.raw);
             let parent = header_provider
                 .get_header_by_level(height)
@@ -553,25 +557,25 @@ mod tests {
 
         // Make sure we skip over blocks that are out of wack. To do so, we produce
         // a block that is far in the future
-        let mut header = header_provider.get_header_by_level(2059).unwrap().unwrap();
-        *header.raw.parent_hash_mut() = header.hash;
-        *header.raw.time_mut() = header.raw.time() + 6000;
-        *header.raw.difficulty_mut() = current_bits.into();
+        let mut header = header_provider.get_header_by_level(10250).unwrap().unwrap();
+        header.raw.parent_hash = header.hash;
+        header.raw.time = header.raw.time + 6000;
+        header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
         let calculated_bits =
-            barossa.work_required_adjusted(header, 0, 2061, header_provider.clone());
+            barossa.work_required_adjusted(header, 0, 10262, header_provider.clone());
         debug_assert_eq!(calculated_bits, current_bits);
 
         // .. and then produce a block with the expected timestamp.
-        let mut header = header_provider.get_header_by_level(2060).unwrap().unwrap();
-        *header.raw.parent_hash_mut() = header.hash;
-        *header.raw.time_mut() = header.raw.time() + 2 * 600 - 6000;
-        *header.raw.difficulty_mut() = current_bits.into();
+        let mut header = header_provider.get_header_by_level(10251).unwrap().unwrap();
+        header.raw.parent_hash = header.hash;
+        header.raw.time = header.raw.time + 2 * 600 - 6000;
+        header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
         let calculated_bits = barossa.work_required_adjusted(
-            header_provider.get_header_by_level(2060).unwrap().unwrap(),
+            header_provider.get_header_by_level(10251).unwrap().unwrap(),
             0,
-            2061,
+            10251 + 1,
             header_provider.clone(),
         );
         debug_assert_eq!(calculated_bits, current_bits);
