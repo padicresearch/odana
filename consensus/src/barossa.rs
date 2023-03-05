@@ -99,9 +99,9 @@ impl BarossaProtocol {
             .expect("self.height != 0 && self.height % RETARGETING_INTERVAL == 0; qed");
 
         // timestamp of block(height - RETARGETING_INTERVAL)
-        let retarget_timestamp = retarget_header.raw.time();
+        let retarget_timestamp = retarget_header.raw.time;
         // timestamp of parent block
-        let last_timestamp = parent_header.raw.time();
+        let last_timestamp = parent_header.raw.time;
         // bits of last block
         let last_bits = parent_header.raw.difficulty();
 
@@ -137,7 +137,7 @@ impl BarossaProtocol {
             .get_header_by_hash(&block_ref)
             .unwrap()
             .expect("height != 0; qed");
-        let max_time_gap = parent_header.raw.time() + DOUBLE_SPACING_SECONDS;
+        let max_time_gap = parent_header.raw.time + DOUBLE_SPACING_SECONDS;
         let max_bits = self.network.max_difficulty_compact();
         if time > max_time_gap {
             return max_bits;
@@ -152,7 +152,7 @@ impl BarossaProtocol {
                 }
             };
             bits.push(previous_header.raw.difficulty());
-            block_ref = *previous_header.raw.parent_hash();
+            block_ref = previous_header.raw.parent_hash;
         }
 
         for (index, bit) in bits.into_iter().enumerate() {
@@ -180,21 +180,21 @@ impl BarossaProtocol {
         ) -> IndexedBlockHeader {
             let reason = "header.level >= RETARGETNG_INTERVAL; retargeting_interval > 2; qed";
             let mut header1 = chain
-                .get_header_by_hash(header2.raw.parent_hash())
+                .get_header_by_hash(&header2.raw.parent_hash)
                 .unwrap()
                 .expect(reason);
             let mut header0 = chain
-                .get_header_by_hash(header1.raw.parent_hash())
+                .get_header_by_hash(&header1.raw.parent_hash)
                 .unwrap()
                 .expect(reason);
 
-            if header0.raw.time() > header2.raw.time() {
+            if header0.raw.time > header2.raw.time {
                 std::mem::swap(&mut header0, &mut header2);
             }
-            if header0.raw.time() > header1.raw.time() {
+            if header0.raw.time > header1.raw.time {
                 std::mem::swap(&mut header0, &mut header1);
             }
-            if header1.raw.time() > header2.raw.time() {
+            if header1.raw.time > header2.raw.time {
                 std::mem::swap(&mut header1, &mut header2);
             }
 
@@ -219,13 +219,13 @@ impl BarossaProtocol {
         ) -> U256 {
             debug_assert!(last.hash != first);
             let mut chain_work: U256 = block_proof(last);
-            let mut prev_hash = *last.raw.parent_hash();
+            let mut prev_hash = last.raw.parent_hash;
             loop {
                 let header = chain.get_header_by_hash(&prev_hash).unwrap()
                     .expect("last header is on main chain; first is at level last.level - 144; it is on main chain; qed");
 
                 chain_work += block_proof(&header);
-                prev_hash = *header.raw.parent_hash();
+                prev_hash = header.raw.parent_hash;
                 if prev_hash == first {
                     return chain_work;
                 }
@@ -248,8 +248,8 @@ impl BarossaProtocol {
 
             // In order to avoid difficulty cliffs, we bound the amplitude of the
             // adjustement we are going to do.
-            debug_assert!(last_header.raw.time() > first_header.raw.time());
-            let mut actual_timespan = last_header.raw.time() - first_header.raw.time();
+            debug_assert!(last_header.raw.time > first_header.raw.time);
+            let mut actual_timespan = last_header.raw.time - first_header.raw.time;
             if actual_timespan > 288 * TARGET_SPACING_SECONDS {
                 actual_timespan = 288 * TARGET_SPACING_SECONDS;
             } else if actual_timespan < 72 * TARGET_SPACING_SECONDS {
@@ -272,7 +272,7 @@ impl BarossaProtocol {
         // mining of a min-difficulty block.
         let max_bits: Compact = Compact::from_u256(self.network.max_difficulty());
         if self.network == Network::Testnet {
-            let max_time_gap = parent_header.raw.time() + DOUBLE_SPACING_SECONDS;
+            let max_time_gap = parent_header.raw.time + DOUBLE_SPACING_SECONDS;
             if time > max_time_gap {
                 return max_bits;
             }
@@ -312,11 +312,11 @@ impl Consensus for BarossaProtocol {
     ) -> anyhow::Result<()> {
         let current_time = chrono::Utc::now().timestamp();
         let _ = chain
-            .get_header(header.parent_hash(), header.level() - 1)?
+            .get_header(&header.parent_hash, header.level - 1)?
             .ok_or(Error::ParentBlockNotFound)?;
         // Check timestamp
         anyhow::ensure!(
-            (header.time() as i64) < BLOCK_MAX_FUTURE + current_time,
+            (header.time as i64) < BLOCK_MAX_FUTURE + current_time,
             "future block timestamp"
         );
         anyhow::ensure!(
@@ -336,13 +336,12 @@ impl Consensus for BarossaProtocol {
         header: &mut BlockHeader,
     ) -> anyhow::Result<()> {
         let parent = chain
-            .get_header(header.parent_hash(), header.level() - 1)?
+            .get_header(&header.parent_hash, header.level - 1)?
             .ok_or(Error::ParentBlockNotFound)?;
-        header.set_chain_id(self.network.chain_id());
-        header.set_difficulty(
-            self.work_required(parent.hash, header.time(), header.level() + 1, chain)
-                .into(),
-        );
+        header.chain_id = self.network.chain_id();
+        header.difficulty = self
+            .work_required(parent.hash, header.time, header.level + 1, chain)
+            .into();
         Ok(())
     }
 
@@ -359,11 +358,11 @@ impl Consensus for BarossaProtocol {
             merkle.update(tx.hash(), tx.hash())?;
         }
         state.apply_txs(vm, txs)?;
-        let _ = state.credit_balance(header.coinbase(), self.miner_reward(header.level()))?;
+        let _ = state.credit_balance(&header.coinbase, self.miner_reward(header.level))?;
         state.commit()?;
 
-        header.set_state_root(H256::from(state.root()));
-        header.set_tx_root(merkle.root());
+        header.state_root = state.root();
+        header.tx_root = merkle.root();
         Ok(())
     }
 
@@ -389,12 +388,7 @@ impl Consensus for BarossaProtocol {
         let parent_header = chain
             .get_header_by_hash(parent)?
             .ok_or(Error::ParentBlockNotFound)?;
-        Ok(self.work_required(
-            parent_header.hash,
-            time,
-            parent_header.raw.level() + 1,
-            chain,
-        ))
+        Ok(self.work_required(parent_header.hash, time, parent_header.raw.level + 1, chain))
     }
 
     fn is_genesis(&self, _header: &BlockHeader) -> bool {
@@ -437,11 +431,12 @@ mod tests {
 
     use chrono::Utc;
 
-    use primitive_types::{Compact, ADDRESS_LEN, H256};
+    use primitive_types::{Compact, ADDRESS_LEN, H256, U256};
     use traits::{ChainHeadReader, Consensus};
     use types::block::{BlockHeader, IndexedBlockHeader};
 
     use crate::barossa::{BarossaProtocol, Network};
+    use crate::constants::{RETARGETING_INTERVAL, TARGET_SPACING_SECONDS};
 
     #[derive(Default)]
     struct MemoryBlockHeaderReader {
@@ -518,35 +513,38 @@ mod tests {
         ));
 
         // Pile up some blocks every 10 mins to establish some history.
-        for height in 1..2050 {
+        for height in 1..10251 {
             let mut header = header_provider
                 .get_header_by_level(height - 1)
                 .unwrap()
                 .unwrap();
 
-            header.raw.set_parent_hash(header.hash);
-            header.raw.set_time(header.raw.time() + 600);
-            header.raw.set_time(height);
+            header.raw.parent_hash = header.hash;
+            header.raw.time = header.raw.time + 120;
+            header.raw.level = height;
             header_provider.insert(header.raw);
         }
 
         // Difficulty stays the same as long as we produce a block every 10 mins.
-        let header = header_provider.get_header_by_level(2049).unwrap().unwrap();
+        let header = header_provider
+            .get_header_by_level(10251 - 1)
+            .unwrap()
+            .unwrap();
         let current_bits = barossa.work_required(
             header.hash,
-            Utc::now().timestamp() as u32,
-            header.raw.level() + 1,
+            0,
+            header.raw.level + 1,
             header_provider.clone(),
         );
-        for height in 2050..2060 {
+        for height in 10251..10269 {
             let mut header = header_provider
                 .get_header_by_level(height - 1)
                 .unwrap()
                 .unwrap();
-            header.raw.set_parent_hash(header.hash);
-            header.raw.set_time(header.raw.time() + 600);
-            header.raw.set_difficulty(current_bits.into());
-            header.raw.set_level(header.raw.level() + 1);
+            header.raw.parent_hash = header.hash;
+            header.raw.time = header.raw.time + 120;
+            header.raw.difficulty = current_bits.into();
+            header.raw.level = header.raw.level + 1;
             header_provider.insert(header.raw);
             let parent = header_provider
                 .get_header_by_level(height)
@@ -559,182 +557,89 @@ mod tests {
 
         // Make sure we skip over blocks that are out of wack. To do so, we produce
         // a block that is far in the future
-        let mut header = header_provider.get_header_by_level(2059).unwrap().unwrap();
-        *header.raw.parent_hash_mut() = header.hash;
-        *header.raw.time_mut() = header.raw.time() + 6000;
-        *header.raw.difficulty_mut() = current_bits.into();
+        let mut header = header_provider.get_header_by_level(10268).unwrap().unwrap();
+        header.raw.parent_hash = header.hash;
+        header.raw.time = header.raw.time + 1200;
+        header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
         let calculated_bits =
-            barossa.work_required_adjusted(header, 0, 2061, header_provider.clone());
+            barossa.work_required_adjusted(header, 0, 10269, header_provider.clone());
         debug_assert_eq!(calculated_bits, current_bits);
 
         // .. and then produce a block with the expected timestamp.
-        let mut header = header_provider.get_header_by_level(2060).unwrap().unwrap();
-        *header.raw.parent_hash_mut() = header.hash;
-        *header.raw.time_mut() = header.raw.time() + 2 * 600 - 6000;
-        *header.raw.difficulty_mut() = current_bits.into();
+        let mut header = header_provider.get_header_by_level(10269).unwrap().unwrap();
+        header.raw.parent_hash = header.hash;
+        header.raw.time = header.raw.time + 2 * 120 - 1200;
+        header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
         let calculated_bits = barossa.work_required_adjusted(
-            header_provider.get_header_by_level(2060).unwrap().unwrap(),
+            header_provider.get_header_by_level(10268).unwrap().unwrap(),
             0,
-            2061,
+            10265,
             header_provider.clone(),
         );
         debug_assert_eq!(calculated_bits, current_bits);
 
-        // // The system should continue unaffected by the block with a bogous timestamps.
-        // for height in 2062..2082 {
-        //     let mut header = header_provider.block_header((height - 1).into()).unwrap();
-        //     header.raw.previous_header_hash = header.hash;
-        //     header.raw.time = header.raw.time + 600;
-        //     header.raw.bits = current_bits;
-        //     header_provider.insert(header.raw);
-        //
-        //     let calculated_bits = work_required_bitcoin_cash_adjusted(header_provider.block_header(height.into()).unwrap().into(),
-        //                                                               0, height + 1, &header_provider, &uahf_consensus);
-        //     debug_assert_eq!(calculated_bits, current_bits);
-        // }
-        //
-        // // We start emitting blocks slightly faster. The first block has no impact.
-        // let mut header = header_provider.block_header(2081.into()).unwrap();
-        // header.raw.previous_header_hash = header.hash;
-        // header.raw.time = header.raw.time + 550;
-        // header.raw.bits = current_bits;
-        // header_provider.insert(header.raw);
-        // let calculated_bits = work_required_bitcoin_cash_adjusted(header_provider.block_header(2082.into()).unwrap().into(),
-        //                                                           0, 2083, &header_provider, &uahf_consensus);
-        // debug_assert_eq!(calculated_bits, current_bits);
-        //
-        // // Now we should see difficulty increase slowly.
-        // let mut current_bits = current_bits;
-        // for height in 2083..2093 {
-        //     let mut header = header_provider.block_header((height - 1).into()).unwrap();
-        //     header.raw.previous_header_hash = header.hash;
-        //     header.raw.time = header.raw.time + 550;
-        //     header.raw.bits = current_bits;
-        //     header_provider.insert(header.raw);
-        //
-        //     let calculated_bits = work_required_bitcoin_cash_adjusted(header_provider.block_header(height.into()).unwrap().into(),
-        //                                                               0, height + 1, &header_provider, &uahf_consensus);
-        //
-        //     let current_work: U256 = current_bits.into();
-        //     let calculated_work: U256 = calculated_bits.into();
-        //     debug_assert!(calculated_work < current_work);
-        //     debug_assert!((current_work - calculated_work) < (current_work >> 10));
-        //
-        //     current_bits = calculated_bits;
-        // }
-        //
-        // // Check the actual value.
-        // debug_assert_eq!(current_bits, 0x1c0fe7b1.into());
-        //
-        // // If we dramatically shorten block production, difficulty increases faster.
-        // for height in 2093..2113 {
-        //     let mut header = header_provider.block_header((height - 1).into()).unwrap();
-        //     header.raw.previous_header_hash = header.hash;
-        //     header.raw.time = header.raw.time + 10;
-        //     header.raw.bits = current_bits;
-        //     header_provider.insert(header.raw);
-        //
-        //     let calculated_bits = work_required_bitcoin_cash_adjusted(header_provider.block_header(height.into()).unwrap().into(),
-        //                                                               0, height + 1, &header_provider, &uahf_consensus);
-        //
-        //     let current_work: U256 = current_bits.into();
-        //     let calculated_work: U256 = calculated_bits.into();
-        //     debug_assert!(calculated_work < current_work);
-        //     debug_assert!((current_work - calculated_work) < (current_work >> 4));
-        //
-        //     current_bits = calculated_bits;
-        // }
-        //
-        // // Check the actual value.
-        // debug_assert_eq!(current_bits, 0x1c0db19f.into());
-        //
-        // // We start to emit blocks significantly slower. The first block has no
-        // // impact.
-        // let mut header = header_provider.block_header(2112.into()).unwrap();
-        // header.raw.previous_header_hash = header.hash;
-        // header.raw.time = header.raw.time + 6000;
-        // header.raw.bits = current_bits;
-        // header_provider.insert(header.raw);
-        // let mut current_bits = work_required_bitcoin_cash_adjusted(header_provider.block_header(2113.into()).unwrap().into(),
-        //                                                            0, 2114, &header_provider, &uahf_consensus);
-        //
-        // // Check the actual value.
-        // debug_assert_eq!(current_bits, 0x1c0d9222.into());
-        //
-        // // If we dramatically slow down block production, difficulty decreases.
-        // for height in 2114..2207 {
-        //     let mut header = header_provider.block_header((height - 1).into()).unwrap();
-        //     header.raw.previous_header_hash = header.hash;
-        //     header.raw.time = header.raw.time + 6000;
-        //     header.raw.bits = current_bits;
-        //     header_provider.insert(header.raw);
-        //
-        //     let calculated_bits = barossa.(header_provider.get_header_by_level(height.into()).unwrap().unwrap().into(),
-        //                                                               0, height + 1, &header_provider, &uahf_consensus);
-        //
-        //     let current_work: U256 = current_bits.into();
-        //     let calculated_work: U256 = calculated_bits.into();
-        //     debug_assert!(calculated_work < limit_bits);
-        //     debug_assert!(calculated_work > current_work);
-        //     debug_assert!((calculated_work - current_work) < (current_work >> 3));
-        //
-        //     current_bits = calculated_bits;
-        // }
-        //
-        // // Check the actual value.
-        // debug_assert_eq!(current_bits, 0x1c2f13b9.into());
-        //
-        // // Due to the window of time being bounded, next block's difficulty actually
-        // // gets harder.
-        // let mut header = header_provider.get_header_by_level(2206.into()).unwrap().unwrap();
-        // header.raw.previous_header_hash = header.hash;
-        // header.raw.time = header.raw.time + 6000;
-        // header.raw.bits = current_bits;
-        // header_provider.insert(header.raw);
-        // let mut current_bits = work_required_bitcoin_cash_adjusted(header_provider.get_header_by_level(2207.into()).unwrap().unwrap().into(),
-        //                                                            0, 2208, &header_provider, &uahf_consensus);
-        // debug_assert_eq!(current_bits, 0x1c2ee9bf.into());
-        //
-        // // And goes down again. It takes a while due to the window being bounded and
-        // // the skewed block causes 2 blocks to get out of the window.
-        // for height in 2208..2400 {
-        //     let mut header = header_provider.get_header_by_level((height - 1).into()).unwrap().unwrap();
-        //     header.raw.previous_header_hash = header.hash;
-        //     header.raw.time = header.raw.time + 6000;
-        //     header.raw.bits = current_bits;
-        //     header_provider.insert(header.raw);
-        //
-        //     let calculated_bits = work_required_bitcoin_cash_adjusted(header_provider.block_header(height.into()).unwrap().into(),
-        //                                                               0, height + 1, &header_provider, &uahf_consensus);
-        //
-        //     let current_work: U256 = current_bits.into();
-        //     let calculated_work: U256 = calculated_bits.into();
-        //     debug_assert!(calculated_work <= limit_bits);
-        //     debug_assert!(calculated_work > current_work);
-        //     debug_assert!((calculated_work - current_work) < (current_work >> 3));
-        //
-        //     current_bits = calculated_bits;
-        // }
-        //
-        // // Check the actual value.
-        // debug_assert_eq!(current_bits, 0x1d00ffff.into());
-        //
-        // // Once the difficulty reached the minimum allowed level, it doesn't get any
-        // // easier.
-        // for height in 2400..2405 {
-        //     let mut header = header_provider.block_header((height - 1).into()).unwrap();
-        //     header.raw.previous_header_hash = header.hash;
-        //     header.raw.time = header.raw.time + 6000;
-        //     header.raw.bits = current_bits;
-        //     header_provider.insert(header.raw);
-        //
-        //     let calculated_bits = work_required_bitcoin_cash_adjusted(header_provider.block_header(height.into()).unwrap().into(),
-        //                                                               0, height + 1, &header_provider, &uahf_consensus);
-        //     debug_assert_eq!(calculated_bits, limit_bits.into());
-        //
-        //     current_bits = calculated_bits;
-        // }
+        // The system should continue unaffected by the block with a bogous timestamps.
+        for height in 10269..10296 {
+            let mut header = header_provider
+                .get_header_by_level((height - 1).into())
+                .unwrap()
+                .unwrap();
+            header.raw.parent_hash = header.hash;
+            header.raw.time = header.raw.time + 120;
+            header.raw.difficulty = current_bits.into();
+            header_provider.insert(header.raw);
+
+            let parent = header_provider
+                .get_header_by_level(height)
+                .unwrap()
+                .unwrap();
+            let calculated_bits =
+                barossa.work_required_adjusted(parent, 0, height + 1, header_provider.clone());
+            debug_assert_eq!(calculated_bits, current_bits);
+        }
+
+        // We start emitting blocks slightly faster. The first block has no impact.
+        let mut header = header_provider.get_header_by_level(10295).unwrap().unwrap();
+        header.raw.parent_hash = header.hash;
+        header.raw.time = header.raw.time + 100;
+        header.raw.difficulty = current_bits.into();
+        header_provider.insert(header.raw);
+        let calculated_bits = barossa.work_required_adjusted(
+            header_provider.get_header_by_level(10296).unwrap().unwrap(),
+            0,
+            10297,
+            header_provider.clone(),
+        );
+        debug_assert_eq!(calculated_bits, current_bits);
+
+        // Now we should see difficulty increase slowly.
+        let mut current_bits = current_bits;
+        for height in 10297..10301 {
+            let mut header = header_provider
+                .get_header_by_level((height - 1).into())
+                .unwrap()
+                .unwrap();
+            header.raw.parent_hash = header.hash;
+            header.raw.time = header.raw.time + 90;
+            header.raw.difficulty = current_bits.into();
+            header_provider.insert(header.raw);
+
+            let parent = header_provider
+                .get_header_by_level(height)
+                .unwrap()
+                .unwrap();
+            let calculated_bits =
+                barossa.work_required_adjusted(parent, 0, height + 1, header_provider.clone());
+
+            let current_work: U256 = current_bits.into();
+            let calculated_work: U256 = calculated_bits.into();
+            println!("{current_work} {calculated_work}");
+            // debug_assert!(calculated_work < current_work);
+            // debug_assert!((current_work - calculated_work) < (current_work >> 10));
+
+            current_bits = calculated_bits;
+        }
     }
 }

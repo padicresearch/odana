@@ -17,7 +17,8 @@
 use anyhow::anyhow;
 use bincode::{Decode, Encode};
 use codec::{Decodable, Encodable};
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 
 #[derive(Encode, Decode, Clone, Debug)]
 pub struct AppBinaries {

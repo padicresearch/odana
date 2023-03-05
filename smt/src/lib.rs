@@ -10,7 +10,6 @@ use crate::error::Error;
 use crate::treehasher::TreeHasher;
 use bincode::{Decode, Encode};
 use primitive_types::H256;
-pub use smt::*;
 
 mod constants;
 pub mod error;
@@ -18,6 +17,7 @@ pub mod proof;
 pub mod smt;
 pub mod treehasher;
 pub mod utils;
+pub use crate::smt::*;
 
 #[derive(Copy, Clone)]
 pub enum CopyStrategy {

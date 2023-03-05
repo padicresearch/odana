@@ -20,7 +20,7 @@ primitive-types = { path = "../common/primitive-types" }
 traits = { path = "../common/traits" }
 blockchain = { path = "../blockchain" }
 txpool = { path = "../txpool" }
-tracing = { path = "../common/tracing" }
+tracing =  { workspace = true }
 hex = { path = "../common/hex" }
 transaction = { path = "../transaction" }
 

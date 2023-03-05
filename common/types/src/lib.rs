@@ -11,7 +11,7 @@ use crate::account::AccountState;
 use bytes::{Buf, BufMut};
 use codec::{Decodable, Encodable};
 use parking_lot::RwLock;
-use primitive_types::Address;
+use primitive_types::address::Address;
 use prost::encoding::{DecodeContext, WireType};
 use prost::{DecodeError, Message};
 use serde::{Deserialize, Serialize};
@@ -165,37 +165,46 @@ pub mod prelude {
     pub use crate::tx::*;
     pub use crate::Addressing;
 
-    #[derive(Clone, PartialEq, Eq, ::prost::Message)]
+    #[derive(Clone, PartialEq, Eq)]
     pub struct Empty;
-}
 
-mod as_address {
-    use primitive_types::Address;
-    use serde::de::{Deserialize, Deserializer};
-    use serde::ser::{Serialize, Serializer};
-    use serde_json::to_vec;
-
-    // Serialize to a JSON string, then serialize the string to the output
-    // format.
-    pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        T: Serialize,
-        S: Serializer,
-    {
-        use serde::ser::Error;
-        let bytes = to_vec(value).map_err(Error::custom)?;
-        let address = Address::from_slice(bytes.as_slice())
-            .map_err(|_| Error::custom("failed to parse address"))?;
-        address.serialize(serializer)
+    impl ::prost::Message for Empty {
+        #[allow(unused_variables)]
+        fn encode_raw<B>(&self, buf: &mut B)
+        where
+            B: bytes::BufMut,
+        {
+        }
+        #[allow(unused_variables)]
+        fn merge_field<B>(
+            &mut self,
+            tag: u32,
+            wire_type: ::prost::encoding::WireType,
+            buf: &mut B,
+            ctx: ::prost::encoding::DecodeContext,
+        ) -> Result<(), prost::DecodeError>
+        where
+            B: ::prost::bytes::Buf,
+        {
+            match tag {
+                _ => ::prost::encoding::skip_field(wire_type, tag, buf, ctx),
+            }
+        }
+        #[inline]
+        fn encoded_len(&self) -> usize {
+            0
+        }
+        fn clear(&mut self) {}
     }
-
-    // Deserialize a string from the input format, then deserialize the content
-    // of that string as JSON.
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let address = Address::deserialize(deserializer)?;
-        Ok(address.to_vec())
+    impl Default for Empty {
+        fn default() -> Self {
+            Empty
+        }
+    }
+    impl core::fmt::Debug for Empty {
+        fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+            let mut builder = f.debug_struct(stringify!(Empty));
+            builder.finish()
+        }
     }
 }

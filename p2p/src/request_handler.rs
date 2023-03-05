@@ -49,7 +49,7 @@ impl RequestHandler {
                         let res = blockchain
                             .chain_state()
                             .block_storage()
-                            .get_block_by_hash(peer_current_state.parent_hash());
+                            .get_block_by_hash(&peer_current_state.parent_hash);
                         match res {
                             Ok(Some(block)) => block.level(),
                             _ => {

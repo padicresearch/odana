@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::network::Network;
 use directories::UserDirs;
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 
 pub const DEFAULT_DIR_NAME: &str = ".odana";
 

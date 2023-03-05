@@ -6,7 +6,8 @@ use crate::error::StateError;
 use crate::kvdb::KvDB;
 use crate::tree::{Op, TreeDB};
 use anyhow::{bail, Result};
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 use schema::ReadProof;
 use smt::SparseMerkleTree;
 use traits::{StateDB, WasmVMInstance};
@@ -22,7 +23,7 @@ mod kvdb;
 mod persistent;
 mod schema;
 mod store;
-mod tree;
+pub(crate) mod tree;
 
 const ACCOUNT_DB_NAME: &str = "accs";
 const APPDATA_DB_NAME: &str = "data";
@@ -48,7 +49,7 @@ impl StateDB for State {
 
     fn set_account_state(&self, address: Address, account_state: AccountState) -> Result<H256> {
         self.trie.put(address, account_state)?;
-        Ok(self.root_hash()?.into())
+        self.root_hash()
     }
 
     fn account_state(&self, address: &Address) -> AccountState {
@@ -66,14 +67,14 @@ impl StateDB for State {
         let mut account_state = self.get_account_state(address)?;
         account_state.free_balance += amount;
         self.trie.put(*address, account_state)?;
-        Ok(self.root_hash()?.into())
+        self.root_hash()
     }
 
     fn debit_balance(&self, address: &Address, amount: u64) -> Result<H256> {
         let mut account_state = self.get_account_state(address)?;
         account_state.free_balance -= amount;
         self.trie.put(*address, account_state)?;
-        Ok(self.root_hash()?.into())
+        self.root_hash()
     }
 
     fn reset(&self, root: H256) -> Result<()> {
@@ -85,7 +86,7 @@ impl StateDB for State {
         self.root_hash().map(H256::from)
     }
 
-    fn root(&self) -> Hash {
+    fn root(&self) -> H256 {
         self.root_hash().unwrap()
     }
 
@@ -106,7 +107,7 @@ impl StateDB for State {
             bail!("app not found")
         };
 
-        let Some(app_root) = app_account_state.app_state.map(|root| root.root_hash()) else {
+        let Some(app_root) = app_account_state.app_state.map(|root| root.root_hash) else {
             bail!("app not initialized")
         };
 
@@ -129,7 +130,7 @@ impl StateDB for State {
             bail!("address is not an application address")
         };
         self.appsource
-            .get(&app_state.code_hash())
+            .get(&app_state.code_hash)
             .map(|bins| bins.binary)
     }
 
@@ -142,7 +143,7 @@ impl StateDB for State {
             bail!("address is not an application address")
         };
         self.appsource
-            .get(&app_state.code_hash())
+            .get(&app_state.code_hash)
             .map(|bins| bins.descriptor)
     }
 }
@@ -214,7 +215,7 @@ impl State {
                     .get_mut(&app_address)
                     .and_then(|account_state| account_state.app_state.as_mut())
                     .ok_or_else(|| anyhow::anyhow!("app state not found"))?;
-                app_state.set_root_hash(changelist.storage.root());
+                app_state.root_hash = changelist.storage.root();
                 self.appdata.put(
                     AppStateKey(app_address, changelist.storage.root()),
                     changelist.storage,
@@ -391,7 +392,7 @@ impl State {
         unimplemented!()
     }
 
-    pub fn root_hash(&self) -> Result<Hash> {
-        self.trie.root().map(|root| root.to_fixed_bytes())
+    pub fn root_hash(&self) -> Result<H256> {
+        self.trie.root()
     }
 }

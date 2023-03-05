@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 use rune_framework::io::{Blake2bHasher, StorageMap};
 
 pub(crate) struct RegisteredNameSpaces;

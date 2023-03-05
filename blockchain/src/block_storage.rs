@@ -138,7 +138,7 @@ impl BlockHeaderStorage {
     }
     pub fn put(&self, blockheader: BlockHeader) -> Result<BlockPrimaryKey> {
         let hash = blockheader.hash();
-        let level = blockheader.level();
+        let level = blockheader.level;
         let block_key = BlockPrimaryKey(level, hash);
         if self.kv.contains(&block_key)? {
             return Ok(block_key);

@@ -5,7 +5,8 @@ use rand_chacha::ChaCha20Rng;
 
 use crypto::ecdsa::Keypair;
 use crypto::SHA256;
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 use types::account::{get_address_from_pub_key, Account};
 use types::network::Network;
 
@@ -34,7 +35,7 @@ pub const ROOT: Address = Address([
 #[cfg(test)]
 mod tests {
     use crate::create_account_from_uri;
-    use primitive_types::Address;
+    use primitive_types::address::Address;
     use std::str::FromStr;
     use types::network::Network;
 

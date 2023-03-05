@@ -9,7 +9,7 @@ use client::commands::{handle_client_command, ClientArgsCommands};
 use directories::UserDirs;
 
 use p2p::identity::NodeIdentity;
-use primitive_types::Address;
+use primitive_types::address::Address;
 use tracing::Level;
 use types::config::{EnvironmentConfig, DEFAULT_DIR_NAME};
 use types::network::Network;

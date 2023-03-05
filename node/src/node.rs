@@ -19,9 +19,8 @@ use p2p::request_handler::RequestHandler;
 use p2p::start_p2p_server;
 use rpc::start_rpc_server;
 use storage::{default_table_options, PersistentStorage, PersistentStorageBackend};
-use tracing::tracing_subscriber::fmt::writer::MakeWriterExt;
-
-use tracing::{info, tracing_subscriber, warn};
+use tracing::{info, warn};
+use tracing_subscriber::fmt::writer::MakeWriterExt;
 use traits::Handler;
 use types::config::{EnvironmentConfig, NodeIdentityConfig};
 use types::events::LocalEventMessage;

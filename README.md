@@ -1,84 +1,18 @@
-# Odana
+<a href="https://odax.network">
+	<img width="100%" src="./.assets/odana_banner.jpg" alt="Aptos Banner" />
+</a>
 
-Odana is an open source decentralized platform for building and running decentralized applications (dapps) and smart
+---
+Odana is a decentralized platform for building and running decentralized applications (dapps) and smart
 contracts.
-
-## Key Features
-
-* Proof of Work
-* Multi Runtime
 
 ## Quickstart
 
-### 🧰 Install Dependencies
+* [Build from Source](docs/build.md)
+* Run using Docker
+* Built binaries
+* Join Discord
+* Follow Developers [Padic Research](https://padicresearch.com)
 
-* **Rust Toolchain `Linux/MacOS`**
-    ```shell
-    curl https://sh.rustup.rs -sSf | sh
-    ```
-    ```shell
-    rustup default nightly
-    ```
-* **Install gRPC, RockDB dependencies**
-
-  **`Linux`**
-
-  ```shell
-  sudo apt install clang libclang-dev llvm llvm-dev linux-kernel-headers libev-dev
-  ```
-  ```shell
-  sudo apt install cmake ninja-build libprotobuf-dev protobuf-compiler
-  ```
-  **`MacOS`**
-
-  ```shell
-  brew install llvm cmake ninja automake libtool protobuf
-  ```
-* **Install WASM target**
-  ```shell
-  rustup target add wasm32-unknown-unknown
-  ```
-
-### ⬇️ Download
-
-* Download the source code
-    ```shell
-    git clone https://github.com/padicresearch/odana
-    ```
-    ```shell
-    cd odana
-    ```
-
-### ⌛️ Running node `Linux/MacOS`
-
-* Build the node from source
-    ```shell
-    cargo build --release
-    ```
-* Generate Node Identity
-    ```shell
-    ./target/release/odana identity generate
-    ```
-* Initialize node configuration
-    ```shell
-    ./target/release/odana config init
-    ```
-* Create a miner account (optional - required if you want to run as a miner)
-  ```shell
-  ./target/release/odana account new
-  ```
-  Output:
-  ```json
-  {
-    "address": "0xffff…ffff",
-    "secret" : "0xffff…ffff"
-  }
-  ```
-  Set miner
-  ```shell
-  ./target/release/odana config update --miner="0xffff…ffff"
-  ```
-* Run node
-  ```shell
-  ./target/release/odana run
-  ```
+## License
+Odana is licensed under [Apache 2.0](LICENSE)

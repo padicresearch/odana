@@ -554,10 +554,10 @@ fn uint256_mul_overflow() {
 #[should_panic]
 #[allow(unused_must_use)]
 fn uint256_mul_overflow_panic() {
-    U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
-    U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
+    U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap()
+        * U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+            .unwrap();
 }
-
 #[test]
 fn uint256_sub_overflow() {
     assert_eq!(
@@ -628,8 +628,7 @@ fn uint256_neg_overflow() {
 #[should_panic]
 #[allow(unused_must_use)]
 fn uint256_sub_overflow_panic() {
-    U256::from_str("0").unwrap();
-    U256::from_str("1").unwrap();
+    U256::from_str("0").unwrap() - U256::from_str("1").unwrap();
 }
 
 #[test]

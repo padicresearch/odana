@@ -21,4 +21,4 @@ crypto = { path = "../crypto" }
 tokio = {  workspace = true, features = ["sync"] }
 primitive-types = { path = "../common/primitive-types" }
 cached = "0.42.0"
-tracing = { path = "../common/tracing" }
+tracing = { workspace = true }

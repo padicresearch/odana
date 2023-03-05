@@ -14,6 +14,8 @@ rocksdb = { workspace = true }
 thiserror = { workspace = true }
 clap = { workspace = true }
 serde_json ={ workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 # Crate Dependecies
 indexmap = "1.8.2"
 temp-dir = "0.1.11"
@@ -33,6 +35,6 @@ miner = { path = "../miner" }
 client = { path = "../client" }
 account = { path = "../account" }
 traits = { path = "../common/traits" }
-tracing = { path = "../common/tracing" }
+
 builtin = { path = "../apps/builtin" }
 primitive-types = { path = "../common/primitive-types" }

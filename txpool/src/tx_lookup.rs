@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter::FromIterator;
 

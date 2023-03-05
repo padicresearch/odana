@@ -11,7 +11,8 @@ use std::sync::Arc;
 
 use crypto::ecdsa::{PublicKey, Signature};
 use crypto::keccak256;
-use primitive_types::{Address, H256};
+use primitive_types::address::Address;
+use primitive_types::H256;
 
 use crate::account::get_address_from_pub_key;
 use crate::network::Network;
@@ -41,48 +42,10 @@ impl TransactionStatus {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Default, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]
 pub struct PaymentTx {
+    #[prost(required, message, tag = "1")]
     pub to: Address,
-}
-
-impl Message for PaymentTx {
-    fn encode_raw<B>(&self, buf: &mut B)
-    where
-        B: BufMut,
-        Self: Sized,
-    {
-        prost::encoding::bytes::encode(1, &self.to, buf);
-    }
-
-    fn merge_field<B>(
-        &mut self,
-        tag: u32,
-        wire_type: WireType,
-        buf: &mut B,
-        ctx: DecodeContext,
-    ) -> std::result::Result<(), DecodeError>
-    where
-        B: Buf,
-        Self: Sized,
-    {
-        const STRUCT_NAME: &str = "PaymentTx";
-        match tag {
-            1 => prost::encoding::bytes::merge(wire_type, &mut self.to, buf, ctx).map_err(
-                |mut error| {
-                    error.push(STRUCT_NAME, "to");
-                    error
-                },
-            ),
-            _ => prost::encoding::skip_field(wire_type, tag, buf, ctx),
-        }
-    }
-
-    fn encoded_len(&self) -> usize {
-        prost::encoding::bytes::encoded_len(1, &self.to)
-    }
-
-    fn clear(&mut self) {}
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]

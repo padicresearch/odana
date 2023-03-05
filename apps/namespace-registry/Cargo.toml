@@ -9,11 +9,10 @@ edition = "2021"
 rune-framework = { workspace = true }
 rune-std = { workspace = true }
 prost = { workspace = true }
-once_cell = {version = "1.17.0", default-features = false, features = ["alloc"]}
-prost-reflect = {version = "0.10.1", default-features = false, features = ["derive"]}
+prost-extra = { workspace = true, features  = ["derive"] }
 primitive-types = { workspace = true }
 anyhow = { workspace = true, default-features = false }
 [build-dependencies]
 prost-build = { workspace = true }
-prost-reflect-build = "0.10.0"
+prost-extra-build = { workspace = true }
 wasm-builder = { path = "../../utils/wasm-builder" }

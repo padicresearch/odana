@@ -1,7 +1,7 @@
 use crate::env::ExecutionEnvironment;
 use anyhow::anyhow;
 use parking_lot::RwLock;
-use primitive_types::Address;
+use primitive_types::address::Address;
 use smt::SparseMerkleTree;
 use std::collections::BTreeMap;
 use std::sync::Arc;

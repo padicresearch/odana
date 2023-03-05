@@ -2,12 +2,13 @@ use crate::rpc::{GetAccountRequest, GetDescriptorRequest, Query};
 use crate::util::parse_cli_args_to_json;
 use crate::Client;
 use clap::{Args, Subcommand};
-use primitive_types::{Address, H256};
+use primitive_types::H256;
 use prost::Message;
 
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
+use primitive_types::address::Address;
 use prost_reflect::{DescriptorPool, DynamicMessage};
 use serde::Serialize;
 use std::fs::File;
