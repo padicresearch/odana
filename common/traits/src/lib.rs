@@ -10,7 +10,7 @@ use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 
 use types::app::AppStateKey;
-use types::tx::{ApplicationCallTx, CreateApplicationTx, SignedTransaction};
+use types::tx::{ApplicationCall, CreateApplication, SignedTransaction};
 use types::Changelist;
 
 pub trait Blockchain: ChainReader {
@@ -52,21 +52,20 @@ pub trait WasmVMInstance: Send + Sync {
         state_db: Arc<dyn StateDB>,
         sender: Address,
         value: u64,
-        call: &CreateApplicationTx,
+        call: &CreateApplication,
     ) -> Result<(Vec<u8>, Changelist)>;
     fn execute_app_tx(
         &self,
         state_db: Arc<dyn StateDB>,
         sender: Address,
         value: u64,
-        call: &ApplicationCallTx,
+        call: &ApplicationCall,
     ) -> Result<Changelist>;
     fn execute_app_query(
         &self,
         state_db: Arc<dyn StateDB>,
-        app_id: Address,
-        raw_query: &[u8],
-    ) -> Result<(String, Vec<u8>)>;
+        call: &ApplicationCall,
+    ) -> Result<Vec<u8>>;
 
     fn execute_get_descriptor(
         &self,

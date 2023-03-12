@@ -152,7 +152,7 @@ pub trait Addressing {
 
 pub struct Changelist {
     pub account_changes: HashMap<Address, AccountState>,
-    pub logs: Vec<Vec<u8>>,
+    pub logs: Vec<(String, Vec<u8>)>,
     pub storage: SparseMerkleTree,
 }
 

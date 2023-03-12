@@ -189,31 +189,38 @@ pub async fn start_p2p_server(
             .get_closest_peers(*node_identity.peer_id());
     }
 
-    tokio::task::spawn(async move {
+    std::thread::spawn(move || {
         let state = network_state.clone();
         let request_handler = request_handler.clone();
-        loop {
-            tokio::select! {
-            msg = node_to_p2p.recv() => {
-                    if let Some(msg) = msg {
-                        if let Some(peer_id) = msg.peer_id {
-                            let res = handle_send_message_to_peer(&mut swarm, peer_id, msg.message).await;
-                            if let Err(error) = res {
-                                debug!(error = ?error, "Error handling sending message to peer");
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .worker_threads(2)
+            .build()
+            .expect("failed to start p2p_server runtime");
+        runtime.block_on(async move {
+            loop {
+                tokio::select! {
+                    msg = node_to_p2p.recv() => {
+                        if let Some(msg) = msg {
+                            if let Some(peer_id) = msg.peer_id {
+                                let res = handle_send_message_to_peer(&mut swarm, peer_id, msg.message).await;
+                                    if let Err(error) = res {
+                                        debug!(error = ?error, "Error handling sending message to peer");
+                                    }
+                                }else {
+                                    handle_publish_message(msg.message, &mut swarm).await;
+                                }
                             }
-                        }else {
-                            handle_publish_message(msg.message, &mut swarm).await;
+                        }
+                    event = swarm.select_next_some() => {
+                        let res =  handle_swam_event(event, &mut swarm, &state, &request_handler).await;
+                        if let Err(error) = res {
+                            debug!(error = ?error, "Error handling swarm event");
                         }
                     }
                 }
-            event = swarm.select_next_some() => {
-                    let res =  handle_swam_event(event, &mut swarm, &state, &request_handler).await;
-                    if let Err(error) = res {
-                        debug!(error = ?error, "Error handling swarm event");
-                    }
-                }
             }
-        }
+        });
     });
     Ok(())
 }

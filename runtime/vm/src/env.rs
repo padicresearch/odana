@@ -1,9 +1,9 @@
 use crate::internal::event::Event;
 use crate::internal::execution_context::ExecutionContext;
-use crate::internal::log::Log;
+use crate::internal::logging::Logging;
 use crate::internal::storage::Storage;
 use crate::internal::syscall::Syscall;
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use crypto::ecdsa::{PublicKey, SecretKey};
 use primitive_types::address::Address;
 use smt::SparseMerkleTree;
@@ -23,7 +23,7 @@ pub struct ExecutionEnvironment {
     state_db: Arc<dyn StateDB>,
     blockchain: Arc<dyn ChainHeadReader>,
     accounts: HashMap<Address, AccountState>,
-    events: Vec<Vec<u8>>,
+    events: Vec<(String, Vec<u8>)>,
 }
 
 impl ExecutionEnvironment {
@@ -128,6 +128,24 @@ impl Syscall for ExecutionEnvironment {
         from_acc.free_balance += amount;
         Ok(true)
     }
+
+    fn get_free_balance(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
+        Ok(self
+            .get_account_state(Address::from_slice(address.as_slice()))
+            .free_balance)
+    }
+
+    fn get_nonce(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
+        Ok(self
+            .get_account_state(Address::from_slice(address.as_slice()))
+            .nonce)
+    }
+
+    fn get_reserve_balance(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
+        Ok(self
+            .get_account_state(Address::from_slice(address.as_slice()))
+            .reserve_balance)
+    }
 }
 
 impl Storage for ExecutionEnvironment {
@@ -149,14 +167,14 @@ impl Storage for ExecutionEnvironment {
 }
 
 impl Event for ExecutionEnvironment {
-    fn emit(&mut self, event: Vec<u8>) -> anyhow::Result<()> {
-        self.events.push(event);
+    fn emit(&mut self, event_type: String, event_data: Vec<u8>) -> anyhow::Result<()> {
+        self.events.push((event_type, event_data));
         Ok(())
     }
 }
 
-impl Log for ExecutionEnvironment {
-    fn print(&mut self, output: String) -> anyhow::Result<()> {
+impl Logging for ExecutionEnvironment {
+    fn log(&mut self, output: String) -> anyhow::Result<()> {
         println!("{}", output);
         Ok(())
     }
@@ -191,5 +209,123 @@ impl From<&ExecutionEnvironment> for Changelist {
             logs: value.events.clone(),
             storage: value.storage.clone(),
         }
+    }
+}
+
+pub struct QueryEnvironment {
+    storage: SparseMerkleTree,
+    state_db: Arc<dyn StateDB>,
+}
+
+impl QueryEnvironment {
+    pub fn new(storage: SparseMerkleTree, state_db: Arc<dyn StateDB>) -> anyhow::Result<Self> {
+        Ok(Self { storage, state_db })
+    }
+
+    fn get_account_state(&self, address: Address) -> AccountState {
+        self.state_db.account_state(&address)
+    }
+}
+
+impl Logging for QueryEnvironment {
+    fn log(&mut self, _: String) -> anyhow::Result<()> {
+        bail!("cannot log in query environment")
+    }
+}
+
+impl ExecutionContext for QueryEnvironment {
+    fn value(&mut self) -> anyhow::Result<u64> {
+        bail!("execution context not available in query environment")
+    }
+
+    fn block_level(&mut self) -> anyhow::Result<u32> {
+        bail!("execution context not available in query environment")
+    }
+
+    fn sender(&mut self) -> anyhow::Result<Vec<u8>> {
+        bail!("execution context not available in query environment")
+    }
+
+    fn network(&mut self) -> anyhow::Result<u32> {
+        bail!("execution context not available in query environment")
+    }
+
+    fn sender_pk(&mut self) -> anyhow::Result<Vec<u8>> {
+        bail!("execution context not available in query environment")
+    }
+}
+
+impl Event for QueryEnvironment {
+    fn emit(&mut self, _: String, _: Vec<u8>) -> anyhow::Result<()> {
+        bail!("cannot emit events in query environment")
+    }
+}
+
+impl Storage for QueryEnvironment {
+    fn insert(&mut self, _: Vec<u8>, _: Vec<u8>) -> anyhow::Result<()> {
+        bail!("cannot mutate state in query environment")
+    }
+
+    fn get(&mut self, key: Vec<u8>) -> anyhow::Result<Option<Vec<u8>>> {
+        let Ok(data) = self.storage.get(key) else {
+            return Ok(None)
+        };
+        Ok(Some(data))
+    }
+
+    fn remove(&mut self, _: Vec<u8>) -> anyhow::Result<bool> {
+        bail!("cannot mutate state in query environment")
+    }
+}
+
+impl Syscall for QueryEnvironment {
+    fn block_hash(&mut self, _: u32) -> anyhow::Result<Vec<u8>> {
+        bail!("cannot make sys call (block_hash) in query environment")
+    }
+
+    fn address_from_pk(&mut self, _: Vec<u8>) -> anyhow::Result<Vec<u8>> {
+        bail!("cannot make sys call (address_from_pk) in query environment")
+    }
+
+    fn generate_keypair(&mut self) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
+        bail!("cannot make sys call (generate_keypair) in query environment")
+    }
+
+    fn generate_native_address(&mut self, _: Vec<u8>) -> anyhow::Result<Vec<u8>> {
+        bail!("cannot make sys call (generate_native_address) in query environment")
+    }
+
+    fn sign(&mut self, _: Vec<u8>, _: Vec<u8>) -> anyhow::Result<Vec<u8>> {
+        bail!("cannot make sys call (sign) in query environment")
+    }
+
+    fn transfer(&mut self, _: Vec<u8>, _: u64) -> anyhow::Result<bool> {
+        bail!("cannot make sys call (transfer) in query environment")
+    }
+
+    fn reserve(&mut self, _: u64) -> anyhow::Result<bool> {
+        bail!("cannot make sys call (reserve) in query environment")
+    }
+
+    fn unreserve(&mut self, _: u64) -> anyhow::Result<bool> {
+        bail!("cannot make sys call (unreserve) in query environment")
+    }
+
+    fn get_free_balance(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
+        Ok(self
+            .get_account_state(Address::from_slice(address.as_slice()))
+            .free_balance)
+    }
+
+    fn get_nonce(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
+        Ok(self
+            .get_account_state(Address::from_slice(address.as_slice()))
+            .nonce)
+    }
+
+    fn get_reserve_balance(&mut self, address: Vec<u8>) -> anyhow::Result<u64> {
+        Ok(self
+            .get_account_state(Address::from_slice(address.as_slice()))
+            .reserve_balance)
     }
 }

@@ -33,17 +33,19 @@ message PaymentTx {
   odana.primitive_types.Address address = 1;
 }
 
-message ApplicationCallTx{
+message ApplicationCall{
   odana.primitive_types.Address app_id = 1;
-  bytes args = 2;
+  uint64 service = 2;
+  uint64 method = 3;
+  bytes args = 4;
 }
 
-message CreateApplicationTx{
+message CreateApplication{
   string package_name = 1;
   bytes binary = 2;
 }
 
-message UpdateApplicationTx{
+message UpdateApplication{
   odana.primitive_types.Address app_id = 1;
   bytes binary = 2;
   bool migrate = 3;
@@ -57,9 +59,9 @@ message Transaction {
   uint64 value = 5;
   oneof data {
     PaymentTx payment = 6;
-    ApplicationCallTx call = 7;
-    CreateApplicationTx create = 8;
-    UpdateApplicationTx update = 9;
+    ApplicationCall call = 7;
+    CreateApplication create = 8;
+    UpdateApplication update = 9;
     string raw = 10;
   }
 }

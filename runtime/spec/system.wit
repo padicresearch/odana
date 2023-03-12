@@ -1,4 +1,4 @@
-default world core {
+default world system {
    import syscall: interface {
        block-hash : func(level : u32) -> list<u8>
        address-from-pk : func(pk : list<u8>) -> list<u8>
@@ -8,5 +8,8 @@ default world core {
        transfer : func(to : list<u8>, amount : u64) -> bool
        reserve : func(amount : u64) -> bool
        unreserve : func(amount : u64) -> bool
+       get-free-balance : func(address : list<u8>) -> u64
+       get-nonce : func(address : list<u8>) -> u64
+       get-reserve-balance : func(address : list<u8>) -> u64
    }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "rt-vm"
+name = "rune-vm"
 version = "0.1.0"
 edition = "2021"
 

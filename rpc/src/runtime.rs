@@ -15,10 +15,11 @@
  */
 
 use crate::rpc::runtime_api_service_server::RuntimeApiService;
-use crate::rpc::{GetDescriptorRequest, GetDescriptorResponse, Query, QueryResponse, QueryStorage};
+use crate::rpc::{GetDescriptorRequest, GetDescriptorResponse, QueryResponse, QueryStorage};
 use std::sync::Arc;
 use tonic::{Code, Request, Response, Status};
 use traits::{StateDB, WasmVMInstance};
+use types::prelude::ApplicationCall;
 
 pub(crate) struct RuntimeApiServiceImpl {
     state: Arc<dyn StateDB>,
@@ -35,16 +36,12 @@ impl RuntimeApiServiceImpl {
 impl RuntimeApiService for RuntimeApiServiceImpl {
     async fn query_runtime(
         &self,
-        request: Request<Query>,
+        request: Request<ApplicationCall>,
     ) -> Result<Response<QueryResponse>, Status> {
-        let app_id = request
-            .get_ref()
-            .app_id
-            .ok_or_else(|| Status::new(Code::Unknown, "failed to obtain app address"))?;
-        let raw_query = request.get_ref().query.as_slice();
+        let call = request.get_ref();
         self.vm
-            .execute_app_query(self.state.clone(), app_id, raw_query)
-            .map(|(typename, data)| Response::new(QueryResponse { typename, data }))
+            .execute_app_query(self.state.clone(), call)
+            .map(|data| Response::new(QueryResponse { data }))
             .map_err(|e| Status::new(Code::Unknown, format!("failed to execute query: {}", e)))
     }
 

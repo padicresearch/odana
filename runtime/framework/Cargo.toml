@@ -15,5 +15,6 @@ anyhow = { workspace = true, default-features = false }
 prost-extra = {workspace = true}
 sha3 = "0.10.2"
 digest = "0.10.3"
+xxhash-rust = { version = "0.8.6", features = ["xxh3", "const_xxh3", "xxh32", "const_xxh32"] }
 [build-dependencies]
 wit-codegen = { workspace = true }

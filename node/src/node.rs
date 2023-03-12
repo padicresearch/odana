@@ -161,7 +161,7 @@ async fn _start_node(args: &RunArgs) -> Result<()> {
         let consensus = consensus.clone();
         let interrupt = interrupt.clone();
         let network_state = network_state.clone();
-        tokio::spawn(async move {
+        std::thread::spawn(move || {
             start_worker(
                 miner,
                 local_mpsc_sender,

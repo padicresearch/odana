@@ -32,18 +32,20 @@ members = [
     "common/tiny-bip39",
     "common/bech32",
     #apps
-    "apps/namespace-registry",
-    "apps/builtin",
+    "dapps/namespace-registry",
+    "dapps/builtin",
     #runtime
     "runtime/std",
     "runtime/framework",
-    "utils/prost-extra-derive",
-    "utils/prost-extra-build",
-    "utils/prost-extra",
+    "runtime/build",
+    "runtime/rune",
     "runtime/vm",
     #utils
     "utils/wasm-builder",
-    "utils/wit-codegen"
+    "utils/wit-codegen",
+    "utils/prost-extra-derive",
+    "utils/prost-extra-build",
+    "utils/prost-extra",
 ]
 
 [workspace.dependencies]
@@ -78,3 +80,4 @@ parking_lot = "0.12.1"
 protobuf = { git = "https://github.com/padicresearch/rust-protobuf.git" }
 protobuf-json-mapping = { git = "https://github.com/padicresearch/rust-protobuf.git" }
 protobuf-parse = { git = "https://github.com/padicresearch/rust-protobuf.git" }
+crossbeam = { version = "0.8"}

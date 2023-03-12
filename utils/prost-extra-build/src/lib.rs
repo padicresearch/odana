@@ -25,19 +25,6 @@ impl Builder {
         Self::default()
     }
 
-    /// Set the path where the encoded file descriptor set is created.
-    /// By default, it is created at `$OUT_DIR/file_descriptor_set.bin`.
-    ///
-    /// This overrides the path specified by
-    /// [`prost_build::Config::file_descriptor_set_path`].
-    pub fn file_descriptor_set_path<P>(&mut self, path: P) -> &mut Self
-    where
-        P: Into<PathBuf>,
-    {
-        self.file_descriptor_set_path = path.into();
-        self
-    }
-
     /// Configure `config` to derive [`prost_extra::MessageExt`] for all messages included in `protos`.
     /// This method does not generate prost-extra compatible code,
     /// but `config` may be used later to compile protocol buffers independently of [`Builder`].

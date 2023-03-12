@@ -975,7 +975,11 @@ pub mod chain_service_server {
 pub struct Query {
     #[prost(message, optional, tag = "1")]
     pub app_id: ::core::option::Option<::primitive_types::Address>,
-    #[prost(bytes = "vec", tag = "2")]
+    #[prost(uint64, tag = "2")]
+    pub service: u64,
+    #[prost(uint64, tag = "3")]
+    pub method: u64,
+    #[prost(bytes = "vec", tag = "4")]
     pub query: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -1001,8 +1005,6 @@ pub struct QueryStorage {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueryResponse {
-    #[prost(string, tag = "1")]
-    pub typename: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "2")]
     pub data: ::prost::alloc::vec::Vec<u8>,
 }
@@ -1015,7 +1017,7 @@ pub mod runtime_api_service_server {
     pub trait RuntimeApiService: Send + Sync + 'static {
         async fn query_runtime(
             &self,
-            request: tonic::Request<super::Query>,
+            request: tonic::Request<::types::prelude::ApplicationCall>,
         ) -> Result<tonic::Response<super::QueryResponse>, tonic::Status>;
         async fn query_runtime_storage(
             &self,
@@ -1082,10 +1084,16 @@ pub mod runtime_api_service_server {
                 "/rpc.RuntimeApiService/QueryRuntime" => {
                     #[allow(non_camel_case_types)]
                     struct QueryRuntimeSvc<T: RuntimeApiService>(pub Arc<T>);
-                    impl<T: RuntimeApiService> tonic::server::UnaryService<super::Query> for QueryRuntimeSvc<T> {
+                    impl<T: RuntimeApiService>
+                        tonic::server::UnaryService<::types::prelude::ApplicationCall>
+                        for QueryRuntimeSvc<T>
+                    {
                         type Response = super::QueryResponse;
                         type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
-                        fn call(&mut self, request: tonic::Request<super::Query>) -> Self::Future {
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<::types::prelude::ApplicationCall>,
+                        ) -> Self::Future {
                             let inner = self.0.clone();
                             let fut = async move { (*inner).query_runtime(request).await };
                             Box::pin(fut)

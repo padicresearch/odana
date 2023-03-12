@@ -8,7 +8,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::address::Address;
 use primitive_types::H256;
-use rt_vm::WasmVM;
+use rune_vm::WasmVM;
 use state::State;
 use storage::{KVStore, Schema};
 use tracing::{debug, info, trace, warn};

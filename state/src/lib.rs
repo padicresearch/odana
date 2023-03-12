@@ -18,12 +18,12 @@ use types::prelude::{AppState, TransactionData};
 use types::tx::SignedTransaction;
 use types::Hash;
 
-mod error;
-mod kvdb;
-mod persistent;
-mod schema;
-mod store;
-pub(crate) mod tree;
+pub mod error;
+pub mod kvdb;
+pub mod persistent;
+pub mod schema;
+pub mod store;
+pub mod tree;
 
 const ACCOUNT_DB_NAME: &str = "accs";
 const APPDATA_DB_NAME: &str = "data";

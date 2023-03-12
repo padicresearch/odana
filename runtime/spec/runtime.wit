@@ -1,9 +1,9 @@
-default world app {
+default world runtime {
 
-     export app : interface {
+     export runtime-app : interface {
         genesis : func()
-        call : func(call : list<u8>)
-        query : func(query : list<u8>) -> tuple<list<u8>,list<u8>>
+        call : func(service : u64, method : u64, call-data : list<u8>)
+        query : func(service : u64, method : u64, query-data : list<u8>) -> list<u8>
         descriptor : func() -> list<u8>
     }
 

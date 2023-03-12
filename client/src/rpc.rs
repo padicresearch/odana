@@ -564,7 +564,11 @@ pub mod chain_service_client {
 pub struct Query {
     #[prost(message, optional, tag = "1")]
     pub app_id: ::core::option::Option<::primitive_types::Address>,
-    #[prost(bytes = "vec", tag = "2")]
+    #[prost(uint64, tag = "2")]
+    pub service: u64,
+    #[prost(uint64, tag = "3")]
+    pub method: u64,
+    #[prost(bytes = "vec", tag = "4")]
     pub query: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -590,8 +594,6 @@ pub struct QueryStorage {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct QueryResponse {
-    #[prost(string, tag = "1")]
-    pub typename: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "2")]
     pub data: ::prost::alloc::vec::Vec<u8>,
 }
@@ -665,7 +667,7 @@ pub mod runtime_api_service_client {
         }
         pub async fn query_runtime(
             &mut self,
-            request: impl tonic::IntoRequest<super::Query>,
+            request: impl tonic::IntoRequest<::types::prelude::ApplicationCall>,
         ) -> Result<tonic::Response<super::QueryResponse>, tonic::Status> {
             self.inner.ready().await.map_err(|e| {
                 tonic::Status::new(

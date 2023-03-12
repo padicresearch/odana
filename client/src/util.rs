@@ -116,3 +116,63 @@ pub(crate) fn parse_cli_args_to_json(
     convert_command_strings(&mut json_value)?;
     Ok(json_value)
 }
+
+pub struct RpcMethod<'a> {
+    service_name: &'a str,
+    method_name: &'a str,
+}
+
+impl<'a> RpcMethod<'a> {
+    pub fn parse(method_name: &'a str) -> anyhow::Result<Self> {
+        let method_name = method_name.trim_start_matches('/');
+        let split: Vec<&str> = method_name.splitn(2, '/').collect();
+        if split.len() == 2 {
+            Ok(RpcMethod {
+                service_name: split[0],
+                method_name: split[1],
+            })
+        } else {
+            bail!("Invalid method name")
+        }
+    }
+
+    pub fn service_name(&self) -> &'a str {
+        self.service_name
+    }
+
+    pub fn method_name(&self) -> &'a str {
+        self.method_name
+    }
+
+    pub fn full_name(&self) -> String {
+        format!("/{}/{}", self.service_name, self.method_name)
+    }
+
+    pub fn service_id(&self) -> u64 {
+        rune_framework::prelude::Hashing::twox_64_hash(self.service_name().as_bytes())
+    }
+
+    pub fn method_id(&self) -> u64 {
+        rune_framework::prelude::Hashing::twox_64_hash(self.full_name().as_bytes())
+    }
+}
+
+#[test]
+fn test_rpc_method() {
+    // Valid method name
+    let method_name = "/myapp.myservice/myMethod";
+    let rpc_method = RpcMethod::parse(method_name).unwrap();
+    assert_eq!(rpc_method.service_name(), "myapp.myservice");
+    assert_eq!(rpc_method.method_name(), "myMethod");
+    assert_eq!(rpc_method.full_name(), method_name);
+
+    // Invalid method name (missing service name)
+    let invalid_method_name = "myMethod";
+    let result = RpcMethod::parse(invalid_method_name);
+    assert!(result.is_err());
+
+    // Invalid method name (missing method name)
+    let invalid_method_name = "/myapp.myservice/";
+    let result = RpcMethod::parse(invalid_method_name);
+    assert!(result.is_err());
+}

@@ -49,16 +49,20 @@ pub struct PaymentTx {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]
-pub struct ApplicationCallTx {
+pub struct ApplicationCall {
     #[prost(required, message, tag = "1")]
     pub app_id: Address,
-    #[prost(bytes, tag = "2")]
+    #[prost(uint64, tag = "2")]
+    pub service: u64,
+    #[prost(uint64, tag = "3")]
+    pub method: u64,
+    #[prost(bytes, tag = "4")]
     #[serde(with = "hex")]
     pub args: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]
-pub struct CreateApplicationTx {
+pub struct CreateApplication {
     #[prost(required, string, tag = "1")]
     pub package_name: String,
     #[prost(bytes, tag = "2")]
@@ -67,7 +71,7 @@ pub struct CreateApplicationTx {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, prost::Message, Clone)]
-pub struct UpdateApplicationTx {
+pub struct UpdateApplication {
     #[prost(required, message, tag = "1")]
     pub app_id: Address,
     #[prost(bytes, tag = "2")]
@@ -83,11 +87,11 @@ pub enum TransactionData {
     #[prost(message, tag = "6")]
     Payment(PaymentTx),
     #[prost(message, tag = "7")]
-    Call(ApplicationCallTx),
+    Call(ApplicationCall),
     #[prost(message, tag = "8")]
-    Create(CreateApplicationTx),
+    Create(CreateApplication),
     #[prost(message, tag = "9")]
-    Update(UpdateApplicationTx),
+    Update(UpdateApplication),
     #[prost(bytes, tag = "10")]
     #[serde(rename = "raw")]
     RawData(Vec<u8>),
@@ -141,6 +145,8 @@ impl Transaction {
             TransactionData::Call(v) => {
                 pack.extend_from_slice(&2u32.to_be_bytes());
                 pack.extend_from_slice(&v.app_id.as_bytes());
+                pack.extend_from_slice(&v.service.to_be_bytes());
+                pack.extend_from_slice(&v.method.to_be_bytes());
                 pack.extend_from_slice(&v.args);
             }
             TransactionData::Create(v) => {
@@ -413,9 +419,9 @@ impl SignedTransaction {
 
         cache(&self.to, || match data {
             TransactionData::Payment(PaymentTx { to, .. }) => Ok(*to),
-            TransactionData::Call(ApplicationCallTx { app_id, .. }) => Ok(*app_id),
+            TransactionData::Call(ApplicationCall { app_id, .. }) => Ok(*app_id),
             TransactionData::RawData(_) => Ok(Default::default()),
-            TransactionData::Create(CreateApplicationTx { package_name, .. }) => {
+            TransactionData::Create(CreateApplication { package_name, .. }) => {
                 get_address_from_package_name(
                     &package_name,
                     self.from()
@@ -423,7 +429,7 @@ impl SignedTransaction {
                         .ok_or_else(|| anyhow!("network not specified on senders address"))?,
                 )
             }
-            TransactionData::Update(UpdateApplicationTx { app_id, .. }) => Ok(*app_id),
+            TransactionData::Update(UpdateApplication { app_id, .. }) => Ok(*app_id),
         })
     }
 

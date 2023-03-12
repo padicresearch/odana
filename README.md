@@ -1,5 +1,5 @@
 <a href="https://odax.network">
-	<img width="100%" src="./.assets/odana_banner.jpg" alt="Aptos Banner" />
+	<img width="100%" src="./.assets/odana_banner.jpg" alt="Odana Banner" />
 </a>
 
 ---

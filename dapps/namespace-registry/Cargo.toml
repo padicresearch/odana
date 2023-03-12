@@ -12,7 +12,10 @@ prost = { workspace = true }
 prost-extra = { workspace = true, features  = ["derive"] }
 primitive-types = { workspace = true }
 anyhow = { workspace = true, default-features = false }
+rune = { path = "../../runtime/rune" }
+once_cell = "1.17.1"
 [build-dependencies]
 prost-build = { workspace = true }
 prost-extra-build = { workspace = true }
 wasm-builder = { path = "../../utils/wasm-builder" }
+rune-build = { path = "../../runtime/build" }

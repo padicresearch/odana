@@ -20,6 +20,7 @@ impl-rlp = { version = "0.3", path = "impls/rlp", default-features = false, opti
 hex = {path = "../hex"}
 scale-info-crate = { package = "scale-info", version = ">=0.9, <3", features = ["derive"], default-features = false, optional = true }
 prost = { workspace = true }
+prost-extra = {path = "../../utils/prost-extra"}
 
 [features]
 default = ["std"]
