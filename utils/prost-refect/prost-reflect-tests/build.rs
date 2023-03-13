@@ -3,6 +3,7 @@ use std::io;
 fn main() -> io::Result<()> {
     let mut config = prost_build::Config::new();
     config
+        .extern_path(".odana.primitive_types", "::primitive_types")
         .type_attribute(".test.Scalars", "#[cfg_attr(test, derive(::proptest_derive::Arbitrary))]")
         .type_attribute(".test.ScalarArrays", "#[cfg_attr(test, derive(::proptest_derive::Arbitrary))]")
         .type_attribute(".test.ComplexType", "#[cfg_attr(test, derive(::proptest_derive::Arbitrary))]")
@@ -47,7 +48,7 @@ fn main() -> io::Result<()> {
                 "src/ext.proto",
                 "src/options.proto",
             ],
-            &["src/"],
+            &["src/", "../../proto/"],
         )?;
     Ok(())
 }

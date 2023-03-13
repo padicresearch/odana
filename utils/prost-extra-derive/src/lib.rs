@@ -32,7 +32,7 @@ fn reflect_message_impl(input: syn::DeriveInput) -> Result<proc_macro2::TokenStr
 
     Ok(quote! {
         impl ::prost_extra::MessageExt for #name {
-            fn full_name(&self) -> &'static str {
+            fn full_name() -> &'static str {
                 #message_name
             }
         }

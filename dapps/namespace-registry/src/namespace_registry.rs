@@ -57,28 +57,34 @@ pub mod name_registry {
         T: NameRegistryService,
     {
         fn call(&self, method: u64, payload: &[u8]) -> CallResponse {
-            if Hashing::twox_64_hash(b"/namespace_registry.NameRegistry/RegisterNamespace")
-                == method
+            if Hashing::twox_64_hash(
+                b"/namespace_registry.NameRegistry/RegisterNamespace",
+            ) == method
             {
                 return T::register_namespace(Call::new(payload).unwrap())
-                    .map(|response| CallResponse::from(response))
+                    .map(|response| { CallResponse::from(response) })
                     .unwrap_or_default();
             }
-            if Hashing::twox_64_hash(b"/namespace_registry.NameRegistry/GetOwner") == method {
+            if Hashing::twox_64_hash(b"/namespace_registry.NameRegistry/GetOwner")
+                == method
+            {
                 return T::get_owner(Call::new(payload).unwrap())
-                    .map(|response| CallResponse::from(response))
+                    .map(|response| { CallResponse::from(response) })
                     .unwrap_or_default();
             }
-            if Hashing::twox_64_hash(b"/namespace_registry.NameRegistry/GetNamespaceInfo") == method
+            if Hashing::twox_64_hash(
+                b"/namespace_registry.NameRegistry/GetNamespaceInfo",
+            ) == method
             {
                 return T::get_namespace_info(Call::new(payload).unwrap())
-                    .map(|response| CallResponse::from(response))
+                    .map(|response| { CallResponse::from(response) })
                     .unwrap_or_default();
             }
             return CallResponse::default();
         }
     }
-    impl<T: NameRegistryService> rune_framework::NamedService for NameRegistryInstance<T> {
+    impl<T: NameRegistryService> rune_framework::NamedService
+    for NameRegistryInstance<T> {
         const NAME: &'static str = "namespace_registry.NameRegistry";
     }
 }

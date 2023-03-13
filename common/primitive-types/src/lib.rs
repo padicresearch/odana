@@ -578,7 +578,7 @@ impl From<Compact> for U256 {
 macro_rules! impl_message_ext {
     ($ident:ident) => {
         impl prost_extra::MessageExt for $ident {
-            fn full_name(&self) -> &'static str {
+            fn full_name() -> &'static str {
                 concat!("odana.primitive_types.", stringify!($ident))
             }
         }

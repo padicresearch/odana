@@ -9,7 +9,7 @@ use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 
-use types::app::{AppBinaries, AppStateKey};
+use types::app::{AppStateKey};
 use types::tx::{ApplicationCall, CreateApplication, SignedTransaction};
 use types::Changelist;
 

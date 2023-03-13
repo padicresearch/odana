@@ -158,7 +158,7 @@ impl StorageKeyHasher for Twox128Hasher {
 }
 
 pub fn emit<E: prost_extra::MessageExt + Default>(event: E) {
-    emit_raw_event(event.full_name(), event.encode_to_vec().as_slice())
+    emit_raw_event(E::full_name(), event.encode_to_vec().as_slice())
 }
 
 pub(crate) fn emit_raw_event(descriptor: &str, data: &[u8]) {

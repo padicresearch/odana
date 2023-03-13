@@ -9,6 +9,7 @@ use crate::{
     dynamic::{fields::ValueAndDescriptor, serde::SerializeOptions, DynamicMessage, MapKey, Value},
     ReflectMessage,
 };
+use crate::dynamic::serde::stringify_primitive_message;
 
 struct SerializeWrapper<'a, T> {
     value: &'a T,
@@ -190,7 +191,21 @@ impl<'a> Serialize for SerializeWrapper<'a, ValueAndKind<'a>> {
                     serializer.serialize_i32(*number)
                 }
             }
-            Value::Message(message) => message.serialize_with_options(serializer, self.options),
+            Value::Message(message) => {
+                if self.options.stringify_primitive {
+                    match stringify_primitive_message(message) {
+                        Ok(value) => {
+                            serializer.serialize_str(&value)
+                        }
+                        Err(_) => {
+                            message.serialize_with_options(serializer, self.options)
+                        }
+                    }
+                }
+                else {
+                    message.serialize_with_options(serializer, self.options)
+                }
+            },
             Value::List(values) => {
                 let mut list = serializer.serialize_seq(Some(values.len()))?;
                 for value in values {

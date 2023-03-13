@@ -46,6 +46,11 @@ members = [
     "utils/prost-extra-derive",
     "utils/prost-extra-build",
     "utils/prost-extra",
+    "utils/prost-refect/prost-reflect",
+    "utils/prost-refect/prost-reflect-build",
+    "utils/prost-refect/prost-reflect-conformance-tests",
+    "utils/prost-refect/prost-reflect-derive",
+    "utils/prost-refect/prost-reflect-tests",
 ]
 
 [workspace.dependencies]
@@ -59,7 +64,7 @@ tracing = "0.1"
 tracing-subscriber = "0.2"
 prost = { version = "0.11.0", default-feature = false, features = ["prost-derive"] }
 prost-build = { version = "0.11.0" }
-prost-reflect = { version = "0.10.0", default-features = false, features = ["derive"]}
+prost-reflect = { path = "utils/prost-refect/prost-reflect", default-features = false, features = ["derive"]}
 prost-reflect-build = { version = "0.10.0"}
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde = { version = "1.0.130", default-features = false, features = ["derive", "alloc"] }

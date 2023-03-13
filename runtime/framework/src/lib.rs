@@ -51,7 +51,7 @@ where
 {
     fn from(value: T) -> Self {
         CallResponse {
-            type_descriptor: value.full_name(),
+            type_descriptor: T::full_name(),
             data: value.encode_to_vec(),
         }
     }

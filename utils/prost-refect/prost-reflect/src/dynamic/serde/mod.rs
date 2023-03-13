@@ -2,13 +2,14 @@ mod case;
 mod de;
 mod ser;
 
+use prost::DecodeError;
 use serde::{
     de::{DeserializeSeed, Deserializer},
     ser::{Serialize, Serializer},
 };
 
-use crate::{DynamicMessage, MessageDescriptor};
-
+use crate::{DynamicMessage, MessageDescriptor, ReflectMessage};
+use prost_extra::MessageExt;
 /// Options to control serialization of messages.
 ///
 /// Used by [`DynamicMessage::serialize_with_options()`].
@@ -19,6 +20,7 @@ pub struct SerializeOptions {
     use_enum_numbers: bool,
     use_proto_field_name: bool,
     skip_default_fields: bool,
+    stringify_primitive: bool,
 }
 
 /// Options to control deserialization of messages.
@@ -28,6 +30,7 @@ pub struct SerializeOptions {
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub struct DeserializeOptions {
     deny_unknown_fields: bool,
+    parse_string_to_primitives: bool,
 }
 
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
@@ -180,6 +183,7 @@ impl DeserializeOptions {
     pub const fn new() -> Self {
         DeserializeOptions {
             deny_unknown_fields: true,
+            parse_string_to_primitives: false,
         }
     }
 
@@ -207,6 +211,7 @@ impl SerializeOptions {
             use_enum_numbers: false,
             use_proto_field_name: false,
             skip_default_fields: true,
+            stringify_primitive: false,
         }
     }
 
@@ -249,6 +254,14 @@ impl SerializeOptions {
     /// The default value is `true`.
     pub const fn skip_default_fields(mut self, yes: bool) -> Self {
         self.skip_default_fields = yes;
+        self
+    }
+
+    /// Whether to encode primitive types as strings.
+    ///
+    /// The default value is `false`.
+    pub const fn stringify_primitives(mut self, yes: bool) -> Self {
+        self.stringify_primitive = yes;
         self
     }
 }
@@ -304,4 +317,56 @@ fn check_timestamp(timestamp: &prost_types::Timestamp) -> Result<(), &'static st
     } else {
         Ok(())
     }
+}
+
+pub(crate) fn stringify_primitive_message(message: &DynamicMessage) -> Result<String, DecodeError> {
+    Ok(match message.descriptor().full_name() {
+        name if name == primitive_types::U128::full_name() => {
+            let primitive: primitive_types::U128 = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+        name if name == primitive_types::U256::full_name() => {
+            let primitive: primitive_types::U256 = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+        name if name == primitive_types::U512::full_name() => {
+            let primitive: primitive_types::U512 = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+        name if name == primitive_types::Address::full_name() => {
+            let primitive: primitive_types::Address = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+
+        name if name == primitive_types::H128::full_name() => {
+            let primitive: primitive_types::H128 = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+
+        name if name == primitive_types::H160::full_name() => {
+            let primitive: primitive_types::H160 = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+
+        name if name == primitive_types::H192::full_name() => {
+            let primitive: primitive_types::H192 = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+
+        name if name == primitive_types::H256::full_name() => {
+            let primitive: primitive_types::H256 = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+
+        name if name == primitive_types::H448::full_name() => {
+            let primitive: primitive_types::H448 = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+
+        name if name == primitive_types::H512::full_name() => {
+            let primitive: primitive_types::H512 = message.transcode_to()?;
+            format!("{:?}", primitive)
+        }
+        _ => return Err(DecodeError::new("failed to decode primitive type")),
+    })
 }

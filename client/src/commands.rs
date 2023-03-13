@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 
 use primitive_types::address::Address;
-use prost_reflect::{DescriptorPool, DynamicMessage};
+use prost_reflect::{DescriptorPool, DynamicMessage, SerializeOptions};
 use serde::Serialize;
 use std::fs::File;
 use std::io::Read;
@@ -301,7 +301,8 @@ pub async fn handle_app_command(
             )?;
 
             let mut serializer = serde_json::Serializer::new(vec![]);
-            message.serialize(&mut serializer)?;
+            message.serialize_with_options(&mut serializer, &SerializeOptions::default().stringify_primitives(true))?;
+
             let out: Value = serde_json::from_reader(serializer.into_inner().as_slice())?;
             out
         }

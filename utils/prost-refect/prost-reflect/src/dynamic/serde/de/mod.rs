@@ -2,6 +2,7 @@ mod kind;
 mod wkt;
 
 use std::fmt;
+use std::str::FromStr;
 
 use prost::Message;
 use serde::de::{DeserializeSeed, Deserializer, Error, Visitor};
@@ -71,6 +72,66 @@ where
         "google.protobuf.Empty" => deserializer
             .deserialize_map(wkt::GoogleProtobufEmptyVisitor)
             .and_then(|empty| make_message(desc, empty)),
+        "odana.primitive_types.U128" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::U128::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
+        "odana.primitive_types.U256" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::U256::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
+        "odana.primitive_types.U512" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::U512::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
+        "odana.primitive_types.Address" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::Address::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
+        "odana.primitive_types.H128" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::H128::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
+        "odana.primitive_types.H160" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::H160::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
+        "odana.primitive_types.H192" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::H192::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
+        "odana.primitive_types.H256" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::H256::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
+        "odana.primitive_types.H448" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::H448::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
+        "odana.primitive_types.H512" if options.parse_string_to_primitives => deserializer
+            .deserialize_any(kind::StringVisitor)
+            .and_then(|v| {
+                primitive_types::H512::from_str(&v).map_err(|e| Error::custom(format!("{}", e)))
+            })
+            .and_then(|value| make_message(desc, value)),
         _ => deserializer.deserialize_map(kind::MessageVisitor(desc, options)),
     }
 }
