@@ -14,9 +14,6 @@ pub fn handle_cmd_string(cmd: &Command) -> Result<Vec<u8>, CommandError> {
         "hex" => {
             hex::decode(cmd.data).map_err(|e| CommandError::FailedToParseNom(format!("{}", e)))
         }
-        "address" => parse_address(cmd.data)
-            .map(|addr| addr.to_vec())
-            .map_err(CommandError::FailedToParseNom),
 
         "file" => {
             let file_path = PathBuf::new().join(cmd.data);

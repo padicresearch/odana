@@ -6,7 +6,7 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/empty.proto";
-
+import "primitive_types.proto";
 package test;
 
 message Scalars {
@@ -80,7 +80,7 @@ message WellKnownTypes {
 }
 
 message MessageWithOneof {
-   oneof test_oneof {
+  oneof test_oneof {
     string oneof_field_1 = 1;
     int32 oneof_field_2 = 2;
     google.protobuf.NullValue oneof_null = 3;
@@ -106,4 +106,18 @@ enum EnumWithAlias {
 
 message MessageWithAliasedEnum {
   EnumWithAlias aliased = 1;
+}
+
+
+message PrimitiveTypes {
+  odana.primitive_types.U128 u128 = 1;
+  odana.primitive_types.U256 u256 = 2;
+  odana.primitive_types.U512 u512 = 3;
+  odana.primitive_types.H128 h128 = 4;
+  odana.primitive_types.H160 h160 = 5;
+  odana.primitive_types.H192 h192 = 6;
+  odana.primitive_types.H256 h256 = 7;
+  odana.primitive_types.H448 h448 = 8;
+  odana.primitive_types.H512 h512 = 9;
+  odana.primitive_types.Address address = 10;
 }

@@ -194,6 +194,12 @@ impl DeserializeOptions {
         self.deny_unknown_fields = yes;
         self
     }
+
+    /// Parse primitives if it has a string value
+    pub const fn parse_string_to_primitives(mut self, yes: bool) -> Self {
+        self.parse_string_to_primitives = yes;
+        self
+    }
 }
 
 impl Default for DeserializeOptions {

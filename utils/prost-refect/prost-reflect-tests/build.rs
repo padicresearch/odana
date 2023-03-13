@@ -48,7 +48,7 @@ fn main() -> io::Result<()> {
                 "src/ext.proto",
                 "src/options.proto",
             ],
-            &["src/", "../../proto/"],
+            &["src/", "../../../proto/"],
         )?;
     Ok(())
 }

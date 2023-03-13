@@ -24,7 +24,19 @@ message H128 {
   bytes value = 1;
 }
 
+message H160 {
+  bytes value = 1;
+}
+
+message H192 {
+  bytes value = 1;
+}
+
 message H256 {
+  bytes value = 1;
+}
+
+message H448 {
   bytes value = 1;
 }
 

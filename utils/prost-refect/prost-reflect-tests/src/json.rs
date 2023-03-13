@@ -3,6 +3,7 @@ use std::{
     fmt::Debug,
     iter::FromIterator,
 };
+use std::str::FromStr;
 
 use proptest::{prelude::*, test_runner::TestCaseError};
 use prost::Message;
@@ -14,7 +15,7 @@ use crate::{
     arbitrary,
     proto::{
         contains_group, message_with_oneof, ComplexType, ContainsGroup, MessageWithAliasedEnum,
-        MessageWithOneof, Point, ScalarArrays, Scalars, WellKnownTypes,
+        MessageWithOneof, Point, ScalarArrays, Scalars, WellKnownTypes,PrimitiveTypes,
     },
     test_file_descriptor,
 };
@@ -837,6 +838,43 @@ fn deserialize_well_known_types() {
             }),
             null: 0,
             empty: Some(()),
+        }
+    );
+}
+
+#[test]
+fn deserialize_primitive_types() {
+    let value: PrimitiveTypes = from_json_with_options(
+        json!({
+              "u128": "0x4d77d7f",
+              "u256": "0x162305b",
+              "u512": "0xb8f423",
+              "h128": "0xc2c471519fe41cf5667900621398f854",
+              "h160": "0xc65d1317e043749bf028b36b858bdfddcc3454a6",
+              "h192": "0xc85440dd83c0853bb636b1a7f9faa8806d260e83ccabeca2",
+              "h256": "0x87cc6b7e6219989a93a391489d02d7b5ee1112206ec8f7d29ff7442c4874e2a9",
+              "h448": "0xdf41ed4c65ed7b536accf83d1d26cc413dd4eb1eb3feb58538534a3c2607a100420b1b024626c0bd3ee5f5b99898cf0569c434af0a20e281",
+              "h512": "0xa582f7ed1f65db4a00e080c8c8a6ec36f1bc71d754c1659e9e82554af6f43d8a809d0d1f0942e675f915e37e4dda58f9cb3e4a52ce95a8e45e257856f2ce7821",
+              "address": "odanx1qkzfa5gk48h9jetgah2te4ywd94lfpggnrpyqy"
+        }),
+        ".test.PrimitiveTypes",
+        &DeserializeOptions::default().parse_string_to_primitives(true)
+
+    );
+
+    assert_eq!(
+        value,
+        PrimitiveTypes {
+            u128: Some(primitive_types::U128::from_str("0x4d77d7f").unwrap()),
+            u256: Some(primitive_types::U256::from_str("0x162305b").unwrap()),
+            u512: Some(primitive_types::U512::from_str("0xb8f423").unwrap()),
+            h128: Some(primitive_types::H128::from_str("0xc2c471519fe41cf5667900621398f854").unwrap()),
+            h160: Some(primitive_types::H160::from_str("0xc65d1317e043749bf028b36b858bdfddcc3454a6").unwrap()),
+            h192: Some(primitive_types::H192::from_str("0xc85440dd83c0853bb636b1a7f9faa8806d260e83ccabeca2").unwrap()),
+            h256: Some(primitive_types::H256::from_str("0x87cc6b7e6219989a93a391489d02d7b5ee1112206ec8f7d29ff7442c4874e2a9").unwrap()),
+            h448: Some(primitive_types::H448::from_str("0xdf41ed4c65ed7b536accf83d1d26cc413dd4eb1eb3feb58538534a3c2607a100420b1b024626c0bd3ee5f5b99898cf0569c434af0a20e281").unwrap()),
+            h512: Some(primitive_types::H512::from_str("0xa582f7ed1f65db4a00e080c8c8a6ec36f1bc71d754c1659e9e82554af6f43d8a809d0d1f0942e675f915e37e4dda58f9cb3e4a52ce95a8e45e257856f2ce7821").unwrap()),
+            address: Some(primitive_types::Address::from_str("odanx1qkzfa5gk48h9jetgah2te4ywd94lfpggnrpyqy").unwrap()),
         }
     );
 }
