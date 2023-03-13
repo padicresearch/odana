@@ -1,4 +1,3 @@
-use crate::commands::parse_address;
 use crate::parser::{parse_cmd_str, Command, CommandError};
 use anyhow::bail;
 use base64::engine::general_purpose;
