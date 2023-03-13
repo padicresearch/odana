@@ -1,9 +1,9 @@
+use std::str::FromStr;
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::Debug,
     iter::FromIterator,
 };
-use std::str::FromStr;
 
 use proptest::{prelude::*, test_runner::TestCaseError};
 use prost::Message;
@@ -15,7 +15,7 @@ use crate::{
     arbitrary,
     proto::{
         contains_group, message_with_oneof, ComplexType, ContainsGroup, MessageWithAliasedEnum,
-        MessageWithOneof, Point, ScalarArrays, Scalars, WellKnownTypes,PrimitiveTypes,
+        MessageWithOneof, Point, PrimitiveTypes, ScalarArrays, Scalars, WellKnownTypes,
     },
     test_file_descriptor,
 };
@@ -858,8 +858,7 @@ fn deserialize_primitive_types() {
               "address": "odanx1qkzfa5gk48h9jetgah2te4ywd94lfpggnrpyqy"
         }),
         ".test.PrimitiveTypes",
-        &DeserializeOptions::default().parse_string_to_primitives(true)
-
+        &DeserializeOptions::default().parse_string_to_primitives(true),
     );
 
     assert_eq!(

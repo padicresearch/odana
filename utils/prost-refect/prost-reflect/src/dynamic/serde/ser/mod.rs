@@ -4,12 +4,12 @@ use base64::{display::Base64Display, prelude::BASE64_STANDARD};
 
 use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
 
+use crate::dynamic::serde::stringify_primitive_message;
 use crate::{
     descriptor::Kind,
     dynamic::{fields::ValueAndDescriptor, serde::SerializeOptions, DynamicMessage, MapKey, Value},
     ReflectMessage,
 };
-use crate::dynamic::serde::stringify_primitive_message;
 
 struct SerializeWrapper<'a, T> {
     value: &'a T,
@@ -194,18 +194,13 @@ impl<'a> Serialize for SerializeWrapper<'a, ValueAndKind<'a>> {
             Value::Message(message) => {
                 if self.options.stringify_primitive {
                     match stringify_primitive_message(message) {
-                        Ok(value) => {
-                            serializer.serialize_str(&value)
-                        }
-                        Err(_) => {
-                            message.serialize_with_options(serializer, self.options)
-                        }
+                        Ok(value) => serializer.serialize_str(&value),
+                        Err(_) => message.serialize_with_options(serializer, self.options),
                     }
-                }
-                else {
+                } else {
                     message.serialize_with_options(serializer, self.options)
                 }
-            },
+            }
             Value::List(values) => {
                 let mut list = serializer.serialize_seq(Some(values.len()))?;
                 for value in values {

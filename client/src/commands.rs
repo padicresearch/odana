@@ -301,7 +301,10 @@ pub async fn handle_app_command(
             )?;
 
             let mut serializer = serde_json::Serializer::new(vec![]);
-            message.serialize_with_options(&mut serializer, &SerializeOptions::default().stringify_primitives(true))?;
+            message.serialize_with_options(
+                &mut serializer,
+                &SerializeOptions::default().stringify_primitives(true),
+            )?;
 
             let out: Value = serde_json::from_reader(serializer.into_inner().as_slice())?;
             out
