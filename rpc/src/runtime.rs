@@ -60,9 +60,8 @@ impl RuntimeApiService for RuntimeApiServiceImpl {
             .get_ref()
             .app_id
             .ok_or_else(|| Status::new(Code::Unknown, "failed to obtain app address"))?;
-
-        self.state
-            .get_app_descriptor(app_id)
+        self.vm
+            .execute_get_descriptor(self.state.clone(), app_id)
             .map(|descriptor| Response::new(GetDescriptorResponse { descriptor }))
             .map_err(|e| Status::new(Code::Unknown, e.to_string()))
     }

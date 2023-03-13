@@ -179,7 +179,7 @@ pub async fn handle_app_command(
                 DescriptorPool::decode(descriptor.as_slice()).expect("failed to descriptor pool");
 
             let service = descriptor
-                .get_service_by_name(call.method_name())
+                .get_service_by_name(call.service_name())
                 .expect("service not found in descriptor");
             let method_to_call = service
                 .methods()
@@ -271,7 +271,7 @@ pub async fn handle_app_command(
                 DescriptorPool::decode(descriptor.as_slice()).expect("failed to descriptor pool");
 
             let service = descriptor
-                .get_service_by_name(call.method_name())
+                .get_service_by_name(call.service_name())
                 .expect("service not found in descriptor");
             let method_to_call = service
                 .methods()

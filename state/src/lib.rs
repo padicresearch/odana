@@ -146,6 +146,17 @@ impl StateDB for State {
             .get(&app_state.code_hash)
             .map(|bins| bins.descriptor)
     }
+
+    fn set_app_metadata(&self, binary: &[u8], descriptor: Vec<u8>) -> Result<()> {
+        let code_hash = crypto::keccak256(binary);
+        self.appsource.put(
+            code_hash,
+            AppBinaries {
+                binary: binary.to_vec(),
+                descriptor,
+            },
+        )
+    }
 }
 
 impl State {

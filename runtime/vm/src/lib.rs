@@ -76,58 +76,7 @@ impl WasmVM {
         Ok((descriptor, env.into()))
     }
 
-    pub fn install_builtin(
-        &self,
-        state_db: Arc<dyn StateDB>,
-        app_id: Address, //TODO; use codehash instead of app id
-        binary: &[u8],
-        genesis: bool,
-    ) -> anyhow::Result<Option<Changelist>> {
-        {
-            let apps = self.apps.read();
-            if apps.contains_key(&app_id) {
-                return Ok(None);
-            }
-        }
-        let engine = &self.engine;
-        let storage = if genesis {
-            state_db.get_app_data(app_id).unwrap_or_default()
-        } else {
-            state_db.get_app_data(app_id)?
-        };
-
-        let mut store = Store::new(
-            engine,
-            ExecutionEnvironment::new(
-                Default::default(),
-                app_id,
-                0,
-                storage,
-                state_db.clone(),
-                self.blockchain.clone(),
-            )?,
-        );
-
-        let mut linker = Linker::<ExecutionEnvironment>::new(engine);
-        internal::syscall::add_to_linker(&mut linker, |env| env)?;
-        internal::execution_context::add_to_linker(&mut linker, |env| env)?;
-        internal::Io::add_to_linker(&mut linker, |env| env)?;
-
-        let component = Component::from_binary(engine, binary)?;
-        let instance = linker.instantiate(&mut store, &component)?;
-
-        let app = Runtime::new(&mut store, &instance)?;
-        if genesis {
-            app.runtime_app().genesis(&mut store)?;
-        }
-        let mut apps = self.apps.write();
-        let env = store.data();
-        let changes = env.into();
-        apps.insert(app_id, (app, store));
-        Ok(Some(changes))
-    }
-
-    fn load_application(
+    pub fn load_application(
         &self,
         state_db: Arc<dyn StateDB>,
         app_id: Address, //TODO; use codehash instead of app id

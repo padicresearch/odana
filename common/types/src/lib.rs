@@ -149,7 +149,6 @@ pub trait Addressing {
     fn is_valid(&self) -> bool;
     fn network(&self) -> Option<Network>;
 }
-
 pub struct Changelist {
     pub account_changes: HashMap<Address, AccountState>,
     pub logs: Vec<(String, Vec<u8>)>,

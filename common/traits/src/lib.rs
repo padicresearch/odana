@@ -9,7 +9,7 @@ use types::account::AccountState;
 use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 
-use types::app::AppStateKey;
+use types::app::{AppBinaries, AppStateKey};
 use types::tx::{ApplicationCall, CreateApplication, SignedTransaction};
 use types::Changelist;
 
@@ -38,6 +38,7 @@ pub trait StateDB: Send + Sync {
     fn set_app_data(&self, app_state_key: AppStateKey, app_data: SparseMerkleTree) -> Result<()>;
     fn get_app_source(&self, app_id: Address) -> Result<Vec<u8>>;
     fn get_app_descriptor(&self, app_id: Address) -> Result<Vec<u8>>;
+    fn set_app_metadata(&self, binary: &[u8], descriptor: Vec<u8>) -> Result<()>;
 }
 
 pub trait AccountStateReader: Send + Sync {
