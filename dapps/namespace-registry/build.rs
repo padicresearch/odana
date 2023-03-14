@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut extra_build = prost_extra_build::Builder::new();
     extra_build.configure(
         &mut config,
-        &[&"proto/name-registery.proto".to_string()],
+        &[&"proto/service.proto".to_string()],
         &[&"proto".to_string(), &"../../proto".to_string()],
     )?;
 
@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .out_dir("src")
         .compile_with_config(
             config,
-            &[&"proto/name-registery.proto".to_string()],
+            &[&"proto/service.proto".to_string()],
             &[&"proto".to_string(), &"../../proto".to_string()],
         )
         .unwrap();

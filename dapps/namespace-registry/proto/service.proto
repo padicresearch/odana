@@ -1,0 +1,29 @@
+syntax = "proto3";
+package service;
+import "primitive_types.proto";
+
+message Namespace {
+  odana.primitive_types.H256 namespace = 1;
+  odana.primitive_types.Address owner = 2;
+}
+
+message NameSpaceRegistered {
+  Namespace namespace = 1;
+}
+
+message OwnerChanged {
+  odana.primitive_types.H256 namespace = 1;
+  odana.primitive_types.Address new_owner = 2;
+  odana.primitive_types.Address prev_owner = 3;
+}
+
+message GetNamespaceRequest {
+  string namespace = 1;
+}
+
+service Registry {
+  rpc Register(Namespace) returns (NameSpaceRegistered);
+  rpc GetOwner(odana.primitive_types.H256) returns (odana.primitive_types.Address);
+  rpc SetOwner(Namespace) returns (OwnerChanged);
+  rpc GetNamespace(GetNamespaceRequest) returns (Namespace);
+}

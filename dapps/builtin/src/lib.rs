@@ -1,8 +1,7 @@
 use anyhow::bail;
 use primitive_types::address::Address;
-use prost::bytes::Bytes;
 use prost::Message;
-use prost_reflect::{DynamicMessage, Value};
+use prost_reflect::DynamicMessage;
 use rune_framework::prelude::RuntimeApplication;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -33,8 +32,8 @@ pub fn is_namespace_registered(
         namespace_registry::app::PackageNameRegistry::descriptor(),
     )?;
 
-    let Some(service) = descriptor.get_service_by_name("namespace_registry.NameRegistry") else {
-        bail!("namespace_registry.NameRegistry not found")
+    let Some(service) = descriptor.get_service_by_name("service.Registry") else {
+        bail!("service.Registry not found")
     };
 
     let Some(get_owner_method) =  service.methods().find(|method| {
@@ -45,18 +44,12 @@ pub fn is_namespace_registered(
 
     let input = get_owner_method.input();
     let mut message = DynamicMessage::new(input);
-    message.set_field_by_number(
-        1,
-        Value::Bytes(Bytes::from(pkn.organisation_id.to_fixed_bytes().to_vec())),
-    );
-    // let query =
+    message.transcode_from(&pkn.organisation_id)?;
 
     let call = ApplicationCall {
         app_id,
-        service: rune_framework::prelude::Hashing::twox_64_hash(b"namespace_registry.NameRegistry"),
-        method: rune_framework::prelude::Hashing::twox_64_hash(
-            b"/namespace_registry.NameRegistry/GetOwner",
-        ),
+        service: rune_framework::prelude::Hashing::twox_64_hash(b"service.Registry"),
+        method: rune_framework::prelude::Hashing::twox_64_hash(b"/service.Registry/GetOwner"),
         args: message.encode_to_vec(),
     };
 
@@ -83,8 +76,8 @@ pub fn register_namespace(
         namespace_registry::app::PackageNameRegistry::descriptor(),
     )?;
 
-    let Some(service) = descriptor.get_service_by_name("namespace_registry.NameRegistry") else {
-        bail!("namespace_registry.NameRegistry not found")
+    let Some(service) = descriptor.get_service_by_name("service.Registry") else {
+        bail!("service.NameRegistry not found")
     };
 
     let Some(register_namespace_method) =  service.methods().find(|method| {
@@ -95,19 +88,14 @@ pub fn register_namespace(
 
     let input = register_namespace_method.input();
     let mut message = DynamicMessage::new(input);
-    message.set_field_by_number(
-        1,
-        Value::Bytes(Bytes::from(pkn.organisation_id.to_fixed_bytes().to_vec())),
-    );
-    message.set_field_by_number(2, Value::Bytes(Bytes::from(tx.sender().to_vec())));
-    // let query =
-
+    message.transcode_from(&namespace_registry::service::Namespace {
+        namespace: Some(pkn.organisation_id),
+        owner: Some(tx.sender()),
+    })?;
     let call = ApplicationCall {
         app_id,
-        service: rune_framework::prelude::Hashing::twox_64_hash(b"namespace_registry.NameRegistry"),
-        method: rune_framework::prelude::Hashing::twox_64_hash(
-            b"/namespace_registry.NameRegistry/RegisterNamespace",
-        ),
+        service: rune_framework::prelude::Hashing::twox_64_hash(b"service.Registry"),
+        method: rune_framework::prelude::Hashing::twox_64_hash(b"/service.Registry/Register"),
         args: message.encode_to_vec(),
     };
 
