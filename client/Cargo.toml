@@ -31,3 +31,4 @@ rune-framework = { path = "../runtime/framework" }
 primitive-types = { path = "../common/primitive-types" }
 [build-dependencies]
 tonic-build = "0.8.0"
+prost-build = "0.11.8"

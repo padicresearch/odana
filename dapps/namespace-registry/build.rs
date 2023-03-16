@@ -30,7 +30,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     rune_build::configure()
-        .out_dir("src")
         .compile_with_config(
             config,
             &[&"proto/service.proto".to_string()],

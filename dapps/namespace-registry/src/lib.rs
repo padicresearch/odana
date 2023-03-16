@@ -4,7 +4,9 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub mod constants;
 pub mod genesis;
-pub mod service;
+pub mod service {
+    include!(concat!(env!("OUT_DIR"), "/service.rs"));
+}
 mod util;
 
 use crate::constants::ADMIN;
