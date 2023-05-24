@@ -33,7 +33,7 @@ pub(crate) fn restricted_namespaces() -> Vec<H256> {
     known
         .into_iter()
         .map(|ns| {
-            ns.split(".")
+            ns.split('.')
                 .map(|part| Hashing::keccak256(part.as_bytes()))
                 .reduce(|acc, part| Hashing::keccak256(&[acc.as_bytes(), part.as_bytes()].concat()))
                 .unwrap_or_default()

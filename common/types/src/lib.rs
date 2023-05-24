@@ -185,9 +185,7 @@ pub mod prelude {
         where
             B: ::prost::bytes::Buf,
         {
-            match tag {
-                _ => ::prost::encoding::skip_field(wire_type, tag, buf, ctx),
-            }
+            ::prost::encoding::skip_field(wire_type, tag, buf, ctx)
         }
         #[inline]
         fn encoded_len(&self) -> usize {

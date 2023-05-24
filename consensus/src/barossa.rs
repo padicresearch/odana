@@ -374,7 +374,7 @@ impl Consensus for BarossaProtocol {
         state: Arc<dyn StateDB>,
         txs: &[SignedTransaction],
     ) -> anyhow::Result<Option<Block>> {
-        self.finalize(chain, header, vm, state, &txs)?;
+        self.finalize(chain, header, vm, state, txs)?;
         let block = Block::new(*header, txs.into());
         Ok(Some(block))
     }
@@ -429,14 +429,11 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::{Arc, RwLock};
 
-    use chrono::Utc;
-
     use primitive_types::{Compact, ADDRESS_LEN, H256, U256};
-    use traits::{ChainHeadReader, Consensus};
+    use traits::ChainHeadReader;
     use types::block::{BlockHeader, IndexedBlockHeader};
 
     use crate::barossa::{BarossaProtocol, Network};
-    use crate::constants::{RETARGETING_INTERVAL, TARGET_SPACING_SECONDS};
 
     #[derive(Default)]
     struct MemoryBlockHeaderReader {
@@ -520,7 +517,7 @@ mod tests {
                 .unwrap();
 
             header.raw.parent_hash = header.hash;
-            header.raw.time = header.raw.time + 120;
+            header.raw.time += 120;
             header.raw.level = height;
             header_provider.insert(header.raw);
         }
@@ -542,9 +539,9 @@ mod tests {
                 .unwrap()
                 .unwrap();
             header.raw.parent_hash = header.hash;
-            header.raw.time = header.raw.time + 120;
+            header.raw.time += 120;
             header.raw.difficulty = current_bits.into();
-            header.raw.level = header.raw.level + 1;
+            header.raw.level += 1;
             header_provider.insert(header.raw);
             let parent = header_provider
                 .get_header_by_level(height)
@@ -559,7 +556,7 @@ mod tests {
         // a block that is far in the future
         let mut header = header_provider.get_header_by_level(10268).unwrap().unwrap();
         header.raw.parent_hash = header.hash;
-        header.raw.time = header.raw.time + 1200;
+        header.raw.time += 1200;
         header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
         let calculated_bits =
@@ -583,11 +580,11 @@ mod tests {
         // The system should continue unaffected by the block with a bogous timestamps.
         for height in 10269..10296 {
             let mut header = header_provider
-                .get_header_by_level((height - 1).into())
+                .get_header_by_level(height - 1)
                 .unwrap()
                 .unwrap();
             header.raw.parent_hash = header.hash;
-            header.raw.time = header.raw.time + 120;
+            header.raw.time += 120;
             header.raw.difficulty = current_bits.into();
             header_provider.insert(header.raw);
 
@@ -603,7 +600,7 @@ mod tests {
         // We start emitting blocks slightly faster. The first block has no impact.
         let mut header = header_provider.get_header_by_level(10295).unwrap().unwrap();
         header.raw.parent_hash = header.hash;
-        header.raw.time = header.raw.time + 100;
+        header.raw.time += 100;
         header.raw.difficulty = current_bits.into();
         header_provider.insert(header.raw);
         let calculated_bits = barossa.work_required_adjusted(
@@ -618,11 +615,11 @@ mod tests {
         let mut current_bits = current_bits;
         for height in 10297..10301 {
             let mut header = header_provider
-                .get_header_by_level((height - 1).into())
+                .get_header_by_level(height - 1)
                 .unwrap()
                 .unwrap();
             header.raw.parent_hash = header.hash;
-            header.raw.time = header.raw.time + 90;
+            header.raw.time += 90;
             header.raw.difficulty = current_bits.into();
             header_provider.insert(header.raw);
 

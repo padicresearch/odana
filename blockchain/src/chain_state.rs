@@ -91,7 +91,7 @@ impl ChainState {
             state.reset(current_head.state_root)?;
             let vm = Arc::new(WasmVM::new(block_storage.clone())?);
             for (pkn, _) in built_in {
-                let _ = vm.load_application(
+                vm.load_application(
                     state.clone(),
                     get_address_from_package_name(pkn, consensus.network())?,
                 )?;

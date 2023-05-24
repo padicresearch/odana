@@ -73,6 +73,8 @@ pub(crate) fn generate_internal<T: Service>(
                 unused_variables,
                 dead_code,
                 missing_docs,
+                clippy::new_without_default,
+                clippy::needless_return,
                 // will trigger if compression is disabled
                 clippy::let_unit_value,
             )]

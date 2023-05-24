@@ -34,11 +34,11 @@ pub mod app {
             let ns = call
                 .message
                 .namespace
-                .ok_or(anyhow::anyhow!("namespace cant be None"))?;
+                .ok_or_else(|| anyhow::anyhow!("namespace cant be None"))?;
             let owner = call
                 .message
                 .owner
-                .ok_or(anyhow::anyhow!("owner cant be None"))?;
+                .ok_or_else(|| anyhow::anyhow!("owner cant be None"))?;
             if RegisteredNameSpaces::contains(ns) {
                 panic!("namespace already registered")
             }

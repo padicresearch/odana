@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -95,7 +96,7 @@ impl StateDB for State {
     }
 
     fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
-        Ok(self.get_sate_at(H256::from(self.root()))?)
+        Ok(self.get_sate_at(self.root())?)
     }
 
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>> {
@@ -244,7 +245,7 @@ impl State {
 
                 let code_hash = crypto::keccak256(&arg.binary);
                 let (descriptor, changelist) =
-                    vm.execute_app_create(state_db.clone(), tx.sender(), tx.price(), arg)?;
+                    vm.execute_app_create(state_db, tx.sender(), tx.price(), arg)?;
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);
                 }

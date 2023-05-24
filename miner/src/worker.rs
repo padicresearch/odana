@@ -134,9 +134,8 @@ fn pending_txs(txpool: Arc<RwLock<TxPool>>) -> Result<Vec<SignedTransaction>> {
     let txpool = txpool.read().map_err(|e| anyhow::anyhow!("{}", e))?;
     let pending_txs = txpool.pending();
     let txs: Vec<_> = pending_txs
-        .into_iter()
-        .map(|(_, tx_list)| tx_list.txs.into_iter().map(|tx| tx.deref().clone()))
-        .flatten()
+        .into_values()
+        .flat_map(|tx_list| tx_list.txs.into_iter().map(|tx| tx.deref().clone()))
         .collect();
 
     Ok(txs)

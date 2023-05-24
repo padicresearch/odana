@@ -103,7 +103,7 @@ mod test {
     use std::sync::Arc;
 
     use anyhow::Result;
-    use rocksdb::ColumnFamilyDescriptor;
+
     use tempdir::TempDir;
 
     use crate::sleddb::SledDB;
@@ -122,8 +122,8 @@ mod test {
         pub fn put_block(&self, key: String, block: String) -> Result<()> {
             self.kv.put(key, block)
         }
-        pub fn get_block(&self, key: &String) -> Result<Option<String>> {
-            self.kv.get(key)
+        pub fn get_block(&self, key: &str) -> Result<Option<String>> {
+            self.kv.get(&key.to_string())
         }
     }
 
@@ -145,6 +145,6 @@ mod test {
         block_storage
             .put_block("h".to_string(), "bb".to_string())
             .unwrap();
-        println!("{:?}", block_storage.get_block(&"h".to_string()).unwrap())
+        println!("{:?}", block_storage.get_block("h").unwrap())
     }
 }

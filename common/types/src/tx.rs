@@ -144,7 +144,7 @@ impl Transaction {
             }
             TransactionData::Call(v) => {
                 pack.extend_from_slice(&2u32.to_be_bytes());
-                pack.extend_from_slice(&v.app_id.as_bytes());
+                pack.extend_from_slice(v.app_id.as_bytes());
                 pack.extend_from_slice(&v.service.to_be_bytes());
                 pack.extend_from_slice(&v.method.to_be_bytes());
                 pack.extend_from_slice(&v.args);
@@ -156,7 +156,7 @@ impl Transaction {
             }
             TransactionData::Update(v) => {
                 pack.extend_from_slice(&4u32.to_be_bytes());
-                pack.extend_from_slice(&v.app_id.as_bytes());
+                pack.extend_from_slice(v.app_id.as_bytes());
                 pack.extend_from_slice(&(v.migrate as u8).to_be_bytes());
                 pack.extend_from_slice(&v.binary);
             }
@@ -250,9 +250,9 @@ impl From<Vec<SignedTransaction>> for TransactionList {
     }
 }
 
-impl Into<Vec<SignedTransaction>> for TransactionList {
-    fn into(self) -> Vec<SignedTransaction> {
-        let txs: Vec<_> = self.txs.into_iter().map(|tx| tx.deref().clone()).collect();
+impl From<TransactionList> for Vec<SignedTransaction> {
+    fn from(val: TransactionList) -> Self {
+        let txs: Vec<_> = val.txs.into_iter().map(|tx| tx.deref().clone()).collect();
         txs
     }
 }
@@ -307,7 +307,7 @@ impl prost::Message for SignedTransaction {
     where
         B: Buf,
     {
-        const STRUCT_NAME: &'static str = stringify!(SignedTransaction);
+        const STRUCT_NAME: &str = stringify!(SignedTransaction);
         match tag {
             1u32 => {
                 let value = &mut self.tx;
@@ -342,7 +342,7 @@ impl prost::Message for SignedTransaction {
     }
     #[inline]
     fn encoded_len(&self) -> usize {
-        0 + prost::encoding::message::encoded_len(1u32, &self.tx)
+        prost::encoding::message::encoded_len(1u32, &self.tx)
             + prost::encoding::message::encoded_len(2u32, &self.r)
             + prost::encoding::message::encoded_len(3u32, &self.s)
             + prost::encoding::uint32::encoded_len(4u32, &self.v)
@@ -423,7 +423,7 @@ impl SignedTransaction {
             TransactionData::RawData(_) => Ok(Default::default()),
             TransactionData::Create(CreateApplication { package_name, .. }) => {
                 get_address_from_package_name(
-                    &package_name,
+                    package_name,
                     self.from()
                         .network()
                         .ok_or_else(|| anyhow!("network not specified on senders address"))?,

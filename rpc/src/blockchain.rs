@@ -60,7 +60,7 @@ impl ChainService for ChainServiceImpl {
         let block_hash = request
             .into_inner()
             .hash
-            .ok_or(Status::invalid_argument("hash not present in message"))?;
+            .ok_or_else(|| Status::invalid_argument("hash not present in message"))?;
         let block = self
             .blockchain
             .get_block_by_hash(&block_hash)

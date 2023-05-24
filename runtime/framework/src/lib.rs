@@ -41,6 +41,7 @@ impl<T: prost::Message + Default> Call<T> {
     }
 }
 
+#[derive(Default)]
 pub struct CallResponse {
     type_descriptor: &'static str,
     data: Vec<u8>,
@@ -57,15 +58,6 @@ where
     }
 }
 
-impl Default for CallResponse {
-    fn default() -> Self {
-        Self {
-            type_descriptor: "",
-            data: vec![],
-        }
-    }
-}
-
 pub trait Service {
     fn call(&self, method: u64, payload: &[u8]) -> CallResponse;
 }
@@ -76,6 +68,12 @@ pub trait NamedService {
 
 pub struct Router {
     services: BTreeMap<u64, Box<dyn Service + Send + Sync>>,
+}
+
+impl Default for Router {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Router {

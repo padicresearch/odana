@@ -29,7 +29,7 @@ pub fn rune(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     r.register_service(#with_value::<#mod_name::#struct_name>::new());
                 });
             }
-            if let Some(_) = get_app_attr(&item_struct.attrs) {
+            if get_app_attr(&item_struct.attrs).is_some() {
                 // Get the struct name and #[route(with = ...)] attribute value
                 if app_name.is_some() {
                     panic!("there can only be one #[rune]");

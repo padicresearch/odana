@@ -104,7 +104,6 @@ mod tests {
         config.out_dir(tmpdir.clone());
 
         builder
-            .file_descriptor_set_path(tmpdir.join("file_descriptor_set.bin"))
             .compile_protos_with_config(config, &["src/test.proto"], &["src"])
             .unwrap();
 
