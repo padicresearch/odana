@@ -5,7 +5,7 @@ extern crate alloc;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use anyhow::Result;
-use bincode::config::{BigEndian, Fixint, NoLimit, SkipFixedArrayLength};
+use bincode::config::{BigEndian, Fixint, NoLimit};
 use primitive_types::address::Address;
 use primitive_types::{H160, H256};
 
@@ -140,11 +140,8 @@ impl Decodable for Address {
         Ok(Address::from_slice(buf))
     }
 }
-
-pub fn config() -> bincode::config::Configuration<BigEndian, Fixint, SkipFixedArrayLength, NoLimit>
-{
+pub fn config() -> bincode::config::Configuration<BigEndian, Fixint, NoLimit> {
     bincode::config::standard()
         .with_big_endian()
         .with_fixed_int_encoding()
-        .skip_fixed_array_length()
 }
