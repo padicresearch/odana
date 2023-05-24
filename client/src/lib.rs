@@ -9,7 +9,9 @@ use tonic::codegen::StdError;
 pub mod commands;
 mod parser;
 #[allow(clippy::all)]
-mod rpc;
+mod rpc {
+    include!(concat!(env!("OUT_DIR"), "/rpc.rs"));
+}
 mod util;
 mod value;
 

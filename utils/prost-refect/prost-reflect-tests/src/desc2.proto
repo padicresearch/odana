@@ -1,0 +1,23 @@
+syntax = "proto2";
+
+package my.package2;
+
+message MyMessage {
+  reserved 2, 15, 9 to 11;
+  reserved "foo", "bar";
+  extensions 100, 110 to 115;
+
+  extend MyMessage {
+    optional int32 in_extendee = 111;
+  }
+}
+
+extend MyMessage {
+  optional float in_file = 112;
+}
+
+message OtherMessage {
+  extend MyMessage {
+    optional double in_other = 113;
+  }
+}

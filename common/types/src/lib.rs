@@ -149,10 +149,9 @@ pub trait Addressing {
     fn is_valid(&self) -> bool;
     fn network(&self) -> Option<Network>;
 }
-
 pub struct Changelist {
     pub account_changes: HashMap<Address, AccountState>,
-    pub logs: Vec<Vec<u8>>,
+    pub logs: Vec<(String, Vec<u8>)>,
     pub storage: SparseMerkleTree,
 }
 
@@ -186,9 +185,7 @@ pub mod prelude {
         where
             B: ::prost::bytes::Buf,
         {
-            match tag {
-                _ => ::prost::encoding::skip_field(wire_type, tag, buf, ctx),
-            }
+            ::prost::encoding::skip_field(wire_type, tag, buf, ctx)
         }
         #[inline]
         fn encoded_len(&self) -> usize {

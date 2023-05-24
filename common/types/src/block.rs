@@ -174,7 +174,7 @@ impl prost::Message for Block {
     where
         B: Buf,
     {
-        const STRUCT_NAME: &'static str = stringify!(Block);
+        const STRUCT_NAME: &str = stringify!(Block);
         match tag {
             1u32 => {
                 let value = &mut self.header;

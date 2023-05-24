@@ -6,6 +6,7 @@ use anyhow::{bail, Result};
 use blake2b_simd::Params;
 use primitive_types::H256;
 use sha3::Digest;
+use xxhash_rust::const_xxh3::{xxh3_128, xxh3_64};
 
 use rune_std::prelude::*;
 
@@ -30,6 +31,16 @@ impl Hashing {
         hasher.update(input);
         let out = hasher.finalize();
         H256::from_slice(out.as_ref())
+    }
+
+    #[inline]
+    pub fn twox_64_hash(payload: &[u8]) -> u64 {
+        xxh3_64(payload)
+    }
+
+    #[inline]
+    pub fn twox_128_hash(payload: &[u8]) -> u128 {
+        xxh3_128(payload)
     }
 }
 
@@ -76,7 +87,7 @@ where
         if raw_value.is_empty() {
             return Ok(None);
         }
-        let value = V::decode(raw_value.as_slice())?;
+        let value = V::decode(raw_value.as_slice()).map_err(|e| anyhow::anyhow!("{}", e))?;
         Ok(Some(value))
     }
 
@@ -117,7 +128,7 @@ where
         let Some(raw_value) = internal::storage::get(storage_key.as_ref()) else {
             bail!("value not found")
         };
-        let value = V::decode(raw_value.as_slice())?;
+        let value = V::decode(raw_value.as_slice()).map_err(|e| anyhow::anyhow!("{}", e))?;
         Ok(value)
     }
 }
@@ -130,10 +141,30 @@ impl StorageKeyHasher for Blake2bHasher {
     }
 }
 
-pub fn emit<E: prost::Message + Default>(event: E) {
-    internal::event::emit(&event.encode_to_vec())
+pub struct Twox64Hasher;
+
+impl StorageKeyHasher for Twox64Hasher {
+    fn hash(payload: &[u8]) -> Box<[u8]> {
+        Box::new(Hashing::twox_64_hash(payload).to_le_bytes())
+    }
+}
+
+pub struct Twox128Hasher;
+
+impl StorageKeyHasher for Twox128Hasher {
+    fn hash(payload: &[u8]) -> Box<[u8]> {
+        Box::new(Hashing::twox_128_hash(payload).to_le_bytes())
+    }
+}
+
+pub fn emit<E: prost_extra::MessageExt + Default>(event: E) {
+    emit_raw_event(E::full_name(), event.encode_to_vec().as_slice())
+}
+
+pub(crate) fn emit_raw_event(descriptor: &str, data: &[u8]) {
+    internal::event::emit(descriptor, data);
 }
 
 pub fn print(msg: &str) {
-    internal::log::print(msg)
+    internal::logging::log(msg)
 }

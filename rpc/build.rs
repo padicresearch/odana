@@ -1,6 +1,5 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
-        .out_dir("src")
         .build_client(false)
         .extern_path(".odana.types", "::types::prelude")
         .extern_path(".odana.primitive_types", "::primitive_types")

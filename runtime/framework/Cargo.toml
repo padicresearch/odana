@@ -10,10 +10,11 @@ wit-bindgen-guest-rust = { git = "https://github.com/padicresearch/wit-bindgen.g
 rune-std = { path = "../std" }
 prost = { workspace = true }
 primitive-types = { workspace = true, default-features = false }
-blake2b_simd = { version = "1.0.0", default-feature = false }
+blake2b_simd = { version = "1.0.0", default-features = false }
 anyhow = { workspace = true, default-features = false }
 prost-extra = {workspace = true}
 sha3 = "0.10.2"
 digest = "0.10.3"
+xxhash-rust = { version = "0.8.6", features = ["xxh3", "const_xxh3", "xxh32", "const_xxh32"] }
 [build-dependencies]
 wit-codegen = { workspace = true }

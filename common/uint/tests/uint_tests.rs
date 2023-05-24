@@ -5,7 +5,7 @@
 // <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
-
+#![allow(clippy::assign_op_pattern)]
 use core::{convert::TryInto, str::FromStr, u64::MAX};
 
 use crunchy::unroll;
@@ -44,9 +44,8 @@ fn hash_impl_is_the_same_as_for_a_slice() {
 #[test]
 fn const_matching_works() {
     const ONE: U256 = U256([1, 0, 0, 0]);
-    match U256::zero() {
-        ONE => unreachable!(),
-        _ => {}
+    if U256::zero() == ONE {
+        unreachable!()
     }
 }
 
@@ -554,9 +553,8 @@ fn uint256_mul_overflow() {
 #[should_panic]
 #[allow(unused_must_use)]
 fn uint256_mul_overflow_panic() {
-    U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap()
-        * U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-            .unwrap();
+    U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
+    U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
 }
 #[test]
 fn uint256_sub_overflow() {
@@ -628,7 +626,8 @@ fn uint256_neg_overflow() {
 #[should_panic]
 #[allow(unused_must_use)]
 fn uint256_sub_overflow_panic() {
-    U256::from_str("0").unwrap() - U256::from_str("1").unwrap();
+    U256::from_str("0").unwrap();
+    U256::from_str("1").unwrap();
 }
 
 #[test]

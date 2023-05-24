@@ -15,10 +15,11 @@ types = { path = "../common/types" }
 traits = { path = "../common/traits" }
 account = { path = "../account" }
 state = { path = "../state" }
-rt-vm = { path = "../runtime/vm" }
+rune-vm = { path = "../runtime/vm" }
 txpool = { path = "../txpool" }
 crypto = { path = "../crypto" }
 tokio = {  workspace = true, features = ["sync"] }
 primitive-types = { path = "../common/primitive-types" }
 cached = "0.42.0"
 tracing = { workspace = true }
+crossbeam = { workspace = true }

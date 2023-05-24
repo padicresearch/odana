@@ -10,7 +10,7 @@ use types::block::{Block, BlockHeader, IndexedBlockHeader};
 use types::network::Network;
 
 use types::app::AppStateKey;
-use types::tx::{ApplicationCallTx, CreateApplicationTx, SignedTransaction};
+use types::tx::{ApplicationCall, CreateApplication, SignedTransaction};
 use types::Changelist;
 
 pub trait Blockchain: ChainReader {
@@ -38,6 +38,7 @@ pub trait StateDB: Send + Sync {
     fn set_app_data(&self, app_state_key: AppStateKey, app_data: SparseMerkleTree) -> Result<()>;
     fn get_app_source(&self, app_id: Address) -> Result<Vec<u8>>;
     fn get_app_descriptor(&self, app_id: Address) -> Result<Vec<u8>>;
+    fn set_app_metadata(&self, binary: &[u8], descriptor: Vec<u8>) -> Result<()>;
 }
 
 pub trait AccountStateReader: Send + Sync {
@@ -52,21 +53,20 @@ pub trait WasmVMInstance: Send + Sync {
         state_db: Arc<dyn StateDB>,
         sender: Address,
         value: u64,
-        call: &CreateApplicationTx,
+        call: &CreateApplication,
     ) -> Result<(Vec<u8>, Changelist)>;
     fn execute_app_tx(
         &self,
         state_db: Arc<dyn StateDB>,
         sender: Address,
         value: u64,
-        call: &ApplicationCallTx,
+        call: &ApplicationCall,
     ) -> Result<Changelist>;
     fn execute_app_query(
         &self,
         state_db: Arc<dyn StateDB>,
-        app_id: Address,
-        raw_query: &[u8],
-    ) -> Result<(String, Vec<u8>)>;
+        call: &ApplicationCall,
+    ) -> Result<Vec<u8>>;
 
     fn execute_get_descriptor(
         &self,
@@ -96,7 +96,7 @@ pub trait Consensus: Send + Sync {
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,
     ) -> Result<()>;
-    fn finalize<'a>(
+    fn finalize(
         &self,
         chain: Arc<dyn ChainHeadReader>,
         header: &mut BlockHeader,

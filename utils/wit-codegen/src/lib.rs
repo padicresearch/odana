@@ -3,15 +3,9 @@ use std::path::PathBuf;
 use wit_bindgen_core::Files;
 use wit_parser::{Resolve, UnresolvedPackage};
 
-pub fn guest_generate(macro_export: bool, wit_file: &str, out_dir: &str) -> anyhow::Result<()> {
-    let opts = wit_bindgen_gen_guest_rust::Opts {
-        rustfmt: true,
-        unchecked: false,
-        no_std: true,
-        macro_export,
-        ..Default::default()
-    };
+pub use wit_bindgen_gen_guest_rust::Opts;
 
+pub fn guest_generate(opts: Opts, wit_file: &str, out_dir: &str) -> anyhow::Result<()> {
     let mut resolve = Resolve::default();
     let mut files = Files::default();
     let mut generator = opts.build();

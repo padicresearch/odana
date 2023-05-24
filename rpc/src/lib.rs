@@ -23,7 +23,9 @@ use crate::txs::TransactionsServiceImpl;
 mod account;
 mod blockchain;
 #[allow(clippy::all)]
-mod rpc;
+mod rpc {
+    include!(concat!(env!("OUT_DIR"), "/rpc.rs"));
+}
 mod runtime;
 mod txs;
 

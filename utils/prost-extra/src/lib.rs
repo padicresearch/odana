@@ -1,5 +1,5 @@
 pub trait MessageExt: prost::Message {
-    fn full_name(&self) -> &'static str;
+    fn full_name() -> &'static str;
 }
 
 #[cfg(feature = "derive")]

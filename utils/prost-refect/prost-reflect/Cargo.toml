@@ -1,0 +1,102 @@
+[package]
+name = "prost-reflect"
+description = "A protobuf library extending prost with reflection support and dynamic messages."
+keywords = ["protobuf", "serialization", "json"]
+categories = ["encoding"]
+version = "0.10.2"
+authors = ["Andrew Hickman <andrew.hickman1@sky.com>"]
+repository = "https://github.com/andrewhickman/prost-reflect"
+documentation = "https://docs.rs/prost-reflect"
+license = "MIT OR Apache-2.0"
+readme = "../README.md"
+edition = "2021"
+rust-version = "1.60.0"
+exclude = [
+    "**/tests.rs",
+    "proptest-regressions",
+    "src/file_descriptor_set.bin",
+    "src/doctest.proto",
+    "tests"
+]
+
+[[test]]
+name = "main"
+path = "tests/main.rs"
+required-features = ["serde", "miette", "text-format"]
+
+[features]
+derive = ["prost-reflect-derive"]
+serde = ["serde1", "base64", "serde-value"]
+text-format = ["logos"]
+
+[dependencies]
+base64 = { version = "0.21.0", optional = true }
+logos = { version = "0.12.1", optional = true }
+miette = { version = "5.3.0", optional = true }
+once_cell = { version = "1.9.0" }
+prost = "0.11.0"
+prost-reflect-derive = { path = '../prost-reflect-derive', version = "0.10.0", optional = true }
+prost-types = "0.11.0"
+primitive-types = {path = "../../../common/primitive-types"}
+prost-extra = {path = "../../prost-extra"}
+serde-value = { version = "0.7.0", optional = true }
+serde1 = { package = "serde", version = "1.0.132", optional = true }
+
+[dev-dependencies]
+insta = { version = "1.23.0", features = ["yaml"] }
+once_cell = "1.13.0"
+proptest = "1.0.0"
+prost-build = "0.11.0"
+prost-reflect-build = { path = "../prost-reflect-build" }
+serde_json = "1.0.82"
+serde_yaml = "0.9.16"
+
+[package.metadata.release]
+tag-name = "{{version}}"
+sign-tag = true
+
+[[package.metadata.release.pre-release-replacements]]
+file = "../README.md"
+search = "https://deps\\.rs/crate/prost-reflect/.*?/status.svg"
+replace = "https://deps.rs/crate/prost-reflect/{{version}}/status.svg"
+exactly = 1
+
+[[package.metadata.release.pre-release-replacements]]
+file = "../README.tpl"
+search = "https://deps\\.rs/crate/prost-reflect/.*?/status.svg"
+replace = "https://deps.rs/crate/prost-reflect/{{version}}/status.svg"
+exactly = 1
+
+[[package.metadata.release.pre-release-replacements]]
+file = "../README.md"
+search = "https://docs\\.rs/prost-reflect/.*?/prost_reflect"
+replace = "https://docs.rs/prost-reflect/{{version}}/prost_reflect"
+min = 1
+
+[[package.metadata.release.pre-release-replacements]]
+file = "../README.tpl"
+search = "https://docs\\.rs/prost-reflect/.*?/prost_reflect"
+replace = "https://docs.rs/prost-reflect/{{version}}/prost_reflect"
+min = 1
+
+[[package.metadata.release.pre-release-replacements]]
+file = "src/lib.rs"
+search = "html_root_url = \"https://docs.rs/prost-reflect/.*?/\""
+replace = "html_root_url = \"https://docs.rs/prost-reflect/{{version}}/\""
+exactly = 1
+
+[[package.metadata.release.pre-release-replacements]]
+file = "../CHANGELOG.md"
+search = "## \\[Unreleased\\]"
+replace = "## [Unreleased]\n\n## [{{version}}] - {{date}}"
+exactly = 1
+
+[[package.metadata.release.pre-release-replacements]]
+file = "../CHANGELOG.md"
+search = "\\[Unreleased\\]: https://github\\.com/andrewhickman/prost-reflect/compare/.*?...HEAD"
+replace = "[Unreleased]: https://github.com/andrewhickman/prost-reflect/compare/{{version}}...HEAD\n[{{version}}]: https://github.com/andrewhickman/prost-reflect/compare/{{prev_version}}...{{version}}"
+exactly = 1
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

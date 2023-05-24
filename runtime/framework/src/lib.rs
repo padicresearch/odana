@@ -1,92 +1,118 @@
-//!
-//!
-//! # Example
-//! ```ignore
-//! impl RuntimeApplication for ExampleApp {
-//!     type Genesis = types::Genesis;
-//!     type Call = types::Call;
-//!     type Query = types::Query;
-//!     type QueryResponse = types::QueryResponse;
-//!
-//!     fn init(block_level: u32, genesis: Self::Genesis) -> u32 {
-//!         ...
-//!     }
-//!
-//!     fn call(context: impl ExecutionContext, call: Self::Call) {
-//!         ...
-//!     }
-//!
-//!
-//!     fn query(query: Self::Query) -> Self::QueryResponse {
-//!         ...
-//!     }
-//! }
-//!
-//! export_app!(NickApp);
-//! ```
-
 #![no_std]
-
 pub mod io;
-
 extern crate alloc;
 
+#[doc(hidden)]
 mod internal {
-    include!(concat!(env!("OUT_DIR"), "/core.rs"));
+    include!(concat!(env!("OUT_DIR"), "/system.rs"));
 }
-include!(concat!(env!("OUT_DIR"), "/app.rs"));
+
+#[doc(hidden)]
+mod runtime {
+    include!(concat!(env!("OUT_DIR"), "/runtime.rs"));
+}
+
 use crate::context::Context;
-use prost::Message;
-use prost_extra::MessageExt;
+use crate::io::Hashing;
+use alloc::collections::BTreeMap;
+use primitive_types::Address;
+use prost::DecodeError;
 use rune_std::prelude::*;
 
+pub struct Call<T: prost::Message + Default> {
+    pub message: T,
+}
+
+impl<T: prost::Message + Default> Call<T> {
+    pub fn new<B: prost::bytes::Buf>(raw_message: B) -> Result<Self, DecodeError> {
+        T::decode(raw_message).map(|message| Call { message })
+    }
+
+    pub fn origin(&self) -> Address {
+        Address::from_slice(runtime::execution_context::sender().as_slice())
+    }
+
+    pub fn value(&self) -> u64 {
+        runtime::execution_context::value()
+    }
+
+    pub fn block_level(&self) -> u32 {
+        runtime::execution_context::block_level()
+    }
+}
+
+#[derive(Default)]
+pub struct CallResponse {
+    type_descriptor: &'static str,
+    data: Vec<u8>,
+}
+impl<T> From<T> for CallResponse
+where
+    T: prost_extra::MessageExt,
+{
+    fn from(value: T) -> Self {
+        CallResponse {
+            type_descriptor: T::full_name(),
+            data: value.encode_to_vec(),
+        }
+    }
+}
+
+pub trait Service {
+    fn call(&self, method: u64, payload: &[u8]) -> CallResponse;
+}
+
+pub trait NamedService {
+    const NAME: &'static str;
+}
+
+pub struct Router {
+    services: BTreeMap<u64, Box<dyn Service + Send + Sync>>,
+}
+
+impl Default for Router {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Router {
+    pub fn new() -> Self {
+        Self {
+            services: Default::default(),
+        }
+    }
+
+    pub fn register_service<T: Service + NamedService + Send + Sync + 'static>(
+        &mut self,
+        service: T,
+    ) {
+        self.services
+            .insert(Hashing::twox_64_hash(T::NAME.as_ref()), Box::new(service));
+    }
+
+    pub fn handle(&self, context: Context, payload: &[u8]) -> CallResponse {
+        let service = self.services.get(&context.service).unwrap();
+        service.call(context.method, payload)
+    }
+}
+
 pub trait RuntimeApplication {
-    type Call: prost::Message + Default;
-    type Query: prost::Message + Default;
-    type QueryResponse: prost_extra::MessageExt + Default;
-
-    /// Initializes the runtime application.
-    fn genesis(context: Context) -> anyhow::Result<()>;
-
-    /// Handles a call to the runtime application.
-    ///
-    /// # Parameters
-    ///
-    /// - `call`: An instance of the `Call` type representing the call to be handled
-    fn call(context: Context, call: Self::Call) -> anyhow::Result<()>;
-
-    /// Handles a query to the runtime application and returns a response.
-    ///
-    /// # Parameters
-    ///
-    /// - `query`: An instance of the `Query` type representing the query to be handled
-    ///
-    /// # Returns
-    ///
-    /// - An instance of the `QueryResponse` type representing the response to the query
-    fn query(query: Self::Query) -> Self::QueryResponse;
-
+    fn call(context: Context, arg: &[u8]) -> anyhow::Result<CallResponse>;
     fn descriptor() -> &'static [u8];
 }
 
-pub mod context {
-    use crate::execution_context;
-    use primitive_types::address::Address;
+pub trait Genesis {
+    /// Initializes the runtime application.
+    fn genesis() -> anyhow::Result<()> {
+        Ok(())
+    }
+}
 
-    pub struct Context;
-
-    impl Context {
-        pub fn sender(&self) -> Address {
-            Address::from_slice(execution_context::sender().as_slice())
-        }
-
-        pub fn value(&self) -> u64 {
-            execution_context::value()
-        }
-
-        pub fn block_level(&self) -> u32 {
-            execution_context::block_level()
-        }
+mod context {
+    pub struct Context {
+        pub(crate) service: u64,
+        pub(crate) method: u64,
     }
 }
 
@@ -138,33 +164,48 @@ pub mod syscall {
     pub fn unreserve(amount: u64) -> bool {
         internal::syscall::unreserve(amount)
     }
+
+    pub fn get_free_balance(address: &Address) -> u64 {
+        internal::syscall::get_free_balance(address.as_bytes())
+    }
+
+    pub fn get_reserve_balance(address: &Address) -> u64 {
+        internal::syscall::get_reserve_balance(address.as_bytes())
+    }
+
+    pub fn get_nonce(address: &Address) -> u64 {
+        internal::syscall::get_nonce(address.as_bytes())
+    }
 }
 
-impl<T> app::App for T
+impl<T> runtime::runtime_app::RuntimeApp for T
 where
-    T: RuntimeApplication,
+    T: RuntimeApplication + Genesis,
 {
     fn genesis() {
-        T::genesis(Context).unwrap()
+        T::genesis().unwrap()
     }
 
-    fn call(call: Vec<u8>) {
-        T::call(
-            Context,
-            T::Call::decode(call.as_slice()).expect("error parsing call"),
-        )
-        .unwrap()
+    fn call(service: u64, method: u64, call: Vec<u8>) {
+        let response = T::call(Context { service, method }, call.as_slice()).unwrap();
+        io::emit_raw_event(response.type_descriptor, response.data.as_slice())
     }
 
-    fn query(query: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
-        let response = T::query(T::Query::decode(query.as_slice()).expect("error parsing query"));
-        (
-            response.full_name().as_bytes().to_vec(),
-            response.encode_to_vec(),
-        )
+    fn query(service: u64, method: u64, query: Vec<u8>) -> Vec<u8> {
+        let response = T::call(Context { service, method }, query.as_slice()).unwrap();
+        response.data
     }
 
     fn descriptor() -> Vec<u8> {
         T::descriptor().to_vec()
     }
+}
+
+pub mod prelude {
+    pub use crate::context::*;
+    pub use crate::io::*;
+    pub use crate::runtime::*;
+    pub use crate::{
+        Call, CallResponse, Genesis, NamedService, Router, RuntimeApplication, Service,
+    };
 }

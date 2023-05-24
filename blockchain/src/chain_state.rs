@@ -8,7 +8,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use primitive_types::address::Address;
 use primitive_types::H256;
-use rt_vm::WasmVM;
+use rune_vm::WasmVM;
 use state::State;
 use storage::{KVStore, Schema};
 use tracing::{debug, info, trace, warn};
@@ -90,12 +90,10 @@ impl ChainState {
         let vm = if let Some(current_head) = chain_state_storage.get_current_header()? {
             state.reset(current_head.state_root)?;
             let vm = Arc::new(WasmVM::new(block_storage.clone())?);
-            for (pkn, binary) in built_in {
-                let _ = vm.install_builtin(
+            for (pkn, _) in built_in {
+                vm.load_application(
                     state.clone(),
                     get_address_from_package_name(pkn, consensus.network())?,
-                    binary,
-                    false,
                 )?;
             }
             info!(blockhash = ?current_head.hash(), level = ?current_head.level, "restore from blockchain state");
@@ -108,22 +106,28 @@ impl ChainState {
             let mut states = HashMap::new();
             for (pkn, binary) in built_in {
                 let app_address = get_address_from_package_name(pkn, consensus.network())?;
-                let changelist = vm
-                    .install_builtin(state.clone(), app_address, binary, true)?
-                    .ok_or(anyhow!("required app not installed"))?;
+                let (descriptor, changelist) =
+                    vm.create_application(state.clone(), ROOT, app_address, 0, binary)?;
                 let code_hash = crypto::keccak256(binary);
+                dbg!(&changelist.account_changes);
+                println!("registered app {} at {}", pkn, app_address);
+                dbg!(&changelist.storage.root());
+
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);
                 }
                 let app_state = states
                     .get_mut(&app_address)
                     .ok_or_else(|| anyhow::anyhow!("app state not found"))?;
+
                 app_state.app_state =
                     Some(AppState::new(changelist.storage.root(), code_hash, ROOT, 1));
+
                 state.set_app_data(
                     AppStateKey(app_address, changelist.storage.root()),
                     changelist.storage,
                 )?;
+                state.set_app_metadata(binary, descriptor)?;
             }
             for (addr, account_state) in states {
                 state.set_account_state(addr, account_state)?;

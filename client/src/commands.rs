@@ -1,5 +1,5 @@
-use crate::rpc::{GetAccountRequest, GetDescriptorRequest, Query};
-use crate::util::parse_cli_args_to_json;
+use crate::rpc::{GetAccountRequest, GetDescriptorRequest};
+use crate::util::{parse_cli_args_to_json, RpcMethod};
 use crate::Client;
 use clap::{Args, Subcommand};
 use primitive_types::H256;
@@ -9,8 +9,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 
 use primitive_types::address::Address;
-use prost_reflect::{DescriptorPool, DynamicMessage};
-use serde::Serialize;
+use prost_reflect::{DescriptorPool, DeserializeOptions, DynamicMessage, SerializeOptions};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -19,7 +18,7 @@ use transaction::{make_payment_sign_transaction, make_signed_transaction};
 use types::account::{get_address_from_package_name, get_address_from_secret_key};
 use types::network::Network;
 use types::prelude::Empty;
-use types::tx::{ApplicationCallTx, CreateApplicationTx, TransactionData};
+use types::tx::{ApplicationCall, CreateApplication, TransactionData};
 
 #[derive(Args, Debug)]
 pub struct ClientArgsCommands {
@@ -55,12 +54,6 @@ pub struct SignerArgs {
     signer: H256,
 }
 
-#[derive(Args, Debug)]
-pub struct ProtoFilesArg {
-    #[clap(long)]
-    schema: String,
-}
-
 #[derive(Subcommand, Debug)]
 pub enum AppCommands {
     Call(CallArgs),
@@ -92,8 +85,8 @@ pub struct CallArgs {
     app: String,
     #[clap(flatten)]
     sign_args: SignerArgs,
-    #[clap(flatten)]
-    proto: ProtoFilesArg,
+    #[clap(long)]
+    call: String,
     #[clap(require_equals = true, multiple = true)]
     params: Vec<String>,
 }
@@ -111,8 +104,8 @@ pub struct AppCreateArgs {
 pub struct AppQueryArgs {
     #[clap(long)]
     app: String,
-    #[clap(flatten)]
-    proto: ProtoFilesArg,
+    #[clap(long)]
+    call: String,
     #[clap(require_equals = true, multiple = true)]
     params: Vec<String>,
 }
@@ -146,17 +139,20 @@ pub async fn handle_app_command(
     rpc_client: &Client,
     command: &AppArgsCommands,
 ) -> anyhow::Result<Value> {
+    let deserialize_options = DeserializeOptions::default().parse_string_to_primitives(true);
+    let serialize_options = SerializeOptions::default().stringify_primitives(true);
     let resp = match &command.command {
         AppCommands::Call(CallArgs {
             app,
             sign_args,
-            proto,
+            call,
             params,
         }) => {
             let signer = sign_args.signer;
             let value = sign_args.value;
             let tip = sign_args.tip;
 
+            let call = RpcMethod::parse(call)?;
             let signer_address = get_address_from_secret_key(signer, Network::Testnet)?;
 
             let nonce = rpc_client
@@ -182,19 +178,27 @@ pub async fn handle_app_command(
 
             let descriptor =
                 DescriptorPool::decode(descriptor.as_slice()).expect("failed to descriptor pool");
-            let message_descriptor = descriptor
-                .get_message_by_name(proto.schema.as_str())
-                .expect("message not found in descriptor pool");
-            let json_value = parse_cli_args_to_json(params.iter())?;
-            let message = DynamicMessage::deserialize(message_descriptor, json_value)?;
-            let mut serializer = serde_json::Serializer::new(vec![]);
-            message.serialize(&mut serializer)?;
-            let call_json: Value = serde_json::from_slice(serializer.into_inner().as_slice())?;
-            let encoded_call = message.encode_to_vec();
 
-            let data = TransactionData::Call(ApplicationCallTx {
+            let service = descriptor
+                .get_service_by_name(call.service_name())
+                .expect("service not found in descriptor");
+            let method_to_call = service
+                .methods()
+                .find(|method| method.name() == call.method_name())
+                .expect("method not found in descriptor");
+
+            let input = method_to_call.input();
+            let json_value = parse_cli_args_to_json(params.iter())?;
+            let message = DynamicMessage::deserialize(input, json_value)?;
+            let mut serializer = serde_json::Serializer::new(vec![]);
+            message.serialize_with_options(&mut serializer, &serialize_options)?;
+            let call_json: Value = serde_json::from_slice(serializer.into_inner().as_slice())?;
+
+            let data = TransactionData::Call(ApplicationCall {
                 app_id,
-                args: encoded_call,
+                service: call.service_id(),
+                method: call.method_id(),
+                args: message.encode_to_vec(),
             });
             let signed_tx =
                 make_signed_transaction(signer, nonce, value, tip, Network::Testnet, data)?;
@@ -234,7 +238,7 @@ pub async fn handle_app_command(
             let mut binary = Vec::with_capacity(file.metadata()?.len() as usize);
             let _ = file.read_to_end(&mut binary)?;
             let code_hash = crypto::keccak256(&binary);
-            let data = TransactionData::Create(CreateApplicationTx {
+            let data = TransactionData::Create(CreateApplication {
                 package_name: package_name.to_owned(),
                 binary,
             });
@@ -251,38 +255,57 @@ pub async fn handle_app_command(
                 "tx_hash" : response.get_ref().hash,
             })
         }
-        AppCommands::Query(AppQueryArgs { app, proto, params }) => {
-            let app_id = Some(get_address_from_package_name(app, Network::Testnet)?);
+        AppCommands::Query(AppQueryArgs { app, call, params }) => {
+            let call = RpcMethod::parse(call)?;
+            let app_id = get_address_from_package_name(app, Network::Testnet)?;
 
             let mut rt = rpc_client.runtime_api_service();
             let descriptor = rt
-                .get_descriptor(GetDescriptorRequest { app_id })
+                .get_descriptor(GetDescriptorRequest {
+                    app_id: Some(app_id),
+                })
                 .await?
                 .into_inner()
                 .descriptor;
 
             let descriptor =
                 DescriptorPool::decode(descriptor.as_slice()).expect("failed to descriptor pool");
-            let message_descriptor = descriptor
-                .get_message_by_name(proto.schema.as_str())
-                .expect("message not found in descriptor pool");
+
+            let service = descriptor
+                .get_service_by_name(call.service_name())
+                .expect("service not found in descriptor");
+            let method_to_call = service
+                .methods()
+                .find(|method| method.name() == call.method_name())
+                .expect("method not found in descriptor");
+
             let json_value = parse_cli_args_to_json(params.iter())?;
-            let message = DynamicMessage::deserialize(message_descriptor, json_value)?;
-            let query = message.encode_to_vec();
+            let message_in = DynamicMessage::deserialize_with_options(
+                method_to_call.input(),
+                json_value,
+                &deserialize_options,
+            )?;
+
+            let query = ApplicationCall {
+                app_id,
+                service: call.service_id(),
+                method: call.method_id(),
+                args: message_in.encode_to_vec(),
+            };
 
             let response = rpc_client
                 .runtime_api_service()
-                .query_runtime(Query { app_id, query })
+                .query_runtime(query)
                 .await?;
 
-            let message_descriptor = descriptor
-                .get_message_by_name(response.get_ref().typename.as_str())
-                .expect("message_descriptor not found");
-            let message =
-                DynamicMessage::decode(message_descriptor, response.get_ref().data.as_slice())?;
+            let message_out = DynamicMessage::decode(
+                method_to_call.output(),
+                response.get_ref().data.as_slice(),
+            )?;
 
             let mut serializer = serde_json::Serializer::new(vec![]);
-            message.serialize(&mut serializer)?;
+            message_out.serialize_with_options(&mut serializer, &serialize_options)?;
+
             let out: Value = serde_json::from_reader(serializer.into_inner().as_slice())?;
             out
         }

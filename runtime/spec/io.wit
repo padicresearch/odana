@@ -5,10 +5,10 @@ default world io {
         remove: func(key : list<u8>) -> bool
     }
     import event: interface {
-        emit : func(event : list<u8>)
+        emit : func(event-type: string, event-data : list<u8>)
     }
 
-    import log: interface {
-       print : func(output : string)
+    import logging: interface {
+       log : func(output : string)
     }
 }

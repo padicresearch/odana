@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -18,12 +19,12 @@ use types::prelude::{AppState, TransactionData};
 use types::tx::SignedTransaction;
 use types::Hash;
 
-mod error;
-mod kvdb;
-mod persistent;
-mod schema;
-mod store;
-pub(crate) mod tree;
+pub mod error;
+pub mod kvdb;
+pub mod persistent;
+pub mod schema;
+pub mod store;
+pub mod tree;
 
 const ACCOUNT_DB_NAME: &str = "accs";
 const APPDATA_DB_NAME: &str = "data";
@@ -95,7 +96,7 @@ impl StateDB for State {
     }
 
     fn snapshot(&self) -> Result<Arc<dyn StateDB>> {
-        Ok(self.get_sate_at(H256::from(self.root()))?)
+        Ok(self.get_sate_at(self.root())?)
     }
 
     fn state_at(&self, root: H256) -> Result<Arc<dyn StateDB>> {
@@ -145,6 +146,17 @@ impl StateDB for State {
         self.appsource
             .get(&app_state.code_hash)
             .map(|bins| bins.descriptor)
+    }
+
+    fn set_app_metadata(&self, binary: &[u8], descriptor: Vec<u8>) -> Result<()> {
+        let code_hash = crypto::keccak256(binary);
+        self.appsource.put(
+            code_hash,
+            AppBinaries {
+                binary: binary.to_vec(),
+                descriptor,
+            },
+        )
     }
 }
 
@@ -233,7 +245,7 @@ impl State {
 
                 let code_hash = crypto::keccak256(&arg.binary);
                 let (descriptor, changelist) =
-                    vm.execute_app_create(state_db.clone(), tx.sender(), tx.price(), arg)?;
+                    vm.execute_app_create(state_db, tx.sender(), tx.price(), arg)?;
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);
                 }

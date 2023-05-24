@@ -575,6 +575,28 @@ impl From<Compact> for U256 {
     }
 }
 
+macro_rules! impl_message_ext {
+    ($ident:ident) => {
+        impl prost_extra::MessageExt for $ident {
+            fn full_name() -> &'static str {
+                concat!("odana.primitive_types.", stringify!($ident))
+            }
+        }
+    };
+}
+
+impl_message_ext!(U128);
+impl_message_ext!(U256);
+impl_message_ext!(U512);
+
+impl_message_ext!(Address);
+impl_message_ext!(H128);
+impl_message_ext!(H160);
+impl_message_ext!(H192);
+impl_message_ext!(H256);
+impl_message_ext!(H448);
+impl_message_ext!(H512);
+
 impl Compact {
     pub fn new(u: u32) -> Self {
         Compact(u)

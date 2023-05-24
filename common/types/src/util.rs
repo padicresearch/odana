@@ -62,7 +62,7 @@ impl PackageName {
             bail!("max package name length excceed{MAX_PACKAGE_NAME_LEN} ")
         }
 
-        let parts = s.split(".").collect::<Vec<_>>();
+        let parts = s.split('.').collect::<Vec<_>>();
 
         if parts.len() < 3 || parts.len() > 8 {
             bail!("Package name must have at least 3 parts and at most 8 parts")
@@ -95,7 +95,7 @@ impl PackageName {
             return false;
         }
 
-        let parts = s.split(".").collect::<Vec<_>>();
+        let parts = s.split('.').collect::<Vec<_>>();
 
         if parts.len() < 3 || parts.len() > 8 {
             return false;

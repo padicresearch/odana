@@ -1,0 +1,15 @@
+default world system {
+   import syscall: interface {
+       block-hash : func(level : u32) -> list<u8>
+       address-from-pk : func(pk : list<u8>) -> list<u8>
+       generate-keypair : func() -> tuple<list<u8>,list<u8>>
+       generate-native-address : func(seed : list<u8>) -> list<u8>
+       sign : func(sk : list<u8>, msg : list<u8>) -> list<u8>
+       transfer : func(to : list<u8>, amount : u64) -> bool
+       reserve : func(amount : u64) -> bool
+       unreserve : func(amount : u64) -> bool
+       get-free-balance : func(address : list<u8>) -> u64
+       get-nonce : func(address : list<u8>) -> u64
+       get-reserve-balance : func(address : list<u8>) -> u64
+   }
+}

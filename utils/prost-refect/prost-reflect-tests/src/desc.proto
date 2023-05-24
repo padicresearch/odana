@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package my.package;
+
+message MyMessage {
+  oneof my_oneof {
+    int32 my_field = 1;
+  }
+
+  reserved 2, 15, 9 to 11;
+  reserved "foo", "bar";
+
+  message MyNestedMessage {}
+  enum MyNestedEnum {
+    MY_VALUE = 0;
+  }
+}
+
+enum MyEnum {
+  MY_VALUE = 0;
+
+  reserved -2, 15, 9 to 11;
+  reserved "FOO", "BAR";
+}
+
+service MyService {
+  rpc MyMethod(MyMessage) returns (MyMessage);
+}

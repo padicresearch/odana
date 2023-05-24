@@ -1,11 +1,14 @@
 syntax = "proto3";
 import "primitive_types.proto";
+import "types.proto";
 
 package rpc;
 
 message Query {
   odana.primitive_types.Address app_id = 1;
-  bytes query = 2;
+  uint64 service = 2;
+  uint64 method = 3;
+  bytes query = 4;
 }
 
 message GetDescriptorRequest {
@@ -21,12 +24,11 @@ message QueryStorage {
   bytes storage_key = 2;
 }
 message QueryResponse {
-  string typename = 1;
   bytes data = 2;
 }
 
 service RuntimeApiService {
-  rpc QueryRuntime(Query) returns (QueryResponse);
+  rpc QueryRuntime(odana.types.ApplicationCall) returns (QueryResponse);
   rpc QueryRuntimeStorage(QueryStorage) returns (QueryResponse);
   rpc GetDescriptor(GetDescriptorRequest) returns (GetDescriptorResponse);
 }
