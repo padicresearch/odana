@@ -21,7 +21,7 @@ use primitive_types::address::Address;
 use primitive_types::H256;
 
 #[derive(Encode, Decode, Clone, Debug)]
-pub struct AppBinaries {
+pub struct AppMetadata {
     pub binary: Vec<u8>,
     pub descriptor: Vec<u8>,
 }
@@ -43,13 +43,13 @@ impl Decodable for AppStateKey {
     }
 }
 
-impl Encodable for AppBinaries {
+impl Encodable for AppMetadata {
     fn encode(&self) -> anyhow::Result<Vec<u8>> {
         bincode::encode_to_vec(self, codec::config()).map_err(|e| anyhow!(e))
     }
 }
 
-impl Decodable for AppBinaries {
+impl Decodable for AppMetadata {
     fn decode(buf: &[u8]) -> anyhow::Result<Self> {
         bincode::decode_from_slice(buf, codec::config())
             .map(|(out, _)| out)

@@ -1,6 +1,7 @@
 syntax = "proto3";
 import "types.proto";
 import "primitive_types.proto";
+import "google/protobuf/empty.proto";
 
 package rpc;
 
@@ -39,10 +40,10 @@ message ChainInfo {
 }
 
 service ChainService {
-  rpc CurrentHead(odana.types.Empty) returns (CurrentHeadResponse);
-  rpc BlockLevel(odana.types.Empty) returns (GetBlockNumberResponse);
+  rpc CurrentHead(google.protobuf.Empty) returns (CurrentHeadResponse);
+  rpc BlockLevel(google.protobuf.Empty) returns (GetBlockNumberResponse);
   rpc GetBlockByHash (GetBlockByHashRequest) returns (odana.types.Block);
   rpc GetBlockByLevel (GetBlockByLevelRequest) returns (odana.types.Block);
   rpc GetBlocks (GetBlocksRequest) returns (GetBlocksResponse);
-  rpc GetBlockchainInfo (odana.types.Empty) returns (ChainInfo);
+  rpc GetBlockchainInfo (google.protobuf.Empty) returns (ChainInfo);
 }

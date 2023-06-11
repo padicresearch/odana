@@ -9,7 +9,6 @@ use crate::rpc::{
 };
 use traits::Blockchain;
 use types::block::Block;
-use types::prelude::Empty;
 
 pub(crate) struct ChainServiceImpl {
     blockchain: Arc<dyn Blockchain>,
@@ -23,10 +22,7 @@ impl ChainServiceImpl {
 
 #[tonic::async_trait]
 impl ChainService for ChainServiceImpl {
-    async fn current_head(
-        &self,
-        _: Request<Empty>,
-    ) -> Result<Response<CurrentHeadResponse>, Status> {
+    async fn current_head(&self, _: Request<()>) -> Result<Response<CurrentHeadResponse>, Status> {
         let indexed_blockheader = self
             .blockchain
             .current_header()
@@ -44,7 +40,7 @@ impl ChainService for ChainServiceImpl {
 
     async fn block_level(
         &self,
-        request: Request<Empty>,
+        request: Request<()>,
     ) -> Result<Response<GetBlockNumberResponse>, Status> {
         let ch = self.current_head(request).await?;
         let inner = ch.into_inner();
@@ -91,7 +87,7 @@ impl ChainService for ChainServiceImpl {
 
     async fn get_blockchain_info(
         &self,
-        request: Request<Empty>,
+        request: Request<()>,
     ) -> Result<Response<ChainInfo>, Status> {
         let current_head = self.current_head(request).await?;
         let current_head = current_head.get_ref().header.unwrap();

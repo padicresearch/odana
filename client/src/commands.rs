@@ -17,7 +17,6 @@ use std::str::FromStr;
 use transaction::{make_payment_sign_transaction, make_signed_transaction};
 use types::account::{get_address_from_package_name, get_address_from_secret_key};
 use types::network::Network;
-use types::prelude::Empty;
 use types::tx::{ApplicationCall, CreateApplication, TransactionData};
 
 #[derive(Args, Debug)]
@@ -386,7 +385,7 @@ pub async fn handle_client_command(command: &ClientArgsCommands) -> anyhow::Resu
         ClientCommands::GetTxpool => {
             let txpool_content = rpc_client
                 .transaction_service()
-                .get_txpool_content(Empty)
+                .get_txpool_content(())
                 .await?;
 
             let queued_txs: HashMap<_, _> = txpool_content

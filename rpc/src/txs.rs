@@ -15,7 +15,6 @@ use txpool::TxPool;
 use types::account::get_address_from_secret_key;
 use types::events::LocalEventMessage;
 use types::network::Network;
-use types::prelude::Empty;
 use types::tx::SignedTransaction;
 
 pub(crate) struct TransactionsServiceImpl {
@@ -135,7 +134,7 @@ impl TransactionsService for TransactionsServiceImpl {
 
     async fn get_pending_transactions(
         &self,
-        _: Request<Empty>,
+        _: Request<()>,
     ) -> Result<Response<PendingTransactionsResponse>, Status> {
         let txpool = self.txpool.read().map_err(|_| Status::internal(""))?;
         let pending: Vec<_> = txpool
@@ -151,7 +150,7 @@ impl TransactionsService for TransactionsServiceImpl {
 
     async fn get_txpool_content(
         &self,
-        _: Request<Empty>,
+        _: Request<()>,
     ) -> Result<Response<TxpoolContentResponse>, Status> {
         let txpool = self.txpool.read().map_err(|_| Status::internal(""))?;
         let content = txpool.content();
