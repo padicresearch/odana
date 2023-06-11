@@ -109,9 +109,6 @@ impl ChainState {
                 let (descriptor, changelist) =
                     vm.create_application(state.clone(), ROOT, app_address, 0, binary)?;
                 let code_hash = crypto::keccak256(binary);
-                dbg!(&changelist.account_changes);
-                println!("registered app {} at {}", pkn, app_address);
-                dbg!(&changelist.storage.root());
 
                 for (addr, state) in changelist.account_changes {
                     states.insert(addr, state);

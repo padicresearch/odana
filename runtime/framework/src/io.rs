@@ -2,6 +2,7 @@ mod internal {
     include!(concat!(env!("OUT_DIR"), "/io.rs"));
 }
 
+use core::marker::PhantomData;
 use anyhow::{bail, Result};
 use blake2b_simd::Params;
 use primitive_types::H256;
@@ -60,24 +61,31 @@ pub struct RawStorage;
 
 impl StorageApi for RawStorage {}
 
-pub trait StorageMap<H, K, V>
+pub trait StorageKeyPrefix {
+    fn key_prefix() -> &'static [u8];
+}
+
+pub struct StorageMap<Prefix, H: StorageKeyHasher, K: prost::Message + Default, V: prost::Message + Default> {
+    inner : PhantomData<(Prefix,H, K, V)>
+}
+
+impl<Prefix, H, K, V> StorageMap<Prefix, H, K, V>
 where
+    Prefix: StorageKeyPrefix,
     H: StorageKeyHasher,
     K: prost::Message + Default,
     V: prost::Message + Default,
 {
-    fn storage_prefix() -> &'static [u8];
-
-    fn put(key: K, value: V) {
-        let prefix = Self::storage_prefix();
+    pub fn put(key: K, value: V) {
+        let prefix = Prefix::key_prefix();
         let key = key.encode_to_vec();
         let value = value.encode_to_vec();
         let storage_key = [prefix, key.as_slice()].concat();
         internal::storage::insert(&H::hash(storage_key.as_slice()), value.as_slice())
     }
 
-    fn get(key: K) -> Result<Option<V>> {
-        let prefix = Self::storage_prefix();
+    pub fn get(key: K) -> Result<Option<V>> {
+        let prefix = Prefix::key_prefix();
         let key = key.encode_to_vec();
         let storage_key = [prefix, key.as_slice()].concat();
         let storage_key = H::hash(storage_key.as_slice());
@@ -91,7 +99,7 @@ where
         Ok(Some(value))
     }
 
-    fn contains(key: K) -> bool {
+    pub fn contains(key: K) -> bool {
         if let Ok(res) = Self::get(key) {
             return res.is_some();
         }
@@ -99,7 +107,7 @@ where
     }
 
     fn remove(key: K) -> Result<()> {
-        let prefix = Self::storage_prefix();
+        let prefix = Prefix::key_prefix();
         let key = key.encode_to_vec();
         let storage_key = [prefix, key.as_slice()].concat();
         if !internal::storage::remove(&H::hash(storage_key.as_slice())) {
@@ -109,21 +117,24 @@ where
     }
 }
 
-pub trait StorageValue<H, V>
-where
-    H: StorageKeyHasher,
-    V: prost::Message + Default,
-{
-    fn storage_prefix() -> &'static [u8];
+pub struct StorageValue<Prefix, H: StorageKeyHasher, V: prost::Message + Default> {
+    inner : PhantomData<(Prefix,H, V)>
+}
 
+impl<Prefix, H, V> StorageValue<Prefix, H, V>
+    where
+        Prefix: StorageKeyPrefix,
+        H: StorageKeyHasher,
+        V: prost::Message + Default,
+{
     fn set(value: V) {
-        let prefix = Self::storage_prefix();
+        let prefix = Prefix::key_prefix();
         let value = value.encode_to_vec();
         internal::storage::insert(&H::hash(prefix), value.as_slice())
     }
 
     fn get() -> Result<V> {
-        let prefix = Self::storage_prefix();
+        let prefix = Prefix::key_prefix();
         let storage_key = H::hash(prefix);
         let Some(raw_value) = internal::storage::get(storage_key.as_ref()) else {
             bail!("value not found")

@@ -1,6 +1,7 @@
 syntax = "proto3";
 import "types.proto";
 import "primitive_types.proto";
+import "google/protobuf/empty.proto";
 
 package rpc;
 
@@ -44,6 +45,6 @@ service TransactionsService {
   rpc SignSendTransaction(UnsignedTransactionRequest) returns (SignedTransactionResponse);
   rpc SendTransaction(odana.types.SignedTransaction) returns (TransactionHash);
   rpc GetTransactionStatus(TransactionHashes) returns (GetTransactionStatusResponse);
-  rpc GetPendingTransactions(odana.types.Empty) returns (PendingTransactionsResponse);
-  rpc GetTxpoolContent(odana.types.Empty) returns (TxpoolContentResponse);
+  rpc GetPendingTransactions(google.protobuf.Empty) returns (PendingTransactionsResponse);
+  rpc GetTxpoolContent(google.protobuf.Empty) returns (TxpoolContentResponse);
 }

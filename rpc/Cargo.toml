@@ -23,6 +23,7 @@ txpool = { path = "../txpool" }
 tracing =  { workspace = true }
 hex = { path = "../common/hex" }
 transaction = { path = "../transaction" }
+prost-types = { version = "0.11.0" }
 
 [build-dependencies]
 tonic-build = "0.8.0"

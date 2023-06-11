@@ -1,7 +1,6 @@
 syntax = "proto3";
 import "primitive_types.proto";
 package odana.types;
-message Empty {}
 
 message BlockHeader {
   odana.primitive_types.H256 parent_hash = 1;

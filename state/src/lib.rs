@@ -14,7 +14,7 @@ use smt::SparseMerkleTree;
 use traits::{StateDB, WasmVMInstance};
 use transaction::{NoncePricedTransaction, TransactionsByNonceAndPrice};
 use types::account::AccountState;
-use types::app::{AppBinaries, AppStateKey};
+use types::app::{AppMetadata, AppStateKey};
 use types::prelude::{AppState, TransactionData};
 use types::tx::SignedTransaction;
 use types::Hash;
@@ -26,15 +26,15 @@ pub mod schema;
 pub mod store;
 pub mod tree;
 
-const ACCOUNT_DB_NAME: &str = "accs";
-const APPDATA_DB_NAME: &str = "data";
-const BINDATA_DB_NAME: &str = "bins";
+const ACCOUNT_DB_NAME: &str = "accounts";
+const APPDATA_DB_NAME: &str = "appdata";
+const METADATA_DB_NAME: &str = "metadata";
 
 #[derive(Clone)]
 pub struct State {
     trie: Arc<TreeDB<Address, AccountState>>,
     appdata: Arc<KvDB<AppStateKey, SparseMerkleTree>>,
-    appsource: Arc<KvDB<H256, AppBinaries>>,
+    metadata: Arc<KvDB<H256, AppMetadata>>,
     path: PathBuf,
     read_only: bool,
 }
@@ -130,7 +130,7 @@ impl StateDB for State {
         let Some(app_state) = account.app_state else {
             bail!("address is not an application address")
         };
-        self.appsource
+        self.metadata
             .get(&app_state.code_hash)
             .map(|bins| bins.binary)
     }
@@ -143,16 +143,16 @@ impl StateDB for State {
         let Some(app_state) = account.app_state else {
             bail!("address is not an application address")
         };
-        self.appsource
+        self.metadata
             .get(&app_state.code_hash)
             .map(|bins| bins.descriptor)
     }
 
     fn set_app_metadata(&self, binary: &[u8], descriptor: Vec<u8>) -> Result<()> {
         let code_hash = crypto::keccak256(binary);
-        self.appsource.put(
+        self.metadata.put(
             code_hash,
-            AppBinaries {
+            AppMetadata {
                 binary: binary.to_vec(),
                 descriptor,
             },
@@ -164,11 +164,11 @@ impl State {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let trie = TreeDB::open(path.as_ref().join(ACCOUNT_DB_NAME).as_path())?;
         let appdata = KvDB::open(path.as_ref().join(APPDATA_DB_NAME).as_path())?;
-        let appsource = KvDB::open(path.as_ref().join(BINDATA_DB_NAME).as_path())?;
+        let metadata = KvDB::open(path.as_ref().join(METADATA_DB_NAME).as_path())?;
         Ok(Self {
             trie: Arc::new(trie),
             appdata: Arc::new(appdata),
-            appsource: Arc::new(appsource),
+            metadata: Arc::new(metadata),
             path: path.as_ref().to_path_buf(),
             read_only: false,
         })
@@ -258,9 +258,9 @@ impl State {
                     tx.from(),
                     1,
                 ));
-                self.appsource.put(
+                self.metadata.put(
                     code_hash,
-                    AppBinaries {
+                    AppMetadata {
                         binary: arg.binary.clone(),
                         descriptor,
                     },
@@ -384,11 +384,11 @@ impl State {
         let trie =
             TreeDB::open_read_only_at_root(self.path.join(ACCOUNT_DB_NAME).as_path(), &root)?;
         let appdata = KvDB::open_read_only_at_root(self.path.join(APPDATA_DB_NAME).as_path())?;
-        let appsource = KvDB::open_read_only_at_root(self.path.join(BINDATA_DB_NAME).as_path())?;
+        let appsource = KvDB::open_read_only_at_root(self.path.join(METADATA_DB_NAME).as_path())?;
         Ok(Arc::new(State {
             trie: Arc::new(trie),
             appdata: Arc::new(appdata),
-            appsource: Arc::new(appsource),
+            metadata: Arc::new(appsource),
             path: self.path.clone(),
             read_only: true,
         }))

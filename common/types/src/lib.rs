@@ -163,45 +163,4 @@ pub mod prelude {
     pub use crate::network::*;
     pub use crate::tx::*;
     pub use crate::Addressing;
-
-    #[derive(Clone, PartialEq, Eq)]
-    pub struct Empty;
-
-    impl ::prost::Message for Empty {
-        #[allow(unused_variables)]
-        fn encode_raw<B>(&self, buf: &mut B)
-        where
-            B: bytes::BufMut,
-        {
-        }
-        #[allow(unused_variables)]
-        fn merge_field<B>(
-            &mut self,
-            tag: u32,
-            wire_type: ::prost::encoding::WireType,
-            buf: &mut B,
-            ctx: ::prost::encoding::DecodeContext,
-        ) -> Result<(), prost::DecodeError>
-        where
-            B: ::prost::bytes::Buf,
-        {
-            ::prost::encoding::skip_field(wire_type, tag, buf, ctx)
-        }
-        #[inline]
-        fn encoded_len(&self) -> usize {
-            0
-        }
-        fn clear(&mut self) {}
-    }
-    impl Default for Empty {
-        fn default() -> Self {
-            Empty
-        }
-    }
-    impl core::fmt::Debug for Empty {
-        fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-            let mut builder = f.debug_struct(stringify!(Empty));
-            builder.finish()
-        }
-    }
 }
