@@ -29,7 +29,7 @@ pub fn is_namespace_registered(
     let app_id = get_address_from_package_name("network.odax.nameregistry", tx.network())?;
 
     let descriptor = prost_reflect::DescriptorPool::decode(
-        namespace_registry::app::PackageNameRegistry::descriptor(),
+        namespace_registry::PackageNameRegistry::descriptor(),
     )?;
 
     let Some(service) = descriptor.get_service_by_name("service.Registry") else {
@@ -73,7 +73,7 @@ pub fn register_namespace(
     let app_id = get_address_from_package_name("network.odax.nameregistry", tx.network())?;
 
     let descriptor = prost_reflect::DescriptorPool::decode(
-        namespace_registry::app::PackageNameRegistry::descriptor(),
+        namespace_registry::PackageNameRegistry::descriptor(),
     )?;
 
     let Some(service) = descriptor.get_service_by_name("service.Registry") else {

@@ -13,7 +13,6 @@ use crate::constants::ADMIN;
 use crate::genesis::restricted_namespaces;
 use crate::service::{GetNamespaceRequest, NameSpaceRegistered, Namespace, OwnerChanged};
 use crate::util::decode_namespace;
-use once_cell::sync::OnceCell;
 use primitive_types::{Address, H256};
 use rune_framework::export_app;
 use rune_framework::prelude::*;
@@ -22,7 +21,7 @@ use service::registry::{RegistryInstance, RegistryService};
 pub struct Registry;
 
 #[rune::storage_map]
-pub type RegisteredNameSpaces = StorageMap<_,Blake2bHasher, H256, Address>;
+pub type RegisteredNameSpaces = StorageMap<_, Blake2bHasher, H256, Address>;
 
 impl RegistryService for Registry {
     fn register(call: Call<Namespace>) -> anyhow::Result<NameSpaceRegistered> {

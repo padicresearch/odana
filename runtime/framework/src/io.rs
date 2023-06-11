@@ -2,9 +2,9 @@ mod internal {
     include!(concat!(env!("OUT_DIR"), "/io.rs"));
 }
 
-use core::marker::PhantomData;
 use anyhow::{bail, Result};
 use blake2b_simd::Params;
+use core::marker::PhantomData;
 use primitive_types::H256;
 use sha3::Digest;
 use xxhash_rust::const_xxh3::{xxh3_128, xxh3_64};
@@ -65,8 +65,13 @@ pub trait StorageKeyPrefix {
     fn key_prefix() -> &'static [u8];
 }
 
-pub struct StorageMap<Prefix, H: StorageKeyHasher, K: prost::Message + Default, V: prost::Message + Default> {
-    inner : PhantomData<(Prefix,H, K, V)>
+pub struct StorageMap<
+    Prefix,
+    H: StorageKeyHasher,
+    K: prost::Message + Default,
+    V: prost::Message + Default,
+> {
+    inner: PhantomData<(Prefix, H, K, V)>,
 }
 
 impl<Prefix, H, K, V> StorageMap<Prefix, H, K, V>
@@ -106,7 +111,7 @@ where
         false
     }
 
-    fn remove(key: K) -> Result<()> {
+    pub fn remove(key: K) -> Result<()> {
         let prefix = Prefix::key_prefix();
         let key = key.encode_to_vec();
         let storage_key = [prefix, key.as_slice()].concat();
@@ -118,22 +123,22 @@ where
 }
 
 pub struct StorageValue<Prefix, H: StorageKeyHasher, V: prost::Message + Default> {
-    inner : PhantomData<(Prefix,H, V)>
+    inner: PhantomData<(Prefix, H, V)>,
 }
 
 impl<Prefix, H, V> StorageValue<Prefix, H, V>
-    where
-        Prefix: StorageKeyPrefix,
-        H: StorageKeyHasher,
-        V: prost::Message + Default,
+where
+    Prefix: StorageKeyPrefix,
+    H: StorageKeyHasher,
+    V: prost::Message + Default,
 {
-    fn set(value: V) {
+    pub fn set(value: V) {
         let prefix = Prefix::key_prefix();
         let value = value.encode_to_vec();
         internal::storage::insert(&H::hash(prefix), value.as_slice())
     }
 
-    fn get() -> Result<V> {
+    pub fn get() -> Result<V> {
         let prefix = Prefix::key_prefix();
         let storage_key = H::hash(prefix);
         let Some(raw_value) = internal::storage::get(storage_key.as_ref()) else {

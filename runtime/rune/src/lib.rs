@@ -1,13 +1,11 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use proc_macro2::Span;
 use quote::{format_ident, quote};
-use syn::spanned::Spanned;
 use syn::{
-    parse_macro_input, Attribute, AttributeArgs, DeriveInput, ItemType, Lit, Meta, NestedMeta, Path,
+    parse_macro_input, GenericArgument, Ident, Item, ItemType, Path, PathArguments, PathSegment,
+    Type, TypePath,
 };
-use syn::{GenericArgument, Ident, Item, PathArguments, PathSegment, Type, TypePath};
 
 fn get_module_path(visibility: &syn::Visibility) -> String {
     match visibility {
@@ -31,7 +29,8 @@ pub fn storage_map(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let storage_key_prefix_ident = format_ident!("{}StorageKeyPrefix", ident);
 
         //Extract the generics from the original type
-        let (replace_first_generic, generics) = extract_generics(&type_item, &storage_key_prefix_ident);
+        let (replace_first_generic, generics) =
+            extract_generics(&type_item, &storage_key_prefix_ident);
 
         // Only generate the new struct and the redefinition if the first generic is an underscore
         if replace_first_generic {
@@ -69,7 +68,8 @@ pub fn storage_value(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let storage_key_prefix_ident = format_ident!("{}StorageKeyPrefix", ident);
 
         //Extract the generics from the original type
-        let (replace_first_generic, generics) = extract_generics(&type_item, &storage_key_prefix_ident);
+        let (replace_first_generic, generics) =
+            extract_generics(&type_item, &storage_key_prefix_ident);
 
         // Only generate the new struct and the redefinition if the first generic is an underscore
         if replace_first_generic {
@@ -97,38 +97,39 @@ pub fn storage_value(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 }
 
-
-
-fn extract_generics(type_item: &ItemType, storage_key_prefix_ident: &Ident) -> (bool, Vec<GenericArgument>) {
-    let (replace_first_generic, generics) =
-        if let Type::Path(TypePath { path, .. }) = &*type_item.ty {
-            if let Some(seg) = path.segments.last() {
-                if let PathArguments::AngleBracketed(ref args) = seg.arguments {
-                    let mut generics = args.args.iter().cloned().collect::<Vec<_>>();
-                    let replace_first_generic =
-                        matches!(generics.get(0), Some(GenericArgument::Type(Type::Infer(_))));
-                    if replace_first_generic {
-                        let path = Path {
-                            leading_colon: None,
-                            segments: vec![PathSegment {
-                                ident: storage_key_prefix_ident.clone(),
-                                arguments: PathArguments::None,
-                            }]
-                                .into_iter()
-                                .collect(),
-                        };
-                        generics[0] =
-                            GenericArgument::Type(Type::Path(TypePath { qself: None, path }));
-                    }
-                    (replace_first_generic, generics)
-                } else {
-                    (false, vec![])
+fn extract_generics(
+    type_item: &ItemType,
+    storage_key_prefix_ident: &Ident,
+) -> (bool, Vec<GenericArgument>) {
+    let (replace_first_generic, generics) = if let Type::Path(TypePath { path, .. }) =
+        &*type_item.ty
+    {
+        if let Some(seg) = path.segments.last() {
+            if let PathArguments::AngleBracketed(ref args) = seg.arguments {
+                let mut generics = args.args.iter().cloned().collect::<Vec<_>>();
+                let replace_first_generic =
+                    matches!(generics.get(0), Some(GenericArgument::Type(Type::Infer(_))));
+                if replace_first_generic {
+                    let path = Path {
+                        leading_colon: None,
+                        segments: vec![PathSegment {
+                            ident: storage_key_prefix_ident.clone(),
+                            arguments: PathArguments::None,
+                        }]
+                        .into_iter()
+                        .collect(),
+                    };
+                    generics[0] = GenericArgument::Type(Type::Path(TypePath { qself: None, path }));
                 }
+                (replace_first_generic, generics)
             } else {
                 (false, vec![])
             }
         } else {
             (false, vec![])
-        };
+        }
+    } else {
+        (false, vec![])
+    };
     (replace_first_generic, generics)
 }
